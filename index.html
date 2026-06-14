@@ -1024,7 +1024,7 @@
 </div>
 
 <!-- 日本語形態素解析（漢字→正しい読み）用ライブラリ -->
-<script defer src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+<!-- kuromoji(漢字読み)は一時無効化：確実な読み込みを最優先 -->
 <script>
 // =================== CHARACTER SVGs ===================
 const CHARS = {
@@ -4463,30 +4463,15 @@ function initKeyboard(){
 }
 
 
-window.addEventListener('load', function(){ setTimeout(function(){ try{ initKuromoji(); }catch(e){} }, 1200); });
 init();
 </script>
 <script src="cloud-sync.js" defer></script>
 <script>
-/* PWA: Service Worker 登録＋更新通知 */
-if('serviceWorker' in navigator){ window.addEventListener('load', function(){
-  navigator.serviceWorker.register('./sw.js').then(function(reg){
-    reg.addEventListener('updatefound', function(){ var nw=reg.installing; if(!nw) return;
-      nw.addEventListener('statechange', function(){
-        if(nw.state==='installed' && navigator.serviceWorker.controller){
-          var w=reg.waiting||nw, b=document.createElement('div'); b.id='pwa-update';
-          b.style.cssText='position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:99999;background:#0891b2;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-weight:700;display:flex;gap:10px;align-items:center';
-          b.innerHTML='\u2728 \u65b0\u3057\u3044\u30d0\u30fc\u30b8\u30e7\u30f3\u304c\u3042\u308a\u307e\u3059 <button style="background:#fff;color:#0891b2;border:none;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer">\u66f4\u65b0</button>';
-          b.querySelector('button').onclick=function(){ if(w) w.postMessage('skipWaiting'); };
-          document.body.appendChild(b);
-        }
-      });
-    });
-  }).catch(function(){});
-  var hadController = !!navigator.serviceWorker.controller;
-  var refreshing=false;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ if(!hadController) return; if(refreshing) return; refreshing=true; location.reload(); });
-});}
+/* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
+(function(){ try{
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }).catch(function(){}); }
+  if (window.caches && caches.keys) { caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }).catch(function(){}); }
+}catch(e){} })();
 </script>
 </body>
 </html>

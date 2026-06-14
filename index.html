@@ -1948,34 +1948,8 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 // Called when user taps the start button (after user gesture = audio allowed)
 async function startApp() {
   unlockSpeech(); // タップの瞬間に内蔵音声を解除（iOS/Safari対策）
-  document.getElementById('start-overlay').style.display = 'none';
-
-  // --- ミミ学園長（案内役） ---
-  setCharacter('owl', false);
-  setLunaText('ようこそ、千咲さん！わたしはミミ学園長🦉 動物の先生たちと、楽しく学んでいこうね。');
-  await Promise.all([ speakAndWait('ようこそ、千咲さん。わたしはミミ学園長。動物の先生たちと、楽しく学んでいこうね。'), sleep(2200) ]);
-  await sleep(300);
-
-  // --- コタロウ（数学） ---
-  setCharacter('shiba');
-  await sleep(400);
-  setLunaText('やあ千咲さん！数学担当の柴犬コタロウだ🐕 いっしょにがんばろう！');
-  await Promise.all([ speakAndWait('やあ千咲さん。数学担当の柴犬コタロウだ。いっしょにがんばろう！'), sleep(2200) ]);
-  await sleep(300);
-
-  // --- ゴウ教官（鬼コーチ） ---
-  setCharacter('tiger');
-  await sleep(400);
-  setLunaText('わしはゴウ教官🐯 むずかしい問題や試験ではわしが鍛える。間違えても、何度でも立ち向かえ！');
-  await Promise.all([ speakAndWait('わしはゴウ教官。むずかしい問題や試験ではわしが鍛える。間違えても、何度でも立ち向かえ！'), sleep(2500) ]);
-  await sleep(300);
-
-  // --- 学園長に戻る ---
-  setCharacter('owl');
-  await sleep(400);
-  showSubjectSelect();
-  setLunaText('さあ、準備はいい？まずは教科をえらんでね。練習でじっくり、試験で力だめし！');
-  speak('さあ、準備はいい？まずは教科をえらんでね。練習でじっくり、試験で力だめし！');
+  var so=document.getElementById('start-overlay'); if(so) so.style.display='none';
+  muShowPicker(); // まずユーザー選択画面
 }
 
 // =================== SETTINGS MODAL ===================
@@ -2095,16 +2069,39 @@ function renderUserSelect(){
 }
 function muPickUser(id){
   try{ sessionStorage.setItem('mu_enter','1'); }catch(e){}
-  if(id!==muCurrentId()){ muSetCurrent(id); return; } // reload
+  _rawSet('mu_current', id);
+  muLoadUserData();
   var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='none';
-  muUpdateHeader();
+  muGreetAndEnter();
 }
 function muShowPicker(){ renderUserSelect(); var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='flex'; }
+function muApplyGradeLabels(){ try{ var m=AREAS.find(function(x){return x.key==='math';}); if(m){ m.name=(muGradeBand()==='elem')?'算数':'数学'; } }catch(e){} }
 function muBoot(){
-  muUpdateHeader();
-  var ov=document.getElementById('user-select-overlay'); if(!ov) return;
-  var entered=false; try{ entered=sessionStorage.getItem('mu_enter')==='1'; }catch(e){}
-  if(entered){ ov.style.display='none'; } else { renderUserSelect(); ov.style.display='flex'; }
+  muApplyGradeLabels(); muUpdateHeader();
+  var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='none';
+}
+function muLoadUserData(){
+  try{
+    totalCorrect=parseInt(safeLS.getItem('c_correct')||'0')||0;
+    totalStreak=parseInt(safeLS.getItem('c_streak')||'0')||0;
+    totalPoints=parseInt(safeLS.getItem('c_points')||'0')||0;
+    bestStreak=parseInt(safeLS.getItem('c_beststreak')||'0')||0;
+    totalAnswered=parseInt(safeLS.getItem('c_answered')||'0')||0;
+    totalSeconds=parseInt(safeLS.getItem('c_seconds')||'0')||0;
+  }catch(e){}
+  muApplyGradeLabels(); muUpdateHeader();
+  try{ updateScoreBar(); }catch(e){}
+  try{ renderDailyRing(); }catch(e){}
+  try{ updateNbBadge(); }catch(e){}
+  try{ renderAreaGrid(); }catch(e){}
+}
+function muGreetAndEnter(){
+  setCharacter('owl', false);
+  var u=muCurrentUser(); var nm=u?u.name:'';
+  var msg=nm+'さん、こんにちは！🦉 きょうもいっしょにがんばろう。まずは教科をえらんでね。';
+  showSubjectSelect();
+  setLunaText(msg);
+  try{ speak(msg); }catch(e){}
 }
 // 管理者用ユーザー管理
 var MU_CHARS=['shiba','cat','rabbit','fox','bear','owl','panda','dolphin','penguin','tiger'];

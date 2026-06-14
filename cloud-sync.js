@@ -17,7 +17,7 @@ window.FIREBASE_CONFIG = {
   function rget(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function rset(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
   function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
-  var SHARED = ['mu_users','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','el_api_key','testdate','reward'];
+  var SHARED = ['mu_users','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_api_key','testdate','reward'];
   function isSyncKey(k){ if(!k) return false; if(k.indexOf('u:')===0) return true; return SHARED.indexOf(k)>=0; }
   function isArr(k){ return /:(study_log|mistake_notebook|careless_log)$/.test(k); }
   function isCounter(k){ return /:(c_correct|c_streak|c_points|c_beststreak|c_answered|c_seconds|study_seconds)$/.test(k); }

@@ -1,6 +1,8 @@
-/* ===== クラウド同期（Firebase Firestore・マルチユーザー対応）=====
+/* ===== クラウド同期（Firebase Firestore・マルチユーザー対応／リアルタイム）=====
    家族で1つの「家族コード」を共有すると、全端末で各ユーザーの学習データが同期されます。
-   設定（⚙️）→「☁️ クラウド同期（家族コード）」から設定してください。 */
+   設定（⚙️）→「☁️ クラウド同期（家族コード）」から設定してください。
+   ※他端末の変更を onSnapshot で自動受信。使用の邪魔をしないよう、
+     画面が前面で操作中のときは即リロードせず、戻ってきた／前面から外れた時に反映します。 */
 window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyBJetxpDy9MBqIbKyBshm8UznwoEHKh_Qg",
   authDomain: "study-app-48c8f.firebaseapp.com",
@@ -32,27 +34,41 @@ window.FIREBASE_CONFIG = {
     });
     return changed;
   }
-  var db=null, fam=null, pullDone=false, saveT=null;
+  var db=null, fam=null, pullDone=false, saveT=null, firstSync=false, pendingReload=false, unsub=null;
   function famCode(){ return (rget('mu_family')||'').trim(); }
   function docRef(){ return db.collection('families').doc(fam); }
   function doSave(){ if(!db||!fam) return; docRef().set({ data:snapshot(), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){}); }
   function scheduleSave(){ if(!pullDone) return; clearTimeout(saveT); saveT=setTimeout(doSave,1500); }
-  function pull(){ return docRef().get().then(function(d){
-      var changed = d.exists ? applyCloud((d.data()||{}).data||{}) : false; pullDone=true;
-      if(changed && !sessionStorage.getItem('mu_synced')){ sessionStorage.setItem('mu_synced','1'); location.reload(); }
-      else { doSave(); }
-    }).catch(function(e){ pullDone=true; });
+  function reflect(changed){
+    if(!changed) return;
+    if(document.visibilityState!=='visible'){ pendingReload=true; return; }
+    if(!sessionStorage.getItem('mu_synced')){ sessionStorage.setItem('mu_synced','1'); location.reload(); return; }
+    pendingReload=true;
+  }
+  function listen(){
+    try{
+      unsub = docRef().onSnapshot({ includeMetadataChanges:false }, function(d){
+        if(d.metadata && d.metadata.hasPendingWrites){ return; }
+        var changed = d.exists ? applyCloud(((d.data()||{}).data)||{}) : false;
+        pullDone = true;
+        if(!firstSync){ firstSync=true; doSave(); }
+        reflect(changed);
+      }, function(e){ pullDone=true; });
+    }catch(e){ pullDone=true; }
   }
   var _set = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function(k,v){ _set(k,v); if(pullDone && isSyncKey(k)) scheduleSave(); };
-  window.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden') doSave(); });
+  window.addEventListener('visibilitychange', function(){
+    if(document.visibilityState==='hidden'){ doSave(); }
+    else if(pendingReload){ pendingReload=false; location.reload(); }
+  });
   function start(){
     if(!famCode()){ return; }
     fam = famCode();
     firebase.auth().signInAnonymously().then(function(){
       db = firebase.firestore();
       try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
-      pull();
+      listen();
     }).catch(function(e){});
   }
   window.cloudFamilySet = function(){
@@ -61,7 +77,7 @@ window.FIREBASE_CONFIG = {
     rset('mu_family', c); try{ sessionStorage.removeItem('mu_synced'); }catch(e){}
     alert('家族コードを設定しました。クラウド同期を開始します。'); location.reload();
   };
-  window.cloudFamilyClear = function(){ rset('mu_family',''); alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
+  window.cloudFamilyClear = function(){ rset('mu_family',''); if(unsub){ try{ unsub(); }catch(e){} } alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
   Promise.all([
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'),
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'),

@@ -803,7 +803,7 @@
 
     <div class="settings-section">
       <h3>🧹 データのリセット</h3>
-      <p class="settings-hint">問題の実施履歴・成績・偏差値・まちがいノート・苦手データ・バッジ・ポイントをすべて消して、最初の状態に戻します。元に戻せません（声・文字サイズ・テスト日などの設定は残ります）。心配なときは先に「💾 書き出し」でバックアップを取ってください。</p>
+      <p class="settings-hint">問題の実施履歴・成績・模擬試験の記録（偏差値・判定）・まちがいノート・苦手データ・バッジ・ポイント・デイリー目標をすべて消して、最初の状態に戻します。元に戻せません（声・文字サイズ・テスト日などの設定は残ります）。心配なときは先に「💾 書き出し」でバックアップを取ってください。</p>
       <div class="settings-row">
         <button class="btn-sm" style="background:#ef4444" onclick="resetHistory()">🗑️ 実施履歴をすべて消す</button>
       </div>
@@ -3678,9 +3678,9 @@ function showRecords(){
 function card(num,label){ return `<div class="rec-card"><div class="rec-num">${num}</div><div class="rec-label">${label}</div></div>`; }
 // 問題の実施履歴・成績・進捗をすべて消して初期状態へ（設定は残す）
 function resetHistory(){
-  if(!confirm('問題の実施履歴・成績・偏差値・まちがいノート・苦手データ・バッジ・ポイントを すべて消して 最初の状態に戻します。\n（声・文字サイズ・テスト日などの設定は残ります）\n\nこの操作は元に戻せません。よろしいですか？')) return;
+  if(!confirm('問題の実施履歴・成績・模擬試験の記録（偏差値・判定の履歴）・まちがいノート・苦手データ・バッジ・ポイント・デイリー目標を すべて消して 最初の状態に戻します。\n（声・文字サイズ・テスト日などの設定は残ります）\n\nこの操作は元に戻せません。よろしいですか？')) return;
   if(!confirm('本当に削除します。元に戻せません。\n先にバックアップ（💾書き出し）は取りましたか？\n\nこのまま削除する場合は「OK」を押してください。')) return;
-  var keys=['study_log','daily_hist','daily_prog','topic_stats','mistake_notebook','recent_acc','careless_log','areas_played','badges','reward_done','c_answered','c_correct','c_streak','c_beststreak','c_seconds','c_points','study_seconds'];
+  var keys=Object.keys(MU_PER_USER); // 学習データを漏れなく初期化（模擬試験の履歴=study_log・デイリー目標 等すべて含む）
   keys.forEach(function(k){ try{ safeLS.removeItem(k); }catch(e){} });
   try{ showToast('🧹','リセットしました','最初の状態に戻したよ'); }catch(e){}
   try{ location.reload(); }catch(e){ try{ location.href=location.href; }catch(e2){} }

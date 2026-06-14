@@ -661,6 +661,22 @@
   .pin-err { color:var(--error); font-size:0.82rem; min-height:18px; margin-top:8px; font-weight:700; }
   .pin-shake { animation:pinshake .35s; }
   @keyframes pinshake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 75%{transform:translateX(7px)} }
+  /* ユーザー選択・管理 */
+  .user-select-overlay{ position:fixed; inset:0; z-index:999000; background:linear-gradient(160deg,#0e3a4d,#0891b2); display:none; align-items:center; justify-content:center; padding:20px; }
+  .us-panel{ background:#fff; border-radius:20px; padding:24px 20px; max-width:540px; width:100%; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.35); max-height:90vh; overflow:auto; }
+  .us-panel h2{ color:var(--primary); margin-bottom:14px; }
+  .us-list{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:12px; }
+  .us-card{ background:var(--card2); border:2px solid var(--primary-light); border-radius:16px; padding:12px 8px; cursor:pointer; transition:transform .08s; }
+  @media (hover:hover) and (pointer:fine){ .us-card:hover{ transform:translateY(-3px); } }
+  .us-card:active{ transform:scale(0.97); }
+  .us-card.us-cur{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(217,119,6,.3); }
+  .us-card .us-svg{ width:64px; height:80px; margin:0 auto; } .us-card .us-svg svg{ width:100%; height:100%; }
+  .us-name{ font-weight:800; color:var(--text); margin-top:6px; }
+  .us-admin{ font-size:0.7rem; background:var(--success); color:#fff; border-radius:6px; padding:1px 5px; }
+  .us-note{ font-size:0.78rem; color:#64748b; margin-top:12px; }
+  .ua-row{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:7px 0; border-bottom:1px dashed #e2e8f0; }
+  .ua-row .ua-svg{ width:28px; height:34px; flex:0 0 auto; } .ua-row .ua-svg svg{ width:100%; height:100%; }
+  .ua-name{ font-weight:700; min-width:56px; }
 </style>
 </head>
 <body>
@@ -688,11 +704,27 @@
 </div>
 
 <!-- 設定モーダル（別画面） -->
+<!-- ユーザー選択 -->
+<div class="user-select-overlay" id="user-select-overlay" style="display:none">
+  <div class="us-panel">
+    <h2>だれが学習する？</h2>
+    <div class="us-list" id="user-select-list"></div>
+    <p class="us-note">※ユーザーの追加・編集は ⚙️設定（管理者）から</p>
+  </div>
+</div>
+
 <div class="settings-modal" id="settings-modal">
   <div class="settings-panel">
     <div class="settings-panel-head">
       <h2>⚙️ 設定</h2>
       <button class="settings-close" onclick="closeSettings()">✕ とじる</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>👥 ユーザー（最大5人）</h3>
+      <p class="settings-hint">学習する人を登録します。各ユーザーの学習データは別々に保存されます。「管理者」だけが設定を変更できます。</p>
+      <div id="user-admin-list"></div>
+      <div class="settings-row" style="margin-top:8px"><button class="btn-sm" onclick="muChangeAdminPin()">🔑 管理者の合言葉を変更</button></div>
     </div>
 
     <div class="settings-section">
@@ -796,6 +828,7 @@
     <button class="nav-btn" onclick="showRoadmap()" title="偏差値65ロードマップ">🗺️ 計画</button>
     <button class="nav-btn" onclick="showMistakes()" title="まちがいノート">📕 ノート<span class="nb-badge" id="nb-badge" style="display:none">0</span></button>
     <button class="nav-btn" onclick="showCharacters()" title="キャラクター紹介">🐾 キャラ</button>
+    <button class="nav-btn" onclick="muShowPicker()" title="ユーザー切替">👤 <span id="mu-current-name">ユーザー</span></button>
     <button class="nav-btn" onclick="openSettings()" title="設定">⚙️</button>
   </div>
 
@@ -1798,10 +1831,30 @@ let answered        = false;
 let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
+// ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,areas_played:1,badges:1,reward_done:1};
+function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function muCurrentId(){ return _rawGet('mu_current') || ''; }
+function muKey(key){ if(MU_PER_USER[key]){ var u=muCurrentId(); if(u) return 'u:'+u+':'+key; } return key; }
 const safeLS = {
-  getItem(key) { try { return localStorage.getItem(key); } catch(e) { return null; } },
-  setItem(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
+  getItem(key) { try { return localStorage.getItem(muKey(key)); } catch(e) { return null; } },
+  setItem(key, val) { try { localStorage.setItem(muKey(key), val); } catch(e) {} },
+  removeItem(key){ try { localStorage.removeItem(muKey(key)); } catch(e) {} }
 };
+// 初回：ユーザー未登録なら管理者ユーザーを1人作り、既存データをそこへ移行
+(function muInit(){
+  try{
+    if(_rawGet('mu_users')) return;
+    _rawSet('mu_users', JSON.stringify([{ id:'u1', name:'ユーザー1', char:'shiba', admin:true }]));
+    _rawSet('mu_current', 'u1');
+    Object.keys(MU_PER_USER).forEach(function(k){
+      var v=_rawGet(k);
+      if(v!==null && _rawGet('u:u1:'+k)===null){ _rawSet('u:u1:'+k, v); }
+    });
+  }catch(e){}
+})();
 let totalCorrect    = parseInt(safeLS.getItem('c_correct') || '0');
 let totalStreak     = parseInt(safeLS.getItem('c_streak')  || '0');
 let totalPoints     = parseInt(safeLS.getItem('c_points')  || '0');
@@ -1884,6 +1937,7 @@ function init() {
   initKeyboard();
   setCharacter('owl', false);
   pinGate(); pinUpdateHint();
+  muBoot();
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -1987,9 +2041,84 @@ function importDataFile(input){
   };
   r.readAsText(f);
 }
-function openSettings()  { document.getElementById('settings-modal').classList.add('open'); refreshSettingsDisp(); }
+// ===== ユーザー管理・管理者 =====
+function muGetUsers(){ try{ return JSON.parse(_rawGet('mu_users')||'[]'); }catch(e){ return []; } }
+function muSaveUsers(a){ _rawSet('mu_users', JSON.stringify(a)); }
+function muCurrentUser(){ var id=muCurrentId(); return muGetUsers().filter(function(u){return u.id===id;})[0] || null; }
+function muNextId(){ var n=1, us=muGetUsers(); while(us.some(function(u){return u.id==='u'+n;})) n++; return 'u'+n; }
+function muAddUser(name,char,admin){ var us=muGetUsers(); if(us.length>=5) return false; us.push({id:muNextId(),name:(name||'ユーザー').slice(0,8),char:char||'shiba',admin:!!admin}); muSaveUsers(us); return true; }
+function muRemoveUser(id){ var us=muGetUsers().filter(function(u){return u.id!==id;}); if(!us.length) return false; muSaveUsers(us); if(muCurrentId()===id){ _rawSet('mu_current', us[0].id); } return true; }
+function muRenameUser(id,name){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.name=(name||u.name).slice(0,8); }); muSaveUsers(us); }
+function muSetUserChar(id,ch){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.char=ch; }); muSaveUsers(us); }
+function muSetUserAdmin(id,on){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.admin=!!on; }); if(!us.some(function(u){return u.admin;})) { us[0].admin=true; } muSaveUsers(us); }
+function muSetCurrent(id){ sessionStorage.setItem('mu_enter','1'); sessionStorage.removeItem('mu_admin_ok'); _rawSet('mu_current', id); try{ location.reload(); }catch(e){} }
+// 管理者PIN（設定の保護）
+function muAdminPinSet(){ return !!_rawGet('mu_admin_pin'); }
+function muSetAdminPin(p){ _rawSet('mu_admin_pin', _pinObf(p)); }
+function muAdminUnlocked(){ try{ return sessionStorage.getItem('mu_admin_ok')==='1'; }catch(e){ return false; } }
+function muUnlockAdmin(){ try{ sessionStorage.setItem('mu_admin_ok','1'); }catch(e){} }
+function muRequireAdmin(){
+  if(muAdminUnlocked()) return true;
+  if(!muAdminPinSet()){
+    var p=prompt('はじめに管理者用の合言葉(PIN)を決めてください（3文字以上）。\nこれで「設定」を保護します（保護者の方が管理）。'); if(p===null) return false; p=(''+p).trim(); if(p.length<3){ alert('短すぎます。3文字以上にしてください。'); return false; }
+    var p2=prompt('確認のため、もう一度入力してください'); if(p2===null) return false; if((''+p2).trim()!==p){ alert('一致しませんでした。'); return false; }
+    muSetAdminPin(p); muUnlockAdmin(); alert('管理者の合言葉を設定しました。次回から設定を開くときに必要です。'); return true;
+  }
+  var x=prompt('管理者の合言葉(PIN)を入力してください'); if(x===null) return false;
+  if(_pinObf((''+x).trim())===_rawGet('mu_admin_pin')){ muUnlockAdmin(); return true; }
+  alert('合言葉がちがいます。'); return false;
+}
+// ----- ユーザー選択・切替・管理UI -----
+function _charSVG(ch){ return (CHARS[ch] && CHARS[ch].svg) || (CHARS.shiba && CHARS.shiba.svg) || ''; }
+function muUpdateHeader(){ var el=document.getElementById('mu-current-name'); var u=muCurrentUser(); if(el) el.textContent = u ? u.name : 'ユーザー'; }
+function renderUserSelect(){
+  var el=document.getElementById('user-select-list'); if(!el) return; el.innerHTML='';
+  var cur=muCurrentId();
+  muGetUsers().forEach(function(u){
+    var b=document.createElement('button'); b.className='us-card'+(u.id===cur?' us-cur':'');
+    b.innerHTML='<div class="us-svg">'+_charSVG(u.char)+'</div><div class="us-name">'+escapeHtml(u.name)+(u.admin?' <span class="us-admin">管理</span>':'')+'</div>';
+    b.addEventListener('click', function(){ muPickUser(u.id); });
+    el.appendChild(b);
+  });
+}
+function muPickUser(id){
+  try{ sessionStorage.setItem('mu_enter','1'); }catch(e){}
+  if(id!==muCurrentId()){ muSetCurrent(id); return; } // reload
+  var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='none';
+  muUpdateHeader();
+}
+function muShowPicker(){ renderUserSelect(); var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='flex'; }
+function muBoot(){
+  muUpdateHeader();
+  var ov=document.getElementById('user-select-overlay'); if(!ov) return;
+  var entered=false; try{ entered=sessionStorage.getItem('mu_enter')==='1'; }catch(e){}
+  if(entered){ ov.style.display='none'; } else { renderUserSelect(); ov.style.display='flex'; }
+}
+// 管理者用ユーザー管理
+var MU_CHARS=['shiba','cat','rabbit','fox','bear','owl','panda','dolphin','penguin','tiger'];
+function renderUserAdmin(){
+  var el=document.getElementById('user-admin-list'); if(!el) return; el.innerHTML='';
+  var users=muGetUsers();
+  users.forEach(function(u){
+    var row=document.createElement('div'); row.className='ua-row';
+    var sv=document.createElement('span'); sv.className='ua-svg'; sv.innerHTML=_charSVG(u.char); row.appendChild(sv);
+    var nm=document.createElement('span'); nm.className='ua-name'; nm.textContent=u.name; row.appendChild(nm);
+    function btn(label,bg,fn){ var b=document.createElement('button'); b.className='btn-sm'; b.textContent=label; if(bg) b.style.background=bg; b.addEventListener('click',fn); row.appendChild(b); }
+    btn('名前','',function(){ var n=prompt('名前（8文字まで）',u.name); if(n===null) return; muRenameUser(u.id,(''+n).trim()||u.name); renderUserAdmin(); muUpdateHeader(); });
+    btn('キャラ','',function(){ var i=MU_CHARS.indexOf(u.char); muSetUserChar(u.id, MU_CHARS[(i+1)%MU_CHARS.length]); renderUserAdmin(); });
+    btn(u.admin?'管理者':'一般', u.admin?'#059669':'#94a3b8', function(){ muSetUserAdmin(u.id,!u.admin); renderUserAdmin(); });
+    btn('削除','#ef4444', function(){ if(muGetUsers().length<=1){ alert('最後の1人は削除できません。'); return; } if(!confirm('このユーザーの学習データも消えます。削除しますか？')) return; Object.keys(MU_PER_USER).forEach(function(k){ _rawDel('u:'+u.id+':'+k); }); muRemoveUser(u.id); renderUserAdmin(); muUpdateHeader(); });
+    el.appendChild(row);
+  });
+  if(users.length<5){ var add=document.createElement('button'); add.className='btn-sm'; add.style.marginTop='6px'; add.style.background='var(--primary)'; add.textContent='＋ ユーザーを追加'; add.addEventListener('click',function(){ var n=prompt('追加するユーザーの名前（8文字まで）'); if(n===null) return; n=(''+n).trim(); if(!n) return; if(!muAddUser(n,'shiba',false)){ alert('最大5人です。'); return; } renderUserAdmin(); }); el.appendChild(add); }
+  else { var h=document.createElement('div'); h.className='settings-hint'; h.textContent='ユーザーは最大5人です。'; el.appendChild(h); }
+}
+function muChangeAdminPin(){ var p=prompt('新しい管理者の合言葉(PIN)（3文字以上）'); if(p===null) return; p=(''+p).trim(); if(p.length<3){ alert('短すぎます。'); return; } var p2=prompt('確認のためもう一度'); if(p2===null) return; if((''+p2).trim()!==p){ alert('一致しませんでした。'); return; } muSetAdminPin(p); muUnlockAdmin(); alert('管理者の合言葉を変更しました。'); }
+// 設定は管理者のみ開ける
+function openSettings()  { if(!muRequireAdmin()) return; document.getElementById('settings-modal').classList.add('open'); refreshSettingsDisp(); }
 function daysUntilTest(){ const td=safeLS.getItem('testdate'); if(!td) return null; const now=new Date(); now.setHours(0,0,0,0); return Math.round((_toDate(td)-now)/86400000); }
 function refreshSettingsDisp(){
+  try{ renderUserAdmin(); }catch(e){}
   const td=safeLS.getItem('testdate'); const t=document.getElementById('testdate-disp'); if(t) t.textContent= td?('（'+td+'／あと'+daysUntilTest()+'日）'):'（未設定）';
   const rw=lsGetJSON('reward',null); const r=document.getElementById('reward-disp'); if(r) r.textContent= rw?('（'+rw.points+'pt で '+rw.text+'）'):'（未設定）';
 }
@@ -3333,7 +3462,7 @@ function resetHistory(){
   if(!confirm('問題の実施履歴・成績・偏差値・まちがいノート・苦手データ・バッジ・ポイントを すべて消して 最初の状態に戻します。\n（声・文字サイズ・テスト日などの設定は残ります）\n\nこの操作は元に戻せません。よろしいですか？')) return;
   if(!confirm('本当に削除します。元に戻せません。\n先にバックアップ（💾書き出し）は取りましたか？\n\nこのまま削除する場合は「OK」を押してください。')) return;
   var keys=['study_log','daily_hist','daily_prog','topic_stats','mistake_notebook','recent_acc','careless_log','areas_played','badges','reward_done','c_answered','c_correct','c_streak','c_beststreak','c_seconds','c_points','study_seconds'];
-  keys.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
+  keys.forEach(function(k){ try{ safeLS.removeItem(k); }catch(e){} });
   try{ alert('すべての実施履歴を削除しました。最初の状態に戻します。'); }catch(e){}
   try{ location.reload(); }catch(e){ try{ location.href=location.href; }catch(e2){} }
 }

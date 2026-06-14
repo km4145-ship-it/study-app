@@ -1024,7 +1024,7 @@
 </div>
 
 <!-- 日本語形態素解析（漢字→正しい読み）用ライブラリ -->
-<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
 <script>
 // =================== CHARACTER SVGs ===================
 const CHARS = {
@@ -1862,7 +1862,7 @@ function areaCharOf(key) {
 function init() {
   applyTheme(); applyFontSize();
   updateScoreBar();
-  initKuromoji(); // 日本語の読み変換エンジンを準備（漢字の誤読対策）
+  // 読み変換エンジン(kuromoji)は起動後に遅延ロード（初期表示を軽くする）
   renderAreaGrid();
   renderSubjects();
   document.getElementById('voice-hana').value = voiceIds.hana;
@@ -4463,6 +4463,7 @@ function initKeyboard(){
 }
 
 
+window.addEventListener('load', function(){ setTimeout(function(){ try{ initKuromoji(); }catch(e){} }, 1200); });
 init();
 </script>
 <script src="cloud-sync.js" defer></script>
@@ -4482,8 +4483,9 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){
       });
     });
   }).catch(function(){});
+  var hadController = !!navigator.serviceWorker.controller;
   var refreshing=false;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ if(refreshing) return; refreshing=true; location.reload(); });
+  navigator.serviceWorker.addEventListener('controllerchange', function(){ if(!hadController) return; if(refreshing) return; refreshing=true; location.reload(); });
 });}
 </script>
 </body>

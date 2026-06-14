@@ -1,7 +1,7 @@
 /* 学習アカデミー Service Worker
    ※アプリを更新したら下の VERSION を上げてください（例 v1.0.1）。
      これで全端末に「新しいバージョンがあります」が出ます。 */
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.0.1';
 const CACHE = 'chisaki-' + VERSION;
 const ASSETS = [
   './', './index.html', './manifest.webmanifest',
@@ -21,11 +21,20 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   const isHTML = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
+  const isJS = url.origin === location.origin && /\.js(\?|$)/.test(url.pathname);
   if (isHTML) {
     // ネット優先（最新を取得）→ 失敗時はキャッシュ（オフライン可）
     e.respondWith(
       fetch(req).then(res => { const cp = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', cp)); return res; })
                 .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
+    );
+    return;
+  }
+  if (isJS) {
+    // JS（cloud-sync.js等）：ネット優先で常に最新ロジックを取得 → 失敗時はキャッシュ
+    e.respondWith(
+      fetch(req).then(res => { const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return res; })
+                .catch(() => caches.match(req))
     );
     return;
   }

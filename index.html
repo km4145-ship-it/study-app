@@ -96,6 +96,8 @@
   }
   @media (hover:hover) and (pointer:fine){ .btn-sm:hover { background: var(--primary-light); color: #000; } }
   .voice-status { font-size: 0.76rem; }
+  .voice-row label{ min-width:8.5em; }
+  .voice-row input{ flex:1; min-width:0; }
   .voice-on { color: var(--success); } .voice-off { color: #666; }
 
   /* Score */
@@ -745,22 +747,11 @@
     </div>
 
     <div class="settings-section">
-      <h3>🎤 声のプロファイル</h3>
-      <p class="settings-hint">ElevenLabsの声IDを変えたいときだけ入力。空欄なら既定の声を使います。</p>
+      <h3>🎤 キャラクターの声（10人）</h3>
+      <p class="settings-hint">キャラクターごとにElevenLabsの声ID(Voice ID)を登録できます。空欄なら既定の声を使います。各行の「▶」でその声を試せます。</p>
+      <div id="voice-list"></div>
       <div class="settings-row">
-        <label style="color:#f59e0b">やさしい声（フクロウ/ネコ/キツネ/パンダ/ペンギン）</label>
-        <input type="text" id="voice-hana" placeholder="KgETZ36CCLD1Cob4xpkv">
-      </div>
-      <div class="settings-row">
-        <label style="color:#67e8f9">元気な声（柴犬/ウサギ/クマ/イルカ）</label>
-        <input type="text" id="voice-loco" placeholder="uYwU1hsbnP5viqq9qhob">
-      </div>
-      <div class="settings-row">
-        <label style="color:#ef4444">きびしい声（トラ教官）</label>
-        <input type="text" id="voice-kai" placeholder="EbuvaInXUGWtpYRUnKLQ">
-      </div>
-      <div class="settings-row">
-        <button class="btn-sm" onclick="saveVoices()">声を保存</button>
+        <button class="btn-sm" onclick="saveVoices()">10人ぶんの声を保存</button>
       </div>
     </div>
 
@@ -1876,11 +1867,10 @@ function getVoiceDefault(key, def) {
   const v = safeLS.getItem(key);
   return (v && v.trim()) ? v.trim() : def;
 }
-let voiceIds = {
-  hana: getVoiceDefault('voice_hana', 'KgETZ36CCLD1Cob4xpkv'),
-  loco: getVoiceDefault('voice_loco', 'uYwU1hsbnP5viqq9qhob'),
-  kai:  getVoiceDefault('voice_kai',  'EbuvaInXUGWtpYRUnKLQ'),
-};
+function profileVoice(prof){ return getVoiceDefault('voice_'+prof, prof==='kai'?'EbuvaInXUGWtpYRUnKLQ':(prof==='loco'?'uYwU1hsbnP5viqq9qhob':'KgETZ36CCLD1Cob4xpkv')); }
+function charDefaultVoice(charKey){ var prof=(CHARS[charKey]&&CHARS[charKey].voice)||'hana'; return profileVoice(prof); }
+let voiceIds = {};
+Object.keys(CHARS).forEach(function(k){ voiceIds[k]=getVoiceDefault('voice_'+k, charDefaultVoice(k)); });
 let currentAudio    = null;
 
 // =================== CHARACTER SYSTEM ===================
@@ -1930,9 +1920,7 @@ function init() {
   // 読み変換エンジン(kuromoji)は起動後に遅延ロード（初期表示を軽くする）
   renderAreaGrid();
   renderSubjects();
-  document.getElementById('voice-hana').value = voiceIds.hana;
-  document.getElementById('voice-loco').value = voiceIds.loco;
-  document.getElementById('voice-kai').value  = voiceIds.kai;
+  renderVoiceSettings();
   if (elevenLabsKey) {
     document.getElementById('el-api-key').placeholder = '保存済み';
     document.getElementById('voice-status').textContent = '🔊 音声オン';
@@ -2183,20 +2171,35 @@ function saveApiKey() {
   if (on) speak('APIキーを保存したよ！');
 }
 
+function renderVoiceSettings(){
+  var el=document.getElementById('voice-list'); if(!el) return;
+  el.innerHTML = Object.keys(CHARS).map(function(k){
+    var c=CHARS[k]||{}; var saved=''; try{ var sv=safeLS.getItem('voice_'+k); saved=(sv&&sv.trim())?sv.trim():''; }catch(e){}
+    return `<div class="settings-row voice-row"><label>${escapeHtml(c.name||k)}</label><input type="text" id="voice-${k}" placeholder="${escapeHtml(charDefaultVoice(k))}" value="${escapeHtml(saved)}" autocomplete="off" spellcheck="false"><button class="btn-sm" title="この声で試す" onclick="testVoiceFor('${k}')">▶</button></div>`;
+  }).join('');
+}
 function saveVoices() {
-  const h = document.getElementById('voice-hana').value.trim();
-  const l = document.getElementById('voice-loco').value.trim();
-  const k = document.getElementById('voice-kai').value.trim();
-  if (h) { voiceIds.hana = h; safeLS.setItem('voice_hana', h); }
-  if (l) { voiceIds.loco = l; safeLS.setItem('voice_loco', l); }
-  if (k) { voiceIds.kai  = k; safeLS.setItem('voice_kai',  k); }
+  Object.keys(CHARS).forEach(function(k){
+    var inp=document.getElementById('voice-'+k); if(!inp) return;
+    var val=inp.value.trim();
+    if(val){ voiceIds[k]=val; try{ safeLS.setItem('voice_'+k, val); }catch(e){} }
+    else { voiceIds[k]=charDefaultVoice(k); try{ safeLS.setItem('voice_'+k, ''); }catch(e){} }
+  });
+  showToast('🎤','声を保存','10人ぶんの声を保存しました');
   speak('キャラクターの声を保存したよ！');
+}
+async function testVoiceFor(key){
+  var inp=document.getElementById('voice-'+key); var override=inp&&inp.value.trim();
+  var prevChar=currentChar, prevId=voiceIds[key];
+  if(override) voiceIds[key]=override;
+  currentChar=key;
+  try{ await speak('こんにちは！いっしょに がんばろう！'); }catch(e){}
+  finally{ currentChar=prevChar; voiceIds[key]=prevId; }
 }
 
 // =================== TTS ===================
 function getCharVoiceId() {
-  const prof = (CHARS[currentChar] && CHARS[currentChar].voice) || 'hana';
-  const id = voiceIds[prof] || voiceIds.hana;
+  const id = voiceIds[currentChar] || charDefaultVoice(currentChar);
   return id || 'KgETZ36CCLD1Cob4xpkv';
 }
 
@@ -2403,7 +2406,7 @@ async function speakAndWait(text) {
   const clean = forTTS(text);
   const ind = document.getElementById('speaking-indicator'); if(ind) ind.style.display='inline';
   const charId = getCharVoiceId();
-  const hanaId = voiceIds.hana || 'KgETZ36CCLD1Cob4xpkv';
+  const hanaId = profileVoice('hana');
   try {
     let r = await fetchVoiceBlob(charId, clean);
     if (mySeq !== speechSeq) return;          // 取得中に新しい発話が始まった → 破棄

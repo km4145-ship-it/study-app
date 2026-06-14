@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#0891b2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="学習アカデミー">
+<meta name="apple-mobile-web-app-title" content="小中学生学習アプリ">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<title>学習アカデミー（千咲）📚</title>
+<title>小中学生学習アプリ📚</title>
 <style>
   :root {
     --primary: #0891b2;
@@ -684,7 +684,7 @@
 <div id="print-area"></div>
 <!-- Start Overlay -->
 <div class="start-overlay" id="start-overlay">
-  <h2>📚 学習アカデミー（千咲）🦉</h2>
+  <h2>📚 小中学生学習アプリ🦉</h2>
   <p>10ひきの動物の先生たちが待っているよ！</p>
   <div class="start-chars" id="start-chars-display"></div>
   <button class="btn-start" onclick="startApp()">📚 タップしてスタート！ 🐾</button>
@@ -821,7 +821,7 @@
 <div class="container">
 
   <div class="topnav" id="topnav">
-    <span class="nav-title" onclick="goHome()">📚 学習アカデミー</span>
+    <span class="nav-title" onclick="goHome()">📚 小中学生学習アプリ</span>
     <button class="nav-btn" onclick="goHome()" title="学習（教科えらび・問題へ）">🏠 学習</button>
     <button class="nav-btn" onclick="showStudyNotes()" title="要点まとめ・公式集">📖 学ぶ</button>
     <button class="nav-btn" onclick="showRecords()" title="学習記録">📊 記録</button>
@@ -833,7 +833,7 @@
   </div>
 
   <div class="header">
-    <h1>📚 学習アカデミー（千咲）</h1>
+    <h1>📚 小中学生学習アプリ</h1>
     <p>〜 動物の先生たちと問題をといて、チャンピオンをめざそう！ 〜</p>
   </div>
   <div class="wave-deco">🦉 🐕 🐱 🐰 🦊 🐻 🐯</div>
@@ -2018,7 +2018,7 @@ function applyFontSize(){ const f=safeLS.getItem('fontsize')||'n'; const h=docum
 function setFontSize(f){ safeLS.setItem('fontsize', f); applyFontSize(); showToast('🔤','文字サイズを変更','小・中・大からえらべます'); }
 function exportData(){
   const data={}; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); data[k]=localStorage.getItem(k); } }catch(e){}
-  data._app='学習アカデミー（千咲）'; data._exported=new Date().toISOString();
+  data._app='小中学生学習アプリ'; data._exported=new Date().toISOString();
   try{
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='chisaki_progress_'+todayKey()+'.json';

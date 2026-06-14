@@ -672,6 +672,7 @@
   .us-card.us-cur{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(217,119,6,.3); }
   .us-card .us-svg{ width:64px; height:80px; margin:0 auto; } .us-card .us-svg svg{ width:100%; height:100%; }
   .us-name{ font-weight:800; color:var(--text); margin-top:6px; }
+  .us-grade{ font-size:0.8rem; color:var(--primary); font-weight:700; margin-top:2px; }
   .us-admin{ font-size:0.7rem; background:var(--success); color:#fff; border-radius:6px; padding:1px 5px; }
   .us-note{ font-size:0.78rem; color:#64748b; margin-top:12px; }
   .ua-row{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:7px 0; border-bottom:1px dashed #e2e8f0; }
@@ -784,8 +785,9 @@
         <input type="file" id="import-file" accept="application/json,.json" style="display:none" onchange="importDataFile(this)">
       </div>
       <div class="settings-row">
-        <button class="btn-sm" style="background:#0891b2" onclick="(window.cloudSyncSwitch||function(){alert('クラウド同期はまだ設定されていません。READMEの手順でFirebaseを設定すると、複数の端末で進捗が同期できます。');})()">☁️ クラウド同期</button>
-        <span class="settings-hint">設定すると Mac／iPad／iPhone で進捗が同期（任意）</span>
+        <button class="btn-sm" style="background:#0891b2" onclick="(window.cloudFamilySet||function(){alert('同期スクリプト読込中です。少し待って再度お試しください。');})()">☁️ クラウド同期（家族コード）</button>
+        <button class="btn-sm" style="background:#64748b" onclick="(window.cloudFamilyClear||function(){})()">同期オフ</button>
+        <span class="settings-hint">同じ家族コードを各端末に入れると、各ユーザーの進捗が全端末で同期します（任意）。</span>
       </div>
     </div>
 
@@ -1847,7 +1849,8 @@ const safeLS = {
 (function muInit(){
   try{
     if(_rawGet('mu_users')) return;
-    _rawSet('mu_users', JSON.stringify([{ id:'u1', name:'ユーザー1', char:'shiba', admin:true }]));
+    var _ay=(new Date().getMonth()>=3)?new Date().getFullYear():new Date().getFullYear()-1;
+    _rawSet('mu_users', JSON.stringify([{ id:'u1', name:'ユーザー1', char:'shiba', admin:true, startYear:_ay-6 }]));
     _rawSet('mu_current', 'u1');
     Object.keys(MU_PER_USER).forEach(function(k){
       var v=_rawGet(k);
@@ -2046,10 +2049,19 @@ function muGetUsers(){ try{ return JSON.parse(_rawGet('mu_users')||'[]'); }catch
 function muSaveUsers(a){ _rawSet('mu_users', JSON.stringify(a)); }
 function muCurrentUser(){ var id=muCurrentId(); return muGetUsers().filter(function(u){return u.id===id;})[0] || null; }
 function muNextId(){ var n=1, us=muGetUsers(); while(us.some(function(u){return u.id==='u'+n;})) n++; return 'u'+n; }
-function muAddUser(name,char,admin){ var us=muGetUsers(); if(us.length>=5) return false; us.push({id:muNextId(),name:(name||'ユーザー').slice(0,8),char:char||'shiba',admin:!!admin}); muSaveUsers(us); return true; }
+function muAddUser(name,char,admin,grade){ var us=muGetUsers(); if(us.length>=5) return false; us.push({id:muNextId(),name:(name||'ユーザー').slice(0,8),char:char||'shiba',admin:!!admin,startYear:muStartYearForGrade(grade||7)}); muSaveUsers(us); return true; }
 function muRemoveUser(id){ var us=muGetUsers().filter(function(u){return u.id!==id;}); if(!us.length) return false; muSaveUsers(us); if(muCurrentId()===id){ _rawSet('mu_current', us[0].id); } return true; }
 function muRenameUser(id,name){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.name=(name||u.name).slice(0,8); }); muSaveUsers(us); }
 function muSetUserChar(id,ch){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.char=ch; }); muSaveUsers(us); }
+// 学年（日付から自動算出・4月に進級）
+function muAcademicYear(d){ d=d||new Date(); return (d.getMonth()>=3)? d.getFullYear() : d.getFullYear()-1; }
+function muGradeLevel(u){ if(!u||!u.startYear) return 7; var g=muAcademicYear()-u.startYear+1; return Math.max(1,Math.min(9,g)); }
+function muGradeLabel(l){ return l<=6 ? ('小'+l) : ('中'+(l-6)); }
+function muStartYearForGrade(l){ return muAcademicYear()-(l-1); }
+function muCurrentGrade(){ return muGradeLevel(muCurrentUser()); }
+function muGradeBand(l){ l=l||muCurrentGrade(); return l<=6 ? 'elem' : 'jhs'; }
+function muSetUserGrade(id,l){ l=Math.max(1,Math.min(9,parseInt(l,10)||7)); var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.startYear=muStartYearForGrade(l); }); muSaveUsers(us); }
+function muAskGrade(cur){ var s=prompt('学年を数字で入力してください：\n小1=1 小2=2 小3=3 小4=4 小5=5 小6=6\n中1=7 中2=8 中3=9\n（例）小4→4、中1→7', String(cur||7)); if(s===null) return null; var l=parseInt((''+s).trim(),10); if(!l||l<1||l>9){ alert('1〜9で入力してください。'); return null; } return l; }
 function muSetUserAdmin(id,on){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.admin=!!on; }); if(!us.some(function(u){return u.admin;})) { us[0].admin=true; } muSaveUsers(us); }
 function muSetCurrent(id){ sessionStorage.setItem('mu_enter','1'); sessionStorage.removeItem('mu_admin_ok'); _rawSet('mu_current', id); try{ location.reload(); }catch(e){} }
 // 管理者PIN（設定の保護）
@@ -2070,13 +2082,13 @@ function muRequireAdmin(){
 }
 // ----- ユーザー選択・切替・管理UI -----
 function _charSVG(ch){ return (CHARS[ch] && CHARS[ch].svg) || (CHARS.shiba && CHARS.shiba.svg) || ''; }
-function muUpdateHeader(){ var el=document.getElementById('mu-current-name'); var u=muCurrentUser(); if(el) el.textContent = u ? u.name : 'ユーザー'; }
+function muUpdateHeader(){ var el=document.getElementById('mu-current-name'); var u=muCurrentUser(); if(el) el.textContent = u ? (u.name+'（'+muGradeLabel(muGradeLevel(u))+'）') : 'ユーザー'; }
 function renderUserSelect(){
   var el=document.getElementById('user-select-list'); if(!el) return; el.innerHTML='';
   var cur=muCurrentId();
   muGetUsers().forEach(function(u){
     var b=document.createElement('button'); b.className='us-card'+(u.id===cur?' us-cur':'');
-    b.innerHTML='<div class="us-svg">'+_charSVG(u.char)+'</div><div class="us-name">'+escapeHtml(u.name)+(u.admin?' <span class="us-admin">管理</span>':'')+'</div>';
+    b.innerHTML='<div class="us-svg">'+_charSVG(u.char)+'</div><div class="us-name">'+escapeHtml(u.name)+'</div><div class="us-grade">'+muGradeLabel(muGradeLevel(u))+(u.admin?' <span class="us-admin">管理</span>':'')+'</div>';
     b.addEventListener('click', function(){ muPickUser(u.id); });
     el.appendChild(b);
   });
@@ -2102,15 +2114,16 @@ function renderUserAdmin(){
   users.forEach(function(u){
     var row=document.createElement('div'); row.className='ua-row';
     var sv=document.createElement('span'); sv.className='ua-svg'; sv.innerHTML=_charSVG(u.char); row.appendChild(sv);
-    var nm=document.createElement('span'); nm.className='ua-name'; nm.textContent=u.name; row.appendChild(nm);
+    var nm=document.createElement('span'); nm.className='ua-name'; nm.textContent=u.name+'（'+muGradeLabel(muGradeLevel(u))+'）'; row.appendChild(nm);
     function btn(label,bg,fn){ var b=document.createElement('button'); b.className='btn-sm'; b.textContent=label; if(bg) b.style.background=bg; b.addEventListener('click',fn); row.appendChild(b); }
     btn('名前','',function(){ var n=prompt('名前（8文字まで）',u.name); if(n===null) return; muRenameUser(u.id,(''+n).trim()||u.name); renderUserAdmin(); muUpdateHeader(); });
+    btn('学年','',function(){ var l=muAskGrade(muGradeLevel(u)); if(l===null) return; muSetUserGrade(u.id,l); renderUserAdmin(); muUpdateHeader(); });
     btn('キャラ','',function(){ var i=MU_CHARS.indexOf(u.char); muSetUserChar(u.id, MU_CHARS[(i+1)%MU_CHARS.length]); renderUserAdmin(); });
     btn(u.admin?'管理者':'一般', u.admin?'#059669':'#94a3b8', function(){ muSetUserAdmin(u.id,!u.admin); renderUserAdmin(); });
     btn('削除','#ef4444', function(){ if(muGetUsers().length<=1){ alert('最後の1人は削除できません。'); return; } if(!confirm('このユーザーの学習データも消えます。削除しますか？')) return; Object.keys(MU_PER_USER).forEach(function(k){ _rawDel('u:'+u.id+':'+k); }); muRemoveUser(u.id); renderUserAdmin(); muUpdateHeader(); });
     el.appendChild(row);
   });
-  if(users.length<5){ var add=document.createElement('button'); add.className='btn-sm'; add.style.marginTop='6px'; add.style.background='var(--primary)'; add.textContent='＋ ユーザーを追加'; add.addEventListener('click',function(){ var n=prompt('追加するユーザーの名前（8文字まで）'); if(n===null) return; n=(''+n).trim(); if(!n) return; if(!muAddUser(n,'shiba',false)){ alert('最大5人です。'); return; } renderUserAdmin(); }); el.appendChild(add); }
+  if(users.length<5){ var add=document.createElement('button'); add.className='btn-sm'; add.style.marginTop='6px'; add.style.background='var(--primary)'; add.textContent='＋ ユーザーを追加'; add.addEventListener('click',function(){ var n=prompt('追加するユーザーの名前（8文字まで）'); if(n===null) return; n=(''+n).trim(); if(!n) return; var g=muAskGrade(7); if(g===null) g=7; if(!muAddUser(n,'shiba',false,g)){ alert('最大5人です。'); return; } renderUserAdmin(); }); el.appendChild(add); }
   else { var h=document.createElement('div'); h.className='settings-hint'; h.textContent='ユーザーは最大5人です。'; el.appendChild(h); }
 }
 function muChangeAdminPin(){ var p=prompt('新しい管理者の合言葉(PIN)（3文字以上）'); if(p===null) return; p=(''+p).trim(); if(p.length<3){ alert('短すぎます。'); return; } var p2=prompt('確認のためもう一度'); if(p2===null) return; if((''+p2).trim()!==p){ alert('一致しませんでした。'); return; } muSetAdminPin(p); muUnlockAdmin(); alert('管理者の合言葉を変更しました。'); }
@@ -3243,8 +3256,62 @@ const jpGens = [
   function(){ const w=pick(JP_ANTONYM); const others=shuffleArr(JP_ANTONYM.filter(x=>x!==w)).slice(0,3).map(x=>x[1]); return {q:`「${w[0]}」の対義語は？`, sub:'対義語', level:'★★★', hint:'反対の意味', type:'choice', choices:shuffleArr([w[1],...others]), ans:w[1], explain:`【考え方】反対の意味の語を選ぶ。\n【手順】${w[0]}⇔${w[1]}\n【ポイント】ペアで覚えると語彙が増える。`}; },
   function(){ const w=pick(JP_YOJI); const blanked=w[0].replace(w[1],'□'); const others=shuffleArr(['新','真','信','回','他','背','単','心','水','明'].filter(c=>c!==w[1])).slice(0,3); return {q:`四字熟語「${blanked}」の□に入る漢字は？`, sub:'四字熟語', level:'★★★', hint:'よく使う四字熟語', type:'choice', choices:shuffleArr([w[1],...others]), ans:w[1], explain:`【考え方】□に入る漢字を考える。\n【手順】正しくは ${w[0]}\n【ポイント】意味と一緒に覚える。`}; },
 ];
+
+// ================= 小学4年生コンテンツ（5教科）=================
+// 算数
+var g4MathGens=[
+ function(){ var b=rint(2,9),q=rint(2,9),a=b*q; return {q:a+' ÷ '+b+' = ?', sub:'わり算', level:'★☆☆', hint:b+'のだんで考える', type:'free', ans:''+q, altAns:[''+q], explain:'【考え方】かけ算の逆。\n【手順】'+b+'×'+q+'='+a+'だから '+a+'÷'+b+'='+q+'\n【ポイント】わり算は九九の逆。'}; },
+ function(){ var b=rint(3,9),q=rint(2,9),r=rint(1,b-1),a=b*q+r; return {q:a+' ÷ '+b+' のあまりは？', sub:'あまりのあるわり算', level:'★★☆', hint:b+'×□が'+a+'をこえない最大', type:'free', ans:''+r, altAns:[''+r], explain:'【考え方】わって残りがあまり。\n【手順】'+b+'×'+q+'='+(b*q)+'、'+a+'−'+(b*q)+'='+r+'\n【ポイント】あまりはわる数より小さい。'}; },
+ function(){ var x=rint(1000,99999),y=rint(1000,99999); if(x===y)y+=7; return {q:'大きいのはどっち？　'+x+' と '+y, sub:'大きな数', level:'★☆☆', hint:'上の位からくらべる', type:'choice', choices:[''+x,''+y], ans:''+Math.max(x,y), explain:'【考え方】けた数→上の位の順。\n【手順】'+Math.max(x,y)+'の方が大きい\n【ポイント】上の位から1つずつ。'}; },
+ function(){ var a=rint(1,40),b=rint(1,40),s2=(a+b)/10; return {q:(a/10).toFixed(1)+' + '+(b/10).toFixed(1)+' = ?', sub:'小数のたし算', level:'★★☆', hint:'0.1のいくつ分', type:'free', ans:s2.toFixed(1), altAns:[s2.toFixed(1),''+s2], explain:'【考え方】0.1がいくつ分で考える。\n【手順】'+a+'+'+b+'='+(a+b)+'（0.1が'+(a+b)+'こ）→'+s2.toFixed(1)+'\n【ポイント】小数点をそろえる。'}; },
+ function(){ var a=rint(20,70),b=rint(1,a-1),s2=(a-b)/10; return {q:(a/10).toFixed(1)+' − '+(b/10).toFixed(1)+' = ?', sub:'小数のひき算', level:'★★☆', hint:'位をそろえる', type:'free', ans:s2.toFixed(1), altAns:[s2.toFixed(1),''+s2], explain:'【考え方】0.1のいくつ分。\n【手順】'+a+'−'+b+'='+(a-b)+'→'+s2.toFixed(1)+'\n【ポイント】小数点をそろえる。'}; },
+ function(){ var d=rint(4,9),a=rint(1,d-2),b=rint(1,d-a-1); if(b<1)b=1; var n=a+b; return {q:a+'/'+d+' + '+b+'/'+d+' = ?（分子を答えてね。分母は'+d+'）', sub:'分数のたし算', level:'★★☆', hint:'分母そのまま、分子をたす', type:'free', ans:''+n, altAns:[n+'/'+d,''+n], explain:'【考え方】同じ分母は分子をたす。\n【手順】'+a+'+'+b+'='+n+'→'+n+'/'+d+'\n【ポイント】分母は変えない。'}; },
+ function(){ var t=pick([['直角',90],['一直線（半回転）',180],['1回転',360]]); return {q:t[0]+'は何度？', sub:'角の大きさ', level:'★☆☆', hint:'直角＝90°', type:'free', ans:''+t[1], altAns:[t[1]+'°',t[1]+'度'], explain:'【考え方】直角90°が基本。\n【手順】'+t[0]+'＝'+t[1]+'°\n【ポイント】直角2つで180°。'}; },
+ function(){ var x=rint(20,70); return {q:'直角（90°）から '+x+'° をひくと何度？', sub:'角の計算', level:'★★☆', hint:'90からひく', type:'free', ans:''+(90-x), altAns:[(90-x)+'°'], explain:'【考え方】全体90°からひく。\n【手順】90−'+x+'='+(90-x)+'°\n【ポイント】直角は90°。'}; },
+ function(){ var a=rint(3,12),b=rint(3,12); return {q:'たて'+a+'cm・横'+b+'cmの長方形の面積は？（cm²）', sub:'面積（長方形）', level:'★★☆', hint:'たて×横', type:'free', ans:''+(a*b), altAns:[(a*b)+'cm2',(a*b)+'cm²'], explain:'【考え方】長方形＝たて×横。\n【手順】'+a+'×'+b+'='+(a*b)+'cm²\n【ポイント】単位はcm²。'}; },
+ function(){ var a=rint(3,12); return {q:'1辺'+a+'cmの正方形の面積は？（cm²）', sub:'面積（正方形）', level:'★★☆', hint:'1辺×1辺', type:'free', ans:''+(a*a), altAns:[(a*a)+'cm2',(a*a)+'cm²'], explain:'【考え方】正方形＝1辺×1辺。\n【手順】'+a+'×'+a+'='+(a*a)+'cm²\n【ポイント】同じ数を2回。'}; },
+ function(){ var n=rint(1000,9999),r=Math.round(n/100)*100; return {q:n+' を四捨五入して百の位までのがい数に？', sub:'がい数', level:'★★★', hint:'十の位を四捨五入', type:'free', ans:''+r, altAns:[''+r], explain:'【考え方】十の位を四捨五入。\n【手順】十の位が5以上→切り上げ、4以下→切り捨て→'+r+'\n【ポイント】「百の位まで」は十の位を見る。'}; },
+ function(){ var a=rint(2,9),b=rint(2,9),c=rint(2,9); return {q:a+' + '+b+' × '+c+' = ?', sub:'計算のきまり', level:'★★☆', hint:'×を先に', type:'free', ans:''+(a+b*c), altAns:[''+(a+b*c)], explain:'【考え方】×÷が先、＋−が後。\n【手順】'+b+'×'+c+'='+(b*c)+'、'+a+'+'+(b*c)+'='+(a+b*c)+'\n【ポイント】かけ算を先に。'}; },
+ function(){ var a=rint(2,9),b=rint(2,9),c=rint(2,9); return {q:'('+a+' + '+b+') × '+c+' = ?', sub:'計算のきまり（かっこ）', level:'★★☆', hint:'かっこの中が先', type:'free', ans:''+((a+b)*c), altAns:[''+((a+b)*c)], explain:'【考え方】かっこを先に。\n【手順】'+a+'+'+b+'='+(a+b)+'、×'+c+'='+((a+b)*c)+'\n【ポイント】( )が最優先。'}; },
+ function(){ var b=rint(2,9),k=rint(2,9),a=b*k; return {q:a+'は'+b+'の何倍？', sub:'何倍', level:'★★☆', hint:'わり算でもとめる', type:'free', ans:''+k, altAns:[k+'倍',''+k], explain:'【考え方】何倍＝大きい数÷もとの数。\n【手順】'+a+'÷'+b+'='+k+'→'+k+'倍\n【ポイント】「何倍」はわり算。'}; },
+];
+// 国語
+var G4JP_READ=[['案内','あんない'],['英語','えいご'],['観察','かんさつ'],['協力','きょうりょく'],['健康','けんこう'],['成功','せいこう'],['失敗','しっぱい'],['希望','きぼう'],['結果','けっか'],['季節','きせつ'],['努力','どりょく'],['卒業','そつぎょう'],['辞典','じてん'],['特別','とくべつ']];
+var G4JP_ANT=[['成功','失敗'],['勝つ','負ける'],['始め','終わり'],['軽い','重い'],['朝','夜'],['多い','少ない'],['明るい','暗い'],['speed','おそい']];
+var G4JP_KOTO=[['ねこに','こばん','とても役に立つものも、ねうちのわからない人には無意味'],['さるも','木からおちる','名人でも失敗することがある'],['いしの','上にも三年','がまん強く続ければ成功する'],['ちりも','つもれば山となる','小さなことも積み重なれば大きくなる']];
+var g4JpGens=[
+ function(){ var w=pick(G4JP_READ); return {q:'「'+w[0]+'」の読みは？', sub:'漢字の読み（4年）', level:'★☆☆', hint:'声に出してみよう', type:'free', ans:w[1], altAns:[w[1]], explain:'【考え方】4年生の漢字。\n【手順】'+w[0]+'＝'+w[1]+'\n【ポイント】熟語で覚える。'}; },
+ function(){ var w=pick(G4JP_ANT); var o=shuffleArr(G4JP_ANT.filter(function(x){return x[0]!==w[0];})).slice(0,3).map(function(x){return x[1];}); return {q:'「'+w[0]+'」の反対の意味は？', sub:'反対のことば', level:'★★☆', hint:'逆の意味', type:'choice', choices:shuffleArr([w[1]].concat(o)), ans:w[1], explain:'【考え方】反対語は対で覚える。\n【手順】'+w[0]+'⇔'+w[1]+'\n【ポイント】セットで暗記。'}; },
+ function(){ var k=pick(G4JP_KOTO); var o=shuffleArr(G4JP_KOTO.filter(function(x){return x[1]!==k[1];})).slice(0,3).map(function(x){return x[1];}); return {q:'「'+k[0]+'○○○○」に続くのは？', sub:'ことわざ', level:'★★☆', hint:k[2], type:'choice', choices:shuffleArr([k[1]].concat(o)), ans:k[1], explain:'【考え方】意味から考える。\n【手順】'+k[0]+k[1]+'＝'+k[2]+'\n【ポイント】ことわざは意味ごと覚える。'}; },
+ function(){ var d=pick([['本','さつ'],['えんぴつ','本'],['紙','まい'],['rabbit/犬','ひき'],['車','だい'],['花','りん']]); var o=shuffleArr(['さつ','本','まい','ひき','だい','りん'].filter(function(x){return x!==d[1];})).slice(0,3); return {q:'「'+d[0]+'」の数え方は？', sub:'数え方（助数詞）', level:'★★☆', hint:'数えることば', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】ものによって数え方がちがう。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】数え方を覚えよう。'}; },
+];
+// 理科
+var g4SciGens=[
+ function(){ var d=pick([['ヘチマの実がなる','夏'],['さくらがさく','春'],['こん虫がたまごで冬をこす','冬'],['木の葉が赤や黄色に色づく','秋']]); var o=shuffleArr(['春','夏','秋','冬'].filter(function(x){return x!==d[1];})).slice(0,3); return {q:d[0]+'のはどの季節？', sub:'季節と生き物', level:'★☆☆', hint:'気温の変化', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】生き物は季節で変わる。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】季節と気温を結びつける。'}; },
+ function(){ var d=pick([['1日で気温がいちばん高くなるのは','午後2時ごろ'],['晴れの日の気温の変化は','大きい'],['くもりの日の気温の変化は','小さい']]); var o=shuffleArr(['午後2時ごろ','大きい','小さい','正午','明け方']).filter(function(x){return x!==d[1];}).slice(0,3); return {q:d[0]+'？', sub:'天気と気温', level:'★★☆', hint:'太陽の高さ', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】太陽の高さと気温。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】晴れは変化が大きい。'}; },
+ function(){ var d=pick([['水を熱し続けると100℃近くでさかんに','ふっとう'],['水を冷やして0℃で','こおる'],['水が水じょう気に変わることを','じょうはつ']]); var o=shuffleArr(['ふっとう','こおる','じょうはつ','とける']).filter(function(x){return x!==d[1];}).slice(0,3); return {q:d[0]+'する。何という？', sub:'水のすがた', level:'★★☆', hint:'三態の変化', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】水は温度で姿が変わる。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】氷・水・水じょう気。'}; },
+ function(){ var d=pick([['かん電池2個を直列につなぐと、モーターは','速くなる'],['かん電池の向きを逆にすると、電流は','逆になる'],['回路に電流を流すのに必要なのは','どう線（つながった輪）']]); var o=shuffleArr(['速くなる','逆になる','どう線（つながった輪）','止まる']).filter(function(x){return x!==d[1];}).slice(0,3); return {q:d[0]+'？', sub:'電気のはたらき', level:'★★☆', hint:'直列／向き', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】電池のつなぎ方で変わる。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】直列は強く、向きで逆。'}; },
+ function(){ var d=pick([['月は形を変え、約','1か月','でもとにもどる'],['星の明るさは','明るい星から1等星','とよぶ'],['北の空で動かない星は','北極星','']]); var o=shuffleArr(['1か月','明るい星から1等星','北極星','1週間']).filter(function(x){return x!==d[1];}).slice(0,3); return {q:d[0]+'○○'+d[2]+'。○○は？', sub:'月と星', level:'★★☆', hint:'観察', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】月や星の動き。\n【手順】答え＝'+d[1]+'\n【ポイント】北極星は動かない。'}; },
+];
+// 社会
+var G4_PREF=[['北海道','札幌市'],['青森県','青森市'],['宮城県','仙台市'],['東京都','東京'],['神奈川県','横浜市'],['愛知県','名古屋市'],['大阪府','大阪市'],['兵庫県','神戸市'],['広島県','広島市'],['福岡県','福岡市'],['沖縄県','那覇市'],['香川県','高松市']];
+var g4SocGens=[
+ function(){ var p=pick(G4_PREF); var o=shuffleArr(G4_PREF.filter(function(x){return x[0]!==p[0];})).slice(0,3).map(function(x){return x[1];}); return {q:'「'+p[0]+'」の県庁所在地は？', sub:'都道府県と県庁所在地', level:'★★☆', hint:'地図で確認', type:'choice', choices:shuffleArr([p[1]].concat(o)), ans:p[1], explain:'【考え方】県名と県庁所在地。\n【手順】'+p[0]+'→'+p[1]+'\n【ポイント】ちがう名前に注意。'}; },
+ function(){ var d=pick([['北を向くと右手の方角は','東'],['太陽がのぼる方角は','東'],['太陽がしずむ方角は','西'],['地図で上はふつう','北']]); var o=shuffleArr(['東','西','南','北']).filter(function(x){return x!==d[1];}).slice(0,3); return {q:d[0]+'？', sub:'方位', level:'★☆☆', hint:'東西南北', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】方位の基本。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】地図の上は北。'}; },
+ function(){ var d=pick([['使った水をきれいにする所は','下水しょり場'],['飲み水をつくる所は','じょう水場'],['ごみを燃やす所は','せいそう工場（焼きゃく場）']]); var o=shuffleArr(['下水しょり場','じょう水場','せいそう工場（焼きゃく場）','ダム']).filter(function(x){return x!==d[1];}).slice(0,3); return {q:d[0]+'？', sub:'くらしと水・ごみ', level:'★★☆', hint:'公共のしせつ', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】くらしを支えるしせつ。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】水とごみの流れ。'}; },
+];
+// 英語（小学英語）
+var G4ENG=[['犬','dog'],['ねこ','cat'],['赤','red'],['青','blue'],['1','one'],['3','three'],['月曜日','Monday'],['りんご','apple'],['本','book'],['water','水']];
+var g4EngGens=[
+ function(){ var w=pick([['犬','dog'],['ねこ','cat'],['とり','bird'],['りんご','apple'],['本','book'],['水','water']]); var o=shuffleArr(['dog','cat','bird','apple','book','water']).filter(function(x){return x!==w[1];}).slice(0,3); return {q:'「'+w[0]+'」を英語で？', sub:'英語（単語）', level:'★☆☆', hint:'音で覚えよう', type:'choice', choices:shuffleArr([w[1]].concat(o)), ans:w[1], explain:'【考え方】身近な単語。\n【手順】'+w[0]+'＝'+w[1]+'\n【ポイント】声に出して覚える。'}; },
+ function(){ var n=pick([['1','one'],['2','two'],['3','three'],['4','four'],['5','five']]); var o=shuffleArr(['one','two','three','four','five']).filter(function(x){return x!==n[1];}).slice(0,3); return {q:'数字「'+n[0]+'」を英語で？', sub:'英語（数）', level:'★☆☆', hint:'1〜5', type:'choice', choices:shuffleArr([n[1]].concat(o)), ans:n[1], explain:'【考え方】数の英語。\n【手順】'+n[0]+'＝'+n[1]+'\n【ポイント】1〜10を覚えよう。'}; },
+ function(){ var c=pick([['赤','red'],['青','blue'],['黄','yellow'],['緑','green'],['白','white']]); var o=shuffleArr(['red','blue','yellow','green','white']).filter(function(x){return x!==c[1];}).slice(0,3); return {q:'色「'+c[0]+'」を英語で？', sub:'英語（色）', level:'★☆☆', hint:'color', type:'choice', choices:shuffleArr([c[1]].concat(o)), ans:c[1], explain:'【考え方】色の英語。\n【手順】'+c[0]+'＝'+c[1]+'\n【ポイント】身近な色から。'}; },
+ function(){ var g=pick([['おはよう','Good morning'],['ありがとう','Thank you'],['さようなら','Goodbye'],['はじめまして','Nice to meet you']]); var o=shuffleArr(['Good morning','Thank you','Goodbye','Nice to meet you']).filter(function(x){return x!==g[1];}).slice(0,3); return {q:'「'+g[0]+'」を英語で？', sub:'英語（あいさつ）', level:'★★☆', hint:'あいさつ', type:'choice', choices:shuffleArr([g[1]].concat(o)), ans:g[1], explain:'【考え方】あいさつの英語。\n【手順】'+g[0]+'＝'+g[1]+'\n【ポイント】会話の基本。'}; },
+];
+var G4 = { math:function(){return pick(g4MathGens)();}, japanese:function(){return pick(g4JpGens)();}, science:function(){return pick(g4SciGens)();}, social:function(){return pick(g4SocGens)();}, english:function(){return pick(g4EngGens)();} };
+function g4Gens(area){ return ({math:g4MathGens,japanese:g4JpGens,science:g4SciGens,social:g4SocGens,english:g4EngGens})[area]||g4MathGens; }
 const GEN = { math:()=>pick(mathGens)(), science:()=>pick(sciGens)(), social:()=>pick(socGens)(), english:()=>pick(engGens)(), japanese:()=>pick(jpGens)() };
-function genQuestion(area){ const f=GEN[area]||GEN.math; let q; for(let i=0;i<5;i++){ q=f(); if(q && q.q && q.ans!==undefined) break; } return q; }
+function genQuestion(area){ var f; if(typeof muGradeBand==='function' && muGradeBand()==='elem' && typeof G4!='undefined' && G4[area]) f=G4[area]; else f=GEN[area]||GEN.math; let q; for(let i=0;i<5;i++){ q=f(); if(q && q.q && q.ans!==undefined) break; } return q; }
 // 生成6割＋既存バンク4割を混ぜてcount問
 function buildMix(area, count, bankPool){
   bankPool = bankPool||[];
@@ -3704,9 +3771,25 @@ function backToModeSelect(){
   if(!currentArea){ showSubjectSelect(); return; }
   selectArea(currentArea);
 }
+function startGradePractice(area){
+  currentArea=area; currentMode='practice'; isExam=false; isGenPractice=true; stopExamTimer();
+  currentSubject=area;
+  var qs=[],seen={},guard=0;
+  while(qs.length<10 && guard<250){ guard++; var q=genQuestion(area); if(q&&q.q&&!seen[q.q]){ seen[q.q]=1; qs.push(q); } }
+  currentQuestions=qs; currentIndex=0; score=0;
+  hideMainScreens();
+  document.getElementById('quiz-screen').style.display='block';
+  document.getElementById('exam-timer').style.display='none';
+  var a=AREAS.find(function(x){return x.key===area;});
+  document.getElementById('quiz-title').textContent=(a?(a.icon+' '+a.name):'')+' 練習（'+muGradeLabel(muCurrentGrade())+'）';
+  setCharacter(areaCharOf(area));
+  var intro=(a?a.name:'')+'の練習だよ！1問ずつ、ヒントも使ってね。';
+  setLunaText(intro); showQuestion(true); introThenQuestion(intro);
+}
 function chooseMode(mode){
   currentMode=mode;
   if(mode==='practice'){
+    if(typeof muGradeBand==='function' && muGradeBand()==='elem'){ startGradePractice(currentArea); return; }
     if(currentArea==='math'){ showMathHome(); }
     else { showLevelSelect(currentArea); }
   } else {
@@ -3772,6 +3855,11 @@ var mathBasicGens=[
   function(){ const a=rint(2,5),b=rint(2,5); return {q:`${a}x + ${b}x を計算しよう`, sub:'同類項（基礎）', level:'★☆☆', hint:'係数をたす', type:'choice', choices:[`${a+b}x`,`${a*b}x`,`${a+b}`,`${a+b}x²`], ans:`${a+b}x`, explain:`【考え方】同じ文字どうしは係数をたす。\n【手順】${a}x+${b}x=${a+b}x\n【ポイント】xはそのまま、数だけ計算。`}; },
 ];
 function buildExam(area){
+  if(typeof muGradeBand==='function' && muGradeBand()==='elem'){
+    var _o=[],_s={},_g=0;
+    while(_o.length<25 && _g<400){ _g++; var _q=genQuestion(area); if(_q&&_q.q&&!_s[_q.q]){ _s[_q.q]=1; var _c=Object.assign({},_q); _c.pts=(_c.level==='★★★')?5:((_c.level==='★★☆')?3:2); _o.push(_c); } }
+    return shuffleArr(_o).slice(0,25);
+  }
   const out=[]; const seen={};
   function add(q){ if(!q||!q.q||seen[q.q]||!examInAug(area,q)) return false; seen[q.q]=1; out.push(Object.assign({},q)); return true; }
   // 8月まで範囲のバンク

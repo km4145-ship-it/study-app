@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0891b2"/><stop offset="1" stop-color="#db2777"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- 本 -->
+  <g transform="translate(256,272)">
+    <path d="M-150,-70 C-110,-95 -40,-95 0,-70 C40,-95 110,-95 150,-70 L150,80 C110,55 40,55 0,80 C-40,55 -110,55 -150,80 Z" fill="#ffffff"/>
+    <path d="M0,-70 L0,80" stroke="#cbd5e1" stroke-width="6"/>
+    <path d="M-130,-58 C-95,-75 -40,-75 -12,-58" stroke="#94a3b8" stroke-width="5" fill="none"/>
+    <path d="M130,-58 C95,-75 40,-75 12,-58" stroke="#94a3b8" stroke-width="5" fill="none"/>
+    <path d="M-130,-30 C-95,-47 -40,-47 -12,-30" stroke="#cbd5e1" stroke-width="5" fill="none"/>
+    <path d="M130,-30 C95,-47 40,-47 12,-30" stroke="#cbd5e1" stroke-width="5" fill="none"/>
+  </g>
+  <!-- 星 -->
+  <path d="M256,70 l24,52 56,7 -41,39 11,57 -50,-28 -50,28 11,-57 -41,-39 56,-7 Z" fill="#fcd34d" stroke="#f59e0b" stroke-width="4"/>
+</svg>

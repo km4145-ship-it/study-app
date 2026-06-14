@@ -192,6 +192,8 @@
   .progress-bar { background: var(--bg); border-radius: 99px; height: 7px; margin-bottom: 16px; overflow: hidden; }
   .progress-fill { height: 100%; background: linear-gradient(90deg, #0891b2, #ec4899); border-radius: 99px; transition: width 0.4s ease; }
   .question-text { font-size: 1.15rem; line-height: 1.7; margin-bottom: 5px; font-weight: 600; white-space: pre-line; }
+  .question-text ruby{ ruby-position:over; }
+  .question-text rt{ font-size:0.56em; color:var(--primary-light); font-weight:700; user-select:none; }
   .question-sub { font-size: 0.81rem; color: var(--primary-light); margin-bottom: 14px; }
   .figure-area { display: flex; justify-content: center; margin: 8px 0 14px; }
   .figure-area svg { filter: drop-shadow(0 0 7px rgba(8,145,178,0.3)); }
@@ -681,7 +683,7 @@
 </style>
 </head>
 <body>
-<div class="badge-toast-wrap" id="toast-wrap"></div>
+<div class="badge-toast-wrap" id="toast-wrap" role="status" aria-live="polite" aria-atomic="true"></div>
 <div id="print-area"></div>
 <!-- Start Overlay -->
 <div class="start-overlay" id="start-overlay">
@@ -774,6 +776,13 @@
         <button class="btn-sm" onclick="setFontSize('l')">中</button>
         <button class="btn-sm" onclick="setFontSize('xl')">大</button>
       </div>
+      <div class="settings-row">
+        <label>ふりがな（漢字によみがな）</label>
+        <button class="btn-sm" onclick="setFurigana('auto')">自動（小学生）</button>
+        <button class="btn-sm" onclick="setFurigana('on')">いつも</button>
+        <button class="btn-sm" onclick="setFurigana('off')">なし</button>
+      </div>
+      <p class="settings-hint" id="furi-hint">ふりがなは初期はオフです。「自動（小学生）」か「いつも」を選ぶと、漢字によみがなを表示します（初回だけ辞書の読み込みに少し時間がかかります）。</p>
     </div>
 
     <div class="settings-section">
@@ -831,7 +840,7 @@
     <button class="nav-btn" onclick="showMistakes()" title="まちがいノート">📕 ノート<span class="nb-badge" id="nb-badge" style="display:none">0</span></button>
     <button class="nav-btn" onclick="showCharacters()" title="キャラクター紹介">🐾 キャラ</button>
     <button class="nav-btn" onclick="muShowPicker()" title="ユーザー切替">👤 <span id="mu-current-name">ユーザー</span></button>
-    <button class="nav-btn" id="nav-settings-btn" onclick="openSettings()" title="設定">⚙️</button>
+    <button class="nav-btn" id="nav-settings-btn" onclick="openSettings()" title="設定" aria-label="設定">⚙️</button>
   </div>
 
   <div class="header">
@@ -940,7 +949,7 @@
         <input type="text" class="answer-input" id="answer-input" placeholder="答えを入れてね..." onkeydown="if(event.key==='Enter')checkFreeAnswer()">
         <button class="btn-check" onclick="checkFreeAnswer()">チェック！</button>
       </div>
-      <div class="feedback" id="feedback"></div>
+      <div class="feedback" id="feedback" role="status" aria-live="polite" aria-atomic="true"></div>
       <button class="btn-next" id="btn-next" onclick="nextQuestion()">次の問題へ ➡</button>
     </div>
   </div>
@@ -1950,6 +1959,7 @@ async function startApp() {
   unlockSpeech(); // タップの瞬間に内蔵音声を解除（iOS/Safari対策）
   var so=document.getElementById('start-overlay'); if(so) so.style.display='none';
   muShowPicker(); // まずユーザー選択画面
+  setTimeout(function(){ try{ backupReminder(); }catch(e){} }, 1600);
 }
 
 // =================== SETTINGS MODAL ===================
@@ -1979,15 +1989,15 @@ function pinSet(){
   var p2=prompt('確認のため、もう一度入力してください'); if(p2===null) return;
   if((''+p2).trim()!==p){ alert('2回の入力が一致しませんでした。'); return; }
   try{ localStorage.setItem('family_pin', _pinObf(p)); localStorage.removeItem('pin_trust'); }catch(e){}
-  alert('合言葉ロックを設定しました。次に開くときから合言葉が必要になります。'); pinUpdateHint();
+  showToast('🔒','合言葉ロックON','次回から合言葉が必要です'); pinUpdateHint();
 }
 function pinClear(){
-  if(!localStorage.getItem('family_pin')){ alert('いまは合言葉ロックは設定されていません。'); return; }
+  if(!localStorage.getItem('family_pin')){ showToast('ℹ️','ロックはOFF','いまは設定されていません'); return; }
   if(!confirm('合言葉ロックを解除して、誰でも開ける状態に戻しますか？')) return;
   try{ localStorage.removeItem('family_pin'); localStorage.removeItem('pin_trust'); }catch(e){}
-  alert('合言葉ロックを解除しました。'); pinUpdateHint();
+  showToast('🔓','ロック解除','だれでも開けます'); pinUpdateHint();
 }
-function pinForgetDevice(){ try{ localStorage.removeItem('pin_trust'); }catch(e){} alert('この端末の「次回省略」を取り消しました。次回起動時に合言葉が必要です。'); }
+function pinForgetDevice(){ try{ localStorage.removeItem('pin_trust'); }catch(e){} showToast('🔒','省略を取り消し','次回は合言葉が必要です'); }
 function pinUpdateHint(){ var el=document.getElementById('pin-state'); if(el) el.textContent = localStorage.getItem('family_pin') ? '　現在：ロックON' : '　現在：ロックOFF（誰でも開けます）'; }
 function applyTheme(){ try{ document.body.classList.toggle('dark', safeLS.getItem('theme')==='dark'); }catch(e){} }
 function toggleDark(){ const on=!document.body.classList.contains('dark'); document.body.classList.toggle('dark', on); safeLS.setItem('theme', on?'dark':'light'); }
@@ -2000,8 +2010,28 @@ function exportData(){
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='chisaki_progress_'+todayKey()+'.json';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    try{ localStorage.setItem('last_backup', new Date().toISOString()); }catch(_e){}
     showToast('💾','保存しました','進捗ファイルを書き出したよ');
-  }catch(e){ alert('書き出しに失敗しました。'); }
+  }catch(e){ showToast('⚠️','書き出しに失敗','もう一度お試しください'); }
+}
+function backupReminder(){
+  try{
+    var last=localStorage.getItem('last_backup');
+    var days = last ? Math.floor((Date.now()-Date.parse(last))/86400000) : 999;
+    var synced = !!localStorage.getItem('mu_family');
+    if(days < (synced?30:14)) return;
+    if(document.getElementById('bk-remind')) return;
+    var msg = last ? ('💾 前回のバックアップから'+days+'日です。念のため書き出しをおすすめします') : '💾 まだ一度もバックアップしていません。念のため書き出しをおすすめします';
+    var t=document.createElement('div'); t.id='bk-remind';
+    t.setAttribute('style','position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9000;background:#b45309;color:#fff;padding:10px 14px;border-radius:14px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:92%;display:flex;gap:10px;align-items:center;');
+    var span=document.createElement('span'); span.textContent=msg; t.appendChild(span);
+    var b=document.createElement('button'); b.textContent='書き出す'; b.setAttribute('style','background:#fff;color:#b45309;border:0;border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer;flex:none;');
+    b.addEventListener('click',function(){ try{ exportData(); }catch(e){} if(t.parentNode)t.parentNode.removeChild(t); });
+    var x=document.createElement('button'); x.textContent='×'; x.setAttribute('style','background:transparent;color:#fff;border:0;font-size:18px;line-height:1;cursor:pointer;flex:none;');
+    x.addEventListener('click',function(){ if(t.parentNode)t.parentNode.removeChild(t); });
+    t.appendChild(b); t.appendChild(x);
+    document.body.appendChild(t);
+  }catch(e){}
 }
 function importDataFile(input){
   const f=input.files&&input.files[0]; if(!f) return;
@@ -2013,7 +2043,7 @@ function importDataFile(input){
       Object.keys(data).forEach(function(k){ if(k.charAt(0)!=='_') { try{ localStorage.setItem(k, data[k]); }catch(e){} } });
       alert('読み込みました。画面を更新します。');
       try{ location.reload(); }catch(e){}
-    }catch(e){ alert('ファイルを読み込めませんでした。正しい進捗ファイルか確認してね。'); }
+    }catch(e){ showToast('⚠️','読み込めません','正しい進捗ファイルか確認してね'); }
     input.value='';
   };
   r.readAsText(f);
@@ -2035,7 +2065,7 @@ function muStartYearForGrade(l){ return muAcademicYear()-(l-1); }
 function muCurrentGrade(){ return muGradeLevel(muCurrentUser()); }
 function muGradeBand(l){ l=l||muCurrentGrade(); return l<=6 ? 'elem' : 'jhs'; }
 function muSetUserGrade(id,l){ l=Math.max(1,Math.min(9,parseInt(l,10)||7)); var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.startYear=muStartYearForGrade(l); }); muSaveUsers(us); }
-function muAskGrade(cur){ var s=prompt('学年を数字で入力してください：\n小1=1 小2=2 小3=3 小4=4 小5=5 小6=6\n中1=7 中2=8 中3=9\n（例）小4→4、中1→7', String(cur||7)); if(s===null) return null; var l=parseInt((''+s).trim(),10); if(!l||l<1||l>9){ alert('1〜9で入力してください。'); return null; } return l; }
+function muAskGrade(cur){ var s=prompt('学年を数字で入力してください：\n小1=1 小2=2 小3=3 小4=4 小5=5 小6=6\n中1=7 中2=8 中3=9\n（例）小4→4、中1→7', String(cur||7)); if(s===null) return null; var l=parseInt((''+s).trim(),10); if(!l||l<1||l>9){ showToast('⚠️','学年は1〜9で','小1=1〜中3=9で入力してね'); return null; } return l; }
 function muSetUserAdmin(id,on){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.admin=!!on; }); if(!us.some(function(u){return u.admin;})) { us[0].admin=true; } muSaveUsers(us); }
 function muSetCurrent(id){ sessionStorage.setItem('mu_enter','1'); sessionStorage.removeItem('mu_admin_ok'); _rawSet('mu_current', id); try{ location.reload(); }catch(e){} }
 // 管理者PIN（設定の保護）
@@ -2048,7 +2078,7 @@ function muRequireAdmin(){
   if(!muAdminPinSet()){
     var p=prompt('はじめに管理者用の合言葉(PIN)を決めてください（3文字以上）。\nこれで「設定」を保護します（保護者の方が管理）。'); if(p===null) return false; p=(''+p).trim(); if(p.length<3){ alert('短すぎます。3文字以上にしてください。'); return false; }
     var p2=prompt('確認のため、もう一度入力してください'); if(p2===null) return false; if((''+p2).trim()!==p){ alert('一致しませんでした。'); return false; }
-    muSetAdminPin(p); muUnlockAdmin(); alert('管理者の合言葉を設定しました。次回から設定を開くときに必要です。'); return true;
+    muSetAdminPin(p); muUnlockAdmin(); showToast('🔑','管理者を設定','次回から設定に必要です'); return true;
   }
   var x=prompt('管理者の合言葉(PIN)を入力してください'); if(x===null) return false;
   if(_pinObf((''+x).trim())===_rawGet('mu_admin_pin')){ muUnlockAdmin(); return true; }
@@ -2118,22 +2148,22 @@ function renderUserAdmin(){
     btn('学年','',function(){ var l=muAskGrade(muGradeLevel(u)); if(l===null) return; muSetUserGrade(u.id,l); renderUserAdmin(); muUpdateHeader(); });
     btn('キャラ','',function(){ var i=MU_CHARS.indexOf(u.char); muSetUserChar(u.id, MU_CHARS[(i+1)%MU_CHARS.length]); renderUserAdmin(); });
     btn(u.admin?'管理者':'一般', u.admin?'#059669':'#94a3b8', function(){ muSetUserAdmin(u.id,!u.admin); renderUserAdmin(); });
-    btn('削除','#ef4444', function(){ if(muGetUsers().length<=1){ alert('最後の1人は削除できません。'); return; } if(!confirm('このユーザーの学習データも消えます。削除しますか？')) return; Object.keys(MU_PER_USER).forEach(function(k){ _rawDel('u:'+u.id+':'+k); }); muRemoveUser(u.id); renderUserAdmin(); muUpdateHeader(); });
+    btn('削除','#ef4444', function(){ if(muGetUsers().length<=1){ showToast('⚠️','削除できません','最後の1人は残してね'); return; } if(!confirm('このユーザーの学習データも消えます。削除しますか？')) return; Object.keys(MU_PER_USER).forEach(function(k){ _rawDel('u:'+u.id+':'+k); }); muRemoveUser(u.id); renderUserAdmin(); muUpdateHeader(); });
     el.appendChild(row);
   });
-  if(users.length<5){ var add=document.createElement('button'); add.className='btn-sm'; add.style.marginTop='6px'; add.style.background='var(--primary)'; add.textContent='＋ ユーザーを追加'; add.addEventListener('click',function(){ var n=prompt('追加するユーザーの名前（8文字まで）'); if(n===null) return; n=(''+n).trim(); if(!n) return; var g=muAskGrade(7); if(g===null) g=7; if(!muAddUser(n,'shiba',false,g)){ alert('最大5人です。'); return; } renderUserAdmin(); }); el.appendChild(add); }
+  if(users.length<5){ var add=document.createElement('button'); add.className='btn-sm'; add.style.marginTop='6px'; add.style.background='var(--primary)'; add.textContent='＋ ユーザーを追加'; add.addEventListener('click',function(){ var n=prompt('追加するユーザーの名前（8文字まで）'); if(n===null) return; n=(''+n).trim(); if(!n) return; var g=muAskGrade(7); if(g===null) g=7; if(!muAddUser(n,'shiba',false,g)){ showToast('⚠️','ふやせません','ユーザーは最大5人です'); return; } renderUserAdmin(); }); el.appendChild(add); }
   else { var h=document.createElement('div'); h.className='settings-hint'; h.textContent='ユーザーは最大5人です。'; el.appendChild(h); }
 }
-function muChangeAdminPin(){ var p=prompt('新しい管理者の合言葉(PIN)（3文字以上）'); if(p===null) return; p=(''+p).trim(); if(p.length<3){ alert('短すぎます。'); return; } var p2=prompt('確認のためもう一度'); if(p2===null) return; if((''+p2).trim()!==p){ alert('一致しませんでした。'); return; } muSetAdminPin(p); muUnlockAdmin(); alert('管理者の合言葉を変更しました。'); }
+function muChangeAdminPin(){ var p=prompt('新しい管理者の合言葉(PIN)（3文字以上）'); if(p===null) return; p=(''+p).trim(); if(p.length<3){ alert('短すぎます。'); return; } var p2=prompt('確認のためもう一度'); if(p2===null) return; if((''+p2).trim()!==p){ alert('一致しませんでした。'); return; } muSetAdminPin(p); muUnlockAdmin(); showToast('🔑','変更しました','新しい合言葉になりました'); }
 // 設定は管理者のみ開ける
-function openSettings()  { var _cu=muCurrentUser(); if(!_cu || !_cu.admin){ alert('設定は「管理者」ユーザーだけが開けます。\n右上の👤から管理者のユーザーに切り替えてください。'); return; } if(!muRequireAdmin()) return; document.getElementById('settings-modal').classList.add('open'); refreshSettingsDisp(); }
+function openSettings()  { var _cu=muCurrentUser(); if(!_cu || !_cu.admin){ showToast('🔑','管理者だけが開けます','右上の👤から管理者に切り替えてね'); return; } if(!muRequireAdmin()) return; document.getElementById('settings-modal').classList.add('open'); refreshSettingsDisp(); }
 function daysUntilTest(){ const td=safeLS.getItem('testdate'); if(!td) return null; const now=new Date(); now.setHours(0,0,0,0); return Math.round((_toDate(td)-now)/86400000); }
 function refreshSettingsDisp(){
   try{ renderUserAdmin(); }catch(e){}
   const td=safeLS.getItem('testdate'); const t=document.getElementById('testdate-disp'); if(t) t.textContent= td?('（'+td+'／あと'+daysUntilTest()+'日）'):'（未設定）';
   const rw=lsGetJSON('reward',null); const r=document.getElementById('reward-disp'); if(r) r.textContent= rw?('（'+rw.points+'pt で '+rw.text+'）'):'（未設定）';
 }
-function setTestDate(){ const cur=safeLS.getItem('testdate')||''; const v=prompt('次のテストの日（例 2026-07-10）。消すなら空欄。', cur); if(v===null) return; v=(''+v).trim(); if(v===''){ safeLS.setItem('testdate',''); } else if(/^\d{4}-\d{2}-\d{2}$/.test(v)){ safeLS.setItem('testdate', v); } else { alert('YYYY-MM-DD の形で入力してね'); return; } refreshSettingsDisp(); renderDailyMenu(); }
+function setTestDate(){ const cur=safeLS.getItem('testdate')||''; const v=prompt('次のテストの日（例 2026-07-10）。消すなら空欄。', cur); if(v===null) return; v=(''+v).trim(); if(v===''){ safeLS.setItem('testdate',''); } else if(/^\d{4}-\d{2}-\d{2}$/.test(v)){ safeLS.setItem('testdate', v); } else { showToast('⚠️','日付の形がちがいます','YYYY-MM-DD で入力してね'); return; } refreshSettingsDisp(); renderDailyMenu(); }
 function setReward(){ const cur=lsGetJSON('reward',null); var text=prompt('ごほうびの内容（例：好きな本を1冊）。消すなら空欄。', cur?cur.text:''); if(text===null) return; text=(''+text).trim(); if(text===''){ safeLS.setItem('reward','null'); safeLS.setItem('reward_done','0'); refreshSettingsDisp(); renderDailyMenu(); return; } const p=prompt('何アロハポイントでごほうび？（例 1000）', cur?cur.points:'1000'); if(p===null) return; const pts=parseInt(p,10)||1000; lsSetJSON('reward',{text:text,points:pts}); safeLS.setItem('reward_done','0'); refreshSettingsDisp(); renderDailyMenu(); showToast('🎁','ごほうびを設定','がんばってためよう！'); }
 function checkReward(){ const rw=lsGetJSON('reward',null); if(!rw) return; if(totalPoints>=rw.points && safeLS.getItem('reward_done')!=='1'){ safeLS.setItem('reward_done','1'); confetti(); showToast('🎁','ごほうび達成！', rw.text+' をゲット！', 5000); } }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
@@ -2475,6 +2505,62 @@ function startSubject(subjectId) {
   introThenQuestion(intro);
 }
 
+// ===== 視覚的ふりがな（小学生向け・kuromoji 遅延ロード／失敗してもアプリは止めない）=====
+var _furiTok=null,_furiLoading=false,_furiFailed=false;
+function furiMode(){ try{ return safeLS.getItem('furigana')||'off'; }catch(e){ return 'off'; } }
+function furiOn(){ var m=furiMode(); if(m==='off') return false; if(m==='on') return true; try{ return (typeof muGradeBand==='function' && muGradeBand()==='elem'); }catch(e){ return false; } }
+function _k2h(x){ return x.replace(/[ァ-ヶ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0x60);}); }
+function _furiK(x){ return /[一-龯々]/.test(x); }
+function furiHTML(text){
+  if(!_furiTok) return null;
+  try{
+    return _furiTok.tokenize(String(text)).map(function(t){
+      var sf=t.surface_form; var r=(t.reading&&t.reading!=='*')?_k2h(t.reading):null;
+      if(!r||!_furiK(sf)) return escapeHtml(sf);
+      var i=sf.length,j=r.length;
+      while(i>0&&j>0&&sf[i-1]===r[j-1]&&!_furiK(sf[i-1])){i--;j--;}
+      var a=0,b=0;
+      while(a<i&&b<j&&sf[a]===r[b]&&!_furiK(sf[a])){a++;b++;}
+      var pre=sf.slice(0,a),mid=sf.slice(a,i),post=sf.slice(i),rt=r.slice(b,j);
+      if(!mid||!rt) return escapeHtml(sf);
+      return escapeHtml(pre)+'<ruby>'+escapeHtml(mid)+'<rt>'+escapeHtml(rt)+'</rt></ruby>'+escapeHtml(post);
+    }).join('');
+  }catch(e){ return null; }
+}
+function furiApply(id,text){
+  var el=document.getElementById(id); if(!el) return;
+  if(furiOn() && _furiTok){ var h=furiHTML(text); if(h!=null){ el.innerHTML=h; return; } }
+  el.textContent=String(text==null?'':text);
+  if(furiOn()) _furiLoad();
+}
+function _furiLoad(){
+  if(_furiTok||_furiLoading||_furiFailed) return;
+  _furiLoading=true;
+  try{
+    if(typeof window.kuromoji!=='undefined'){ _furiBuild(); return; }
+    var sc=document.createElement('script');
+    sc.src='https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js';
+    sc.onload=_furiBuild; sc.onerror=function(){ _furiLoading=false; _furiFailed=true; };
+    document.head.appendChild(sc);
+  }catch(e){ _furiLoading=false; _furiFailed=true; }
+}
+function _furiBuild(){
+  try{
+    kuromoji.builder({dicPath:'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/'}).build(function(err,tok){
+      _furiLoading=false;
+      if(err||!tok){ _furiFailed=true; return; }
+      _furiTok=tok;
+      try{ var qs=document.getElementById('quiz-screen'); if(qs && qs.style.display!=='none' && typeof currentQuestions!=='undefined' && currentQuestions && currentQuestions[currentIndex]) showQuestion(true); }catch(e){}
+    });
+  }catch(e){ _furiLoading=false; _furiFailed=true; }
+}
+function setFurigana(m){
+  try{ safeLS.setItem('furigana',m); }catch(e){}
+  var h=document.getElementById('furi-hint'); if(h) h.textContent=(m==='off'?'ふりがなは表示しません。':(m==='on'?'つねにふりがなを表示します。':'小学生のあいだは自動でふりがなを表示します（中学生は自動でなし）。'));
+  if(furiOn()) _furiLoad();
+  try{ var qs=document.getElementById('quiz-screen'); if(qs && qs.style.display!=='none' && currentQuestions && currentQuestions[currentIndex]) showQuestion(true); }catch(e){}
+  showToast('🈁','ふりがな',(m==='off'?'なし':(m==='on'?'いつも表示':'自動（小学生）')));
+}
 function showQuestion(skipSpeak) {
   if (currentIndex >= currentQuestions.length) { if (isExam) { finishExam(); } else if (isMistakePractice) { endMistakePractice(); } else { showResult(); } return; }
   const q = currentQuestions[currentIndex];
@@ -2482,8 +2568,8 @@ function showQuestion(skipSpeak) {
 
   document.getElementById('quiz-progress').textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
   document.getElementById('progress-fill').style.width = (currentIndex / currentQuestions.length * 100) + '%';
-  document.getElementById('question-text').textContent = q.q;
-  document.getElementById('question-sub').textContent = q.sub || '';
+  furiApply('question-text', q.q);
+  furiApply('question-sub', q.sub || '');
   hintStage=0; qStartTime=Date.now();
   document.getElementById('hint-area').className = 'hint-area';
   document.getElementById('hint-area').textContent = '';
@@ -3573,7 +3659,7 @@ function resetHistory(){
   if(!confirm('本当に削除します。元に戻せません。\n先にバックアップ（💾書き出し）は取りましたか？\n\nこのまま削除する場合は「OK」を押してください。')) return;
   var keys=['study_log','daily_hist','daily_prog','topic_stats','mistake_notebook','recent_acc','careless_log','areas_played','badges','reward_done','c_answered','c_correct','c_streak','c_beststreak','c_seconds','c_points','study_seconds'];
   keys.forEach(function(k){ try{ safeLS.removeItem(k); }catch(e){} });
-  try{ alert('すべての実施履歴を削除しました。最初の状態に戻します。'); }catch(e){}
+  try{ showToast('🧹','リセットしました','最初の状態に戻したよ'); }catch(e){}
   try{ location.reload(); }catch(e){ try{ location.href=location.href; }catch(e2){} }
 }
 function clearRecords(){
@@ -3670,6 +3756,18 @@ function introduceCharacter(k){
   setLunaText(info.intro);
   speak(info.intro);
 }
+BANK.japanese.practice.push(
+  { q:'文章を読んで答えなさい。\n「町の図書館のとなりに、小さな公園がある。そこは、わたしが放課後よく友だちと遊ぶ場所だ。」\n――「そこ」が指すものは？', sub:'読解（指示語）', level:'★★☆', hint:'こそあど言葉は前にもどす', type:'choice', choices:['小さな公園','町の図書館','放課後','友だち'], ans:'小さな公園', explain:'【考え方】指示語は直前の内容を指すことが多い。\n【手順】「そこ＝場所」→直前の「小さな公園」\n【ポイント】こそあど言葉は前の名詞にもどして確かめる。' },
+  { q:'空らんに入る接続語は？\n「朝から雨が降っていた。（　）、運動会は予定どおり行われた。」', sub:'読解（接続語）', level:'★★☆', hint:'前後が逆の内容', type:'choice', choices:['しかし','だから','つまり','たとえば'], ans:'しかし', explain:'【考え方】前後が反対→逆接。\n【手順】雨（不利）→予定どおり実施＝逆接\n【ポイント】順当＝だから、逆＝しかし、言いかえ＝つまり。' },
+  { q:'文章を読んで答えなさい。\n「テストが返ってきた。思っていたより点が良くて、ぼくは思わず席で小さくガッツポーズをした。」\nこのときの「ぼく」の気持ちは？', sub:'読解（心情）', level:'★☆☆', hint:'行動から気持ちを読む', type:'choice', choices:['うれしい','くやしい','ふあん','たいくつ'], ans:'うれしい', explain:'【考え方】行動から気持ちを読み取る。\n【手順】点が良い＋ガッツポーズ＝喜び\n【ポイント】「思わず」は感情があふれた動作の合図。' },
+  { q:'文章を読んで答えなさい。\n「本を読むと、知らない世界や考え方に出会える。だから、わたしは毎日少しずつでも読書を続けたい。」\n筆者がいちばん言いたいことは？', sub:'読解（主張）', level:'★★☆', hint:'「だから」の後に注目', type:'choice', choices:['読書を続けたい','本は高い','世界は広い','毎日いそがしい'], ans:'読書を続けたい', explain:'【考え方】「だから」の後に主張が来やすい。\n【手順】理由→だから→「読書を続けたい」が結論\n【ポイント】筆者の意見は文末や「だから・つまり」の後に注目。' },
+  { q:'文章を読んで答えなさい。\n「弟は約束の時間に十分も遅れてきた。それなのに、悪びれた様子もない。」\n――「それ」が指す内容は？', sub:'読解（指示語）', level:'★★★', hint:'文の内容を指すことも', type:'choice', choices:['約束に十分遅れてきたこと','弟の性格','時計の故障','悪びれた様子'], ans:'約束に十分遅れてきたこと', explain:'【考え方】「それ」は前の文の出来事全体を指すことがある。\n【手順】直前の事実＝「十分遅れてきたこと」\n【ポイント】指示語は語だけでなく“文の内容”も指す。' },
+  { q:'（　）に入る言葉は？\n「彼は足が速い。（　）、力も強い。」', sub:'読解（接続語）', level:'★★☆', hint:'よい点を付け加える', type:'choice', choices:['そのうえ','しかし','ところが','なぜなら'], ans:'そのうえ', explain:'【考え方】よい点の付け足し＝添加。\n【手順】速い＋強い（付け加え）＝「そのうえ」\n【ポイント】添加＝そのうえ・また、逆接＝しかし。' },
+  { q:'（　）に入る言葉は？\n「水は0度で氷に、100度で水じょう気になる。（　）、温度ですがたを変える。」', sub:'読解（接続語）', level:'★★☆', hint:'前をまとめて言いかえる', type:'choice', choices:['つまり','けれども','たとえば','さて'], ans:'つまり', explain:'【考え方】具体例→まとめの言いかえ。\n【手順】例→まとめ＝「つまり」\n【ポイント】「つまり」の後は要点（まとめ）が来る。' },
+  { q:'文章を読んで答えなさい。\n「ツバメは春に日本へ来て、秋になると南の暖かい国へ帰っていく。」\nツバメが日本に来るのはいつ？', sub:'読解（読み取り）', level:'★☆☆', hint:'本文の事実を探す', type:'choice', choices:['春','夏','秋','冬'], ans:'春', explain:'【考え方】本文の事実をそのまま探す。\n【手順】「春に日本へ来て」とある\n【ポイント】読み取り問題は本文に必ず根きょがある。' },
+  { q:'文章を読んで答えなさい。\n「発表の前はどきどきしていたが、終わってみると、やりきった気持ちで胸がいっぱいになった。」\n発表の後の気持ちに近いのは？', sub:'読解（心情の変化）', level:'★★☆', hint:'前と後をくらべる', type:'choice', choices:['満足','後かい','たいくつ','怒り'], ans:'満足', explain:'【考え方】「やりきった」「胸がいっぱい」から判断。\n【手順】達成感＝満足\n【ポイント】気持ちの変化（不安→満足）をとらえる。' },
+  { q:'文章を読んで答えなさい。\n「あいさつは、相手と気持ちよくつながる第一歩だ。短い言葉でも、する人とされる人の心を明るくする。」\nこの文章の主題は？', sub:'読解（主題）', level:'★★☆', hint:'くり返し出る話題', type:'choice', choices:['あいさつの大切さ','言葉の数','朝の習慣','声の大きさ'], ans:'あいさつの大切さ', explain:'【考え方】くり返し出る話題＝主題。\n【手順】「あいさつ」の良さを述べている\n【ポイント】何について書いているか（話題）を一語でつかむ。' }
+);
 var FLASH_DECKS=[
   { id:'math', icon:'🔢', name:'数学の公式', cards:[
     ['円の面積','π×半径×半径（πr²）'],['円周','2×π×半径（2πr）'],['おうぎ形の弧','2πr × 中心角/360'],['おうぎ形の面積','πr² × 中心角/360'],
@@ -3700,6 +3798,24 @@ var FLASH_DECKS=[
     ['単刀直入','前置きなくすぐ本題に入る'],['異口同音','大勢が同じことを言う'],['五里霧中','方針が立たず迷う'],['我田引水','自分に都合よくする'],
     ['四面楚歌','まわりがみな敵で孤立'],['心機一転','気持ちをすっかり入れかえる'],['弱肉強食','強者が弱者をえじきに'],['一攫千金','一度に大きな利益'],
     ['玉石混交','よい物と悪い物が混ざる'],['臨機応変','その場に応じて対応する'],['温故知新','古いことから新しい知識を得る'],['有終の美','最後までやりとげる'] ] },
+  { id:'eng2', icon:'🆎', name:'英単語 中学①', cards:[
+    ['begin','始める'],['become','〜になる'],['bring','持ってくる'],['catch','つかまえる'],['choose','選ぶ'],['cut','切る'],['draw','(線で)かく'],['enjoy','楽しむ'],['feel','感じる'],['find','見つける'],
+    ['hear','聞こえる'],['hold','持つ・開く'],['keep','保つ'],['learn','習う・覚える'],['leave','去る・残す'],['meet','会う'],['practice','練習する'],['remember','覚えている'],['understand','理解する'],['win','勝つ'],
+    ['breakfast','朝食'],['language','言語'],['future','未来'],['holiday','休日'],['vacation','休暇'],['weather','天気'],['season','季節'],['nature','自然'],['hospital','病院'],['station','駅'],
+    ['airport','空港'],['kitchen','台所'],['subject','教科'],['homework','宿題'],['question','質問'],['answer','答え'],['example','例'],['problem','問題'],['dream','夢'],['letter','手紙・文字'] ] },
+  { id:'eng3', icon:'🔠', name:'英単語 中学②', cards:[
+    ['important','大切な'],['difficult','難しい'],['easy','簡単な'],['famous','有名な'],['popular','人気のある'],['different','ちがう'],['same','同じ'],['favorite','お気に入りの'],['delicious','とてもおいしい'],['careful','注意深い'],
+    ['dangerous','危険な'],['useful','役に立つ'],['interesting','興味深い'],['kind','親切な'],['quiet','静かな'],['ready','準備ができた'],['afraid','こわがって'],['glad','うれしい'],['tired','つかれた'],['expensive','高価な'],
+    ['always','いつも'],['usually','たいてい'],['sometimes','ときどき'],['often','よく・しばしば'],['never','一度も〜ない'],['early','早く'],['late','おくれて'],['together','いっしょに'],['again','再び'],['finally','ついに'],
+    ['get up','起きる'],['go to bed','ねる'],['look for','〜をさがす'],['look forward to','〜を楽しみに待つ'],['take care of','〜の世話をする'],['be interested in','〜に興味がある'],['be good at','〜が得意'],['a lot of','たくさんの'],['for example','たとえば'],['of course','もちろん'] ] },
+  { id:'elemmath', icon:'📏', name:'小学 算数キホン', cards:[
+    ['1km =','1000 m'],['1m =','100 cm'],['1cm =','10 mm'],['1kg =','1000 g'],['1L =','10 dL'],['1L =','1000 mL'],['1dL =','100 mL'],['1時間 =','60 分'],['1分 =','60 秒'],['1日 =','24 時間'],
+    ['長方形の面積','たて × よこ'],['正方形の面積','1辺 × 1辺'],['三角形の面積','底辺 × 高さ ÷ 2'],['平行四辺形の面積','底辺 × 高さ'],['平均','合計 ÷ 個数'],['速さ','道のり ÷ 時間'],['道のり','速さ × 時間'],['時間','道のり ÷ 速さ'],['1あたり × いくつ分','全体の数'],['全体 ÷ いくつ分','1あたりの数'],
+    ['分数 1/2','0.5'],['分数 1/4','0.25'],['分数 3/4','0.75'],['1割','0.1（10%）'],['半分にする','÷2'],['小数第一位','0.1の位'],['四捨五入 0〜4','切り捨て'],['四捨五入 5〜9','切り上げ'],['たし算の答え','和'],['ひき算の答え','差'] ] },
+  { id:'kanji4', icon:'✏️', name:'小4の漢字（読み）', cards:[
+    ['愛情','あいじょう'],['案内','あんない'],['以下','いか'],['位置','いち'],['印刷','いんさつ'],['英語','えいご'],['栄養','えいよう'],['塩分','えんぶん'],['結果','けっか'],['課題','かだい'],
+    ['改良','かいりょう'],['機械','きかい'],['害虫','がいちゅう'],['観察','かんさつ'],['完成','かんせい'],['希望','きぼう'],['季節','きせつ'],['器具','きぐ'],['挙手','きょしゅ'],['漁業','ぎょぎょう'],
+    ['協力','きょうりょく'],['競争','きょうそう'],['訓練','くんれん'],['軍手','ぐんて'],['景色','けしき'],['健康','けんこう'],['建設','けんせつ'],['好物','こうぶつ'],['候補','こうほ'],['副食','ふくしょく'] ] },
 ];
 var fcState=null;
 function showFlashcards(){
@@ -4159,7 +4275,7 @@ function rmStart(kind, area){
     else if(kind==='weak'){ startWeaknessDrill(); }
     else if(kind==='review'){ startReviewDue(); }
     else if(kind==='flash'){ showFlashcards(); }
-  }catch(e){ alert('開始できませんでした：'+e.message); }
+  }catch(e){ showToast('⚠️','開始できませんでした',String(e&&e.message||'')); }
 }
 function rmTaskBtn(t){
   return '<button class="rm-task" onclick="rmStart(\''+t.kind+'\''+(t.area?(",'"+t.area+"'"):'')+')">'+
@@ -4247,7 +4363,7 @@ function runQuestionSession(qs, title, intro, char){
 }
 function startWeaknessDrill(){
   const weak=weakTopics(8);
-  if(weak.length===0){ alert('まだ苦手データが少ないよ。まず練習やテストをやってみよう！'); return; }
+  if(weak.length===0){ showToast('📝','苦手データが少ないよ','まず練習やテストをやってみよう！'); return; }
   const weakSubs={}; weak.forEach(function(w){ weakSubs[w.sub]=true; });
   let qs=shuffleArr(allStaticQuestions().filter(function(q){ return weakSubs[q.sub]; })).slice(0,10);
   if(qs.length<8){
@@ -4256,7 +4372,7 @@ function startWeaknessDrill(){
     while(qs.length<8 && guard<400){ const a=areas[guard%areas.length]||'math'; const g=genQuestion(a); guard++; if(g && weakSubs[g.sub] && !qs.some(function(x){return x.q===g.q;})) qs.push(g); }
     while(qs.length<8 && guard<800){ const a=areas[guard%areas.length]||'math'; const g=genQuestion(a); guard++; if(g && !qs.some(function(x){return x.q===g.q;})) qs.push(g); }
   }
-  if(qs.length===0){ alert('苦手の問題が見つかりませんでした。'); return; }
+  if(qs.length===0){ showToast('🔍','見つかりません','苦手の問題がまだないよ'); return; }
   qs=shuffleArr(qs);
   const names=weak.slice(0,3).map(function(w){return w.sub;}).join('・');
   runQuestionSession(qs, '💪 苦手克服ドリル', `苦手な「${names}」を集中とっくん！ここを克服すれば一気に伸びるぞ🐯`, 'tiger');
@@ -4271,7 +4387,7 @@ function startHardChallenge(){
   let guard=0; const areas=['math','math','math','science','social'];
   while(qs.length<10 && guard<300){ const g=genQuestion(areas[guard%areas.length]); guard++; if(g && g.level==='★★★' && !qs.some(function(x){return x.q===g.q;})) qs.push(g); }
   if(qs.length<5){ qs=shuffleArr(allStaticQuestions().filter(function(q){return q.level!=='★☆☆';})).slice(0,10); }
-  if(!qs.length){ alert('難問が見つかりませんでした。'); return; }
+  if(!qs.length){ showToast('🔍','見つかりません','難問がまだないよ'); return; }
   runQuestionSession(shuffleArr(qs), '🔥 難問チャレンジ', '上位をめざす難問だ。じっくり考えて挑め！🐯', 'tiger');
 }
 function startMixedPractice(){
@@ -4286,7 +4402,7 @@ function startMixedPractice(){
     else { const a=subs[Math.floor(Math.random()*5)]; const g=genQuestion(a); if(g && !qs.some(function(x){return x.q===g.q;})) qs.push(g); }
   }
   while(qs.length<10){ const g=genQuestion('math'); if(g&&!qs.some(function(x){return x.q===g.q;})) qs.push(g); else break; }
-  if(!qs.length){ alert('問題を用意できませんでした。'); return; }
+  if(!qs.length){ showToast('🔍','用意できません','対象の問題がないよ'); return; }
   const lvl=acc>=0.8?'（難しめ）':(acc<0.5?'（やさしめ）':'');
   runQuestionSession(shuffleArr(qs), '🔀 ミックス演習', '全教科ごちゃまぜ'+lvl+'！本番に近い力だめしだよ。', 'owl');
 }
@@ -4303,7 +4419,7 @@ function srsCorrect(q){
   else { arr[i].box=box; arr[i].due=dateKeyOffset(SRS_INT[box]); saveMistakes(arr); }
 }
 function runMistakeSession(items, title, intro){
-  if(!items.length){ alert('対象の問題がありません。'); return; }
+  if(!items.length){ showToast('🔍','対象がありません','別のメニューを試してね'); return; }
   const qs=shuffleArr(items).slice(0,10).map(m=>({q:m.q,sub:m.sub,ans:m.ans,choices:m.choices,type:m.type||'choice',explain:m.explain,hint:m.hint,level:m.level,figure:m.figure,passage:m.passage,altAns:m.altAns,unit:m.unit,area:m.area}));
   isMistakePractice=true; isExam=false; isGenPractice=false; currentMode='practice'; stopExamTimer();
   currentArea='math'; currentSubject='__mistake__'; sessionGraduated=0;
@@ -4314,7 +4430,7 @@ function runMistakeSession(items, title, intro){
   document.getElementById('quiz-title').textContent=title;
   setCharacter('penguin'); setLunaText(intro); showQuestion(true); introThenQuestion(intro);
 }
-function startReviewDue(){ const a=dueMistakes(); if(!a.length){ alert('今日の復習はありません。よくがんばっているね！'); return; } runMistakeSession(a,'🔁 今日の復習','忘れたころが復習のチャンス。今日の分をやっつけよう！'); }
+function startReviewDue(){ const a=dueMistakes(); if(!a.length){ showToast('🎉','復習なし','今日はお休み。よくがんばってるね！'); return; } runMistakeSession(a,'🔁 今日の復習','忘れたころが復習のチャンス。今日の分をやっつけよう！'); }
 function addMistake(q, area){
   if(!q || !q.q) return;
   const arr = getMistakes();
@@ -4382,7 +4498,7 @@ function renderMistakeList(){
 }
 function startMistakePractice(){
   const arr=getMistakes();
-  if(arr.length===0){ alert('まちがいノートは空です。まず問題を解いてみよう！'); return; }
+  if(arr.length===0){ showToast('📒','ノートは空','まず問題を解いてみよう！'); return; }
   runMistakeSession(arr,'📕 まちがいだけ練習','まちがえた問題にリベンジ！正解を重ねて卒業をめざそう。');
 }
 function endMistakePractice(){
@@ -4401,7 +4517,7 @@ function setGoalPrompt(){
   const v = prompt('1日の目標問題数を入力してね（例：20）', cur);
   if(v===null) return;
   const n = parseInt(v,10);
-  if(!n || n<1 || n>500){ alert('1〜500の数字を入れてね'); return; }
+  if(!n || n<1 || n>500){ showToast('⚠️','1〜500で入力','数を入れてね'); return; }
   safeLS.setItem('daily_goal', n);
   renderDailyRing();
   if(document.getElementById('records-screen').style.display!=='none') renderRecordExtras();

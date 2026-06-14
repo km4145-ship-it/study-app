@@ -35,7 +35,8 @@ window.FIREBASE_CONFIG = {
     return changed;
   }
   var db=null, fam=null, pullDone=false, saveT=null, firstSync=false, pendingReload=false, unsub=null;
-  function famCode(){ return (rget('mu_family')||'').trim(); }
+  var DEFAULT_FAMILY='0000'; // システム基本設定：既定で必ずクラウドDBから読み込む（端末ごとの設定不要）
+  function famCode(){ var c=(rget('mu_family')||'').trim(); return c || DEFAULT_FAMILY; }
   function docRef(){ return db.collection('families').doc(fam); }
   function doSave(){ if(!db||!fam) return; docRef().set({ data:snapshot(), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){}); }
   function scheduleSave(){ if(!pullDone) return; clearTimeout(saveT); saveT=setTimeout(doSave,1500); }

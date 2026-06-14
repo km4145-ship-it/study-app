@@ -831,7 +831,7 @@
     <button class="nav-btn" onclick="showMistakes()" title="まちがいノート">📕 ノート<span class="nb-badge" id="nb-badge" style="display:none">0</span></button>
     <button class="nav-btn" onclick="showCharacters()" title="キャラクター紹介">🐾 キャラ</button>
     <button class="nav-btn" onclick="muShowPicker()" title="ユーザー切替">👤 <span id="mu-current-name">ユーザー</span></button>
-    <button class="nav-btn" onclick="openSettings()" title="設定">⚙️</button>
+    <button class="nav-btn" id="nav-settings-btn" onclick="openSettings()" title="設定">⚙️</button>
   </div>
 
   <div class="header">
@@ -2068,7 +2068,7 @@ function renderUserSelect(){
   });
 }
 function muPickUser(id){
-  try{ sessionStorage.setItem('mu_enter','1'); }catch(e){}
+  try{ sessionStorage.setItem('mu_enter','1'); sessionStorage.removeItem('mu_admin_ok'); }catch(e){}
   _rawSet('mu_current', id);
   muLoadUserData();
   var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='none';
@@ -2076,8 +2076,9 @@ function muPickUser(id){
 }
 function muShowPicker(){ renderUserSelect(); var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='flex'; }
 function muApplyGradeLabels(){ try{ var m=AREAS.find(function(x){return x.key==='math';}); if(m){ m.name=(muGradeBand()==='elem')?'算数':'数学'; } }catch(e){} }
+function muApplyAdminUI(){ try{ var b=document.getElementById('nav-settings-btn'); if(b){ var cu=muCurrentUser(); b.style.display=(cu&&cu.admin)?'':'none'; } }catch(e){} }
 function muBoot(){
-  muApplyGradeLabels(); muUpdateHeader();
+  muApplyGradeLabels(); muUpdateHeader(); muApplyAdminUI();
   var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='none';
 }
 function muLoadUserData(){
@@ -2089,7 +2090,7 @@ function muLoadUserData(){
     totalAnswered=parseInt(safeLS.getItem('c_answered')||'0')||0;
     totalSeconds=parseInt(safeLS.getItem('c_seconds')||'0')||0;
   }catch(e){}
-  muApplyGradeLabels(); muUpdateHeader();
+  muApplyGradeLabels(); muUpdateHeader(); muApplyAdminUI();
   try{ updateScoreBar(); }catch(e){}
   try{ renderDailyRing(); }catch(e){}
   try{ updateNbBadge(); }catch(e){}
@@ -2125,7 +2126,7 @@ function renderUserAdmin(){
 }
 function muChangeAdminPin(){ var p=prompt('新しい管理者の合言葉(PIN)（3文字以上）'); if(p===null) return; p=(''+p).trim(); if(p.length<3){ alert('短すぎます。'); return; } var p2=prompt('確認のためもう一度'); if(p2===null) return; if((''+p2).trim()!==p){ alert('一致しませんでした。'); return; } muSetAdminPin(p); muUnlockAdmin(); alert('管理者の合言葉を変更しました。'); }
 // 設定は管理者のみ開ける
-function openSettings()  { if(!muRequireAdmin()) return; document.getElementById('settings-modal').classList.add('open'); refreshSettingsDisp(); }
+function openSettings()  { var _cu=muCurrentUser(); if(!_cu || !_cu.admin){ alert('設定は「管理者」ユーザーだけが開けます。\n右上の👤から管理者のユーザーに切り替えてください。'); return; } if(!muRequireAdmin()) return; document.getElementById('settings-modal').classList.add('open'); refreshSettingsDisp(); }
 function daysUntilTest(){ const td=safeLS.getItem('testdate'); if(!td) return null; const now=new Date(); now.setHours(0,0,0,0); return Math.round((_toDate(td)-now)/86400000); }
 function refreshSettingsDisp(){
   try{ renderUserAdmin(); }catch(e){}

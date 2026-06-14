@@ -2259,7 +2259,7 @@ function initKuromoji() {
 }
 function hasJapanese(t) { return /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/.test(t); }
 // 固有名詞など、解析器が間違えやすい語の読みを上書き
-const NAME_READINGS = [['千咲','チサキ']];
+const NAME_READINGS = [['千咲','チサキ'],['賢一','ケンイチ'],['彩花','アヤカ']];
 // 記号・単位 → 読み（長いものから順に置換）
 const UNIT_MAP = [
   ['cm³','立方センチメートル'],['cm2','平方センチメートル'],['cm²','平方センチメートル'],
@@ -2365,7 +2365,7 @@ function charVoiceSettings() {
   const prof = (CHARS[currentChar] && CHARS[currentChar].voice) || 'hana';
   if (prof === 'kai')  return { stability: 0.75, similarity_boost: 0.85, style: 0.0 };
   if (prof === 'loco') return { stability: 0.35, similarity_boost: 0.8,  style: 0.55 };
-  return { stability: 0.5, similarity_boost: 0.8, style: 0.3 };
+  return { stability: 0.62, similarity_boost: 0.8, style: 0.2 };
 }
 // ElevenLabsから音声を取得（成功:{ok:true,blob}、失敗:{ok:false,status}）
 async function fetchVoiceBlob(voiceId, cleanText) {

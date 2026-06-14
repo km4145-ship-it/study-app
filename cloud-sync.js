@@ -39,11 +39,22 @@ window.FIREBASE_CONFIG = {
   function docRef(){ return db.collection('families').doc(fam); }
   function doSave(){ if(!db||!fam) return; docRef().set({ data:snapshot(), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){}); }
   function scheduleSave(){ if(!pullDone) return; clearTimeout(saveT); saveT=setTimeout(doSave,1500); }
+  function showSyncToast(){
+    try{
+      if(document.getElementById('cs-sync-toast')) return;
+      var t=document.createElement('div'); t.id='cs-sync-toast';
+      t.textContent='\U0001F504 新しい記録が届きました（タップで更新）';
+      t.setAttribute('style','position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#0891b2;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;max-width:90%;text-align:center;');
+      t.addEventListener('click',function(){ pendingReload=false; location.reload(); });
+      document.body.appendChild(t);
+      setTimeout(function(){ if(t&&t.parentNode){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },500); } },8000);
+    }catch(e){}
+  }
   function reflect(changed){
     if(!changed) return;
     if(document.visibilityState!=='visible'){ pendingReload=true; return; }
     if(!sessionStorage.getItem('mu_synced')){ sessionStorage.setItem('mu_synced','1'); location.reload(); return; }
-    pendingReload=true;
+    pendingReload=true; showSyncToast();
   }
   function listen(){
     try{

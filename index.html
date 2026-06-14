@@ -3188,6 +3188,26 @@ MATH_EXAM.push(
   { q:'おうぎ形：半径6cm・中心角60°の弧の長さは？', sub:'おうぎ形', level:'★★★', hint:'円周×60/360', type:'choice', choices:['2π cm','6π cm','π cm','3π cm'], ans:'2π cm', explain:'【考え方】弧＝円周×(中心角/360)。\n【手順】2π×6×60/360＝12π×1/6＝2π cm\n【ポイント】60°は円の1/6。' },
   { q:'底面が半径3cm・高さ5cmの円柱の体積は？', sub:'立体の体積', level:'★★★', hint:'底面積×高さ', type:'choice', choices:['45π cm³','15π cm³','30π cm³','9π cm³'], ans:'45π cm³', explain:'【考え方】円柱＝底面積×高さ。\n【手順】底面積＝π×3²＝9π。体積＝9π×5＝45π cm³\n【ポイント】底面は円。πr²を先に出す。' }
 );
+MATH_EXAM.push(
+  { q:'-2² + (-3)² × 2 を計算しよう', sub:'四則の順序', level:'★★★', hint:'累乗→乗除→加減。-2²は-(2²)', type:'choice', choices:['14','22','-22','-14'], ans:'14', explain:'【考え方】累乗が最優先、次に×、最後に+。\n【手順】-2²=-4、(-3)²=9、9×2=18。-4+18=14\n【ポイント】-2²=-4 と (-2)²=4 のちがいに注意。' },
+  { q:'|-7| - |3-8| を計算しよう', sub:'正負の数（絶対値）', level:'★★☆', hint:'絶対値は数直線上の距離', type:'choice', choices:['2','12','-2','10'], ans:'2', explain:'【考え方】絶対値を先に外す。\n【手順】|-7|=7、|3-8|=|-5|=5。7-5=2\n【ポイント】絶対値は必ず0以上。' },
+  { q:'次の数を小さい順に並べたとき、3番目にくる数は？  -1.5, 3/2, -2, 0.3, -5/3', sub:'正負の数（大小）', level:'★★★', hint:'小数に直して数直線で', type:'choice', choices:['-1.5','-5/3','0.3','-2'], ans:'-1.5', explain:'【考え方】分数を小数に直して比べる。\n【手順】-2 < -5/3(≒-1.67) < -1.5 < 0.3 < 1.5。3番目は-1.5\n【ポイント】負の数は絶対値が大きいほど小さい。' },
+  { q:'168 にできるだけ小さい自然数をかけて、ある整数の2乗にしたい。かける数は？', sub:'素因数分解（応用）', level:'★★★', hint:'素因数分解して指数を偶数に', type:'free', ans:'42', altAns:['42'], explain:'【考え方】2乗にするには各素因数の指数を偶数にする。\n【手順】168=2³×3×7。足りないのは2,3,7 → 2×3×7=42\n【ポイント】168×42=7056=84²。' },
+  { q:'72 の約数は全部で何個ある？', sub:'約数の個数', level:'★★☆', hint:'素因数分解→(指数+1)の積', type:'free', ans:'12', altAns:['12個'], explain:'【考え方】約数の個数＝各(指数+1)の積。\n【手順】72=2³×3² →(3+1)(2+1)=4×3=12個\n【ポイント】1と自分自身も約数に数える。' },
+  { q:'12 と 18 の最小公倍数は？', sub:'公倍数', level:'★★☆', hint:'素因数の最大をかける', type:'choice', choices:['36','72','6','54'], ans:'36', explain:'【考え方】各素因数の指数の大きい方をとる。\n【手順】12=2²×3、18=2×3² →2²×3²=36\n【ポイント】最大公約数6×36/… ではなく素因数で。' },
+  { q:'48 と 72 の最大公約数は？', sub:'公約数', level:'★★☆', hint:'共通の素因数の小さい方', type:'free', ans:'24', altAns:['24'], explain:'【考え方】共通する素因数を、指数の小さい方でとる。\n【手順】48=2⁴×3、72=2³×3² →共通は2³×3=24\n【ポイント】最大公約数は“共通部分の積”。' },
+  { q:'540 にできるだけ小さい自然数をかけて、ある整数の2乗にしたい。かける数は？', sub:'素因数分解（応用）', level:'★★★', hint:'指数が奇数の素因数に注目', type:'free', ans:'15', altAns:['15'], explain:'【考え方】指数を偶数にする。\n【手順】540=2²×3³×5。足りないのは3と5 → 3×5=15\n【ポイント】540×15=8100=90²。' },
+  { q:'1個 a 円のりんご5個と、1本 b 円のジュース3本を買った代金は？（円）', sub:'数量を文字で', level:'★★☆', hint:'単価×個数の和', type:'choice', choices:['5a+3b','a5+b3','8ab','15ab'], ans:'5a+3b', explain:'【考え方】それぞれの代金をたす。\n【手順】りんご5a円＋ジュース3b円＝5a+3b\n【ポイント】数字は文字の前に書く（5a）。' },
+  { q:'n を整数とするとき、必ず偶数になる式はどれ？', sub:'文字式（数の性質）', level:'★★★', hint:'2×(整数)は必ず偶数', type:'choice', choices:['2n','2n+1','n+2','n²'], ans:'2n', explain:'【考え方】偶数＝2×整数。\n【手順】2nは2の倍数で必ず偶数。2n+1は奇数、n+2やn²はnしだい\n【ポイント】偶数は2n、奇数は2n+1で表す。' },
+  { q:'マッチ棒で正方形を横に n 個つくる（1個=4本, 2個=7本, 3個=10本…）。棒の本数を n の式で表すと？', sub:'文字式（規則性）', level:'★★★', hint:'増え方（公差）に注目', type:'choice', choices:['3n+1','4n','3n','4n-1'], ans:'3n+1', explain:'【考え方】1個めは4本、以降は3本ずつ増える。\n【手順】4+3(n-1)=3n+1\n【ポイント】「最初の数＋増える数×(個数-1)」を整理。' },
+  { q:'縦 a cm、横 b cm の長方形の周の長さは？（cm）', sub:'数量を文字で', level:'★★☆', hint:'たて2つ＋よこ2つ', type:'choice', choices:['2a+2b','ab','a+b','2ab'], ans:'2a+2b', explain:'【考え方】周＝(縦＋横)×2。\n【手順】2(a+b)=2a+2b\n【ポイント】abは面積。周と面積を混同しない。' },
+  { q:'x = -3 のとき、x² - 2x の値は？', sub:'式の値', level:'★★★', hint:'代入は()で囲む', type:'free', ans:'15', altAns:['15'], explain:'【考え方】xに-3を代入。累乗を先に。\n【手順】(-3)²-2×(-3)=9+6=15\n【ポイント】-2x=-2×(-3)=+6。符号に注意。' },
+  { q:'3(2x - 1) - 2(x - 4) を簡単にすると？', sub:'文字式（計算）', level:'★★★', hint:'分配→同類項', type:'choice', choices:['4x+5','4x-5','4x+11','8x+5'], ans:'4x+5', explain:'【考え方】分配法則でかっこを外し、同類項をまとめる。\n【手順】6x-3-2x+8 → (6x-2x)+(-3+8)=4x+5\n【ポイント】-2×(-4)=+8 を忘れない。' },
+  { q:'x/3 + x/2 を1つの分数にまとめると？', sub:'文字式（計算）', level:'★★★', hint:'通分（分母6）', type:'choice', choices:['5x/6','2x/5','x/5','5x/5'], ans:'5x/6', explain:'【考え方】分母を6にそろえて足す。\n【手順】2x/6 + 3x/6 = 5x/6\n【ポイント】分子どうしを足す。分母はそのまま。' },
+  { q:'1個120円のりんごを x 個買い、1000円札を出す。おつりが200円以上になることを不等式で表すと？', sub:'不等式', level:'★★★', hint:'おつり＝出した金額-代金', type:'choice', choices:['1000-120x≧200','120x≧200','1000-120x≦200','120x+200≦1000'], ans:'1000-120x≧200', explain:'【考え方】おつり＝1000-120x。これが200以上。\n【手順】1000-120x ≧ 200\n【ポイント】「以上」は≧、「以下」は≦。' },
+  { q:'(-24) ÷ (-2³) - (-5) を計算しよう', sub:'四則の順序', level:'★★★', hint:'累乗→乗除→加減', type:'choice', choices:['8','-2','-8','2'], ans:'8', explain:'【考え方】-2³を先に、次にわり算、最後にひき算。\n【手順】-2³=-8。-24÷(-8)=3。3-(-5)=8\n【ポイント】-(-5)=+5。順序と符号に注意。' },
+  { q:'(-1/2)² の値は？', sub:'累乗', level:'★★☆', hint:'分数も2回かける', type:'choice', choices:['1/4','-1/4','1/2','-1/2'], ans:'1/4', explain:'【考え方】(-1/2)を2回かける。\n【手順】(-1/2)×(-1/2)=1/4（負×負=正）\n【ポイント】かっこつきなので符号も2乗される。' }
+);
 // ================================================================
 // ===== 問題ジェネレーター（無限生成） =====
 // ================================================================
@@ -4028,17 +4048,25 @@ function buildExam(area){
   const pool=[];
   if(area==='math'){ [].concat(MATH_EXAM, QUESTIONS.positive_negative||[], QUESTIONS.letter_eq||[], QUESTIONS.factorize||[]).forEach(function(q){pool.push(q);}); }
   else { ['exam','practice'].forEach(function(m){ ((BANK[area]&&BANK[area][m])||[]).forEach(function(q){pool.push(q);}); }); }
-  // 数学は基礎枠(正負・文字式の基礎)を確保
-  if(area==='math'){ let g=0; while(out.length<7 && g<300){ g++; add(genFrom(mathBasicGens)); } }
-  // バンク（8月まで）を投入
-  shuffleArr(pool).forEach(function(q){ if(out.length<25) add(q); });
-  // 生成（8月まで）で25問まで補充
-  const gens = (area==='math') ? null : ((typeof mid8Gens!=='undefined') ? mid8Gens[area] : null);
-  let g=0;
-  while(out.length<25 && g<900){ g++;
-    let q; if(area==='math'){ q = Math.random()<0.4 ? genFrom(mathBasicGens) : genQuestion('math'); }
-    else { q = gens ? genFrom(gens) : genQuestion(area); }
-    add(q);
+  if(area==='math'){
+    // 全国模試レベル：基礎は最小限、標準・応用中心の配分（25問・目安 基礎5/標準12/応用8）
+    var TGT={'★☆☆':5,'★★☆':12,'★★★':8}, cnt={'★☆☆':0,'★★☆':0,'★★★':0};
+    var byLv={'★☆☆':[],'★★☆':[],'★★★':[]};
+    pool.forEach(function(q){ if(q && byLv[q.level] && examInAug('math',q)) byLv[q.level].push(q); });
+    ['★★★','★★☆','★☆☆'].forEach(function(lv){
+      shuffleArr(byLv[lv]).forEach(function(q){ if(cnt[lv]<TGT[lv] && out.length<25){ var n0=out.length; add(q); if(out.length>n0) cnt[lv]++; } });
+    });
+    var g=0;
+    while(out.length<25 && g<1500){ g++;
+      var needLv = cnt['★★☆']<TGT['★★☆'] ? '★★☆' : (cnt['★☆☆']<TGT['★☆☆'] ? '★☆☆' : '★★★');
+      var q = (needLv==='★☆☆') ? genFrom(mathBasicGens) : genQuestion('math');
+      var n1=out.length; add(q); if(out.length>n1 && q && cnt[q.level]!=null) cnt[q.level]++;
+    }
+  } else {
+    shuffleArr(pool).forEach(function(q){ if(out.length<25) add(q); });
+    var gens = (typeof mid8Gens!=='undefined') ? mid8Gens[area] : null;
+    var g2=0;
+    while(out.length<25 && g2<900){ g2++; var q2 = gens ? genFrom(gens) : genQuestion(area); add(q2); }
   }
   // 配点（応用ほど高い）
   out.forEach(function(q){ q.pts = q.level==='★★★'?5:(q.level==='★★☆'?3:2); });

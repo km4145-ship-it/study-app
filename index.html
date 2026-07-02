@@ -785,12 +785,9 @@
         <input type="file" id="import-file" accept="application/json,.json" style="display:none" onchange="importDataFile(this)">
       </div>
       <div class="settings-row">
-        <span class="settings-hint" id="cloud-auth-status">クラウド同期：未ログイン</span>
-      </div>
-      <div class="settings-row">
-        <button class="btn-sm" style="background:#0891b2" onclick="(window.googleLogin||function(){alert('同期スクリプトを読み込み中です。少し待って再度お試しください。');})()">🔑 Googleでログイン</button>
-        <button class="btn-sm" style="background:#64748b" onclick="(window.googleLogout||function(){})()">ログアウト</button>
-        <span class="settings-hint">Googleでログインすると、あなたのアカウント専用にデータが安全に保存され、全端末で自動同期します（各端末で最初に1回だけログイン）。</span>
+        <button class="btn-sm" style="background:#0891b2" onclick="(window.cloudFamilySet||function(){alert('同期スクリプト読込中です。少し待って再度お試しください。');})()">☁️ クラウド同期（家族コード）</button>
+        <button class="btn-sm" style="background:#64748b" onclick="(window.cloudFamilyClear||function(){})()">同期オフ</button>
+        <span class="settings-hint">同じ家族コードを各端末に入れると、各ユーザーの進捗が全端末で同期します（任意）。</span>
       </div>
     </div>
 
@@ -1990,7 +1987,6 @@ function pinClear(){
 }
 function pinForgetDevice(){ try{ localStorage.removeItem('pin_trust'); }catch(e){} showToast('🔒','省略を取り消し','次回は合言葉が必要です'); }
 function pinUpdateHint(){ var el=document.getElementById('pin-state'); if(el) el.textContent = localStorage.getItem('family_pin') ? '　現在：ロックON' : '　現在：ロックOFF（誰でも開けます）'; }
-window.cloudOnAuth = function(signedIn, who){ var el=document.getElementById('cloud-auth-status'); if(el){ el.textContent = signedIn ? ('クラウド同期：ログイン中'+(who?'（'+who+'）':'')) : 'クラウド同期：未ログイン（Googleでログインしてください）'; el.style.color = signedIn ? 'var(--success)' : 'var(--primary-light)'; } };
 function applyTheme(){ try{ document.body.classList.toggle('dark', safeLS.getItem('theme')==='dark'); }catch(e){} }
 function toggleDark(){ const on=!document.body.classList.contains('dark'); document.body.classList.toggle('dark', on); safeLS.setItem('theme', on?'dark':'light'); }
 function applyFontSize(){ const f=safeLS.getItem('fontsize')||'n'; const h=document.documentElement; h.classList.remove('fs-l','fs-xl'); if(f==='l') h.classList.add('fs-l'); else if(f==='xl') h.classList.add('fs-xl'); }
@@ -2010,7 +2006,7 @@ function backupReminder(){
   try{
     var last=localStorage.getItem('last_backup');
     var days = last ? Math.floor((Date.now()-Date.parse(last))/86400000) : 999;
-    var synced = !!(window.cloudAuthUser && window.cloudAuthUser());
+    var synced = !!localStorage.getItem('mu_family');
     if(days < (synced?30:14)) return;
     if(document.getElementById('bk-remind')) return;
     var msg = last ? ('💾 前回のバックアップから'+days+'日です。念のため書き出しをおすすめします') : '💾 まだ一度もバックアップしていません。念のため書き出しをおすすめします';

@@ -1,9 +1,8 @@
-/* ===== クラウド同期（Firebase Firestore × Googleログイン）=====
-   Googleでログインすると、その人のアカウント専用の保管庫(users/<uid>)に
-   学習データが安全に保存され、全端末で自動同期されます（端末ごとに最初の1回だけログイン）。
-   他端末の変更は onSnapshot で自動受信。使用中は即リロードせず、前面に戻った時に反映します。
-   ※Firebaseコンソールで「Googleサインイン有効化＋承認済みドメイン追加＋
-     Firestoreルール(users/<uid>は本人のみ)」の設定が必要です。 */
+/* ===== クラウド同期（Firebase Firestore・マルチユーザー対応／リアルタイム）=====
+   家族で1つの「家族コード」を共有すると、全端末で各ユーザーの学習データが同期されます。
+   設定（⚙️）→「☁️ クラウド同期（家族コード）」から設定してください。
+   ※他端末の変更を onSnapshot で自動受信。使用の邪魔をしないよう、
+     画面が前面で操作中のときは即リロードせず、戻ってきた／前面から外れた時に反映します。 */
 window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyBJetxpDy9MBqIbKyBshm8UznwoEHKh_Qg",
   authDomain: "study-app-48c8f.firebaseapp.com",
@@ -66,9 +65,11 @@ window.FIREBASE_CONFIG = {
     });
     return changed;
   }
-  var db=null, uid=null, pullDone=false, saveT=null, firstSync=false, pendingReload=false, unsub=null;
-  function docRef(){ return db.collection('users').doc(uid); }
-  function doSave(){ if(!db||!uid) return; docRef().set({ data:snapshot(), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){}); }
+  var db=null, fam=null, pullDone=false, saveT=null, firstSync=false, pendingReload=false, unsub=null;
+  var DEFAULT_FAMILY='0000'; // システム基本設定：既定で必ずクラウドDBから読み込む（端末ごとの設定不要）
+  function famCode(){ var c=(rget('mu_family')||'').trim(); return c || DEFAULT_FAMILY; }
+  function docRef(){ return db.collection('families').doc(fam); }
+  function doSave(){ if(!db||!fam) return; docRef().set({ data:snapshot(), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){}); }
   function scheduleSave(){ if(!pullDone) return; clearTimeout(saveT); saveT=setTimeout(doSave,1500); }
   function showSyncToast(){
     try{
@@ -104,31 +105,22 @@ window.FIREBASE_CONFIG = {
     if(document.visibilityState==='hidden'){ doSave(); }
     else if(pendingReload){ pendingReload=false; location.reload(); }
   });
-  function startForUser(u){
-    uid = u.uid; db = firebase.firestore();
-    try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
-    pullDone=false; firstSync=false;
-    listen();
-  }
-  function stopSync(){ if(unsub){ try{ unsub(); }catch(e){} unsub=null; } uid=null; pullDone=false; firstSync=false; }
-  window.googleLogin = function(){
-    try{
-      var prov = new firebase.auth.GoogleAuthProvider();
-      try{ prov.setCustomParameters({ prompt:'select_account' }); }catch(e){}
-      if(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)){ firebase.auth().signInWithRedirect(prov); }
-      else { firebase.auth().signInWithPopup(prov).catch(function(e){ try{ alert('ログインに失敗しました：'+(e&&e.message||'')); }catch(_){} }); }
-    }catch(e){ try{ alert('ログインを開始できませんでした。'); }catch(_){} }
-  };
-  window.googleLogout = function(){ try{ stopSync(); }catch(e){} try{ sessionStorage.removeItem('mu_synced'); }catch(e){} try{ firebase.auth().signOut(); }catch(e){} };
-  window.cloudAuthUser = function(){ try{ var u=firebase.auth().currentUser; return (u && !u.isAnonymous) ? (u.email||u.displayName||'ログイン中') : null; }catch(e){ return null; } };
   function start(){
-    try{ firebase.auth().getRedirectResult().catch(function(){}); }catch(e){}
-    firebase.auth().onAuthStateChanged(function(u){
-      if(u && !u.isAnonymous){ startForUser(u); }
-      else { stopSync(); }
-      try{ if(typeof window.cloudOnAuth==='function') window.cloudOnAuth(!!(u && !u.isAnonymous), (u&&(u.email||u.displayName))||''); }catch(e){}
-    });
+    if(!famCode()){ return; }
+    fam = famCode();
+    firebase.auth().signInAnonymously().then(function(){
+      db = firebase.firestore();
+      try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
+      listen();
+    }).catch(function(e){});
   }
+  window.cloudFamilySet = function(){
+    var c = prompt('家族の合言葉コードを決めてください（全端末で同じものを使います。英数字4文字以上）。', famCode());
+    if(c===null) return; c=(''+c).trim(); if(c.length<4){ alert('短すぎます。4文字以上にしてください。'); return; }
+    rset('mu_family', c); try{ sessionStorage.removeItem('mu_synced'); }catch(e){}
+    alert('家族コードを設定しました。クラウド同期を開始します。'); location.reload();
+  };
+  window.cloudFamilyClear = function(){ rset('mu_family',''); if(unsub){ try{ unsub(); }catch(e){} } alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
   Promise.all([
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'),
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'),

@@ -619,6 +619,34 @@
     .ps-ka { font-weight:700; }
   }
 
+/* ===== 週間クエスト・印刷モーダル・紙の答え合わせ ===== */
+.dm-quests { background:rgba(8,145,178,0.06); border:1px solid rgba(8,145,178,0.25); border-radius:12px; padding:10px 12px; margin:10px 0; }
+.dm-quests-t { font-size:0.85rem; font-weight:800; color:var(--primary-light); margin-bottom:6px; }
+.dm-quest { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:0.78rem; }
+.dm-quest-n { flex:0 0 45%; }
+.dm-quest .dm-bar-wrap { flex:1; }
+.dm-quest-v { min-width:56px; text-align:right; color:var(--primary-light); font-weight:700; }
+.dm-quest.ok .dm-quest-n { color:var(--success); }
+.pr-row { display:flex; align-items:center; gap:10px; margin:10px 0; }
+.pr-row label { flex:0 0 90px; font-size:0.85rem; font-weight:700; }
+.pr-row select { flex:1; padding:8px; border-radius:8px; border:1px solid var(--primary-light); background:var(--card); color:var(--text); font-size:0.9rem; }
+.paper-sheet { background:var(--card); border-radius:12px; margin-bottom:10px; box-shadow:var(--shadow); overflow:hidden; }
+.paper-sheet-h { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; font-weight:700; gap:8px; }
+.paper-sheet-m { font-size:0.75rem; color:var(--primary-light); white-space:nowrap; }
+.paper-sheet-body { padding:0 14px 12px; }
+.paper-q { border-top:1px solid rgba(148,163,184,0.25); padding:9px 0; }
+.paper-q-t { font-size:0.85rem; font-weight:600; white-space:pre-line; }
+.paper-q-a { font-size:0.78rem; color:var(--primary-light); margin:3px 0; }
+.pq-btn { border:1px solid var(--primary-light); background:var(--card); border-radius:8px; padding:5px 14px; margin-right:8px; cursor:pointer; font-size:0.8rem; color:var(--text); }
+.pq-btn.on-ok { background:rgba(16,185,129,0.18); border-color:var(--success); font-weight:800; }
+.pq-btn.on-ng { background:rgba(239,68,68,0.15); border-color:var(--error); font-weight:800; }
+#print-area .ps-fig { margin:6px 0; }
+#print-area .ps-fig svg { background:#334155; border-radius:6px; padding:4px; }
+#print-area .ps-pts { font-size:9.5pt; color:#333; margin-right:4px; }
+#print-area .ps-passage { border:1px solid #999; padding:6px 8px; margin:4px 0; font-size:10.5pt; white-space:pre-wrap; }
+#print-area .ps-kx { font-size:9pt; color:#444; }
+#print-area .ps-answers { page-break-before: always; }
+
 /* ===== 偏差値65 ロードマップ ===== */
 .rm-card { background:linear-gradient(135deg,#ecfeff,#fdf2f8); border:2px solid var(--primary-light); border-radius:16px; padding:12px; margin:0 0 12px; box-shadow:0 4px 14px rgba(8,145,178,0.12); }
 .rm-card-head { font-weight:800; color:var(--primary); font-size:1.02rem; }
@@ -782,7 +810,75 @@
       <div class="settings-row"><label>ごほうび（保護者用）</label><button class="btn-sm" onclick="setReward()">🎁 設定</button><span class="settings-hint" id="reward-disp"></span></div>
     </div>
 
+    <div class="settings-section">
+      <h3>📈 偏差値の校正（保護者用）</h3>
+      <p class="settings-hint">学校や塾で受けた本物の模試の偏差値を入力すると、アプリの偏差値がその結果に合うように自動補正され、精度が上がります。模試のたびに入力するのがおすすめです。</p>
+      <div class="settings-row"><button class="btn-sm" onclick="addRealExam()">➕ 実模試の結果を入力</button><span class="settings-hint" id="realexam-disp"></span></div>
+      <div class="settings-row"><label>模試の出題範囲</label><button class="btn-sm" onclick="setExamRange()">📚 切り替え</button><span class="settings-hint" id="examrange-disp"></span></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>💬 LINE通知（保護者用・任意）</h3>
+      <p class="settings-hint">「LINE通知の設定手順.md」の手順でGoogle Apps ScriptのURLを作って貼り付けると、学習結果（今日の問題数・模試の偏差値・連続日数など）が保護者のLINEに届きます。</p>
+      <div class="settings-row">
+        <input type="text" id="line-endpoint" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+        <button class="btn-sm" onclick="saveLineEndpoint()">保存</button>
+      </div>
+      <div class="settings-row"><button class="btn-sm" onclick="testLineNotify()">📨 テスト送信</button><span class="settings-hint" id="line-disp"></span></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>➕ 問題の追加読み込み</h3>
+      <p class="settings-hint">JSONファイルで問題を追加できます（形式は「追加問題サンプル.json」を参照）。追加した問題は練習・苦手ドリル・ミックス演習・印刷に混ざって出ます。</p>
+      <div class="settings-row">
+        <label for="import-q-file" class="btn-sm imp-label" style="cursor:pointer;background:var(--primary)">📂 問題ファイルを読み込み</label>
+        <input type="file" id="import-q-file" accept="application/json,.json" style="display:none" onchange="importQuestionsFile(this)">
+        <span class="settings-hint" id="extraq-disp"></span>
+      </div>
+    </div>
+
     <button class="btn-start" style="font-size:1rem;padding:12px 32px;animation:none" onclick="closeSettings()">完了</button>
+  </div>
+</div>
+
+<!-- 印刷モーダル -->
+<div class="settings-modal" id="print-modal">
+  <div class="settings-panel">
+    <div class="settings-panel-head">
+      <h2>🖨️ プリント作成</h2>
+      <button class="settings-close" onclick="closePrintModal()">✕ とじる</button>
+    </div>
+    <p class="settings-hint">印刷すると自動で「控え」が残り、解いたあと「📥 紙の答え合わせ」で⭕❌をつけると学習記録・苦手分析・まちがいノートに反映されます。</p>
+    <div class="pr-row"><label>種類</label>
+      <select id="pr-kind">
+        <option value="practice">✏️ 練習プリント</option>
+        <option value="exam">📝 模擬試験（50分・配点つき）</option>
+        <option value="mistakes">📕 まちがいノートのとき直し</option>
+      </select></div>
+    <div class="pr-row"><label>教科</label>
+      <select id="pr-area">
+        <option value="all">全教科ミックス</option>
+        <option value="math">🔢 数学</option>
+        <option value="japanese">📖 国語</option>
+        <option value="english">🔤 英語</option>
+        <option value="science">🔬 理科</option>
+        <option value="social">🌏 社会</option>
+      </select></div>
+    <div class="pr-row"><label>レベル</label>
+      <select id="pr-level">
+        <option value="all">すべて</option>
+        <option value="★☆☆">★☆☆ 基礎</option>
+        <option value="★★☆">★★☆ 標準</option>
+        <option value="★★★">★★★ 応用</option>
+      </select></div>
+    <div class="pr-row"><label>問題数</label>
+      <select id="pr-count">
+        <option value="10">10問</option>
+        <option value="20">20問</option>
+        <option value="30">30問</option>
+      </select></div>
+    <p class="settings-hint">※模擬試験は約25問・固定（教科を1つ選んでください。「全教科」の場合は数学になります）。解答は別ページに印刷されます。</p>
+    <button class="btn-start" style="font-size:1rem;padding:12px 32px;animation:none" onclick="doPrint()">🖨️ 印刷する</button>
   </div>
 </div>
 
@@ -933,7 +1029,7 @@
     <div class="exam-review-title">📖 解答と解説（見直そう）</div>
     <div id="exam-review"></div>
     <div class="exam-result-btns">
-      <button class="btn-retry" onclick="retryExam()">🔁 もう一度この試験</button>
+      <button class="btn-retry" onclick="retryExam()">🔁 もう一度挑戦（次の回の問題）</button>
       <button class="btn-retry" onclick="backToModeSelect()">↩ モードえらびへ</button>
       <button class="btn-retry" onclick="backToSubjects()">🏠 教科えらびへ</button>
     </div>
@@ -1019,6 +1115,13 @@
     <button class="btn-back" onclick="backToSubjects()">← もどる</button>
     <div class="screen-title">✍️ 記述・説明問題</div>
     <div id="wr-play"></div>
+  </div>
+
+  <!-- 紙の答え合わせ -->
+  <div id="paper-screen" style="display:none">
+    <button class="btn-back" onclick="backToSubjects()">← もどる</button>
+    <div class="screen-title">📥 紙の答え合わせ</div>
+    <div id="paper-list"></div>
   </div>
 
 </div>
@@ -1992,8 +2095,56 @@ function daysUntilTest(){ const td=safeLS.getItem('testdate'); if(!td) return nu
 function refreshSettingsDisp(){
   const td=safeLS.getItem('testdate'); const t=document.getElementById('testdate-disp'); if(t) t.textContent= td?('（'+td+'／あと'+daysUntilTest()+'日）'):'（未設定）';
   const rw=lsGetJSON('reward',null); const r=document.getElementById('reward-disp'); if(r) r.textContent= rw?('（'+rw.points+'pt で '+rw.text+'）'):'（未設定）';
+  const re=getRealExams(); const rd=document.getElementById('realexam-disp');
+  if(rd){ if(re.length){ const offs=AREAS.map(function(a){const o=calibOffset(a.key); return o!==0?(a.icon+(o>0?'+':'')+o):null;}).filter(Boolean); rd.textContent='（'+re.length+'件入力済み'+(offs.length?('／補正 '+offs.join(' ')):'')+'）'; } else rd.textContent='（未入力）'; }
+  const er=document.getElementById('examrange-disp'); if(er) er.textContent= examRange()==='aug'?'（いま：中1・8月まで）':'（いま：中1・全範囲）';
+  const ld=document.getElementById('line-disp'); if(ld) ld.textContent= lineEndpoint()?'（設定済み）':'（未設定）';
+  const li=document.getElementById('line-endpoint'); if(li && !li.value) li.value=lineEndpoint();
+  const eq=document.getElementById('extraq-disp'); if(eq) eq.textContent='（追加問題：'+getExtraQuestions().length+'問）';
 }
-function setTestDate(){ const cur=safeLS.getItem('testdate')||''; const v=prompt('次のテストの日（例 2026-07-10）。消すなら空欄。', cur); if(v===null) return; v=(''+v).trim(); if(v===''){ safeLS.setItem('testdate',''); } else if(/^\d{4}-\d{2}-\d{2}$/.test(v)){ safeLS.setItem('testdate', v); } else { alert('YYYY-MM-DD の形で入力してね'); return; } refreshSettingsDisp(); renderDailyMenu(); }
+// ---- 実模試の結果入力（偏差値の校正用） ----
+function addRealExam(){
+  var names=AREAS.map(function(a,i){ return (i+1)+'='+a.name; }).join(' ');
+  var n=prompt('どの教科？ '+names+'（番号で入力）'); if(n===null) return;
+  var idx=parseInt(n,10)-1; if(!(idx>=0 && idx<AREAS.length)){ alert('1〜'+AREAS.length+'の番号で入れてね'); return; }
+  var d=prompt('模試を受けた日（例 2026-06-15）', todayKey()); if(d===null) return; d=(''+d).trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ alert('YYYY-MM-DD の形で入力してね'); return; }
+  var h=prompt('その模試の偏差値（例 58.5）'); if(h===null) return; h=parseFloat(h);
+  if(!(h>=20 && h<=90)){ alert('20〜90の数字で入れてね'); return; }
+  var arr=getRealExams(); arr.push({ area:AREAS[idx].key, date:d, hensachi:h, ts:Date.now() });
+  lsSetJSON('real_exams', arr.slice(-200));
+  refreshSettingsDisp();
+  showToast('📈','実模試の結果を登録','アプリの偏差値を自動で校正します');
+}
+function setExamRange(){
+  var cur=examRange(); var next=cur==='aug'?'all':'aug';
+  safeLS.setItem('exam_range', next);
+  refreshSettingsDisp();
+  showToast('📚','模試の範囲を変更', next==='aug'?'中1・8月までの範囲':'中1・全範囲');
+}
+// ---- LINE通知（Google Apps Script経由・任意） ----
+function lineEndpoint(){ return safeLS.getItem('line_endpoint')||''; }
+function saveLineEndpoint(){
+  var el=document.getElementById('line-endpoint'); if(!el) return;
+  var v=(el.value||'').trim();
+  if(v && !/^https:\/\/script\.google\.com\//.test(v)){ if(!confirm('Google Apps ScriptのURL（https://script.google.com/…）ではないようです。このまま保存しますか？')) return; }
+  safeLS.setItem('line_endpoint', v);
+  refreshSettingsDisp();
+  showToast('💬', v?'LINE通知を設定しました':'LINE通知をオフにしました', v?'学習結果が保護者のLINEに届きます':'');
+}
+function sendLineEvent(ev){
+  var url=lineEndpoint(); if(!url) return;
+  try{
+    ev.ts=Date.now();
+    fetch(url,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(ev), keepalive:true }).catch(function(){});
+  }catch(e){}
+}
+function testLineNotify(){
+  if(!lineEndpoint()){ alert('先にGASのURLを貼り付けて「保存」を押してね。手順は「LINE通知の設定手順.md」にあります。'); return; }
+  sendLineEvent({ type:'test', message:'学習アカデミーからのテスト送信です' });
+  showToast('📨','テスト送信しました','数秒後にLINEに届けば設定OK！');
+}
+function setTestDate(){ const cur=safeLS.getItem('testdate')||''; var v=prompt('次のテストの日（例 2026-07-10）。消すなら空欄。', cur); if(v===null) return; v=(''+v).trim(); if(v===''){ safeLS.setItem('testdate',''); } else if(/^\d{4}-\d{2}-\d{2}$/.test(v)){ safeLS.setItem('testdate', v); } else { alert('YYYY-MM-DD の形で入力してね'); return; } refreshSettingsDisp(); renderDailyMenu(); }
 function setReward(){ const cur=lsGetJSON('reward',null); var text=prompt('ごほうびの内容（例：好きな本を1冊）。消すなら空欄。', cur?cur.text:''); if(text===null) return; text=(''+text).trim(); if(text===''){ safeLS.setItem('reward','null'); safeLS.setItem('reward_done','0'); refreshSettingsDisp(); renderDailyMenu(); return; } const p=prompt('何アロハポイントでごほうび？（例 1000）', cur?cur.points:'1000'); if(p===null) return; const pts=parseInt(p,10)||1000; lsSetJSON('reward',{text:text,points:pts}); safeLS.setItem('reward_done','0'); refreshSettingsDisp(); renderDailyMenu(); showToast('🎁','ごほうびを設定','がんばってためよう！'); }
 function checkReward(){ const rw=lsGetJSON('reward',null); if(!rw) return; if(totalPoints>=rw.points && safeLS.getItem('reward_done')!=='1'){ safeLS.setItem('reward_done','1'); confetti(); showToast('🎁','ごほうび達成！', rw.text+' をゲット！', 5000); } }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
@@ -2407,7 +2558,12 @@ function checkFreeAnswer() {
   if (!userAns) return;
   answered = true;
   const q = currentQuestions[currentIndex];
-  const norm = s => s.replace(/\s/g,'').replace(/[＋]/g,'+').replace(/[－−]/g,'-').replace(/[，、]/g,',');
+  // 全角数字・全角英字→半角、大文字→小文字、×÷等の記号ゆれを吸収（iPhone/iPadの日本語キーボード対策）
+  const norm = s => String(s)
+    .replace(/[０-９Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/\s/g,'').replace(/[＋]/g,'+').replace(/[－−ｰ]/g,'-').replace(/[×]/g,'x').replace(/[÷／]/g,'/')
+    .replace(/[．]/g,'.').replace(/[（]/g,'(').replace(/[）]/g,')').replace(/[＝]/g,'=')
+    .replace(/[，、]/g,',').toLowerCase();
   const ua = norm(userAns);
   const correct = ua === norm(q.ans) || (q.altAns || []).map(norm).includes(ua);
   inp.disabled = true;
@@ -3242,20 +3398,26 @@ function buildMixLeveled(area, count, level){
 // ===== 画面遷移ヘルパー =====
 function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function hideMainScreens(){
-  ['subject-select-screen','mode-select-screen','level-select-screen','home-screen','quiz-screen','exam-result-screen','records-screen','roadmap-screen','mistakes-screen','characters-screen','flashcards-screen','study-notes-screen','write-screen'].forEach(id=>{
+  ['subject-select-screen','mode-select-screen','level-select-screen','home-screen','quiz-screen','exam-result-screen','records-screen','roadmap-screen','mistakes-screen','characters-screen','flashcards-screen','study-notes-screen','write-screen','paper-screen'].forEach(id=>{
     const e=document.getElementById(id); if(e) e.style.display='none';
   });
   const r=document.getElementById('result-screen'); if(r) r.classList.remove('active');
 }
 // ===== 学習記録 =====
 function loadLog(){ try{ return JSON.parse(safeLS.getItem('study_log')||'[]'); }catch(e){ return []; } }
-function saveLog(log){ safeLS.setItem('study_log', JSON.stringify(log.slice(-500))); }
+function saveLog(log){ safeLS.setItem('study_log', JSON.stringify(log.slice(-1500))); }
 function logStudy(entry){
   const log=loadLog();
   const d=new Date();
   entry.ts=d.getTime();
   entry.date=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   log.push(entry); saveLog(log);
+  // LINE通知（設定時のみ）：セッション結果を保護者へ
+  try{
+    sendLineEvent({ type: entry.mode==='exam'?'exam':'session', area: areaName(entry.area), mode: entry.mode,
+      score: entry.score, total: entry.total, hensachi: entry.hensachi||null, judge: entry.judge||null,
+      streak: currentStreak(), todayCount: getDailyProg().count });
+  }catch(e){}
 }
 function areaName(key){ const a=AREAS.find(x=>x.key===key); return a? a.name : key; }
 function areaIcon(key){ const a=AREAS.find(x=>x.key===key); return a? a.icon : '📘'; }
@@ -3332,7 +3494,7 @@ function card(num,label){ return `<div class="rec-card"><div class="rec-num">${n
 function resetHistory(){
   if(!confirm('問題の実施履歴・成績・偏差値・まちがいノート・苦手データ・バッジ・ポイントを すべて消して 最初の状態に戻します。\n（声・文字サイズ・テスト日などの設定は残ります）\n\nこの操作は元に戻せません。よろしいですか？')) return;
   if(!confirm('本当に削除します。元に戻せません。\n先にバックアップ（💾書き出し）は取りましたか？\n\nこのまま削除する場合は「OK」を押してください。')) return;
-  var keys=['study_log','daily_hist','daily_prog','topic_stats','mistake_notebook','recent_acc','careless_log','areas_played','badges','reward_done','c_answered','c_correct','c_streak','c_beststreak','c_seconds','c_points','study_seconds'];
+  var keys=['study_log','daily_hist','daily_prog','topic_stats','mistake_notebook','recent_acc','careless_log','areas_played','badges','reward_done','c_answered','c_correct','c_streak','c_beststreak','c_seconds','c_points','study_seconds','q_log','week_srs','quest_done','paper_sheets','real_exams'];
   keys.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
   try{ alert('すべての実施履歴を削除しました。最初の状態に戻します。'); }catch(e){}
   try{ location.reload(); }catch(e){ try{ location.href=location.href; }catch(e2){} }
@@ -3549,21 +3711,138 @@ function revealWrite(){
     '<div class="wr-grade">自己採点： <button class="cl-b" onclick="gradeWrite(2)">◯ かけた</button> <button class="cl-b" onclick="gradeWrite(1)">△ おしい</button> <button class="cl-b" onclick="gradeWrite(0)">× むずかしい</button></div>';
 }
 function gradeWrite(g){ if(!wrState) return; wrState.idx++; renderWrite(); }
-function printSheet(){
-  const qs=shuffleArr(allStaticQuestions()).slice(0,10);
-  let qh='<div class="ps-questions"><div class="ps-head"><span class="ps-title">📚 問題プリント</span><span class="ps-meta">'+todayKey()+'　名前：＿＿＿＿＿＿＿＿</span></div><ol class="ps-list">';
+// ===== 印刷（プリント作成）＆紙の答え合わせ =====
+function getPaperSheets(){ return lsGetJSON('paper_sheets', []); }
+function savePaperSheets(arr){ lsSetJSON('paper_sheets', arr.slice(-20)); }
+function openPrintModal(){ document.getElementById('print-modal').classList.add('open'); }
+function closePrintModal(){ document.getElementById('print-modal').classList.remove('open'); }
+function printSheet(){ openPrintModal(); } // 旧ボタン互換
+function _printQuestionHTML(qs, title, withPts){
+  let qh='<div class="ps-questions"><div class="ps-head"><span class="ps-title">'+title+'</span><span class="ps-meta">'+todayKey()+'　名前：＿＿＿＿＿＿＿＿</span></div><ol class="ps-list">';
   qs.forEach(function(it){
-    qh+='<li><div class="ps-q">'+escapeHtml(it.q)+'</div>'+
-      (it.type==='choice' ? '<div class="ps-ch">'+(it.choices||[]).map(function(c){return '（　）'+escapeHtml(String(c));}).join('　　')+'</div>' : '')+
+    qh+='<li>'+(withPts?('<span class="ps-pts">［'+(it.pts||3)+'点］</span>'):'')+'<div class="ps-q">'+escapeHtml(it.q)+'</div>'+
+      (it.passage?('<div class="ps-passage">'+escapeHtml(it.passage)+'</div>'):'')+
+      (it.figure?('<div class="ps-fig">'+it.figure+'</div>'):'')+
+      (((it.type||'choice')==='choice') && it.choices ? '<div class="ps-ch">'+(it.choices||[]).map(function(c,i){return (i+1)+'．'+escapeHtml(String(c));}).join('　　')+'</div>' : '')+
       '<div class="ps-ans-line">答え：＿＿＿＿＿＿＿＿＿＿＿＿</div></li>';
   });
   qh+='</ol></div>';
   let ah='<div class="ps-answers"><div class="ps-head"><span class="ps-title">✅ 解答</span><span class="ps-meta">'+todayKey()+'</span></div><ol class="ps-list ps-keylist">';
-  qs.forEach(function(it){ ah+='<li><span class="ps-ka">'+escapeHtml(String(it.ans))+'</span></li>'; });
+  qs.forEach(function(it){ ah+='<li><span class="ps-ka">'+escapeHtml(String(it.ans))+'</span>'+(it.explain?('<span class="ps-kx">　'+escapeHtml(String(it.explain).split('\n')[0])+'</span>'):'')+'</li>'; });
   ah+='</ol></div>';
-  const pa=document.getElementById('print-area'); if(!pa) return; pa.innerHTML=qh+ah;
-  try{ window.print(); }catch(e){}
+  return qh+ah;
 }
+function doPrint(){
+  const kind=document.getElementById('pr-kind').value;
+  const area=document.getElementById('pr-area').value;
+  const lvl=document.getElementById('pr-level').value;
+  const cnt=parseInt(document.getElementById('pr-count').value,10)||10;
+  let qs=[], title='📚 問題プリント', withPts=false, sheetKind='practice', sheetArea=area;
+  if(kind==='exam'){
+    const a=(area==='all')?'math':area;
+    sheetArea=a; sheetKind='exam'; withPts=true;
+    const formNo=1000+getPaperSheets().length+examFormNo(a); // アプリの模試とフォームが重ならないよう別番台
+    qs=buildExam(a, formNo);
+    const an=AREAS.find(function(x){return x.key===a;});
+    title='📝 '+(an?an.name:'')+' 模擬試験（50分・100点）';
+  } else if(kind==='mistakes'){
+    qs=getMistakes().filter(function(m){ return area==='all'||m.area===area; });
+    if(!qs.length){ alert('まちがいノートに対象の問題がありません。'); return; }
+    qs=shuffleArr(qs).slice(0,cnt);
+    title='📕 まちがいノート とき直しプリント';
+    sheetKind='mistakes';
+  } else {
+    let pool=allStaticQuestions().filter(function(q){ return (area==='all'||q.area===area) && (lvl==='all'||q.level===lvl); });
+    const areas=(area==='all')?['math','japanese','english','science','social']:[area];
+    let guard=0; const seen={}; pool.forEach(function(q){seen[q.q]=1;});
+    while(pool.length<cnt && guard<600){ guard++; const g=genQuestion(areas[guard%areas.length]); if(g&&g.q&&!seen[g.q]&&(lvl==='all'||g.level===lvl)){ seen[g.q]=1; pool.push(Object.assign({area:areas[guard%areas.length]},g)); } }
+    if(!pool.length){ alert('条件に合う問題がありませんでした。'); return; }
+    qs=shuffleArr(pool).slice(0,cnt);
+  }
+  const pa=document.getElementById('print-area'); if(!pa) return;
+  pa.innerHTML=_printQuestionHTML(qs, title, withPts);
+  // 紙の答え合わせ用に控えを保存
+  const sheets=getPaperSheets();
+  sheets.push({ id:Date.now(), date:todayKey(), kind:sheetKind, area:sheetArea, title:title,
+    qs:qs.map(function(q){ return { q:q.q, sub:q.sub||'', ans:q.ans, level:q.level||'', pts:q.pts||null, area:q.area||((sheetArea==='all')?'math':sheetArea), type:q.type||'choice', choices:q.choices||null, explain:q.explain||'', hint:q.hint||'' }; }) });
+  savePaperSheets(sheets);
+  closePrintModal();
+  renderDailyMenu();
+  try{ window.print(); }catch(e){}
+  showToast('🖨️','プリントを作成','解き終わったら「📥 紙の答え合わせ」で記録しよう');
+}
+// ---- 紙の答え合わせ（結果を学習記録・苦手分析・まちがいノートに反映） ----
+var paperMarks={};
+function showPaperGrading(){
+  stopExamTimer(); isExam=false;
+  hideMainScreens();
+  document.getElementById('paper-screen').style.display='block';
+  setCharacter('owl');
+  setLunaText('紙で解いたプリントの答え合わせをして、記録に残そう📥');
+  renderPaperList();
+}
+function renderPaperList(){
+  const el=document.getElementById('paper-list'); if(!el) return;
+  const sheets=getPaperSheets().slice().reverse();
+  if(!sheets.length){ el.innerHTML='<div class="rec-empty">印刷したプリントの控えはまだありません。<br>「🖨️ プリント」から印刷すると、ここで答え合わせができます。</div>'; return; }
+  el.innerHTML=sheets.map(function(s){
+    return '<div class="paper-sheet"><div class="paper-sheet-h" onclick="togglePaperSheet('+s.id+')">'+
+      '<span>'+escapeHtml(s.title)+'</span><span class="paper-sheet-m">'+s.date+'・'+s.qs.length+'問 ▼</span></div>'+
+      '<div class="paper-sheet-body" id="psb-'+s.id+'" style="display:none"></div></div>';
+  }).join('');
+}
+function togglePaperSheet(id){
+  const el=document.getElementById('psb-'+id); if(!el) return;
+  if(el.style.display!=='none'){ el.style.display='none'; return; }
+  renderPaperSheetBody(id);
+  el.style.display='block';
+}
+function renderPaperSheetBody(id){
+  const el=document.getElementById('psb-'+id); if(!el) return;
+  const s=getPaperSheets().find(function(x){return x.id===id;}); if(!s) return;
+  paperMarks[id]=paperMarks[id]||{};
+  el.innerHTML=s.qs.map(function(q,i){
+    const m=paperMarks[id][i];
+    return '<div class="paper-q"><div class="paper-q-t">'+(i+1)+'. '+escapeHtml(q.q)+'</div>'+
+      '<div class="paper-q-a">正解：'+escapeHtml(String(q.ans))+'</div>'+
+      '<div class="paper-q-btns">'+
+      '<button class="pq-btn'+(m===1?' on-ok':'')+'" onclick="markPaper('+id+','+i+',1)">⭕ 正解</button>'+
+      '<button class="pq-btn'+(m===0?' on-ng':'')+'" onclick="markPaper('+id+','+i+',0)">❌ まちがい</button></div></div>';
+  }).join('')+
+  '<div style="text-align:center;margin:12px 0">'+
+  '<button class="dm-start" style="max-width:320px" onclick="applyPaperResult('+id+')">📥 この結果を記録する</button>'+
+  '<button class="btn-sm" style="background:#64748b;margin-left:8px" onclick="deletePaperSheet('+id+')">控えを削除</button></div>';
+}
+function markPaper(id,i,ok){ paperMarks[id]=paperMarks[id]||{}; paperMarks[id][i]=ok; renderPaperSheetBody(id); }
+function applyPaperResult(id){
+  const s=getPaperSheets().find(function(x){return x.id===id;}); if(!s) return;
+  const marks=paperMarks[id]||{};
+  const graded=s.qs.map(function(q,i){ return {q:q, ok:marks[i]}; }).filter(function(x){ return x.ok===1||x.ok===0; });
+  if(!graded.length){ alert('⭕か❌を1問以上つけてから記録してね。'); return; }
+  let c=0;
+  graded.forEach(function(x){ qStartTime=Date.now(); onAnswered(x.q, x.ok===1); if(x.ok===1)c++; });
+  if(s.kind==='exam' && graded.length===s.qs.length){
+    // 模試プリントを全問採点したら、アプリの模試と同様に得点・偏差値（当て推量補正つき）も記録
+    const totalPts=s.qs.reduce(function(sm,q){return sm+(q.pts||3);},0);
+    const earned=s.qs.reduce(function(sm,q,i){return sm+((marks[i]===1)?(q.pts||3):0);},0);
+    let pen=0; s.qs.forEach(function(q,i){ if(marks[i]===0 && (q.type||'choice')==='choice' && q.choices && q.choices.length>1) pen+=(q.pts||3)/(q.choices.length-1); });
+    const ratio=totalPts? Math.max(0,earned-pen)/totalPts : 0;
+    const hraw=Math.round(calcHensachiRaw(s.area,ratio)*10)/10;
+    const h=calcHensachi(s.area, ratio);
+    const j=judgeOf(h);
+    logStudy({ area:s.area, mode:'exam', score:c, total:s.qs.length, hensachi:h, hraw:hraw, judge:j.band, seconds:0, paper:true });
+    showToast('📝','紙の模試を記録', '得点'+Math.round((totalPts?earned/totalPts:0)*100)+'点・偏差値'+h+'・'+j.band+'判定', 5200);
+  } else {
+    logStudy({ area:(s.area==='all'?'math':s.area)||'math', mode:'paper', score:c, total:graded.length, seconds:0 });
+    showToast('📥','記録しました', graded.length+'問（正解'+c+'）を学習記録に反映', 4200);
+  }
+  delete paperMarks[id];
+  deletePaperSheetSilent(id);
+  renderPaperList();
+  updateScoreBar(); saveStats(); updateNbBadge();
+}
+function deletePaperSheet(id){ if(!confirm('このプリントの控えを削除しますか？')) return; deletePaperSheetSilent(id); renderPaperList(); }
+function deletePaperSheetSilent(id){ savePaperSheets(getPaperSheets().filter(function(x){return x.id!==id;})); renderDailyMenu(); }
 function goHome(){
   if(isExam && !confirm('試験を中止して学習トップに戻りますか？')) return;
   stopExamTimer(); isExam=false; isMistakePractice=false;
@@ -3642,40 +3921,70 @@ var mathBasicGens=[
   function(){ const a=rint(2,6); return {q:`1個 x 円のノートを${a}冊買ったときの代金は？（円）`, sub:'数量を文字で表す（基礎）', level:'★☆☆', hint:'個数×単価', type:'choice', choices:[`${a}x`,`x+${a}`,`${a}+x`,`x-${a}`], ans:`${a}x`, explain:`【考え方】個数×単価を文字で表す。\n【手順】x円×${a}冊＝${a}x円\n【ポイント】×は省いて${a}xと書く。`}; },
   function(){ const a=rint(2,5),b=rint(2,5); return {q:`${a}x + ${b}x を計算しよう`, sub:'同類項（基礎）', level:'★☆☆', hint:'係数をたす', type:'choice', choices:[`${a+b}x`,`${a*b}x`,`${a+b}`,`${a+b}x²`], ans:`${a+b}x`, explain:`【考え方】同じ文字どうしは係数をたす。\n【手順】${a}x+${b}x=${a+b}x\n【ポイント】xはそのまま、数だけ計算。`}; },
 ];
-function buildExam(area){
-  const out=[]; const seen={};
-  function add(q){ if(!q||!q.q||seen[q.q]||!examInAug(area,q)) return false; seen[q.q]=1; out.push(Object.assign({},q)); return true; }
-  // 8月まで範囲のバンク
+// ---- 模試フォームの固定化 ----
+// 「第N回」ごとに問題構成をシードで固定し、レベル枠（基礎9・標準10・応用6）も固定する。
+// これにより (1)ランダムで難易度が揺れて偏差値がぶれる (2)端末によって問題が違う、を防ぐ。
+function examFormNo(area){ return loadLog().filter(function(e){ return e.mode==='exam' && e.area===area; }).length + 1; }
+function _seedOf(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function withSeed(seed, fn){
+  const orig=Math.random; let s=(seed>>>0)||1;
+  Math.random=function(){ s|=0; s=(s+0x6D2B79F5)|0; let t=Math.imul(s^(s>>>15),1|s); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; };
+  try{ return fn(); } finally{ Math.random=orig; }
+}
+function examRange(){ return safeLS.getItem('exam_range')||'aug'; }
+const EXAM_QUOTA={ '★☆☆':9, '★★☆':10, '★★★':6 };
+function buildExam(area, formNo){
+  if(formNo==null) formNo=examFormNo(area);
+  return withSeed(_seedOf('exam_'+area)+formNo*2654435761, function(){ return buildExamInner(area); });
+}
+function buildExamInner(area){
+  const useAug = examRange()==='aug';
+  const inRange = function(q){ return useAug ? examInAug(area,q) : true; };
+  const seen={}; const buckets={ '★☆☆':[], '★★☆':[], '★★★':[] };
+  function add(q){
+    if(!q||!q.q||seen[q.q]||!inRange(q)) return false;
+    const lv=buckets[q.level]? q.level : '★★☆';
+    if(buckets[lv].length>=EXAM_QUOTA[lv]) return false;
+    seen[q.q]=1; buckets[lv].push(Object.assign({},q)); return true;
+  }
+  // 模試専用プール（QUESTIONSやBANK.practiceは練習用として分離。覚えによる偏差値の上振れを防ぐ）
   const pool=[];
-  if(area==='math'){ [].concat(MATH_EXAM, QUESTIONS.positive_negative||[], QUESTIONS.letter_eq||[], QUESTIONS.factorize||[]).forEach(function(q){pool.push(q);}); }
-  else { ['exam','practice'].forEach(function(m){ ((BANK[area]&&BANK[area][m])||[]).forEach(function(q){pool.push(q);}); }); }
-  // 数学は基礎枠(正負・文字式の基礎)を確保
-  if(area==='math'){ let g=0; while(out.length<7 && g<300){ g++; add(genFrom(mathBasicGens)); } }
-  // バンク（8月まで）を投入
-  shuffleArr(pool).forEach(function(q){ if(out.length<25) add(q); });
-  // 生成（8月まで）で25問まで補充
-  const gens = (area==='math') ? null : ((typeof mid8Gens!=='undefined') ? mid8Gens[area] : null);
+  if(area==='math'){ (typeof MATH_EXAM!=='undefined'?MATH_EXAM:[]).forEach(function(q){pool.push(q);}); }
+  else { ((BANK[area]&&BANK[area].exam)||[]).forEach(function(q){pool.push(q);}); }
+  shuffleArr(pool).forEach(add);
+  // 不足分は自動生成で補充（全範囲モードでは全ジェネレーターを使う）
+  const gens = (area==='math') ? null : ((useAug && typeof mid8Gens!=='undefined') ? mid8Gens[area] : null);
   let g=0;
-  while(out.length<25 && g<900){ g++;
+  function need(){ return ['★☆☆','★★☆','★★★'].some(function(lv){ return buckets[lv].length<EXAM_QUOTA[lv]; }); }
+  while(need() && g<1500){ g++;
     let q; if(area==='math'){ q = Math.random()<0.4 ? genFrom(mathBasicGens) : genQuestion('math'); }
     else { q = gens ? genFrom(gens) : genQuestion(area); }
     add(q);
+  }
+  // 埋まらない枠は他レベルからスライド（教科によって応用問題が少ないため）
+  let out=[].concat(buckets['★☆☆'],buckets['★★☆'],buckets['★★★']);
+  g=0;
+  while(out.length<25 && g<600){ g++;
+    let q; if(area==='math'){ q=genQuestion('math'); } else { q = gens ? genFrom(gens) : genQuestion(area); }
+    if(q&&q.q&&!seen[q.q]&&inRange(q)){ seen[q.q]=1; out.push(Object.assign({},q)); }
   }
   // 配点（応用ほど高い）
   out.forEach(function(q){ q.pts = q.level==='★★★'?5:(q.level==='★★☆'?3:2); });
   return shuffleArr(out).slice(0,25);
 }
+var examFormCurrent=1;
 function startExam(area){
   currentArea=area; currentMode='exam'; isExam=true;
-  // 実態に近い模試：基礎〜応用を配点つきで約25問
-  examQuestions=buildExam(area);
+  // 実態に近い模試：基礎〜応用を配点つきで約25問（第N回として問題構成を固定）
+  examFormCurrent=examFormNo(area);
+  examQuestions=buildExam(area, examFormCurrent);
   currentQuestions=examQuestions;
   currentIndex=0; score=0; examUserAnswers=[];
   hideMainScreens();
   document.getElementById('quiz-screen').style.display='block';
   document.getElementById('exam-timer').style.display='inline-block';
   const a=AREAS.find(x=>x.key===area);
-  document.getElementById('quiz-title').textContent=`${a.icon} ${a.name} 模擬試験`;
+  document.getElementById('quiz-title').textContent=`${a.icon} ${a.name} 模擬試験（第${examFormCurrent}回）`;
   setCharacter('tiger');
   const intro=`これより${a.name}の模擬試験を始める！中1の8月まで範囲・50分・100点・全${examQuestions.length}問。配点もあるぞ、心して取り組め🐯`;
   setLunaText(intro); speak(intro);
@@ -3724,15 +4033,46 @@ const EXAM_STATS = {
   science:  { mu:0.57, sigma:0.18 },
   social:   { mu:0.58, sigma:0.18 },
 };
-function calcHensachi(area, ratio){
+// ---- 実模試による校正 ----
+// 学校・塾の模試偏差値を入力すると、直近のアプリ模試（±30日以内）との差の平均を補正値として反映する。
+// 補正の計算には校正前の生の値(hraw)を使い、補正が補正を呼ぶループを防ぐ。
+function getRealExams(){ return lsGetJSON('real_exams', []); }
+function calibOffset(area){
+  const reals=getRealExams().filter(function(r){ return r.area===area && typeof r.hensachi==='number'; });
+  if(!reals.length) return 0;
+  const apps=loadLog().filter(function(e){ return e.mode==='exam' && e.area===area && typeof (e.hraw!=null?e.hraw:e.hensachi)==='number'; });
+  if(!apps.length) return 0;
+  const diffs=[];
+  reals.forEach(function(r){
+    let best=null, bd=Infinity; const rt=_toDate(r.date).getTime();
+    apps.forEach(function(a){ const d=Math.abs((a.ts||0)-rt); if(d<bd){ bd=d; best=a; } });
+    if(best && bd<=30*86400000) diffs.push(r.hensachi - (best.hraw!=null?best.hraw:best.hensachi));
+  });
+  if(!diffs.length) return 0;
+  const off=diffs.reduce(function(s,x){return s+x;},0)/diffs.length;
+  return Math.max(-10, Math.min(10, Math.round(off*10)/10));
+}
+function calcHensachiRaw(area, ratio){
   const st = EXAM_STATS[area] || { mu:0.6, sigma:0.18 };
-  let h = 50 + 10*(ratio - st.mu)/st.sigma;
+  return 50 + 10*(ratio - st.mu)/st.sigma;
+}
+function calcHensachi(area, ratio){
+  let h = calcHensachiRaw(area, ratio) + calibOffset(area);
   h = Math.max(25, Math.min(80, h));
-  return Math.round(h*10)/10; // 小数第1位まで
+  return Math.round(h*10)/10;
+}
+// 直近3回の平均±幅：1回25問の測定誤差（±4〜5）をならした「実力の目安」
+function recentHensachiStats(area, includeH){
+  const hs=loadLog().filter(function(e){ return e.mode==='exam' && e.area===area && typeof e.hensachi==='number'; }).map(function(e){ return e.hensachi; });
+  if(includeH!=null) hs.push(includeH);
+  const last=hs.slice(-3); if(!last.length) return null;
+  const avg=Math.round(last.reduce(function(s,x){return s+x;},0)/last.length*10)/10;
+  const spread=last.length>1? Math.round((Math.max.apply(null,last)-Math.min.apply(null,last))/2*10)/10 : 3;
+  return { avg:avg, spread:Math.max(2,spread), n:last.length };
 }
 // A〜E判定（偏差値ベース・模試の合否判定をイメージ）
 function judgeOf(h){
-  if(h>=66) return { band:'A', cls:'judge-A', comment:'合格圏！この調子で得意を伸ばそう。難問にも挑戦だ！' };
+  if(h>=65) return { band:'A', cls:'judge-A', comment:'合格圏！目標の偏差値65に到達！この調子で得意を伸ばそう。' };
   if(h>=60) return { band:'B', cls:'judge-B', comment:'合格有望ライン。ケアレスミスを減らせばさらに上へ。' };
   if(h>=54) return { band:'C', cls:'judge-C', comment:'合格可能圏。間違えた単元を復習して底上げしよう。' };
   if(h>=48) return { band:'D', cls:'judge-D', comment:'あと一歩。基礎の取りこぼしをなくすのが先決。' };
@@ -3748,7 +4088,16 @@ function showExamResult(){
   const earnedPts=examQuestions.reduce(function(sm,q,i){return sm+(((examUserAnswers[i]&&examUserAnswers[i].correct))?(q.pts||3):0);},0);
   const pct= totalPts? earnedPts/totalPts : 0;
   const score100=Math.round(pct*100);
-  const hensachi=calcHensachi(currentArea, pct);
+  // 当て推量補正：選択式の誤答は pts/(選択肢数-1) を差し引いた得点率で偏差値を計算（全部カンでも偏差値が高く出るのを防ぐ）
+  let guessPenalty=0;
+  examQuestions.forEach(function(q,i){
+    const a=examUserAnswers[i];
+    const isChoice=(q.type||'choice')==='choice' && q.choices && q.choices.length>1;
+    if(isChoice && a && !a.correct){ guessPenalty += (q.pts||3)/(q.choices.length-1); }
+  });
+  const adjPct= totalPts? Math.max(0, earnedPts-guessPenalty)/totalPts : 0;
+  const hraw=Math.round(calcHensachiRaw(currentArea, adjPct)*10)/10;
+  const hensachi=calcHensachi(currentArea, adjPct);
   const judge=judgeOf(hensachi);
   document.getElementById('exam-score').textContent=`${score100}点 / 100`;
   document.getElementById('exam-hensachi').textContent=`${hensachi}`;
@@ -3766,7 +4115,8 @@ function showExamResult(){
   const um=Math.floor(used/60), us=used%60;
   const unanswered=total-examUserAnswers.length;
   function _lv(lv){ let c=0,t=0; examQuestions.forEach(function(q,i){ if(q.level===lv){ t++; if(examUserAnswers[i]&&examUserAnswers[i].correct) c++; } }); return c+'/'+t; }
-  document.getElementById('exam-meta').textContent=`配点 ${earnedPts}/${totalPts}点　基礎${_lv('★☆☆')}・標準${_lv('★★☆')}・応用${_lv('★★★')}　／ 正答${correct}/${total}問・未解答${unanswered}問　／ 時間 約${um}分${us}秒　※偏差値は本物の中1模試の平均・標準偏差をもとにした目安です`;
+  const _off=calibOffset(currentArea);
+  document.getElementById('exam-meta').textContent=`配点 ${earnedPts}/${totalPts}点　基礎${_lv('★☆☆')}・標準${_lv('★★☆')}・応用${_lv('★★★')}　／ 正答${correct}/${total}問・未解答${unanswered}問　／ 時間 約${um}分${us}秒　※偏差値は当て推量補正済み`+(_off!==0?`・実模試で校正済み（補正${_off>0?'+':''}${_off}）`:`。設定画面で実際の模試結果を入れると自動で校正されます`);
   const rev=document.getElementById('exam-review'); rev.innerHTML='';
   examQuestions.forEach((q,i)=>{
     const a=examUserAnswers[i];
@@ -3785,9 +4135,11 @@ function showExamResult(){
   speak(`偏差値${hensachi}、${judge.band}判定。${msg}`);
   totalPoints += correct*10; updateScoreBar(); saveStats();
   // 学習記録に保存（試験）
-  logStudy({ area: currentArea, mode:'exam', score: correct, total: total, hensachi: hensachi, judge: judge.band, seconds: used });
+  logStudy({ area: currentArea, mode:'exam', score: correct, total: total, hensachi: hensachi, hraw: hraw, form: examFormCurrent, judge: judge.band, seconds: used });
   (function(){ var rm=document.getElementById('exam-roadmap'); if(!rm) return; var msg='';
     if(_rmPrevH!=null){ var dd=Math.round((hensachi-_rmPrevH)*10)/10; msg='前回 偏差値'+_rmPrevH+' → 今回 '+hensachi+(dd>=0?'（+'+dd+'）':'（'+dd+'）')+'<br>'; }
+    var rs=recentHensachiStats(currentArea);
+    if(rs && rs.n>=2){ msg+='実力の目安：直近'+rs.n+'回平均 <b>'+rs.avg+'</b>（±'+rs.spread+'）<br>'; }
     var g=Math.round(Math.max(0,RM_TARGET-hensachi)*10)/10;
     msg+=(g>0?('目標65まで あと <b>'+g+'</b>'):'🎉 目標偏差値65を達成！');
     rm.innerHTML=msg+'<br><button class="rm-mini" onclick="showRoadmap()">🗺️ ロードマップ更新を見る</button>'; rm.style.display='block'; })();
@@ -3831,8 +4183,19 @@ function onAnswered(q, correct){
   recordTopicStat(area, sub, correct);
   pushRecent(correct);
   bumpDaily();
+  logQuestion(area, sub, correct);
   if(correct) srsCorrect(q);
   else addMistake(q, area);
+  checkQuests();
+}
+
+// ---- 問題単位のログ（詳細分析用・端末内のみ） ----
+function logQuestion(area, sub, correct){
+  try{
+    const l=lsGetJSON('q_log',[]);
+    l.push({ ts:Date.now(), area:area, sub:sub, ok:correct?1:0, sec:Math.min(300,Math.round((Date.now()-qStartTime)/1000)) });
+    lsSetJSON('q_log', l.slice(-3000));
+  }catch(e){}
 }
 
 // ---- 5教科チャレンジ用：挑戦した教科を記録 ----
@@ -3969,11 +4332,38 @@ function renderRoadmap(){
 // ---- まちがいノート ----
 // ---- 苦手克服ドリル ----
 function allStaticQuestions(){
+  // 注意：MATH_EXAM と BANK.*.exam は模試専用プールなのでここには含めない
+  // （練習で同じ問題を解いて覚えてしまうと模試の偏差値が実力より高く出るため）
   const out=[];
   try{ Object.keys(QUESTIONS).forEach(function(k){ (QUESTIONS[k]||[]).forEach(function(q){ out.push(Object.assign({area:'math'},q)); }); }); }catch(e){}
-  try{ (MATH_EXAM||[]).forEach(function(q){ out.push(Object.assign({area:'math'},q)); }); }catch(e){}
-  try{ ['japanese','english','science','social'].forEach(function(a){ ['practice','exam'].forEach(function(mo){ ((BANK[a]&&BANK[a][mo])||[]).forEach(function(q){ out.push(Object.assign({area:a},q)); }); }); }); }catch(e){}
+  try{ ['japanese','english','science','social'].forEach(function(a){ ((BANK[a]&&BANK[a].practice)||[]).forEach(function(q){ out.push(Object.assign({area:a},q)); }); }); }catch(e){}
+  try{ getExtraQuestions().forEach(function(q){ if(q&&q.q&&q.ans!==undefined) out.push(Object.assign({area:q.area||'math'},q)); }); }catch(e){}
   return out;
+}
+// ---- 追加問題（JSONで読み込んだ問題） ----
+function getExtraQuestions(){ return lsGetJSON('extra_questions', []); }
+function importQuestionsFile(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=function(){
+    try{
+      var data=JSON.parse(r.result);
+      if(!Array.isArray(data)) data=data.questions||[];
+      const valid=data.filter(function(q){
+        return q && typeof q.q==='string' && q.q && q.ans!==undefined &&
+          (q.type!=='choice' || (Array.isArray(q.choices) && q.choices.length>=2));
+      });
+      if(!valid.length){ alert('問題が見つかりませんでした。「追加問題サンプル.json」の形式を確認してね。'); input.value=''; return; }
+      const cur=getExtraQuestions(); const seen={}; cur.forEach(function(q){ seen[q.q]=1; });
+      let added=0;
+      valid.forEach(function(q){ if(!seen[q.q]){ seen[q.q]=1; cur.push({ area:q.area||'math', q:q.q, sub:q.sub||'追加問題', level:q.level||'★★☆', type:q.type||(q.choices?'choice':'free'), choices:q.choices||null, ans:q.ans, altAns:q.altAns||null, hint:q.hint||'', explain:q.explain||'', figure:q.figure||null, passage:q.passage||null }); added++; } });
+      lsSetJSON('extra_questions', cur.slice(-2000));
+      showToast('➕','問題を追加しました', added+'問を追加（合計'+cur.length+'問）', 4200);
+      refreshSettingsDisp();
+    }catch(e){ alert('ファイルを読み込めませんでした：'+e.message); }
+    input.value='';
+  };
+  r.readAsText(f);
 }
 function runQuestionSession(qs, title, intro, char){
   isMistakePractice=false; isExam=false; isGenPractice=true; currentMode='practice'; stopExamTimer();
@@ -4002,7 +4392,7 @@ function startWeaknessDrill(){
   runQuestionSession(qs, '💪 苦手克服ドリル', `苦手な「${names}」を集中とっくん！ここを克服すれば一気に伸びるぞ🐯`, 'tiger');
 }
 function getMistakes(){ return lsGetJSON('mistake_notebook', []); }
-function saveMistakes(arr){ lsSetJSON('mistake_notebook', arr.slice(-200)); }
+function saveMistakes(arr){ lsSetJSON('mistake_notebook', arr.slice(-400)); }
 // ---- 適応難易度・難問・ミックス ----
 function pushRecent(correct){ let r=lsGetJSON('recent_acc',[]); r.push(correct?1:0); if(r.length>12) r=r.slice(-12); lsSetJSON('recent_acc',r); }
 function recentAccuracy(){ const r=lsGetJSON('recent_acc',[]); if(r.length<3) return 0.6; return r.reduce(function(sm,x){return sm+x;},0)/r.length; }
@@ -4031,13 +4421,14 @@ function startMixedPractice(){
   runQuestionSession(shuffleArr(qs), '🔀 ミックス演習', '全教科ごちゃまぜ'+lvl+'！本番に近い力だめしだよ。', 'owl');
 }
 // ---- 間隔反復（SRS）----
-var SRS_INT=[1,3,7];
+var SRS_INT=[1,3,7,14,30]; // 忘却対策：2週間後・1か月後にも再出題してから卒業
 function dateKeyOffset(off){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+off); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function dueMistakes(){ const t=todayKey(); return getMistakes().filter(m=>!m.due || m.due<=t); }
 function dueCount(){ return dueMistakes().length; }
 function srsCorrect(q){
   if(!q||!q.q) return;
   const arr=getMistakes(); const i=arr.findIndex(m=>m.q===q.q); if(i<0) return;
+  bumpWeekSrs();
   const box=(arr[i].box||0)+1; const sub=arr[i].sub||'';
   if(box>=SRS_INT.length){ arr.splice(i,1); saveMistakes(arr); sessionGraduated++; showToast('🎓','卒業！','「'+sub+'」を克服'); checkBadges({event:'graduate'}); }
   else { arr[i].box=box; arr[i].due=dateKeyOffset(SRS_INT[box]); saveMistakes(arr); }
@@ -4112,7 +4503,7 @@ function renderMistakeList(){
       html += `<div class="mk-item">`+
         `<div class="mk-q">${escapeHtml(m.q)}</div>`+
         `<div class="mk-meta">${escapeHtml(m.sub||'')}　${m.level||''}<span class="mk-wrongcount">×${m.wrongCount||1}回まちがえた</span></div>`+
-        `<div class="mk-srs">復習 ${'●'.repeat(m.box||0)}${'○'.repeat(Math.max(0,2-(m.box||0)))}　次回：${(!m.due||m.due<=todayKey())?'今日':m.due}</div>`+
+        `<div class="mk-srs">復習 ${'●'.repeat(m.box||0)}${'○'.repeat(Math.max(0,(SRS_INT.length-1)-(m.box||0)))}　次回：${(!m.due||m.due<=todayKey())?'今日':m.due}</div>`+
         `<div class="mk-ans">正解：${escapeHtml(String(m.ans))}</div>`+
         (m.explain?`<div class="mk-explain">${escapeHtml(m.explain)}</div>`:'')+
       `</div>`;
@@ -4166,6 +4557,7 @@ function bumpDaily(){
     confetti();
     showToast('🎯','今日の目標 達成！', `${goal}問クリア！すごい！`, 4200);
     checkBadges({ event:'goalReached' });
+    try{ sendLineEvent({ type:'goal', goal:goal, streak:currentStreak() }); }catch(e){}
   }
 }
 function renderDailyRing(){
@@ -4195,12 +4587,20 @@ function getStudyDates(){
   loadLog().forEach(e=>{ if(e.date) set.add(e.date); });
   return [...set].sort();
 }
+// おやすみチケット：7日ごとに1回まで「1日だけ休み」を連続扱いにする（1日欠けで0リセットのショックを防ぐ）
 function currentStreak(){
   const days=getStudyDates(); if(!days.length) return 0;
   const today=new Date(); today.setHours(0,0,0,0);
-  if(Math.round((today-_toDate(days[days.length-1]))/86400000)>1) return 0;
-  let st=1;
-  for(let i=days.length-1;i>0;i--){ if(Math.round((_toDate(days[i])-_toDate(days[i-1]))/86400000)===1) st++; else break; }
+  const gapNow=Math.round((today-_toDate(days[days.length-1]))/86400000);
+  if(gapNow>2) return 0;
+  let st=1, pos=0, lastFreeze=(gapNow===2)?0:-99;
+  for(let i=days.length-1;i>0;i--){
+    const gap=Math.round((_toDate(days[i])-_toDate(days[i-1]))/86400000);
+    pos++;
+    if(gap===1){ st++; }
+    else if(gap===2 && pos-lastFreeze>=7){ st++; lastFreeze=pos; }
+    else break;
+  }
   return st;
 }
 function weekDates(){
@@ -4238,6 +4638,7 @@ function renderDailyMenu(){
     `<div class="dm-prog-txt">今日 ${cnt}/${goal}問 ${cnt>=goal?'達成🎉':''}</div>`+
     wk.html+
     `<div class="dm-week-txt">今週 ${wk.studied}/7日 学習</div>`+
+    questCardHTML()+
     `<button class="dm-start" onclick="startRecommended()">▶ 今日の学習をはじめる</button>`+
     `<div class="dm-rec">おすすめ：${escapeHtml(recLabel)}</div>`+
     `<div class="dm-quick">`+
@@ -4248,7 +4649,8 @@ function renderDailyMenu(){
       `<button class="dm-qbtn" onclick="startHardChallenge()">🔥 難問チャレンジ</button>`+
       `<button class="dm-qbtn" onclick="startMixedPractice()">🔀 ミックス演習</button>`+
       `<button class="dm-qbtn" onclick="showWrite()">✍️ 記述問題</button>`+
-      `<button class="dm-qbtn" onclick="printSheet()">🖨️ プリント</button>`+
+      `<button class="dm-qbtn" onclick="openPrintModal()">🖨️ プリント</button>`+
+      (getPaperSheets().length?`<button class="dm-qbtn" onclick="showPaperGrading()">📥 紙の答え合わせ（${getPaperSheets().length}）</button>`:'')+
     `</div>`;
 }
 function renderCalendar(){
@@ -4270,6 +4672,43 @@ function renderCalendar(){
   el.innerHTML=`<div class="cal-top"><span class="cal-month">${y}年${m+1}月</span><span class="cal-sum">🔥${currentStreak()}日連続 ／ 今月${monthDays}日</span></div>`+
     `<div class="cal-grid">${cells}</div>`+
     `<div class="cal-legend">少 <span class="cal-cell lvl1 mini"></span><span class="cal-cell lvl2 mini"></span><span class="cal-cell lvl3 mini"></span><span class="cal-cell lvl4 mini"></span> 多（色が濃いほどたくさん解いた日）</div>`;
+}
+
+// ---- 週間クエスト（バッジを取り切った後も続く週替わりの目標） ----
+function weekKey(){ return weekDates()[0]; }
+function bumpWeekSrs(){ const o=lsGetJSON('week_srs',{}); const k=weekKey(); o[k]=(o[k]||0)+1; lsSetJSON('week_srs',o); }
+function weekStats(){
+  const wk=weekDates(); const hist=getDailyHist(); const log=loadLog();
+  return {
+    q: wk.reduce(function(s,d){ return s+(hist[d]||0); },0),
+    days: wk.filter(function(d){ return (hist[d]||0)>0; }).length,
+    exams: log.filter(function(e){ return e.mode==='exam' && wk.indexOf(e.date)>=0; }).length,
+    srs: (lsGetJSON('week_srs',{})[weekKey()])||0
+  };
+}
+var QUESTS=[
+  { id:'q80',  icon:'✏️', title:'今週 80問とく',        get:function(s){return s.q;},     goal:80, pts:150 },
+  { id:'d5',   icon:'📅', title:'週5日 学習する',        get:function(s){return s.days;},  goal:5,  pts:150 },
+  { id:'ex1',  icon:'📝', title:'模試を1回うける',       get:function(s){return s.exams;}, goal:1,  pts:100 },
+  { id:'srs10',icon:'🎓', title:'復習で10問 前進する',   get:function(s){return s.srs;},   goal:10, pts:120 },
+];
+function checkQuests(){
+  const s=weekStats(); const done=lsGetJSON('quest_done',{}); const k=weekKey(); done[k]=done[k]||{};
+  let changed=false;
+  QUESTS.forEach(function(qd){
+    if(done[k][qd.id]) return;
+    if(qd.get(s)>=qd.goal){ done[k][qd.id]=1; changed=true; totalPoints+=qd.pts; showToast(qd.icon,'⭐ クエスト達成！', qd.title+'｜+'+qd.pts+'pt', 4200); }
+  });
+  if(changed){ lsSetJSON('quest_done',done); updateScoreBar(); saveStats(); confetti(); }
+}
+function questCardHTML(){
+  const s=weekStats(); const done=(lsGetJSON('quest_done',{})[weekKey()])||{};
+  return '<div class="dm-quests"><div class="dm-quests-t">⭐ 今週のクエスト</div>'+QUESTS.map(function(qd){
+    const v=Math.min(qd.get(s),qd.goal); const ok=!!done[qd.id]||v>=qd.goal; const p=Math.round(v/qd.goal*100);
+    return '<div class="dm-quest'+(ok?' ok':'')+'"><span class="dm-quest-n">'+qd.icon+' '+qd.title+'</span>'+
+      '<div class="dm-bar-wrap"><div class="dm-bar" style="width:'+p+'%;background:'+(ok?'var(--success)':'linear-gradient(90deg,#0891b2,#ec4899)')+'"></div></div>'+
+      '<span class="dm-quest-v">'+(ok?'達成🎉':(v+'/'+qd.goal))+'</span></div>';
+  }).join('')+'</div>';
 }
 
 // ---- バッジ ----

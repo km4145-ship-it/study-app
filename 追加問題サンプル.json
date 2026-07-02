@@ -1,0 +1,35 @@
+[
+  {
+    "area": "math",
+    "q": "(-3) × (-4) + 2 を計算しよう",
+    "sub": "正負の数（乗法と加法）",
+    "level": "★★☆",
+    "type": "free",
+    "ans": "14",
+    "altAns": ["14"],
+    "hint": "かけ算が先。負×負は正",
+    "explain": "【考え方】乗法を先に計算する。\n【手順】(-3)×(-4)=12、12+2=14\n【ポイント】負×負は正になる。"
+  },
+  {
+    "area": "english",
+    "q": "「私は毎日英語を勉強します」を英語にすると？",
+    "sub": "一般動詞の文",
+    "level": "★★☆",
+    "type": "choice",
+    "choices": ["I study English every day.", "I am study English every day.", "I studies English every day.", "I studying English every day."],
+    "ans": "I study English every day.",
+    "hint": "主語がIのときの動詞の形",
+    "explain": "【考え方】主語が I なので動詞は原形。\n【ポイント】be動詞と一般動詞は一緒に使わない。"
+  },
+  {
+    "area": "science",
+    "q": "ガスバーナーの炎を青くするには、何を調節する？",
+    "sub": "実験器具の使い方",
+    "level": "★☆☆",
+    "type": "choice",
+    "choices": ["空気調節ねじ", "ガス調節ねじ", "元栓", "コック"],
+    "ans": "空気調節ねじ",
+    "hint": "炎の色は空気の量で変わる",
+    "explain": "【考え方】赤い炎は空気不足。空気調節ねじを開いて青い炎にする。"
+  }
+]

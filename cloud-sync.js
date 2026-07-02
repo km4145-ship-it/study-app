@@ -18,18 +18,49 @@ window.FIREBASE_CONFIG = {
   function rget(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function rset(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
   function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
-  var SHARED = ['mu_users','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_api_key','testdate','reward'];
-  function isSyncKey(k){ if(!k) return false; if(k.indexOf('u:')===0) return true; return SHARED.indexOf(k)>=0; }
-  function isArr(k){ return /:(study_log|mistake_notebook|careless_log)$/.test(k); }
-  function isCounter(k){ return /:(c_correct|c_streak|c_points|c_beststreak|c_answered|c_seconds|study_seconds)$/.test(k); }
+  var SHARED = ['mu_users','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_api_key','testdate','reward','line_endpoint','extra_questions'];
+  function isSyncKey(k){ if(!k) return false; if(/:q_log$/.test(k)) return false; if(k.indexOf('u:')===0) return true; return SHARED.indexOf(k)>=0; }
+  function isArr(k){ return /:(study_log|mistake_notebook|real_exams|paper_sheets)$/.test(k) || k==='extra_questions'; }
+  function isCounter(k){ return /:(c_correct|c_streak|c_points|c_beststreak|c_answered|c_seconds)$/.test(k); }
+  // 日付やキーごとの数値オブジェクト：キーごとに大きい方を採用（端末間で打ち消し合わないように）
+  function isObjMax(k){ return /:(daily_hist|study_seconds|week_srs|careless_log)$/.test(k); }
+  function isTopic(k){ return /:topic_stats$/.test(k); }
+  function isUnionObj(k){ return /:(quest_done|badges)$/.test(k); }
+  function keyOfEntry(e){ if(e&&e.q) return 'q'+e.q; if(e&&e.id) return 'i'+e.id; if(e&&e.ts) return 't'+e.ts; return JSON.stringify(e); }
   function snapshot(){ var o={}; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(isSyncKey(k)){ o[k]=localStorage.getItem(k); } } return o; }
-  function mergeArr(a,b){ try{ var x=JSON.parse(a||'[]'),y=JSON.parse(b||'[]'),seen={},out=[]; x.concat(y).forEach(function(e){ var key=(e&&e.ts)?('t'+e.ts):JSON.stringify(e); if(!seen[key]){seen[key]=1;out.push(e);} }); out.sort(function(p,q){return (p.ts||0)-(q.ts||0);}); return JSON.stringify(out.slice(-500)); }catch(e){ return b||a; } }
+  function mergeArr(a,b){ try{ var x=JSON.parse(a||'[]'),y=JSON.parse(b||'[]'),map={},order=[];
+    x.concat(y).forEach(function(e){ var key=keyOfEntry(e); if(map[key]===undefined){ map[key]=e; order.push(key); }
+      else if(((e&&e.ts)||0)>((map[key]&&map[key].ts)||0)){ map[key]=e; } });
+    var out=order.map(function(key){ return map[key]; });
+    out.sort(function(p,q){ return ((p&&(p.ts||p.id))||0)-((q&&(q.ts||q.id))||0); });
+    return JSON.stringify(out.slice(-1500)); }catch(e){ return b||a; } }
+  function mergeObjMax(a,b){ try{ var x=JSON.parse(a||'{}'),y=JSON.parse(b||'{}'),o={};
+    Object.keys(x).concat(Object.keys(y)).forEach(function(key){ o[key]=Math.max(parseInt(x[key]||0,10)||0, parseInt(y[key]||0,10)||0); });
+    return JSON.stringify(o); }catch(e){ return b||a; } }
+  function mergeTopic(a,b){ try{ var x=JSON.parse(a||'{}'),y=JSON.parse(b||'{}'),o={};
+    Object.keys(x).concat(Object.keys(y)).forEach(function(key){ var p=x[key],q=y[key];
+      if(!p){ o[key]=q; return; } if(!q){ o[key]=p; return; }
+      o[key]={ area:p.area||q.area, sub:p.sub||q.sub, attempts:Math.max(p.attempts||0,q.attempts||0), correct:Math.max(p.correct||0,q.correct||0) }; });
+    return JSON.stringify(o); }catch(e){ return b||a; } }
+  function mergeUnionObj(a,b){ try{ var x=JSON.parse(a||'{}'),y=JSON.parse(b||'{}'),o={};
+    Object.keys(x).concat(Object.keys(y)).forEach(function(key){ var p=x[key],q=y[key];
+      if(p&&q&&typeof p==='object'&&typeof q==='object'){ var m={}; Object.keys(p).concat(Object.keys(q)).forEach(function(kk){ m[kk]=p[kk]||q[kk]; }); o[key]=m; }
+      else o[key]=(p!==undefined?p:q); });
+    return JSON.stringify(o); }catch(e){ return b||a; } }
+  function mergeDailyProg(a,b){ try{ var x=JSON.parse(a||'null'),y=JSON.parse(b||'null');
+    if(!x) return b; if(!y) return a;
+    if(x.date===y.date) return JSON.stringify({ date:x.date, count:Math.max(x.count||0,y.count||0), celebrated:!!(x.celebrated||y.celebrated) });
+    return x.date>y.date? a : b; }catch(e){ return b||a; } }
   function mergeUsers(a,b){ try{ var x=JSON.parse(a||'[]'),y=JSON.parse(b||'[]'),byId={},order=[]; x.concat(y).forEach(function(u){ if(u&&u.id){ if(!byId[u.id])order.push(u.id); byId[u.id]=u; } }); return JSON.stringify(order.map(function(id){return byId[id];}).slice(0,5)); }catch(e){ return b||a; } }
   function applyCloud(data){ if(!data) return false; var changed=false;
     Object.keys(data).forEach(function(k){ var cur=rget(k), nv;
       if(k==='mu_users') nv=mergeUsers(cur,data[k]);
       else if(isArr(k)) nv=mergeArr(cur,data[k]);
       else if(isCounter(k)) nv=String(Math.max(parseInt(cur||'0',10),parseInt(data[k]||'0',10)));
+      else if(isObjMax(k)) nv=mergeObjMax(cur,data[k]);
+      else if(isTopic(k)) nv=mergeTopic(cur,data[k]);
+      else if(isUnionObj(k)) nv=mergeUnionObj(cur,data[k]);
+      else if(/:daily_prog$/.test(k)) nv=mergeDailyProg(cur,data[k]);
       else nv=data[k];
       if(nv!==cur && nv!==undefined && nv!==null){ rset(k,nv); changed=true; }
     });

@@ -707,6 +707,9 @@
   .us-grade{ font-size:0.8rem; color:var(--primary); font-weight:700; margin-top:2px; }
   .us-admin{ font-size:0.7rem; background:var(--success); color:#fff; border-radius:6px; padding:1px 5px; }
   .us-note{ font-size:0.78rem; color:#64748b; margin-top:12px; }
+  .us-status{ font-size:0.85rem; color:var(--primary); font-weight:700; margin-top:10px; min-height:20px; }
+  .us-lock{ font-size:0.75rem; }
+  .us-card:disabled{ opacity:.55; cursor:wait; }
   .ua-row{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:7px 0; border-bottom:1px dashed #e2e8f0; }
   .ua-row .ua-svg{ width:28px; height:34px; flex:0 0 auto; } .ua-row .ua-svg svg{ width:100%; height:100%; }
   .ua-name{ font-weight:700; min-width:56px; }
@@ -742,7 +745,8 @@
   <div class="us-panel">
     <h2>だれが学習する？</h2>
     <div class="us-list" id="user-select-list"></div>
-    <p class="us-note">※ユーザーの追加・編集は ⚙️設定（管理者）から</p>
+    <div class="us-status" id="us-status" style="display:none"></div>
+    <p class="us-note">名前をタップすると、クラウドの最新データを読みこんで始まります（どの端末でも続きから）。<br>※ユーザーの追加・編集・🔒顔/指紋ロックは ⚙️設定(管理者)から</p>
   </div>
 </div>
 
@@ -755,7 +759,7 @@
 
     <div class="settings-section">
       <h3>👥 ユーザー（最大5人）</h3>
-      <p class="settings-hint">学習する人を登録します。各ユーザーの学習データは別々に保存されます。「管理者」だけが設定を変更できます。</p>
+      <p class="settings-hint">学習する人を登録します。各ユーザーの学習データは別々にクラウド保存され、どの端末でも続きからできます。「🔓認証なし」を押すと顔／指紋（Face ID・Touch ID等）でそのユーザーをロックできます。「管理者」だけが設定を変更できます。</p>
       <div id="user-admin-list"></div>
       <div class="settings-row" style="margin-top:8px"><button class="btn-sm" onclick="muChangeAdminPin()">🔑 管理者の合言葉を変更</button></div>
     </div>
@@ -2140,12 +2144,18 @@ function importDataFile(input){
   r.readAsText(f);
 }
 // ===== ユーザー管理・管理者 =====
-function muGetUsers(){ try{ return JSON.parse(_rawGet('mu_users')||'[]'); }catch(e){ return []; } }
+function muDeletedMap(){ try{ return JSON.parse(_rawGet('mu_deleted')||'{}'); }catch(e){ return {}; } }
+function muGetUsers(){ try{ var d=muDeletedMap(); return JSON.parse(_rawGet('mu_users')||'[]').filter(function(u){ return u && u.id && !d[u.id]; }); }catch(e){ return []; } }
 function muSaveUsers(a){ _rawSet('mu_users', JSON.stringify(a)); }
 function muCurrentUser(){ var id=muCurrentId(); return muGetUsers().filter(function(u){return u.id===id;})[0] || null; }
-function muNextId(){ var n=1, us=muGetUsers(); while(us.some(function(u){return u.id==='u'+n;})) n++; return 'u'+n; }
+// 端末間で重複しない一意ID（削除済みIDの再利用を防ぐ）
+function muNextId(){ return 'u'+Date.now().toString(36)+Math.floor(Math.random()*1296).toString(36); }
 function muAddUser(name,char,admin,grade){ var us=muGetUsers(); if(us.length>=5) return false; us.push({id:muNextId(),name:(name||'ユーザー').slice(0,8),char:char||'shiba',admin:!!admin,startYear:muStartYearForGrade(grade||7)}); muSaveUsers(us); return true; }
-function muRemoveUser(id){ var us=muGetUsers().filter(function(u){return u.id!==id;}); if(!us.length) return false; muSaveUsers(us); if(muCurrentId()===id){ _rawSet('mu_current', us[0].id); } return true; }
+function muRemoveUser(id){ var us=muGetUsers().filter(function(u){return u.id!==id;}); if(!us.length) return false; muSaveUsers(us);
+  // 削除の記録（全端末に同期され、復活を防ぐ）＋クラウド側の学習データも削除
+  try{ var d=muDeletedMap(); d[id]=Date.now(); _rawSet('mu_deleted', JSON.stringify(d)); }catch(e){}
+  try{ if(window.cloudDeleteMember) window.cloudDeleteMember(id); }catch(e){}
+  if(muCurrentId()===id){ _rawSet('mu_current', us[0].id); } return true; }
 function muRenameUser(id,name){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.name=(name||u.name).slice(0,8); }); muSaveUsers(us); }
 function muSetUserChar(id,ch){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.char=ch; }); muSaveUsers(us); }
 // 学年（日付から自動算出・4月に進級）
@@ -2159,6 +2169,59 @@ function muSetUserGrade(id,l){ l=Math.max(1,Math.min(9,parseInt(l,10)||7)); var 
 function muAskGrade(cur){ var s=prompt('学年を数字で入力してください：\n小1=1 小2=2 小3=3 小4=4 小5=5 小6=6\n中1=7 中2=8 中3=9\n（例）小4→4、中1→7', String(cur||7)); if(s===null) return null; var l=parseInt((''+s).trim(),10); if(!l||l<1||l>9){ showToast('⚠️','学年は1〜9で','小1=1〜中3=9で入力してね'); return null; } return l; }
 function muSetUserAdmin(id,on){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.admin=!!on; }); if(!us.some(function(u){return u.admin;})) { us[0].admin=true; } muSaveUsers(us); }
 function muSetCurrent(id){ sessionStorage.setItem('mu_enter','1'); sessionStorage.removeItem('mu_admin_ok'); _rawSet('mu_current', id); try{ location.reload(); }catch(e){} }
+// ===== 顔・指紋認証（WebAuthn：端末のFace ID/Touch ID/Windows Hello等でユーザーをまもる）=====
+function bioSupported(){ return !!(window.isSecureContext && window.PublicKeyCredential && navigator.credentials && navigator.credentials.create); }
+function bioAvailable(){ try{ return PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(function(){ return false; }); }catch(e){ return Promise.resolve(false); } }
+function _b64u(buf){ var b=new Uint8Array(buf),s=''; for(var i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function _b64uDec(s){ s=String(s).replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; var bin=atob(s), b=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i); return b.buffer; }
+function _bioRand(n){ var b=new Uint8Array(n); crypto.getRandomValues(b); return b; }
+async function bioRegister(u){
+  var cred = await navigator.credentials.create({ publicKey: {
+    challenge: _bioRand(32),
+    rp: { name: '学習アプリ' },
+    user: { id: new TextEncoder().encode('studyapp:'+u.id).slice(0,64), name: u.name||u.id, displayName: u.name||u.id },
+    pubKeyCredParams: [{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+    authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required', residentKey:'preferred' },
+    timeout: 60000, attestation: 'none'
+  }});
+  return _b64u(cred.rawId);
+}
+async function bioVerify(u){
+  var ids=(u.bioCreds||[]).filter(Boolean);
+  if(!ids.length) return 'nocred';
+  try{
+    var res = await navigator.credentials.get({ publicKey: {
+      challenge: _bioRand(32),
+      allowCredentials: ids.map(function(id){ return { type:'public-key', id:_b64uDec(id), transports:['internal'] }; }),
+      userVerification: 'required', timeout: 45000
+    }});
+    return res ? 'ok' : 'fail';
+  }catch(e){ return 'fail'; }
+}
+function muSetUserBio(id,on,credId){ var us=muGetUsers(); us.forEach(function(u){ if(u.id!==id) return; u.bio=!!on;
+  if(on){ u.bioCreds=(u.bioCreds||[]); if(credId && u.bioCreds.indexOf(credId)<0) u.bioCreds.push(credId); }
+  else { u.bioCreds=[]; } }); muSaveUsers(us); }
+// ユーザー選択時の本人確認：顔/指紋 → だめなら管理者PINにフォールバック
+async function muBioGate(u){
+  if(bioSupported()){
+    var r = await bioVerify(u);
+    if(r==='ok') return true;
+  }
+  if(!muAdminPinSet()) return true; // フォールバック手段が未設定なら通す
+  var x=prompt('🔒 '+(u.name||'このユーザー')+' はロックされています。\n顔／指紋がつかえないときは、管理者の合言葉(PIN)を入力してください。');
+  if(x===null) return false;
+  if(_pinObf((''+x).trim())===_rawGet('mu_admin_pin')){
+    // この端末を今後は顔/指紋で開けるように登録をすすめる
+    if(bioSupported()){
+      try{
+        var avail = await bioAvailable();
+        if(avail && confirm('この端末でも顔／指紋で開けるように登録しますか？')){ var cid=await bioRegister(u); muSetUserBio(u.id,true,cid); }
+      }catch(e){}
+    }
+    return true;
+  }
+  alert('合言葉がちがいます。'); return false;
+}
 // 管理者PIN（設定の保護）
 function muAdminPinSet(){ return !!_rawGet('mu_admin_pin'); }
 function muSetAdminPin(p){ _rawSet('mu_admin_pin', _pinObf(p)); }
@@ -2183,19 +2246,53 @@ function renderUserSelect(){
   var cur=muCurrentId();
   muGetUsers().forEach(function(u){
     var b=document.createElement('button'); b.className='us-card'+(u.id===cur?' us-cur':'');
-    b.innerHTML='<div class="us-svg">'+_charSVG(u.char)+'</div><div class="us-name">'+escapeHtml(u.name)+'</div><div class="us-grade">'+muGradeLabel(muGradeLevel(u))+(u.admin?' <span class="us-admin">管理</span>':'')+'</div>';
+    b.innerHTML='<div class="us-svg">'+_charSVG(u.char)+'</div><div class="us-name">'+(u.bio?'<span class="us-lock">🔒</span>':'')+escapeHtml(u.name)+'</div><div class="us-grade">'+muGradeLabel(muGradeLevel(u))+(u.admin?' <span class="us-admin">管理</span>':'')+'</div>';
     b.addEventListener('click', function(){ muPickUser(u.id); });
     el.appendChild(b);
   });
 }
-function muPickUser(id){
-  try{ sessionStorage.setItem('mu_enter','1'); sessionStorage.removeItem('mu_admin_ok'); }catch(e){}
-  _rawSet('mu_current', id);
-  muLoadUserData();
-  var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='none';
-  muGreetAndEnter();
+function muPickerStatus(msg){ var el=document.getElementById('us-status'); if(el){ el.textContent=msg||''; el.style.display=msg?'block':'none'; } }
+function muPickerLock(on){ try{ document.querySelectorAll('#user-select-list .us-card').forEach(function(b){ b.disabled=!!on; }); }catch(e){} }
+var _muPicking=false;
+async function muPickUser(id){
+  if(_muPicking) return; _muPicking=true;
+  try{
+    // 1) クラウドから最新データを読み込む（どの端末でも続きから）
+    muPickerLock(true);
+    if(window.cloudPullUser){
+      muPickerStatus('☁️ さいしんのデータをよみこみ中…');
+      try{ await Promise.race([window.cloudPullUser(id), sleep(6000)]); }catch(e){}
+    }
+    muPickerStatus('');
+    var u = muGetUsers().filter(function(x){return x.id===id;})[0];
+    if(!u){ renderUserSelect(); muPickerLock(false); return; }
+    // 2) 顔・指紋ロックがかかっていれば本人確認
+    if(u.bio){
+      muPickerStatus('🔒 ほんにんかくにん中…');
+      var ok=false; try{ ok = await muBioGate(u); }catch(e){ ok=false; }
+      muPickerStatus('');
+      if(!ok){ renderUserSelect(); muPickerLock(false); return; }
+    }
+    // 3) 開始
+    try{ sessionStorage.setItem('mu_enter','1'); sessionStorage.removeItem('mu_admin_ok'); }catch(e){}
+    _rawSet('mu_current', id);
+    muLoadUserData();
+    muPickerLock(false);
+    var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='none';
+    muGreetAndEnter();
+  } finally { _muPicking=false; }
 }
-function muShowPicker(){ renderUserSelect(); var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='flex'; }
+function muShowPicker(){ renderUserSelect(); var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='flex';
+  // ユーザー一覧をクラウドの最新に更新（新しい端末でも家族全員が表示される）
+  if(window.cloudPullShared){
+    muPickerStatus('☁️ ユーザー一覧を更新中…');
+    Promise.race([window.cloudPullShared(), sleep(5000)])
+      .then(function(){ muPickerStatus(''); renderUserSelect(); })
+      .catch(function(){ muPickerStatus(''); });
+  }
+}
+// クラウドから変更が届いたときの画面反映（cloud-sync.jsから呼ばれる）
+window.muOnCloudUpdate = function(){ try{ muUpdateHeader(); var ov=document.getElementById('user-select-overlay'); if(ov && ov.style.display==='flex'){ renderUserSelect(); } }catch(e){} };
 function muApplyGradeLabels(){ try{ var m=AREAS.find(function(x){return x.key==='math';}); if(m){ m.name=(muGradeBand()==='elem')?'算数':'数学'; } }catch(e){} }
 function muApplyAdminUI(){ try{ var b=document.getElementById('nav-settings-btn'); if(b){ var cu=muCurrentUser(); b.style.display=(cu&&cu.admin)?'':'none'; } }catch(e){} }
 function muBoot(){
@@ -2239,6 +2336,15 @@ function renderUserAdmin(){
     btn('学年','',function(){ var l=muAskGrade(muGradeLevel(u)); if(l===null) return; muSetUserGrade(u.id,l); renderUserAdmin(); muUpdateHeader(); });
     btn('キャラ','',function(){ var i=MU_CHARS.indexOf(u.char); muSetUserChar(u.id, MU_CHARS[(i+1)%MU_CHARS.length]); renderUserAdmin(); });
     btn(u.admin?'管理者':'一般', u.admin?'#059669':'#94a3b8', function(){ muSetUserAdmin(u.id,!u.admin); renderUserAdmin(); });
+    btn(u.bio?'🔒顔/指紋':'🔓認証なし', u.bio?'#7c3aed':'#94a3b8', function(){
+      if(u.bio){ if(!confirm(u.name+' の顔／指紋ロックを解除しますか？')) return; muSetUserBio(u.id,false,null); renderUserAdmin(); showToast('🔓','ロック解除','認証なしで開けます'); return; }
+      if(!bioSupported()){ alert('この端末では顔／指紋認証がつかえません（https での利用と対応端末が必要です）。'); return; }
+      bioAvailable().then(function(av){
+        if(!av){ alert('この端末に顔／指紋（Face ID・Touch ID・Windows Hello など）が設定されていません。'); return; }
+        bioRegister(u).then(function(cid){ muSetUserBio(u.id,true,cid); renderUserAdmin(); showToast('🔒','認証を設定','このユーザーは顔／指紋で開きます'); })
+          .catch(function(){ alert('登録がキャンセルまたは失敗しました。'); });
+      });
+    });
     btn('削除','#ef4444', function(){ if(muGetUsers().length<=1){ showToast('⚠️','削除できません','最後の1人は残してね'); return; } if(!confirm('このユーザーの学習データも消えます。削除しますか？')) return; Object.keys(MU_PER_USER).forEach(function(k){ _rawDel('u:'+u.id+':'+k); }); muRemoveUser(u.id); renderUserAdmin(); muUpdateHeader(); });
     el.appendChild(row);
   });

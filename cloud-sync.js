@@ -1,8 +1,12 @@
-/* ===== クラウド同期（Firebase Firestore・マルチユーザー対応／リアルタイム）=====
-   家族で1つの「家族コード」を共有すると、全端末で各ユーザーの学習データが同期されます。
-   設定（⚙️）→「☁️ クラウド同期（家族コード）」から設定してください。
-   ※他端末の変更を onSnapshot で自動受信。使用の邪魔をしないよう、
-     画面が前面で操作中のときは即リロードせず、戻ってきた／前面から外れた時に反映します。 */
+/* ===== クラウド同期 v2（Firebase Firestore・ユーザー別ドキュメント／リアルタイム）=====
+   保存構造：
+     families/{家族コード}                  … 旧v1ドキュメント（初回に自動移行して以後は使わない）
+     families/{家族コード}/shared/settings  … 家族共通の設定（ユーザー一覧・テスト日・ごほうび等）
+     families/{家族コード}/members/{uid}    … ユーザーごとの学習データ（1人1ドキュメント）
+   ポイント：
+   ・ユーザーごとに分けたので、容量制限（1MB/doc）や端末同士の書き込み競合に強い。
+   ・ユーザー選択画面で名前をタップすると cloudPullUser() が最新データを取得してから開始。
+   ・オフラインでも動作（Firestoreのローカル永続化）。復帰時に自動送信。 */
 window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyBJetxpDy9MBqIbKyBshm8UznwoEHKh_Qg",
   authDomain: "study-app-48c8f.firebaseapp.com",
@@ -14,19 +18,27 @@ window.FIREBASE_CONFIG = {
 (function () {
   var CFG = window.FIREBASE_CONFIG || {};
   if (!CFG.apiKey || CFG.apiKey.indexOf('PASTE') >= 0) { return; }
-  function rget(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
-  function rset(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  // 生のget/setを退避（クラウド反映時に保存フックを起こさないため）
+  var _rawGetItem = localStorage.getItem.bind(localStorage);
+  var _rawSetItem = localStorage.setItem.bind(localStorage);
+  function rget(k){ try{ return _rawGetItem(k); }catch(e){ return null; } }
+  function rset(k,v){ try{ _rawSetItem(k,v); }catch(e){} }
   function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
-  var SHARED = ['mu_users','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_api_key','testdate','reward','line_endpoint','extra_questions'];
-  function isSyncKey(k){ if(!k) return false; if(/:q_log$/.test(k)) return false; if(k.indexOf('u:')===0) return true; return SHARED.indexOf(k)>=0; }
+
+  var SHARED = ['mu_users','mu_deleted','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_api_key','testdate','reward','line_endpoint','extra_questions'];
+  function isMemberKey(k){ return !!k && k.indexOf('u:')===0 && !/:q_log$/.test(k); }
+  function uidOfKey(k){ var m=/^u:([^:]+):/.exec(k); return m? m[1] : null; }
+  function fieldOfKey(k){ var m=/^u:[^:]+:(.+)$/.exec(k); return m? m[1] : null; }
+  function isSharedKey(k){ return SHARED.indexOf(k)>=0; }
+  function isSyncKey(k){ return isMemberKey(k) || isSharedKey(k); }
+
+  // ---- マージ規則（v1と同じ・キー名のサフィックスで判定）----
   function isArr(k){ return /:(study_log|mistake_notebook|real_exams|paper_sheets)$/.test(k) || k==='extra_questions'; }
   function isCounter(k){ return /:(c_correct|c_streak|c_points|c_beststreak|c_answered|c_seconds)$/.test(k); }
-  // 日付やキーごとの数値オブジェクト：キーごとに大きい方を採用（端末間で打ち消し合わないように）
-  function isObjMax(k){ return /:(daily_hist|study_seconds|week_srs|careless_log)$/.test(k); }
+  function isObjMax(k){ return /:(daily_hist|study_seconds|week_srs|careless_log)$/.test(k) || k==='mu_deleted'; }
   function isTopic(k){ return /:topic_stats$/.test(k); }
   function isUnionObj(k){ return /:(quest_done|badges)$/.test(k); }
   function keyOfEntry(e){ if(e&&e.q) return 'q'+e.q; if(e&&e.id) return 'i'+e.id; if(e&&e.ts) return 't'+e.ts; return JSON.stringify(e); }
-  function snapshot(){ var o={}; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(isSyncKey(k)){ o[k]=localStorage.getItem(k); } } return o; }
   function mergeArr(a,b){ try{ var x=JSON.parse(a||'[]'),y=JSON.parse(b||'[]'),map={},order=[];
     x.concat(y).forEach(function(e){ var key=keyOfEntry(e); if(map[key]===undefined){ map[key]=e; order.push(key); }
       else if(((e&&e.ts)||0)>((map[key]&&map[key].ts)||0)){ map[key]=e; } });
@@ -50,80 +62,196 @@ window.FIREBASE_CONFIG = {
     if(!x) return b; if(!y) return a;
     if(x.date===y.date) return JSON.stringify({ date:x.date, count:Math.max(x.count||0,y.count||0), celebrated:!!(x.celebrated||y.celebrated) });
     return x.date>y.date? a : b; }catch(e){ return b||a; } }
-  function mergeUsers(a,b){ try{ var x=JSON.parse(a||'[]'),y=JSON.parse(b||'[]'),byId={},order=[]; x.concat(y).forEach(function(u){ if(u&&u.id){ if(!byId[u.id])order.push(u.id); byId[u.id]=u; } }); return JSON.stringify(order.map(function(id){return byId[id];}).slice(0,5)); }catch(e){ return b||a; } }
-  function applyCloud(data){ if(!data) return false; var changed=false;
-    Object.keys(data).forEach(function(k){ var cur=rget(k), nv;
-      if(k==='mu_users') nv=mergeUsers(cur,data[k]);
-      else if(isArr(k)) nv=mergeArr(cur,data[k]);
-      else if(isCounter(k)) nv=String(Math.max(parseInt(cur||'0',10),parseInt(data[k]||'0',10)));
-      else if(isObjMax(k)) nv=mergeObjMax(cur,data[k]);
-      else if(isTopic(k)) nv=mergeTopic(cur,data[k]);
-      else if(isUnionObj(k)) nv=mergeUnionObj(cur,data[k]);
-      else if(/:daily_prog$/.test(k)) nv=mergeDailyProg(cur,data[k]);
-      else nv=data[k];
-      if(nv!==cur && nv!==undefined && nv!==null){ rset(k,nv); changed=true; }
+  function mergeUsers(a,b){ try{ var x=JSON.parse(a||'[]'),y=JSON.parse(b||'[]'),byId={},order=[];
+    x.concat(y).forEach(function(u){ if(!u||!u.id) return;
+      if(!byId[u.id]){ order.push(u.id); byId[u.id]=u; return; }
+      var old=byId[u.id], nu=Object.assign({}, old, u);
+      // 生体認証の資格情報IDは端末ごとに増えるので合算（上書きで消さない）
+      var creds={}; (old.bioCreds||[]).concat(u.bioCreds||[]).forEach(function(c){ if(c) creds[c]=1; });
+      nu.bioCreds=Object.keys(creds);
+      byId[u.id]=nu; });
+    return JSON.stringify(order.map(function(id){return byId[id];}).slice(0,8)); }catch(e){ return b||a; } }
+  function mergeKey(k,cur,inc){
+    if(k==='mu_users') return mergeUsers(cur,inc);
+    if(isArr(k)) return mergeArr(cur,inc);
+    if(isCounter(k)) return String(Math.max(parseInt(cur||'0',10)||0,parseInt(inc||'0',10)||0));
+    if(isObjMax(k)) return mergeObjMax(cur,inc);
+    if(isTopic(k)) return mergeTopic(cur,inc);
+    if(isUnionObj(k)) return mergeUnionObj(cur,inc);
+    if(/:daily_prog$/.test(k)) return mergeDailyProg(cur,inc);
+    return inc;
+  }
+  // fullKeys: {ローカルのlocalStorageキー: 値} をマージしながら取り込む
+  function applyKeys(map){ var changed=false, dirty={shared:false, members:{}};
+    Object.keys(map||{}).forEach(function(k){
+      if(!isSyncKey(k)) return;
+      var cur=rget(k), nv=mergeKey(k,cur,map[k]);
+      if(nv!==undefined && nv!==null && nv!==cur){ rset(k,nv); changed=true; }
+      // マージ結果がクラウド値と違う（ローカル分が混ざった）なら送り返す
+      if(nv!==undefined && nv!==null && nv!==map[k]){
+        if(isSharedKey(k)) dirty.shared=true; else { var u=uidOfKey(k); if(u) dirty.members[u]=true; }
+      }
     });
+    if(dirty.shared) markShared();
+    Object.keys(dirty.members).forEach(markMember);
     return changed;
   }
-  var db=null, fam=null, pullDone=false, saveT=null, firstSync=false, pendingReload=false, unsub=null;
-  var DEFAULT_FAMILY='0000'; // システム基本設定：既定で必ずクラウドDBから読み込む（端末ごとの設定不要）
+
+  // ---- スナップショット（送信用）----
+  function sharedSnapshot(){ var o={}; SHARED.forEach(function(k){ var v=rget(k); if(v!==null) o[k]=v; }); return o; }
+  function memberSnapshot(uid){ var o={}, pre='u:'+uid+':';
+    for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i);
+      if(k && k.indexOf(pre)===0 && isMemberKey(k)){ o[k.slice(pre.length)]=_rawGetItem(k); } }
+    return o; }
+  function memberToKeys(uid, fields){ var o={}; Object.keys(fields||{}).forEach(function(f){ o['u:'+uid+':'+f]=fields[f]; }); return o; }
+  function localUids(){ var s={}, del={};
+    try{ del=JSON.parse(rget('mu_deleted')||'{}'); }catch(e){}
+    for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(isMemberKey(k)){ var u=uidOfKey(k); if(u) s[u]=1; } }
+    try{ (JSON.parse(rget('mu_users')||'[]')).forEach(function(u){ if(u&&u.id) s[u.id]=1; }); }catch(e){}
+    return Object.keys(s).filter(function(u){ return !del[u]; }); }
+
+  // ---- Firestore ----
+  var db=null, fam=null, ready=false, unsubShared=null, unsubMember=null, memberUid=null;
+  var DEFAULT_FAMILY='0000'; // 既定で必ずクラウドDBに保存（端末ごとの設定不要）
   function famCode(){ var c=(rget('mu_family')||'').trim(); return c || DEFAULT_FAMILY; }
-  function docRef(){ return db.collection('families').doc(fam); }
-  function doSave(){ if(!db||!fam) return; docRef().set({ data:snapshot(), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){}); }
-  function scheduleSave(){ if(!pullDone) return; clearTimeout(saveT); saveT=setTimeout(doSave,1500); }
+  function legacyRef(){ return db.collection('families').doc(fam); }
+  function sharedRef(){ return legacyRef().collection('shared').doc('settings'); }
+  function memberRef(uid){ return legacyRef().collection('members').doc(String(uid)); }
+
+  var dirtyShared=false, dirtyMembers={}, saveT=null;
+  function markShared(){ dirtyShared=true; scheduleSave(); }
+  function markMember(uid){ dirtyMembers[uid]=true; scheduleSave(); }
+  function scheduleSave(){ if(!ready) return; clearTimeout(saveT); saveT=setTimeout(doSaveDirty,1200); }
+  function doSaveDirty(){ if(!db||!fam||!ready) return;
+    if(dirtyShared){ dirtyShared=false;
+      sharedRef().set({ data: sharedSnapshot(), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){ dirtyShared=true; }); }
+    Object.keys(dirtyMembers).forEach(function(uid){ delete dirtyMembers[uid];
+      memberRef(uid).set({ data: memberSnapshot(uid), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){ dirtyMembers[uid]=true; }); });
+  }
+  function doSaveAll(){ dirtyShared=true; localUids().forEach(function(u){ dirtyMembers[u]=1; }); doSaveDirty(); }
+
+  // ---- 反映通知（学習中は勝手にリロードせずトーストで知らせる）----
   function showSyncToast(){
     try{
       if(document.getElementById('cs-sync-toast')) return;
       var t=document.createElement('div'); t.id='cs-sync-toast';
       t.textContent='🔄 新しい記録が届きました（タップで更新）';
       t.setAttribute('style','position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#0891b2;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;max-width:90%;text-align:center;');
-      t.addEventListener('click',function(){ pendingReload=false; location.reload(); });
+      t.addEventListener('click',function(){ location.reload(); });
       document.body.appendChild(t);
       setTimeout(function(){ if(t&&t.parentNode){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },500); } },8000);
     }catch(e){}
   }
   function reflect(changed){
     if(!changed) return;
-    if(document.visibilityState!=='visible'){ pendingReload=true; return; }
-    if(!sessionStorage.getItem('mu_synced')){ sessionStorage.setItem('mu_synced','1'); location.reload(); return; }
-    pendingReload=true; showSyncToast();
+    try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){}
+    var entered=false; try{ entered=!!sessionStorage.getItem('mu_enter'); }catch(e){}
+    if(entered && document.visibilityState==='visible'){ showSyncToast(); }
   }
-  function listen(){
-    try{
-      unsub = docRef().onSnapshot({ includeMetadataChanges:false }, function(d){
-        if(d.metadata && d.metadata.hasPendingWrites){ return; }
-        var changed = d.exists ? applyCloud(((d.data()||{}).data)||{}) : false;
-        pullDone = true;
-        if(!firstSync){ firstSync=true; doSave(); }
-        reflect(changed);
-      }, function(e){ pullDone=true; });
-    }catch(e){ pullDone=true; }
+
+  // ---- リスナー ----
+  function listenShared(){
+    if(unsubShared){ try{ unsubShared(); }catch(e){} }
+    unsubShared = sharedRef().onSnapshot(function(d){
+      if(d.metadata && d.metadata.hasPendingWrites) return;
+      var changed = d.exists ? applyKeys(((d.data()||{}).data)||{}) : false;
+      reflect(changed);
+    }, function(){});
   }
-  var _set = localStorage.setItem.bind(localStorage);
-  localStorage.setItem = function(k,v){ _set(k,v); if(pullDone && isSyncKey(k)) scheduleSave(); };
-  window.addEventListener('visibilitychange', function(){
-    if(document.visibilityState==='hidden'){ doSave(); }
-    else if(pendingReload){ pendingReload=false; location.reload(); }
-  });
-  function start(){
-    if(!famCode()){ return; }
-    fam = famCode();
-    firebase.auth().signInAnonymously().then(function(){
-      db = firebase.firestore();
-      try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
-      listen();
-    }).catch(function(e){});
+  function listenMember(uid){
+    if(unsubMember){ try{ unsubMember(); }catch(e){} unsubMember=null; }
+    memberUid = uid || null;
+    if(!memberUid) return;
+    unsubMember = memberRef(memberUid).onSnapshot(function(d){
+      if(d.metadata && d.metadata.hasPendingWrites) return;
+      var changed = d.exists ? applyKeys(memberToKeys(memberUid, ((d.data()||{}).data)||{})) : false;
+      reflect(changed);
+    }, function(){});
   }
+
+  // ---- v1 → v2 移行（旧 families/{fam} の data を分割保存）----
+  function migrateLegacy(){
+    return legacyRef().get().then(function(d){
+      if(!d.exists) return;
+      var raw=d.data()||{};
+      if(raw.v2done || !raw.data) return;
+      applyKeys(raw.data);           // 旧データをローカルへマージ
+      doSaveAll();                   // 新構造で保存
+      return legacyRef().set({ v2done:true }, {merge:true});
+    }).catch(function(){});
+  }
+
+  // ---- 公開API ----
+  var readyResolve, readyPromise=new Promise(function(r){ readyResolve=r; });
+  window.cloudReady = function(){ return readyPromise; };
+  window.cloudEnabled = function(){ return ready; };
+  // ユーザー選択画面用：共通設定（ユーザー一覧）を最新化
+  window.cloudPullShared = function(){
+    if(!db||!fam) return readyPromise.then(function(){ return window.cloudPullShared(); });
+    return sharedRef().get().then(function(d){
+      var changed = d.exists ? applyKeys(((d.data()||{}).data)||{}) : false;
+      if(changed){ try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){} }
+      return true;
+    }).catch(function(){ return false; });
+  };
+  // ユーザーをタップした時：その人の最新データを取得してから開始する
+  window.cloudPullUser = function(uid){
+    if(!db||!fam) return readyPromise.then(function(){ return window.cloudPullUser(uid); });
+    return memberRef(uid).get().then(function(d){
+      if(d.exists){ applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }
+      listenMember(uid);
+      return true;
+    }).catch(function(){ try{ listenMember(uid); }catch(e){} return false; });
+  };
+  // ユーザー削除時：クラウド側のドキュメントも削除
+  window.cloudDeleteMember = function(uid){
+    if(!db||!fam) return Promise.resolve(false);
+    return memberRef(uid).delete().then(function(){ return true; }).catch(function(){ return false; });
+  };
   window.cloudFamilySet = function(){
     var c = prompt('家族の合言葉コードを決めてください（全端末で同じものを使います。英数字4文字以上）。', famCode());
     if(c===null) return; c=(''+c).trim(); if(c.length<4){ alert('短すぎます。4文字以上にしてください。'); return; }
     rset('mu_family', c); try{ sessionStorage.removeItem('mu_synced'); }catch(e){}
     alert('家族コードを設定しました。クラウド同期を開始します。'); location.reload();
   };
-  window.cloudFamilyClear = function(){ rset('mu_family',''); if(unsub){ try{ unsub(); }catch(e){} } alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
+  window.cloudFamilyClear = function(){ rset('mu_family',''); if(unsubShared){ try{ unsubShared(); }catch(e){} } if(unsubMember){ try{ unsubMember(); }catch(e){} } alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
+
+  // ---- 保存フック：localStorageに書いたら該当ドキュメントだけを保存 ----
+  localStorage.setItem = function(k,v){
+    _rawSetItem(k,v);
+    if(k==='mu_current' && ready){ listenMember(v); return; }
+    if(!ready || !isSyncKey(k)) return;
+    if(isSharedKey(k)) markShared(); else { var u=uidOfKey(k); if(u) markMember(u); }
+  };
+  window.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden'){ clearTimeout(saveT); doSaveDirty(); } });
+  window.addEventListener('pagehide', function(){ clearTimeout(saveT); doSaveDirty(); });
+
+  function start(){
+    fam = famCode();
+    if(!fam){ return; }
+    firebase.auth().signInAnonymously().then(function(){
+      db = firebase.firestore();
+      try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
+      migrateLegacy().then(function(){
+        // まずクラウド→ローカルへマージ（先に読まずに書くと古い端末がクラウドを上書きしてしまう）
+        var pulls=[ sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); }).catch(function(){}) ];
+        localUids().forEach(function(uid){
+          pulls.push( memberRef(uid).get().then(function(d){ if(d.exists) applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }).catch(function(){}) );
+        });
+        return Promise.all(pulls);
+      }).then(function(){
+        ready = true;
+        listenShared();
+        var cur = rget('mu_current'); if(cur) listenMember(cur);
+        doSaveAll();  // マージ済みの全データを新構造で保存
+        readyResolve(true);
+        try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){}
+      });
+    }).catch(function(){});
+  }
   Promise.all([
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'),
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'),
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js')
-  ]).then(function(){ firebase.initializeApp(CFG); start(); }).catch(function(e){});
+  ]).then(function(){ firebase.initializeApp(CFG); start(); }).catch(function(){});
 })();

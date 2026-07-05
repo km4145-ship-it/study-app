@@ -82,6 +82,8 @@ window.FIREBASE_CONFIG = {
       level: Math.max(x.level||1, y.level||1),
       cleared: Object.assign({}, x.cleared||{}, y.cleared||{}),   // クリア実績は端末間で合算
       coll: Object.assign({}, x.coll||{}, y.coll||{}),
+      crystals: Object.assign({}, x.crystals||{}, y.crystals||{}),// 集めたクリスタルも合算
+      story: Object.assign({}, x.story||{}, y.story||{}),         // 見たストーリーも合算（再表示を防ぐ）
       pet: (y.pet||x.pet||null),
       stamina: stam };
     return JSON.stringify(o); }catch(e){ return b||a; } }

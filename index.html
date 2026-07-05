@@ -1027,19 +1027,19 @@
       <button class="btn-back" id="quiz-back-btn" onclick="backToHome()">← もどる</button>
       <button class="btn-back" onclick="goToStartScreen()">🏠 初期画面に戻る</button>
     </div>
-    <!-- RPGバトルHUD（冒険モードのバトル中だけ表示） -->
-    <div id="rpg-hud" style="display:none">
-      <div class="rpg-hud-enemy">
-        <div class="rpg-enemy-sprite" id="rpg-enemy-sprite">👾</div>
-        <div class="rpg-enemy-mid">
-          <div class="rpg-enemy-name" id="rpg-enemy-name">スライム</div>
-          <div class="rpg-hpbar enemy"><div class="rpg-hpfill" id="rpg-enemy-hp" style="width:100%"></div></div>
+    <!-- RPGバトルステージ（冒険モードのバトル中だけ表示） -->
+    <div id="rpg-stage" style="display:none">
+      <div class="rpg-stage-sky plains" id="rpg-stage-sky">
+        <div class="rpg-stage-ground"></div>
+        <div class="rpg-fx" id="rpg-fx"></div>
+        <div class="rpg-enemy-wrap">
+          <div class="rpg-plate enemy"><span class="rpg-plate-name" id="rpg-enemy-name">てき</span><div class="rpg-gauge enemy"><i id="rpg-enemy-hp" style="width:100%"></i></div></div>
+          <div class="rpg-enemy" id="rpg-enemy-sprite"></div>
         </div>
-      </div>
-      <div class="rpg-hud-hero">
-        <span class="rpg-hero-face">🛡️</span>
-        <div class="rpg-hpbar hero"><div class="rpg-hpfill" id="rpg-hero-hp" style="width:100%"></div></div>
-        <span class="rpg-hero-hpnum" id="rpg-hero-hpnum"></span>
+        <div class="rpg-hero-wrap">
+          <div class="rpg-hero" id="rpg-hero-sprite"></div>
+          <div class="rpg-plate hero"><span class="rpg-plate-name" id="rpg-hero-name">勇者</span><div class="rpg-gauge hero"><i id="rpg-hero-hp" style="width:100%"></i></div><span class="rpg-combo" id="rpg-combo"></span></div>
+        </div>
       </div>
     </div>
     <div class="quiz-area" id="quiz-box">
@@ -1094,67 +1094,189 @@
     </div>
   </div>
 
-  <!-- 冒険モード（RPG） -->
-  <style>
-  .nav-rpg{ background:linear-gradient(135deg,#7c3aed,#db2777)!important; color:#fff!important; }
-  #rpg-hud{ background:linear-gradient(135deg,#1e1b4b,#4c1d95); border-radius:14px; padding:10px 12px; margin-bottom:10px; color:#fff; box-shadow:0 4px 14px rgba(76,29,149,.35); }
-  #rpg-hud.rpg-shake{ animation:rpgshake .4s; }
-  @keyframes rpgshake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)} }
-  .rpg-hud-enemy{ display:flex; align-items:center; gap:12px; }
-  .rpg-enemy-sprite{ font-size:2.6rem; line-height:1; filter:drop-shadow(0 2px 3px rgba(0,0,0,.4)); }
-  .rpg-enemy-sprite.rpg-hit{ animation:rpghit .35s; }
-  @keyframes rpghit{ 0%{transform:scale(1)} 30%{transform:scale(1.25) rotate(-8deg); filter:brightness(2)} 100%{transform:scale(1)} }
-  .rpg-enemy-mid{ flex:1; }
-  .rpg-enemy-name{ font-weight:800; font-size:.95rem; margin-bottom:4px; }
-  .rpg-hpbar{ height:14px; background:rgba(0,0,0,.35); border-radius:99px; overflow:hidden; }
-  .rpg-hpfill{ height:100%; border-radius:99px; transition:width .45s cubic-bezier(.4,1.3,.5,1); }
-  .rpg-hpbar.enemy .rpg-hpfill{ background:linear-gradient(90deg,#f43f5e,#fb7185); }
-  .rpg-hud-hero{ display:flex; align-items:center; gap:8px; margin-top:8px; }
-  .rpg-hero-face{ font-size:1.3rem; }
-  .rpg-hud-hero .rpg-hpbar{ flex:1; height:11px; }
-  .rpg-hpbar.hero .rpg-hpfill{ background:linear-gradient(90deg,#22c55e,#86efac); }
-  .rpg-hero-hpnum{ font-size:.78rem; opacity:.9; min-width:36px; text-align:right; }
-  #rpg-screen{ padding-bottom:20px; }
-  .rpg-hero-card{ display:flex; align-items:center; gap:14px; background:linear-gradient(135deg,#312e81,#6d28d9); color:#fff; border-radius:18px; padding:14px 16px; box-shadow:0 6px 18px rgba(76,29,149,.3); }
-  .rpg-hero-avatar{ width:56px; height:70px; flex:0 0 auto; } .rpg-hero-avatar svg{ width:100%; height:100%; }
-  .rpg-hero-info{ flex:1; }
-  .rpg-hero-lv{ font-weight:800; font-size:1.05rem; margin-bottom:6px; }
-  .rpg-xpbar{ height:12px; background:rgba(0,0,0,.3); border-radius:99px; overflow:hidden; margin-bottom:4px; }
-  .rpg-xpfill{ height:100%; background:linear-gradient(90deg,#fbbf24,#fde68a); border-radius:99px; transition:width .5s; }
-  .rpg-hero-xp{ font-size:.78rem; opacity:.92; }
-  .rpg-stamina{ font-size:.82rem; margin-top:6px; font-weight:700; }
-  .rpg-goal-banner{ background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-radius:14px; padding:10px 14px; margin:12px 0; font-weight:700; font-size:.9rem; text-align:center; }
-  :root[data-theme="dark"] .rpg-goal-banner{ background:linear-gradient(135deg,#78350f,#92400e); color:#fde68a; }
-  .rpg-chapter{ margin-top:16px; }
-  .rpg-chapter.locked{ opacity:.55; }
-  .rpg-ch-title{ font-weight:800; color:var(--primary); font-size:1.05rem; margin-bottom:8px; padding-left:4px; border-left:5px solid var(--primary); }
-  .rpg-nodes{ display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; }
-  .rpg-node{ display:flex; flex-direction:column; align-items:center; gap:4px; background:var(--card2); border:2px solid var(--primary-light); border-radius:16px; padding:12px 8px; cursor:pointer; transition:transform .08s; color:var(--text); font-family:inherit; }
-  @media (hover:hover){ .rpg-node:not(:disabled):hover{ transform:translateY(-3px); } }
-  .rpg-node:not(:disabled):active{ transform:scale(.96); }
-  .rpg-node.boss{ border-color:var(--gold); background:linear-gradient(135deg,#fff7ed,#ffedd5); }
-  :root[data-theme="dark"] .rpg-node.boss{ background:linear-gradient(135deg,#4c1d95,#312e81); }
-  .rpg-node.cleared{ border-color:var(--success); }
-  .rpg-node.locked{ opacity:.5; cursor:not-allowed; }
-  .rpg-node-emoji{ font-size:2rem; line-height:1; }
-  .rpg-node-name{ font-weight:700; font-size:.82rem; text-align:center; }
-  .rpg-node-lv{ font-size:.72rem; color:var(--primary); font-weight:700; }
-  .rpg-node.boss .rpg-node-lv{ color:var(--gold); }
-  .rpg-res-card{ max-width:440px; margin:24px auto; background:var(--card); border-radius:22px; padding:26px 20px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.18); }
-  .rpg-res-emoji{ font-size:3.4rem; }
-  .rpg-res-title{ font-size:1.3rem; font-weight:800; color:var(--text); margin:8px 0; }
-  .rpg-res-sub{ color:var(--muted,#64748b); font-weight:700; }
-  .rpg-res-xp{ margin-top:10px; font-size:1.1rem; font-weight:800; color:var(--gold); }
-  .rpg-res-levelup{ margin-top:10px; font-size:1.15rem; font-weight:800; color:#7c3aed; animation:pop .5s; }
-  @keyframes pop{ 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
-  .rpg-res-tip{ margin-top:12px; font-size:.85rem; color:var(--muted,#64748b); background:var(--card2); border-radius:10px; padding:8px 10px; }
-  .rpg-res-btns{ margin-top:18px; display:flex; flex-direction:column; gap:8px; }
+  <!-- 冒険モード（RPG）「まなびの王国クエスト」 -->
+  <style id="rpg-css">
+  :root{
+    --rpg-night:#160f30; --rpg-night2:#241a4d; --rpg-panel:#1b1440;
+    --rpg-gold:#fcd34d; --rpg-gold-d:#b45309; --rpg-cyan:#38f0e0; --rpg-violet:#a78bfa;
+    --rpg-hp:#34d399; --rpg-hp2:#10b981; --rpg-en:#f43f5e; --rpg-en2:#fb7185;
+    --rpg-parch:#ecd9b0; --rpg-parch2:#d9bd8a; --rpg-ink:#5b4327; --rpg-line:#b08968;
+  }
+  .nav-rpg{ background:linear-gradient(135deg,#7c3aed,#db2777)!important; color:#fff!important; box-shadow:0 2px 8px rgba(124,58,237,.4); }
+  /* ---- 冒険トップ枠 ---- */
+  #rpg-screen{ padding-bottom:24px; }
+  .rpg-topbar{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .rpg-back{ background:var(--card2); border:1px solid var(--primary-light); color:var(--text); border-radius:10px; padding:7px 12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .rpg-topttl{ font-weight:900; font-size:1.05rem; background:linear-gradient(135deg,#7c3aed,#db2777); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  /* ---- 勇者カード ---- */
+  .rpg-hero-card{ display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#312e81,#6d28d9); color:#fff; border-radius:18px; padding:13px 15px; box-shadow:0 6px 20px rgba(76,29,149,.35); border:1px solid rgba(252,211,77,.35); }
+  .rpg-hero-avatar{ width:52px; height:66px; flex:0 0 auto; filter:drop-shadow(0 2px 3px rgba(0,0,0,.35)); } .rpg-hero-avatar svg{ width:100%; height:100%; }
+  .rpg-hero-info{ flex:1; min-width:0; }
+  .rpg-hero-lv{ font-weight:800; font-size:1rem; margin-bottom:5px; }
+  .rpg-xpbar{ height:11px; background:rgba(0,0,0,.32); border-radius:99px; overflow:hidden; margin-bottom:4px; }
+  .rpg-xpfill{ height:100%; background:linear-gradient(90deg,#fbbf24,#fde68a); border-radius:99px; transition:width .6s cubic-bezier(.4,1.2,.5,1); box-shadow:0 0 8px rgba(252,211,77,.6); }
+  .rpg-hero-xp{ font-size:.74rem; opacity:.92; }
+  .rpg-crystals{ display:flex; flex-direction:column; align-items:center; gap:2px; flex:0 0 auto; }
+  .rpg-crystals svg{ width:30px; height:36px; filter:drop-shadow(0 0 6px rgba(56,240,224,.7)); animation:rpgCrySpin 4s ease-in-out infinite; }
+  .rpg-crystals span{ font-size:.78rem; font-weight:800; }
+  @keyframes rpgCrySpin{ 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(6deg)} }
+  /* ---- マップ ---- */
+  .rpg-map{ position:relative; width:100%; padding-bottom:132%; margin:14px 0 8px; border-radius:20px; overflow:hidden; border:3px solid var(--rpg-line); box-shadow:0 8px 26px rgba(91,67,39,.28), inset 0 0 60px rgba(91,67,39,.25); }
+  .rpg-map-bg{ position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 20% 88%, #bfe3a0 0 12%, transparent 13%),
+      radial-gradient(circle at 78% 62%, #a7d68a 0 14%, transparent 15%),
+      radial-gradient(circle at 30% 46%, #8fc57a 0 16%, transparent 17%),
+      radial-gradient(circle at 64% 20%, #7bb56b 0 15%, transparent 16%),
+      radial-gradient(ellipse at 50% 100%, #dcc191, #e8d3a6 60%, #efe0bd 100%),
+      linear-gradient(160deg,#efe0bd,#dcc191);
+    filter:saturate(.92); }
+  .rpg-map-bg::after{ content:""; position:absolute; inset:0; background:
+      repeating-linear-gradient(90deg, transparent 0 22px, rgba(91,67,39,.05) 22px 23px),
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(91,67,39,.05) 22px 23px); }
+  .rpg-path{ position:absolute; inset:0; width:100%; height:100%; z-index:1; }
+  .rpg-node{ position:absolute; transform:translate(-50%,-50%); z-index:3; width:64px; display:flex; flex-direction:column; align-items:center; gap:1px; background:none; border:none; cursor:pointer; font-family:inherit; padding:0; }
+  .rpg-node .rpg-node-face{ width:52px; height:52px; border-radius:50%; background:radial-gradient(circle at 50% 35%, #fff7e6, #f0d9a8); border:3px solid var(--rpg-gold-d); box-shadow:0 4px 10px rgba(0,0,0,.28); display:flex; align-items:center; justify-content:center; transition:transform .12s; overflow:hidden; }
+  .rpg-node .rpg-node-face svg{ width:44px; height:44px; }
+  .rpg-node.open .rpg-node-face{ border-color:var(--rpg-gold); box-shadow:0 0 0 4px rgba(252,211,77,.35),0 4px 12px rgba(0,0,0,.3); animation:rpgNodePulse 1.8s ease-in-out infinite; }
+  .rpg-node.boss .rpg-node-face{ width:60px; height:60px; border-color:#b91c1c; background:radial-gradient(circle at 50% 35%,#fde68a,#fca5a5); }
+  .rpg-node.boss .rpg-node-face svg{ width:52px; height:52px; }
+  .rpg-node.cleared .rpg-node-face{ border-color:#16a34a; filter:saturate(.6) brightness(1.02); }
+  .rpg-node.locked{ cursor:not-allowed; }
+  .rpg-node.locked .rpg-node-face{ background:#c9b48c; border-color:#8a7350; filter:grayscale(.7) brightness(.9); }
+  @media (hover:hover){ .rpg-node.open:hover .rpg-node-face,.rpg-node.boss.open:hover .rpg-node-face{ transform:scale(1.12); } }
+  .rpg-node.open:active .rpg-node-face{ transform:scale(.94); }
+  @keyframes rpgNodePulse{ 0%,100%{box-shadow:0 0 0 3px rgba(252,211,77,.3),0 4px 12px rgba(0,0,0,.3)} 50%{box-shadow:0 0 0 7px rgba(252,211,77,.15),0 4px 14px rgba(0,0,0,.3)} }
+  .rpg-node-mark{ position:absolute; top:-6px; right:2px; font-size:.9rem; z-index:4; text-shadow:0 1px 2px rgba(0,0,0,.4); }
+  .rpg-node.cleared .rpg-node-mark{ color:#16a34a; background:#fff; border-radius:50%; width:18px; height:18px; line-height:18px; text-align:center; font-weight:900; font-size:.8rem; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .rpg-node-name{ font-size:.64rem; font-weight:800; color:var(--rpg-ink); background:rgba(255,255,255,.72); border-radius:6px; padding:1px 4px; margin-top:2px; white-space:nowrap; max-width:78px; overflow:hidden; text-overflow:ellipsis; }
+  .rpg-node.locked .rpg-node-name{ opacity:.6; }
+  .rpg-ch-flag{ position:absolute; transform:translate(-50%,0); z-index:2; font-size:.66rem; font-weight:900; color:#fff; background:rgba(91,67,39,.82); padding:2px 8px; border-radius:8px; white-space:nowrap; box-shadow:0 2px 5px rgba(0,0,0,.25); }
+  .rpg-castle{ position:absolute; transform:translate(-50%,-50%); z-index:2; font-size:2.6rem; text-align:center; filter:grayscale(.5) drop-shadow(0 3px 5px rgba(0,0,0,.35)); }
+  .rpg-castle.ready{ filter:none; animation:rpgNodePulse 1.6s ease-in-out infinite; }
+  .rpg-castle-lbl{ display:block; font-size:.56rem; font-weight:900; color:#fff; background:rgba(88,28,135,.9); border-radius:6px; padding:1px 5px; margin-top:-4px; line-height:1.15; }
+  .rpg-map-hint{ font-size:.8rem; color:var(--muted,#64748b); text-align:center; margin-top:6px; }
+  /* ---- タイトル ---- */
+  .rpg-title-scene{ position:relative; min-height:62vh; border-radius:22px; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; padding:30px 18px; background:radial-gradient(ellipse at 50% 20%, #3b2a6b, var(--rpg-night) 70%); border:1px solid rgba(252,211,77,.25); }
+  .rpg-title-stars{ position:absolute; inset:0; background-image:radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 20%,#fde68a,transparent),radial-gradient(1px 1px at 40% 60%,#fff,transparent),radial-gradient(2px 2px at 85% 55%,#a5f3fc,transparent),radial-gradient(1px 1px at 60% 80%,#fff,transparent),radial-gradient(1.5px 1.5px at 15% 75%,#fff,transparent); animation:rpgTwinkle 3.5s ease-in-out infinite; }
+  @keyframes rpgTwinkle{ 0%,100%{opacity:.55} 50%{opacity:1} }
+  .rpg-title-logo{ position:relative; z-index:2; text-align:center; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .rpg-title-sub{ color:var(--rpg-violet); font-weight:800; font-size:1rem; letter-spacing:.18em; }
+  .rpg-title-main{ font-size:3.2rem; font-weight:900; letter-spacing:.06em; line-height:1; background:linear-gradient(180deg,#fef3c7,#fcd34d 55%,#d97706); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 3px 0 #7c2d12) drop-shadow(0 0 16px rgba(252,211,77,.5)); }
+  .rpg-title-tag{ color:#e9d5ff; font-size:.82rem; margin-top:10px; max-width:280px; }
+  .rpg-title-btn{ position:relative; z-index:2; background:linear-gradient(135deg,#f59e0b,#db2777); color:#fff; border:none; border-radius:14px; padding:14px 30px; font-size:1.1rem; font-weight:900; cursor:pointer; box-shadow:0 6px 18px rgba(219,39,119,.45); animation:rpgBtnBob 2s ease-in-out infinite; font-family:inherit; }
+  @keyframes rpgBtnBob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+  /* ---- ストーリー・ダイアログ ---- */
+  #rpg-story{ position:fixed; inset:0; z-index:1000200; background:rgba(10,6,26,.72); display:none; align-items:flex-end; justify-content:center; padding:20px; cursor:pointer; }
+  .rpg-story-scene{ width:100%; max-width:560px; display:flex; align-items:flex-end; gap:10px; }
+  .rpg-story-portrait{ width:88px; height:110px; flex:0 0 auto; background:linear-gradient(160deg,#2d1f5e,#4c1d95); border:3px solid var(--rpg-gold); border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(0,0,0,.5); }
+  .rpg-story-portrait svg{ width:96%; height:96%; }
+  .rpg-narr{ font-size:2.6rem; }
+  .rpg-story-box{ flex:1; position:relative; background:linear-gradient(160deg,#241a4d,#160f30); color:#f4f1ff; border:3px solid var(--rpg-gold); border-radius:14px; padding:16px 16px 20px; min-height:96px; box-shadow:0 8px 24px rgba(0,0,0,.5), inset 0 0 0 2px rgba(252,211,77,.15); }
+  .rpg-story-name{ position:absolute; top:-14px; left:14px; background:linear-gradient(135deg,#f59e0b,#db2777); color:#fff; font-weight:800; font-size:.82rem; padding:3px 12px; border-radius:8px; box-shadow:0 3px 8px rgba(0,0,0,.4); }
+  .rpg-story-text{ font-size:.98rem; line-height:1.72; min-height:52px; }
+  .rpg-story-next{ position:absolute; right:14px; bottom:8px; color:var(--rpg-gold); font-size:.9rem; animation:rpgArrow 1s ease-in-out infinite; }
+  @keyframes rpgArrow{ 0%,100%{transform:translateY(0);opacity:.6} 50%{transform:translateY(3px);opacity:1} }
+  /* ---- バトルステージ ---- */
+  #rpg-stage{ margin-bottom:12px; }
+  .rpg-stage-sky{ position:relative; height:210px; border-radius:16px; overflow:hidden; border:2px solid rgba(252,211,77,.3); box-shadow:0 6px 18px rgba(0,0,0,.3); background:linear-gradient(180deg,#3b2a6b,#6d28d9 70%,#a78bfa); }
+  .rpg-stage-sky.plains{ background:linear-gradient(180deg,#1e3a8a,#3b82f6 55%,#86efac 88%); }
+  .rpg-stage-sky.forest{ background:linear-gradient(180deg,#14532d,#166534 50%,#4ade80 90%); }
+  .rpg-stage-sky.boss{ background:linear-gradient(180deg,#450a0a,#7f1d1d 55%,#b91c1c 92%); }
+  .rpg-stage-sky::before{ content:""; position:absolute; inset:0; background-image:radial-gradient(1.5px 1.5px at 15% 20%,rgba(255,255,255,.8),transparent),radial-gradient(1px 1px at 60% 15%,rgba(255,255,255,.7),transparent),radial-gradient(2px 2px at 82% 30%,rgba(255,255,255,.6),transparent),radial-gradient(1px 1px at 35% 28%,rgba(255,255,255,.6),transparent); opacity:.7; }
+  .rpg-stage-ground{ position:absolute; left:0; right:0; bottom:0; height:44px; background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.28)); }
+  .rpg-fx{ position:absolute; inset:0; z-index:6; pointer-events:none; }
+  .rpg-enemy-wrap{ position:absolute; top:12px; right:14px; width:146px; z-index:3; text-align:center; }
+  .rpg-enemy{ width:104px; height:104px; margin:2px auto 0; }
+  .rpg-enemy svg{ width:100%; height:100%; filter:drop-shadow(0 5px 6px rgba(0,0,0,.4)); animation:rpgFloat 3s ease-in-out infinite; }
+  .rpg-hero-wrap{ position:absolute; bottom:8px; left:16px; width:150px; z-index:4; }
+  .rpg-hero{ width:74px; height:90px; }
+  .rpg-hero svg{ width:100%; height:100%; filter:drop-shadow(0 4px 5px rgba(0,0,0,.4)); }
+  .rpg-plate{ background:rgba(15,10,40,.72); border:1.5px solid rgba(252,211,77,.5); border-radius:10px; padding:5px 8px; color:#fff; backdrop-filter:blur(2px); }
+  .rpg-plate.enemy{ margin:0 auto; max-width:150px; }
+  .rpg-plate.hero{ margin-top:2px; }
+  .rpg-plate-name{ font-size:.78rem; font-weight:800; display:block; margin-bottom:3px; text-shadow:0 1px 2px rgba(0,0,0,.6); }
+  .rpg-gauge{ height:12px; background:rgba(0,0,0,.45); border-radius:99px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.5); }
+  .rpg-gauge i{ display:block; height:100%; border-radius:99px; transition:width .5s cubic-bezier(.4,1.2,.5,1); }
+  .rpg-gauge.enemy i{ background:linear-gradient(90deg,#e11d48,#fb7185); }
+  .rpg-gauge.hero i{ background:linear-gradient(90deg,#059669,#34d399); }
+  .rpg-combo{ display:block; margin-top:4px; font-size:.74rem; font-weight:900; color:#fde047; text-shadow:0 1px 3px rgba(0,0,0,.6); min-height:14px; }
+  .rpg-float{ position:absolute; top:44%; font-weight:900; font-size:1.5rem; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.6); animation:rpgFloatUp 1s ease-out forwards; }
+  .rpg-float.crit{ color:#fde047; font-size:1.9rem; }
+  .rpg-float.miss{ color:#cbd5e1; font-size:1.2rem; }
+  @keyframes rpgFloatUp{ 0%{transform:translateY(0) scale(.6);opacity:0} 20%{transform:translateY(-8px) scale(1.1);opacity:1} 100%{transform:translateY(-52px) scale(1);opacity:0} }
+  @keyframes rpgFloat{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+  .rpg-enemy svg.x{}
+  .rpg-hit{ animation:rpgHit .38s ease-out!important; }
+  @keyframes rpgHit{ 0%{transform:translateX(0)} 20%{transform:translateX(10px) scale(1.08);filter:brightness(3) drop-shadow(0 5px 6px rgba(0,0,0,.4))} 50%{transform:translateX(-6px)} 100%{transform:translateX(0)} }
+  .rpg-attack{ animation:rpgAttack .4s ease-out!important; }
+  @keyframes rpgAttack{ 0%{transform:translate(0,0)} 40%{transform:translate(30px,-14px) rotate(-10deg)} 100%{transform:translate(0,0)} }
+  .rpg-hurt{ animation:rpgHurt .4s!important; }
+  @keyframes rpgHurt{ 0%,100%{transform:translateX(0);filter:none} 25%{transform:translateX(-7px);filter:brightness(.6) sepia(1) hue-rotate(-40deg)} 75%{transform:translateX(7px)} }
+  .rpg-enemy-attack{ animation:rpgEnAtk .4s ease-out!important; }
+  @keyframes rpgEnAtk{ 0%{transform:translate(0,0)} 40%{transform:translate(-24px,16px) scale(1.05)} 100%{transform:translate(0,0)} }
+  .rpg-defeated{ animation:rpgDefeat .7s ease-in forwards!important; }
+  @keyframes rpgDefeat{ 0%{transform:scale(1) rotate(0);opacity:1} 60%{transform:scale(1.1) rotate(8deg);opacity:1;filter:brightness(2)} 100%{transform:scale(.2) rotate(40deg);opacity:0} }
+  .rpg-flash::after{ content:""; position:absolute; inset:0; background:#fff; opacity:0; z-index:5; animation:rpgFlash .3s ease-out; pointer-events:none; }
+  @keyframes rpgFlash{ 0%{opacity:.6} 100%{opacity:0} }
+  .rpg-shake{ animation:rpgStageShake .4s!important; }
+  @keyframes rpgStageShake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+  /* ---- バトル中の画面リスキン（他モードには影響しない body.rpg-battle スコープ）---- */
+  body.rpg-mode .header, body.rpg-mode .wave-deco, body.rpg-mode .score-bar, body.rpg-mode .character-area{ display:none!important; }
+  body.rpg-battle .header, body.rpg-battle .wave-deco, body.rpg-battle .score-bar, body.rpg-battle .character-area, body.rpg-battle #topnav{ display:none!important; }
+  body.rpg-battle #quiz-box{ background:linear-gradient(160deg,#241a4d,#160f30); color:#f4f1ff; border:3px solid var(--rpg-gold); box-shadow:0 8px 24px rgba(0,0,0,.4), inset 0 0 0 2px rgba(252,211,77,.14); border-radius:16px; }
+  body.rpg-battle #quiz-box .quiz-title{ color:#fde68a; }
+  body.rpg-battle #quiz-box .quiz-progress{ color:#c4b5fd; }
+  body.rpg-battle #quiz-box .question-text, body.rpg-battle #quiz-box .question-sub{ color:#f4f1ff; }
+  body.rpg-battle #quiz-box .progress-bar{ background:rgba(0,0,0,.35); }
+  body.rpg-battle .option-btn{ background:linear-gradient(180deg,#3b2a6b,#2d1f5e); color:#f4f1ff; border:2px solid rgba(252,211,77,.4); border-radius:10px; font-weight:700; }
+  body.rpg-battle .option-btn:not(:disabled):active{ transform:scale(.97); }
+  body.rpg-battle .option-btn.correct{ background:linear-gradient(180deg,#059669,#10b981)!important; border-color:#6ee7b7!important; color:#fff!important; }
+  body.rpg-battle .option-btn.wrong{ background:linear-gradient(180deg,#b91c1c,#e11d48)!important; border-color:#fca5a5!important; color:#fff!important; }
+  body.rpg-battle .answer-input{ background:#1b1440; color:#fff; border:2px solid rgba(252,211,77,.5); }
+  body.rpg-battle .btn-check{ background:linear-gradient(135deg,#f59e0b,#db2777); }
+  body.rpg-battle .btn-hint{ background:rgba(124,58,237,.6); color:#fff; }
+  body.rpg-battle .btn-next{ background:linear-gradient(135deg,#f59e0b,#db2777); }
+  body.rpg-battle .quiz-nav-row .btn-back{ background:rgba(15,10,40,.6); color:#e9d5ff; border:1px solid rgba(252,211,77,.4); }
+  body.rpg-battle .feedback.correct{ background:rgba(5,150,105,.22); color:#d1fae5; }
+  body.rpg-battle .feedback.wrong{ background:rgba(190,18,60,.22); color:#fecaca; }
+  body.rpg-battle .explain-box{ background:rgba(0,0,0,.28); color:#e9d5ff; }
+  /* ---- リザルト ---- */
+  .rpg-res-card{ max-width:440px; margin:20px auto; border-radius:22px; padding:8px 20px 24px; text-align:center; box-shadow:0 14px 44px rgba(0,0,0,.28); overflow:hidden; }
+  .rpg-res-card.win{ background:linear-gradient(180deg,#312e81,#4c1d95); color:#fff; border:2px solid var(--rpg-gold); }
+  .rpg-res-card.lose{ background:linear-gradient(180deg,#334155,#1e293b); color:#fff; border:2px solid #64748b; }
+  .rpg-res-banner{ font-size:1.6rem; font-weight:900; letter-spacing:.12em; margin:14px 0 4px; background:linear-gradient(180deg,#fef3c7,#fcd34d 60%,#d97706); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 2px 0 #7c2d12); }
+  .rpg-res-card.lose .rpg-res-banner{ background:none; -webkit-text-fill-color:#cbd5e1; filter:none; }
+  .rpg-res-mon{ width:96px; height:96px; margin:4px auto; }
+  .rpg-res-mon svg{ width:100%; height:100%; filter:drop-shadow(0 4px 6px rgba(0,0,0,.4)); }
+  .rpg-res-mon.beat svg{ filter:grayscale(.8) brightness(.7); opacity:.5; }
+  .rpg-res-title{ font-size:1.2rem; font-weight:800; margin:6px 0; }
+  .rpg-res-sub{ opacity:.9; font-weight:700; }
+  .rpg-res-xp{ margin-top:10px; font-size:1.1rem; font-weight:900; color:var(--rpg-gold); }
+  .rpg-res-levelup{ margin-top:10px; font-size:1.05rem; font-weight:900; color:#fde047; animation:rpgPop .5s; }
+  @keyframes rpgPop{ 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
+  .rpg-res-tip{ margin-top:12px; font-size:.85rem; background:rgba(0,0,0,.25); border-radius:10px; padding:9px 11px; color:#e9d5ff; }
+  .rpg-res-btns{ margin-top:18px; display:flex; flex-direction:column; gap:9px; }
+  .rpg-btn{ background:linear-gradient(135deg,#f59e0b,#db2777); color:#fff; border:none; border-radius:12px; padding:13px; font-size:1rem; font-weight:800; cursor:pointer; font-family:inherit; }
+  .rpg-btn.ghost{ background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); }
+  @media (min-width:560px){ .rpg-stage-sky{ height:250px; } .rpg-enemy{ width:120px; height:120px; } }
+  @media (prefers-reduced-motion:reduce){ .mon-svg,.rpg-enemy svg,.rpg-title-btn,.rpg-crystals svg,.rpg-node.open .rpg-node-face,.rpg-castle.ready,.rpg-title-stars,.rpg-story-next,.rpg-hit,.rpg-attack,.rpg-hurt,.rpg-enemy-attack,.rpg-shake{ animation:none!important; } }
   </style>
   <div id="rpg-screen" style="display:none">
-    <button class="btn-back" onclick="backToSubjects()">← 学習トップへ</button>
-    <div class="screen-title">🗡️ まなびの王国クエスト</div>
+    <div class="rpg-topbar"><button class="rpg-back" onclick="backToSubjects()">← 学習トップ</button><div class="rpg-topttl">🗡️ まなびの王国クエスト</div></div>
     <div id="rpg-map-view"></div>
     <div id="rpg-result-view" style="display:none"></div>
+  </div>
+  <!-- ストーリー・ダイアログ -->
+  <div id="rpg-story" style="display:none" onclick="rpgStoryAdvance()">
+    <div class="rpg-story-scene">
+      <div class="rpg-story-portrait" id="rpg-story-portrait"></div>
+      <div class="rpg-story-box">
+        <span class="rpg-story-name" id="rpg-story-name"></span>
+        <div class="rpg-story-text" id="rpg-story-text"></div>
+        <span class="rpg-story-next" id="rpg-story-next">▼</span>
+      </div>
+    </div>
   </div>
 
   <!-- 偏差値65 ロードマップ -->
@@ -3113,7 +3235,7 @@ function retryQuiz() {
   else { startPractice(currentArea, currentPracticeLevel); }
 }
 function backToHome() {
-  if (rpgBattle) { if(!confirm('冒険を中断してマップに戻りますか？')) return; rpgBattle=null; rpgHideHud(); showRpg(); return; }
+  if (rpgBattle) { if(!confirm('冒険を中断してマップに戻りますか？')) return; rpgBattle=null; rpgHideBattle(); showRpg(); return; }
   if (isMistakePractice) { isMistakePractice=false; showMistakes(); return; }
   // 試験中の「もどる」は中止確認
   if (isExam) {
@@ -4068,6 +4190,7 @@ function hideMainScreens(){
     const e=document.getElementById(id); if(e) e.style.display='none';
   });
   const r=document.getElementById('result-screen'); if(r) r.classList.remove('active');
+  try{ document.body.classList.remove('rpg-mode'); }catch(e){}
 }
 // ===== 学習記録 =====
 function loadLog(){ try{ return JSON.parse(safeLS.getItem('study_log')||'[]'); }catch(e){ return []; } }
@@ -4183,7 +4306,7 @@ function renderAreaGrid(){
   });
 }
 function showSubjectSelect(){
-  stopExamTimer(); isExam=false; rpgBattle=null; rpgHideHud();
+  stopExamTimer(); isExam=false; rpgBattle=null; rpgHideBattle();
   hideMainScreens();
   document.getElementById('subject-select-screen').style.display='block';
   renderDailyMenu();
@@ -5381,37 +5504,73 @@ function renderDailyMenu(){
 // ==================================================================
 // ===== 冒険モード「まなびの王国クエスト」（RPGで偏差値65をめざす）=====
 // ==================================================================
-// 設計方針：バトル＝問題を解くこと。学習が主・ゲームは従。
-// 出題は既存 genQuestion('math')（学年で自動適応）＋既存の記録/SRS/苦手分析に接続。
-var RPG_STAMINA_MAX = 8;   // 1日の冒険回数（遊びすぎ防止・スクリーンタイム配慮。使い切っても通常学習は可）
-var rpgBattle = null;      // バトル中の状態（null＝非バトル）
+// 設計：バトル＝問題を解くこと（学習が主・ゲームは従）。出題は既存 genQuestion（学年適応）、
+// 正誤は onAnswered 経由で既存の記録/SRS/苦手分析/まちがいノートに接続。演出だけを大幅に作り込む。
 
-// P1：数学の大陸（2章）。unitsは表示用、実際の出題は学年適応の数学問題。
-var RPG_WORLD = {
-  math: {
-    name:'数の大陸', emoji:'🔢',
-    chapters:[
-      { id:'m1', title:'計算の平原', nodes:[
-        { id:'n1', type:'zako', name:'けいさんスライム', emoji:'🟦', count:6, lv:1 },
-        { id:'n2', type:'zako', name:'たしざんゴブリン', emoji:'👺', count:6, lv:1 },
-        { id:'n3', type:'zako', name:'ひきざんコウモリ', emoji:'🦇', count:6, lv:2 },
-        { id:'boss', type:'boss', name:'計算王 スラッグ', emoji:'👑', count:10, lv:2 }
-      ]},
-      { id:'m2', title:'数と文章題の森', nodes:[
-        { id:'n1', type:'zako', name:'かけざまウルフ', emoji:'🐺', count:6, lv:2 },
-        { id:'n2', type:'zako', name:'わりざまトレント', emoji:'🌳', count:6, lv:2 },
-        { id:'n3', type:'zako', name:'めいろオバケ', emoji:'👻', count:7, lv:3 },
-        { id:'boss', type:'boss', name:'森の主 ウッドドラゴン', emoji:'🐉', count:10, lv:3 }
-      ]}
-    ]
-  }
+// ---- ビジュアルアセット（手描きSVG・統一スタイル：宝石色＋グロー＋ぷにっとした目）----
+var RPG_SVG = {
+  slime:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="106" rx="33" ry="7" fill="rgba(0,0,0,.28)"/><path d="M24 90 Q18 46 60 42 Q102 46 96 90 Q96 101 60 101 Q24 101 24 90Z" fill="#2dd4bf" stroke="#0f766e" stroke-width="3"/><path d="M36 88 Q32 62 60 60 Q88 62 84 88 Q84 95 60 95 Q36 95 36 88Z" fill="#7fffe6" opacity=".45"/><circle cx="48" cy="72" r="9" fill="#fff"/><circle cx="50" cy="74" r="4.4" fill="#0f172a"/><circle cx="46" cy="70" r="1.9" fill="#fff"/><circle cx="74" cy="72" r="9" fill="#fff"/><circle cx="76" cy="74" r="4.4" fill="#0f172a"/><circle cx="72" cy="70" r="1.9" fill="#fff"/><text x="60" y="58" font-size="15" text-anchor="middle" fill="#0f766e" font-weight="bold">＋−</text><path d="M50 85 Q60 91 70 85" stroke="#0f766e" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>',
+  goblin:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="108" rx="30" ry="6" fill="rgba(0,0,0,.28)"/><path d="M60 24 L74 14 L70 30Z" fill="#7c3aed"/><path d="M60 24 L46 14 L50 30Z" fill="#7c3aed"/><ellipse cx="60" cy="66" rx="34" ry="36" fill="#8b5cf6" stroke="#5b21b6" stroke-width="3"/><ellipse cx="60" cy="78" rx="22" ry="18" fill="#c4b5fd" opacity=".5"/><path d="M30 60 L18 56 M90 60 L102 56" stroke="#5b21b6" stroke-width="3" stroke-linecap="round"/><circle cx="49" cy="62" r="8.5" fill="#fff"/><circle cx="51" cy="64" r="4.2" fill="#0f172a"/><circle cx="47" cy="60" r="1.8" fill="#fff"/><circle cx="71" cy="62" r="8.5" fill="#fff"/><circle cx="73" cy="64" r="4.2" fill="#0f172a"/><circle cx="69" cy="60" r="1.8" fill="#fff"/><path d="M48 84 L54 80 L60 84 L66 80 L72 84" stroke="#4c1d95" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="60" y="48" font-size="15" text-anchor="middle" fill="#ede9fe" font-weight="bold">＋</text></svg>',
+  bat:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="106" rx="26" ry="6" fill="rgba(0,0,0,.28)"/><path d="M60 60 Q30 34 8 44 Q26 52 20 70 Q40 60 60 74Z" fill="#4338ca" stroke="#312e81" stroke-width="2.5"/><path d="M60 60 Q90 34 112 44 Q94 52 100 70 Q80 60 60 74Z" fill="#4338ca" stroke="#312e81" stroke-width="2.5"/><ellipse cx="60" cy="64" rx="24" ry="26" fill="#6366f1" stroke="#312e81" stroke-width="3"/><path d="M46 42 L52 52 M74 42 L68 52" stroke="#312e81" stroke-width="3" stroke-linecap="round"/><circle cx="51" cy="60" r="8" fill="#fff"/><circle cx="53" cy="62" r="4" fill="#0f172a"/><circle cx="49" cy="58" r="1.7" fill="#fff"/><circle cx="69" cy="60" r="8" fill="#fff"/><circle cx="71" cy="62" r="4" fill="#0f172a"/><circle cx="67" cy="58" r="1.7" fill="#fff"/><path d="M52 78 L58 74 L60 78 L62 74 L68 78" stroke="#e0e7ff" stroke-width="2.2" fill="none" stroke-linecap="round"/><text x="60" y="98" font-size="16" text-anchor="middle" fill="#c7d2fe" font-weight="bold">−</text></svg>',
+  wolf:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="108" rx="30" ry="6" fill="rgba(0,0,0,.28)"/><path d="M40 40 L34 18 L52 34Z" fill="#475569"/><path d="M80 40 L86 18 L68 34Z" fill="#475569"/><path d="M28 70 Q28 40 60 38 Q92 40 92 70 Q92 96 60 100 Q28 96 28 70Z" fill="#64748b" stroke="#334155" stroke-width="3"/><path d="M44 88 Q60 78 76 88 Q76 98 60 98 Q44 98 44 88Z" fill="#cbd5e1" opacity=".55"/><circle cx="49" cy="64" r="8.5" fill="#fef08a"/><circle cx="51" cy="66" r="4" fill="#0f172a"/><circle cx="71" cy="64" r="8.5" fill="#fef08a"/><circle cx="73" cy="66" r="4" fill="#0f172a"/><path d="M60 74 L55 80 L65 80Z" fill="#0f172a"/><path d="M50 88 L56 84 L60 88 L64 84 L70 88" stroke="#1e293b" stroke-width="2.4" fill="none" stroke-linecap="round"/><text x="60" y="34" font-size="16" text-anchor="middle" fill="#e2e8f0" font-weight="bold">×</text></svg>',
+  trent:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="30" ry="6" fill="rgba(0,0,0,.28)"/><path d="M40 108 L44 78 L56 78 L52 108Z" fill="#78350f"/><path d="M80 108 L76 78 L64 78 L68 108Z" fill="#78350f"/><path d="M60 20 Q96 30 92 66 Q90 90 60 90 Q30 90 28 66 Q24 30 60 20Z" fill="#15803d" stroke="#14532d" stroke-width="3"/><circle cx="40" cy="34" r="12" fill="#22c55e"/><circle cx="80" cy="34" r="12" fill="#22c55e"/><circle cx="60" cy="24" r="13" fill="#22c55e"/><rect x="42" y="56" width="36" height="26" rx="10" fill="#a16207"/><circle cx="52" cy="66" r="7" fill="#fff"/><circle cx="53" cy="68" r="3.6" fill="#0f172a"/><circle cx="68" cy="66" r="7" fill="#fff"/><circle cx="69" cy="68" r="3.6" fill="#0f172a"/><path d="M52 78 Q60 82 68 78" stroke="#3f2a10" stroke-width="2.4" fill="none" stroke-linecap="round"/><text x="60" y="52" font-size="15" text-anchor="middle" fill="#dcfce7" font-weight="bold">÷</text></svg>',
+  ghost:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="24" ry="5" fill="rgba(0,0,0,.22)"/><path d="M30 60 Q30 26 60 26 Q90 26 90 60 L90 96 Q84 88 78 96 Q72 88 66 96 Q60 88 54 96 Q48 88 42 96 Q36 88 30 96Z" fill="#e0f2fe" stroke="#7dd3fc" stroke-width="2.5" opacity=".92"/><path d="M42 50 h10 v10 h-10Z M58 60 h10 v10 h-10Z M46 70 h10 v8 h-10Z" fill="none" stroke="#38bdf8" stroke-width="2" opacity=".6"/><circle cx="49" cy="56" r="7.5" fill="#0369a1"/><circle cx="51" cy="58" r="3.4" fill="#fff"/><circle cx="71" cy="56" r="7.5" fill="#0369a1"/><circle cx="73" cy="58" r="3.4" fill="#fff"/><ellipse cx="60" cy="74" rx="6" ry="8" fill="#0369a1"/></svg>',
+  slugking:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="108" rx="40" ry="8" fill="rgba(0,0,0,.3)"/><path d="M40 30 L34 12 L46 22 L60 8 L74 22 L86 12 L80 30Z" fill="#fcd34d" stroke="#b45309" stroke-width="2.5"/><circle cx="46" cy="22" r="3" fill="#f43f5e"/><circle cx="60" cy="16" r="3.4" fill="#f43f5e"/><circle cx="74" cy="22" r="3" fill="#f43f5e"/><path d="M18 88 Q12 42 60 36 Q108 42 102 88 Q102 102 60 102 Q18 102 18 88Z" fill="#14b8a6" stroke="#0f766e" stroke-width="3.5"/><path d="M34 86 Q28 58 60 55 Q92 58 86 86 Q86 96 60 96 Q34 96 34 86Z" fill="#5eead4" opacity=".5"/><circle cx="46" cy="70" r="11" fill="#fff"/><circle cx="49" cy="73" r="5.4" fill="#0f172a"/><circle cx="43" cy="66" r="2.4" fill="#fff"/><circle cx="74" cy="70" r="11" fill="#fff"/><circle cx="77" cy="73" r="5.4" fill="#0f172a"/><circle cx="71" cy="66" r="2.4" fill="#fff"/><path d="M46 88 Q60 96 74 88" stroke="#0f766e" stroke-width="3" fill="none" stroke-linecap="round"/><text x="60" y="52" font-size="16" text-anchor="middle" fill="#0f766e" font-weight="bold">＝?</text></svg>',
+  dragon:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="40" ry="8" fill="rgba(0,0,0,.3)"/><path d="M24 64 Q6 40 4 62 Q10 66 8 78 Q22 70 32 78Z" fill="#166534"/><path d="M96 64 Q114 40 116 62 Q110 66 112 78 Q98 70 88 78Z" fill="#166534"/><path d="M42 34 L34 14 L52 28Z" fill="#166534"/><path d="M78 34 L86 14 L68 28Z" fill="#166534"/><path d="M22 74 Q20 36 60 32 Q100 36 98 74 Q98 102 60 106 Q22 102 22 74Z" fill="#16a34a" stroke="#14532d" stroke-width="3.5"/><path d="M40 92 Q60 82 80 92 Q80 100 60 100 Q40 100 40 92Z" fill="#bbf7d0" opacity=".5"/><path d="M60 44 l6 8 l-6 6 l-6 -6Z" fill="#fde047"/><circle cx="47" cy="66" r="10" fill="#fca5a5"/><circle cx="50" cy="68" r="5" fill="#7f1d1d"/><circle cx="44" cy="62" r="2.2" fill="#fff"/><circle cx="73" cy="66" r="10" fill="#fca5a5"/><circle cx="76" cy="68" r="5" fill="#7f1d1d"/><circle cx="70" cy="62" r="2.2" fill="#fff"/><path d="M46 88 L54 82 L60 88 L66 82 L74 88" stroke="#14532d" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  villain:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="30" ry="6" fill="rgba(0,0,0,.35)"/><path d="M60 14 Q92 20 92 62 Q92 104 60 106 Q28 104 28 62 Q28 20 60 14Z" fill="#3b0764" stroke="#1e1b4b" stroke-width="3"/><path d="M60 22 Q82 28 82 58 Q82 80 60 82 Q38 80 38 58 Q38 28 60 22Z" fill="#0b0219"/><path d="M30 44 L16 32 M90 44 L104 32 M26 66 L12 66 M94 66 L108 66" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" opacity=".85"/><circle cx="50" cy="54" r="4.5" fill="#f43f5e"/><circle cx="70" cy="54" r="4.5" fill="#f43f5e"/><text x="60" y="94" font-size="28" text-anchor="middle" fill="#a78bfa" font-weight="bold">σ</text></svg>',
+  crystal:'<svg viewBox="0 0 40 48"><path d="M20 2 L34 16 L20 46 L6 16Z" fill="#38f0e0" stroke="#0e7490" stroke-width="2"/><path d="M20 2 L20 46 M6 16 L34 16" stroke="#a5f3fc" stroke-width="1.4" opacity=".85"/><path d="M20 2 L13 16 L20 46" fill="#7cf9ec" opacity=".5"/></svg>'
 };
 
+// ---- 世界とモンスター配置（P1：数の大陸／2章8ノード。posはマップ上の%座標）----
+var RPG_STAMINA_MAX = 8;
+var rpgBattle = null;
+var RPG_WORLD = {
+  math:{ name:'数の大陸', emoji:'🔢', teacher:'shiba', teacherName:'コタロウ', crystal:'数のクリスタル',
+    chapters:[
+      { id:'m1', title:'計算の平原', story:'m1', nodes:[
+        { id:'n1', type:'zako', name:'けいさんスライム', mon:'slime',  count:6, lv:1, pos:{x:22,y:90} },
+        { id:'n2', type:'zako', name:'たしざんゴブリン', mon:'goblin', count:6, lv:1, pos:{x:60,y:80} },
+        { id:'n3', type:'zako', name:'ひきざんコウモリ', mon:'bat',    count:6, lv:2, pos:{x:32,y:68} },
+        { id:'boss',type:'boss',name:'計算王 スラッグ',  mon:'slugking',count:8, lv:2, pos:{x:70,y:58} }
+      ]},
+      { id:'m2', title:'まよいの森', story:'m2', nodes:[
+        { id:'n1', type:'zako', name:'かけざまウルフ',   mon:'wolf',  count:6, lv:2, pos:{x:30,y:47} },
+        { id:'n2', type:'zako', name:'わりざまトレント', mon:'trent', count:6, lv:3, pos:{x:66,y:39} },
+        { id:'n3', type:'zako', name:'めいろオバケ',     mon:'ghost', count:7, lv:3, pos:{x:34,y:28} },
+        { id:'boss',type:'boss',name:'森の主 ウッドラゴン',mon:'dragon',count:10,lv:4, pos:{x:64,y:18} }
+      ]}
+    ]}
+};
+var RPG_CASTLE_POS = {x:50,y:6};
+
+// ---- ストーリー（あたたかく・ほぼひらがな・小4も中1も読める）----
+var RPG_STORY = {
+  prologue:[
+    { who:'', char:'scroll', text:'むかしむかし、まなびの王国は「ちえの光」で かがやいていました。' },
+    { who:'ミミ学園長', char:'owl', text:'でも ある日、魔王シグマが「モヤの霧」で 国をつつみこんでしまったの。' },
+    { who:'ミミ学園長', char:'owl', text:'ちえは バラバラの モンスターに かわり、動物の先生たちも 霧の中に とらわれてしまった…。' },
+    { who:'ミミ学園長', char:'owl', text:'そこで あなたの出番よ、見習い勇者さん！ 問題をといて モンスターを たおしてほしいの。' },
+    { who:'ミミ学園長', char:'owl', text:'たたかうたびに あなたは強くなる。そして「ちえのクリスタル」を あつめれば…' },
+    { who:'ミミ学園長', char:'owl', text:'魔王シグマ ＝「偏差値65の壁」に いどむ資格が できるのよ。' },
+    { who:'？？？', char:'villain', text:'クックック…ちっぽけな 見習いが なにを できる。この霧は はれぬぞ…。' },
+    { who:'ミミ学園長', char:'owl', text:'…いまのが 魔王シグマ。こわがらないで。さあ、地図をひらいて！ 冒険の はじまりよ。' }
+  ],
+  m1:[ { who:'ミミ学園長', char:'owl', text:'ここは「計算の平原」。まずは たしざん・ひきざんの モンスターたち。落ちついて 1問ずつ こたえてね。' } ],
+  m2:[ { who:'ミミ学園長', char:'owl', text:'「まよいの森」の おくには つよい主がいる。ここをぬければ、とらわれた先生を 救えるはず！' } ]
+};
+function rpgBossTaunt(node){
+  var t={ slugking:'グフフ…計算が こわくて にげてきたのか？ この計算王を たおせるかな！',
+          dragon:'グオオ…この森は わたさぬ！ ちえのクリスタルは 魔王さまの ものだ！' };
+  return [{ who:node.name, char:'villain', text:(t[node.mon]||'いくぞ、勇者！') }];
+}
+
 // ---- 状態（rpg_state：ユーザー別・クラウド同期・完全リセット対応）----
-function rpgDefault(){ return { v:1, level:1, xp:0, cleared:{}, coll:{}, stamina:{date:'',used:0} }; }
-function rpgState(){ var s=lsGetJSON('rpg_state', null); if(!s||typeof s!=='object') s=rpgDefault(); if(!s.cleared)s.cleared={}; if(!s.coll)s.coll={}; if(!s.stamina)s.stamina={date:'',used:0}; return s; }
+function rpgDefault(){ return { v:1, level:1, xp:0, cleared:{}, coll:{}, crystals:{}, story:{}, stamina:{date:'',used:0} }; }
+function rpgState(){ var s=lsGetJSON('rpg_state',null); if(!s||typeof s!=='object') s=rpgDefault();
+  ['cleared','coll','crystals','story'].forEach(function(k){ if(!s[k]) s[k]={}; }); if(!s.stamina) s.stamina={date:'',used:0}; return s; }
 function rpgSave(s){ lsSetJSON('rpg_state', s); }
-// XPカーブ：Lv nに必要な累計XP = (n-1)^2 * 40（L2=40, L3=160, L4=360…）
+function rpgSeen(k){ return !!rpgState().story[k]; }
+function rpgMarkSeen(k){ var s=rpgState(); s.story[k]=1; rpgSave(s); }
 function rpgXpForLevel(l){ return Math.pow(Math.max(0,l-1),2)*40; }
 function rpgLevelForXp(xp){ return Math.floor(Math.sqrt(Math.max(0,xp)/40))+1; }
 function rpgToday(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
@@ -5420,160 +5579,273 @@ function rpgUseStamina(){ var s=rpgState(); if(s.stamina.date!==rpgToday()) s.st
 function rpgNodeKey(area,chId,nodeId){ return area+':'+chId+':'+nodeId; }
 function rpgIsCleared(area,chId,nodeId){ return !!rpgState().cleared[rpgNodeKey(area,chId,nodeId)]; }
 function rpgHeroChar(){ var u=(typeof muCurrentUser==='function')?muCurrentUser():null; return (u&&u.char)||'shiba'; }
-// ノード解放：章の先頭は前章ボスクリアで解放、以降は直前ノードのクリアで解放
+function rpgHeroName(){ var u=(typeof muCurrentUser==='function')?muCurrentUser():null; return (u&&u.name)||'勇者'; }
+function rpgCrystalCount(){ return Object.keys(rpgState().crystals).length; }
+function rpgReduced(){ try{ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } }
 function rpgNodeUnlocked(area, chIdx, nodeIdx){
-  var world=RPG_WORLD[area]; var ch=world.chapters[chIdx];
-  if(nodeIdx===0){
-    if(chIdx===0) return true;
-    var prevCh=world.chapters[chIdx-1]; var pb=prevCh.nodes[prevCh.nodes.length-1];
-    return rpgIsCleared(area, prevCh.id, pb.id);
-  }
-  var prev=ch.nodes[nodeIdx-1];
-  return rpgIsCleared(area, ch.id, prev.id);
+  var world=RPG_WORLD[area], ch=world.chapters[chIdx];
+  if(nodeIdx===0){ if(chIdx===0) return true;
+    var pc=world.chapters[chIdx-1], pb=pc.nodes[pc.nodes.length-1]; return rpgIsCleared(area, pc.id, pb.id); }
+  return rpgIsCleared(area, ch.id, ch.nodes[nodeIdx-1].id);
 }
-// 勝利に必要な「命中数」＝敵HP。残りは被弾許容（＝自分HP）。HPバーが勝敗と完全一致する。
 function rpgHitsNeeded(node){ return node.type==='boss' ? Math.ceil(node.count*0.8) : Math.ceil(node.count*0.6); }
-
-// ---- 学年適応の数学問題を生成 ----
 function rpgBuildQuestions(area, count){
   var qs=[], seen={}, guard=0;
-  while(qs.length<count && guard<count*50){ guard++; var q=genQuestion(area); if(q && q.q && q.ans!==undefined && !seen[q.q]){ seen[q.q]=1; qs.push(q); } }
+  while(qs.length<count && guard<count*50){ guard++; var q=genQuestion(area); if(q&&q.q&&q.ans!==undefined&&!seen[q.q]){ seen[q.q]=1; qs.push(q); } }
   return qs;
 }
 
-// ---- マップ画面 ----
+// ================= ストーリーダイアログエンジン =================
+var _rpgStoryState=null;
+function rpgStoryPlay(lines, onDone){
+  if(!lines||!lines.length){ if(onDone) onDone(); return; }
+  var ov=document.getElementById('rpg-story'); if(!ov){ if(onDone) onDone(); return; }
+  _rpgStoryState={ lines:lines, i:0, onDone:onDone, typing:false, timer:null };
+  ov.style.display='flex';
+  rpgStoryShow();
+}
+function _rpgPortrait(char){
+  if(char==='villain') return RPG_SVG.villain;
+  if(char==='scroll') return '<div class="rpg-narr">📜</div>';
+  if(char && typeof CHARS!=='undefined' && CHARS[char]) return CHARS[char].svg;
+  return '<div class="rpg-narr">✨</div>';
+}
+function rpgStoryShow(){
+  var st=_rpgStoryState; if(!st) return;
+  var line=st.lines[st.i];
+  document.getElementById('rpg-story-portrait').innerHTML=_rpgPortrait(line.char);
+  var nameEl=document.getElementById('rpg-story-name'); nameEl.textContent=line.who||''; nameEl.style.display=line.who?'inline-block':'none';
+  var txt=document.getElementById('rpg-story-text');
+  var full=line.text;
+  if(rpgReduced()){ txt.textContent=full; st.typing=false; document.getElementById('rpg-story-next').style.opacity='1'; return; }
+  txt.textContent=''; st.typing=true; document.getElementById('rpg-story-next').style.opacity='0';
+  var i=0; clearInterval(st.timer);
+  st.timer=setInterval(function(){ i++; txt.textContent=full.slice(0,i); if(i>=full.length){ clearInterval(st.timer); st.typing=false; document.getElementById('rpg-story-next').style.opacity='1'; } }, 24);
+}
+function rpgStoryAdvance(){
+  var st=_rpgStoryState; if(!st) return;
+  if(st.typing){ clearInterval(st.timer); document.getElementById('rpg-story-text').textContent=st.lines[st.i].text; st.typing=false; document.getElementById('rpg-story-next').style.opacity='1'; return; }
+  st.i++;
+  if(st.i>=st.lines.length){ var cb=st.onDone; document.getElementById('rpg-story').style.display='none'; _rpgStoryState=null; if(cb) cb(); return; }
+  rpgStoryShow();
+}
+
+// ================= タイトル／入口 =================
 function showRpg(){
-  rpgBattle=null; rpgHideHud();
+  rpgBattle=null; rpgHideBattle();
   hideMainScreens();
   document.getElementById('rpg-screen').style.display='block';
+  document.body.classList.add('rpg-mode');
   document.getElementById('rpg-result-view').style.display='none';
   document.getElementById('rpg-map-view').style.display='block';
-  rpgRenderMap();
-  setCharacter('owl');
-  setLunaText('ようこそ、まなびの王国へ！🗺️ マスをえらんでモンスターと問題バトル。章をクリアして偏差値65の魔王をめざそう！');
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+  if(!rpgSeen('prologue')){
+    rpgShowTitle();
+  } else {
+    rpgRenderMap();
+  }
 }
+function rpgShowTitle(){
+  var mv=document.getElementById('rpg-map-view');
+  mv.innerHTML='<div class="rpg-title-scene">'+
+    '<div class="rpg-title-stars"></div>'+
+    '<div class="rpg-title-logo"><span class="rpg-title-sub">～ まなびの王国 ～</span><span class="rpg-title-main">クエスト</span>'+
+    '<span class="rpg-title-tag">問題をといて モンスターをたおし、偏差値65の魔王をたおせ！</span></div>'+
+    '<button class="rpg-title-btn" onclick="rpgStartAdventure()">⚔️ 冒険を はじめる</button>'+
+    '</div>';
+}
+function rpgStartAdventure(){
+  rpgStoryPlay(RPG_STORY.prologue, function(){ rpgMarkSeen('prologue'); rpgRenderMap(); });
+}
+
+// ================= マップ =================
 function rpgRenderMap(){
   var area='math', world=RPG_WORLD[area], s=rpgState();
   var into=s.xp-rpgXpForLevel(s.level), need=rpgXpForLevel(s.level+1)-rpgXpForLevel(s.level);
   var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
-  var h='';
-  h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+'</div><div class="rpg-hero-info">';
-  h+='<div class="rpg-hero-lv">Lv.'+s.level+' の冒険者</div>';
-  h+='<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>';
-  h+='<div class="rpg-hero-xp">つぎのレベルまで あと '+Math.max(0,need-into)+' けいけんち</div>';
-  h+='<div class="rpg-stamina">🔥 きょうの冒険：のこり '+rpgStaminaLeft()+' / '+RPG_STAMINA_MAX+' かい</div>';
-  h+='</div></div>';
-  h+='<div class="rpg-goal-banner">🏰 さいごの敵は「偏差値65の壁」！ 章をクリアして魔王城をめざせ</div>';
+  // ヘッダー：勇者ステータス＋クリスタル
+  var h='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+'</div><div class="rpg-hero-info">'+
+    '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
+    '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
+    '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち　🔥のこり冒険 '+rpgStaminaLeft()+'/'+RPG_STAMINA_MAX+'</div>'+
+    '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+rpgCrystalCount()+' / 5</span></div></div>';
+  // マップ本体（パララックス背景＋パス＋ノード）
+  h+='<div class="rpg-map">';
+  h+='<div class="rpg-map-bg"></div>';
+  h+=rpgMapPathSVG(area);
+  // 魔王城（最終・ロック）
+  h+='<div class="rpg-castle'+(rpgCrystalCount()>=5?' ready':'')+'" style="left:'+RPG_CASTLE_POS.x+'%;top:'+RPG_CASTLE_POS.y+'%">🏰<span class="rpg-castle-lbl">魔王城<br>偏差値65</span></div>';
   world.chapters.forEach(function(ch, ci){
-    var chOpen=rpgNodeUnlocked(area, ci, 0);
-    h+='<div class="rpg-chapter'+(chOpen?'':' locked')+'"><div class="rpg-ch-title">'+(ci+1)+'. '+ch.title+(chOpen?'':' 🔒')+'</div><div class="rpg-nodes">';
     ch.nodes.forEach(function(node, ni){
       var open=rpgNodeUnlocked(area, ci, ni), done=rpgIsCleared(area, ch.id, node.id);
-      var cls='rpg-node'+(node.type==='boss'?' boss':'')+(done?' cleared':'')+(open?'':' locked');
-      var oc=open?(' onclick="startRpgBattle(\''+area+'\','+ci+','+ni+')"'):' disabled';
-      h+='<button class="'+cls+'"'+oc+'>';
-      h+='<span class="rpg-node-emoji">'+(done?'✅':(open?node.emoji:'🔒'))+'</span>';
-      h+='<span class="rpg-node-name">'+escapeHtml(node.name)+'</span>';
-      h+='<span class="rpg-node-lv">'+(node.type==='boss'?'👑 ボス':('Lv'+node.lv))+'</span>';
-      h+='</button>';
+      var cls='rpg-node'+(node.type==='boss'?' boss':'')+(done?' cleared':'')+(open&&!done?' open':'')+(open?'':' locked');
+      var oc=open?(' onclick="rpgEnterNode(\''+area+'\','+ci+','+ni+')"'):' disabled aria-disabled="true"';
+      h+='<button class="'+cls+'" style="left:'+node.pos.x+'%;top:'+node.pos.y+'%"'+oc+' title="'+escapeHtml(node.name)+'">'+
+         '<span class="rpg-node-mark">'+(done?'✓':(node.type==='boss'?'👑':(open?'':'🔒')))+'</span>'+
+         '<span class="rpg-node-face">'+(open?RPG_SVG[node.mon]:'')+'</span>'+
+         '<span class="rpg-node-name">'+escapeHtml(node.name)+'</span></button>';
     });
-    h+='</div></div>';
+    // 章ラベル（先頭ノード付近）
+    var f=ch.nodes[0];
+    h+='<div class="rpg-ch-flag" style="left:'+f.pos.x+'%;top:'+(f.pos.y+9)+'%">'+(ci+1)+'章 '+escapeHtml(ch.title)+'</div>';
   });
+  h+='</div>';
+  h+='<div class="rpg-map-hint">🗺️ ひかっているマスを タップして バトル！ 章のボスを たおすと 先生が助かるよ</div>';
   document.getElementById('rpg-map-view').innerHTML=h;
 }
-
-// ---- バトル開始 ----
-function startRpgBattle(area, chIdx, nodeIdx){
+function rpgMapPathSVG(area){
+  var world=RPG_WORLD[area], pts=[];
+  world.chapters.forEach(function(ch){ ch.nodes.forEach(function(n){ pts.push(n.pos); }); });
+  pts.push(RPG_CASTLE_POS);
+  var d='M '+pts.map(function(p){ return p.x+' '+p.y; }).join(' L ');
+  return '<svg class="rpg-path" viewBox="0 0 100 100" preserveAspectRatio="none">'+
+    '<path d="'+d+'" fill="none" stroke="rgba(252,211,77,.35)" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="0.2 3"/>'+
+    '</svg>';
+}
+function rpgEnterNode(area, ci, ni){
   if(rpgStaminaLeft()<=0){ showToast('😴','きょうの冒険はここまで','よくがんばったね！つづきは明日。ふつうの学習はできるよ'); return; }
-  var world=RPG_WORLD[area], ch=world.chapters[chIdx], node=ch.nodes[nodeIdx];
-  if(!rpgNodeUnlocked(area, chIdx, nodeIdx)){ showToast('🔒','まだ行けないよ','前のマスをクリアするとひらけるよ'); return; }
+  if(!rpgNodeUnlocked(area, ci, ni)){ showToast('🔒','まだ行けないよ','前のマスをクリアするとひらけるよ'); return; }
+  var ch=RPG_WORLD[area].chapters[ci], node=ch.nodes[ni];
+  var pre=[];
+  var introKey=area+':'+ch.id+':intro';
+  if(ni===0 && !rpgSeen(introKey) && RPG_STORY[ch.story]){ pre=pre.concat(RPG_STORY[ch.story]); }
+  if(node.type==='boss'){ pre=pre.concat(rpgBossTaunt(node)); }
+  var begin=function(){ if(ni===0) rpgMarkSeen(introKey); rpgBeginBattle(area, ci, ni); };
+  if(pre.length) rpgStoryPlay(pre, begin); else begin();
+}
+
+// ================= バトル =================
+function rpgBeginBattle(area, ci, ni){
+  var ch=RPG_WORLD[area].chapters[ci], node=ch.nodes[ni];
   var qs=rpgBuildQuestions(area, node.count);
   if(qs.length<3){ showToast('⚠️','問題を用意できませんでした','少し時間をおいてね'); return; }
   var hits=rpgHitsNeeded(node);
-  rpgBattle={ area:area, chIdx:chIdx, nodeIdx:nodeIdx, node:node, ch:ch,
+  rpgBattle={ area:area, chIdx:ci, nodeIdx:ni, node:node, ch:ch,
     enemyMax:hits, enemyHp:hits, heroMax:(qs.length-hits+1), heroHp:(qs.length-hits+1),
-    total:qs.length, correct:0, xpGain:0 };
+    total:qs.length, correct:0, combo:0, xpGain:0, over:false };
   rpgUseStamina();
-  var title=(node.type==='boss'?'👑 ':node.emoji+' ')+node.name;
-  var intro=(node.type==='boss')
-    ? (node.name+'があらわれた！ぜんぶの力でいどめ！正かいで攻撃だ🔥')
-    : (node.name+'があらわれた！問題にこたえて倒そう！');
+  document.body.classList.add('rpg-battle');
+  var title=(node.type==='boss'?'👑 ':'')+node.name;
+  var intro=node.type==='boss' ? (node.name+'が たちはだかる！ 正かいで こうげきだ！') : (node.name+'が あらわれた！');
   runQuestionSession(qs, title, intro, node.type==='boss'?'tiger':rpgHeroChar());
-  rpgShowHud(); rpgUpdateHud();
+  rpgShowBattle();
 }
-function rpgShowHud(){ var h=document.getElementById('rpg-hud'); if(h) h.style.display='block'; }
-function rpgHideHud(){ var h=document.getElementById('rpg-hud'); if(h) h.style.display='none'; }
-function rpgUpdateHud(){
+function rpgShowBattle(){
+  var st=document.getElementById('rpg-stage'); if(st) st.style.display='block';
+  document.getElementById('rpg-enemy-sprite').innerHTML=RPG_SVG[rpgBattle.node.mon]||'👾';
+  document.getElementById('rpg-enemy-name').textContent=rpgBattle.node.name;
+  document.getElementById('rpg-hero-sprite').innerHTML=_charSVG(rpgHeroChar());
+  document.getElementById('rpg-hero-name').textContent=escapeHtml(rpgHeroName());
+  var sky=document.getElementById('rpg-stage-sky'); if(sky){ sky.className='rpg-stage-sky '+(rpgBattle.chIdx>=1?'forest':'plains')+(rpgBattle.node.type==='boss'?' boss':''); }
+  rpgUpdateGauges();
+}
+function rpgHideBattle(){ var st=document.getElementById('rpg-stage'); if(st) st.style.display='none'; document.body.classList.remove('rpg-battle'); }
+function rpgUpdateGauges(){
   if(!rpgBattle) return;
   var en=document.getElementById('rpg-enemy-hp'); if(en) en.style.width=Math.round(rpgBattle.enemyHp/rpgBattle.enemyMax*100)+'%';
   var he=document.getElementById('rpg-hero-hp'); if(he) he.style.width=Math.round(rpgBattle.heroHp/rpgBattle.heroMax*100)+'%';
-  var es=document.getElementById('rpg-enemy-sprite'); if(es) es.textContent=rpgBattle.node.emoji;
-  var nm=document.getElementById('rpg-enemy-name'); if(nm) nm.textContent=rpgBattle.node.name;
-  var hn=document.getElementById('rpg-hero-hpnum'); if(hn) hn.textContent='❤️'+rpgBattle.heroHp;
+  var cb=document.getElementById('rpg-combo'); if(cb) cb.textContent=rpgBattle.combo>=2?('🔥'+rpgBattle.combo+' コンボ'):'';
 }
-// 1問こたえるごと（handleAnswerからフック）
+function rpgFloat(text, kind){
+  var fx=document.getElementById('rpg-fx'); if(!fx) return;
+  var el=document.createElement('div'); el.className='rpg-float '+(kind||'dmg'); el.textContent=text;
+  el.style.left=(38+Math.random()*24)+'%';
+  fx.appendChild(el);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 1100);
+}
+// 1問こたえるごと（handleAnswer からフック）
 function rpgAfterAnswer(correct){
   if(!rpgBattle) return;
+  var enemy=document.getElementById('rpg-enemy-sprite'), hero=document.getElementById('rpg-hero-sprite'), sky=document.getElementById('rpg-stage-sky');
   if(correct){
-    rpgBattle.correct++;
-    rpgBattle.enemyHp=Math.max(0, rpgBattle.enemyHp-1);
-    rpgBattle.xpGain += (rpgBattle.node.type==='boss'?15:10);
-    var es=document.getElementById('rpg-enemy-sprite'); if(es){ es.classList.remove('rpg-hit'); void es.offsetWidth; es.classList.add('rpg-hit'); }
+    rpgBattle.correct++; rpgBattle.combo++;
+    var crit=rpgBattle.combo>=3; var dmg=crit?2:1;
+    rpgBattle.enemyHp=Math.max(0, rpgBattle.enemyHp-dmg);
+    rpgBattle.xpGain += (rpgBattle.node.type==='boss'?15:10) + (crit?5:0);
+    if(hero){ hero.classList.remove('rpg-attack'); void hero.offsetWidth; hero.classList.add('rpg-attack'); }
+    setTimeout(function(){
+      if(enemy){ enemy.classList.remove('rpg-hit'); void enemy.offsetWidth; enemy.classList.add('rpg-hit'); }
+      if(sky){ sky.classList.remove('rpg-flash'); void sky.offsetWidth; sky.classList.add('rpg-flash'); }
+      rpgFloat((crit?'会心！ ':'')+'-'+dmg, crit?'crit':'dmg');
+    }, 180);
   } else {
+    rpgBattle.combo=0;
     rpgBattle.heroHp=Math.max(0, rpgBattle.heroHp-1);
-    var hud=document.getElementById('rpg-hud'); if(hud){ hud.classList.remove('rpg-shake'); void hud.offsetWidth; hud.classList.add('rpg-shake'); }
+    if(enemy){ enemy.classList.remove('rpg-enemy-attack'); void enemy.offsetWidth; enemy.classList.add('rpg-enemy-attack'); }
+    setTimeout(function(){
+      if(hero){ hero.classList.remove('rpg-hurt'); void hero.offsetWidth; hero.classList.add('rpg-hurt'); }
+      var stg=document.getElementById('rpg-stage'); if(stg){ stg.classList.remove('rpg-shake'); void stg.offsetWidth; stg.classList.add('rpg-shake'); }
+      rpgFloat('ミス', 'miss');
+    }, 120);
   }
-  rpgUpdateHud();
+  rpgUpdateGauges();
+  if(rpgBattle.enemyHp<=0 || rpgBattle.heroHp<=0){
+    rpgBattle.over=true;
+    // 残りの問題を打ち切って、次の「つぎへ」でリザルトへ
+    try{ currentQuestions.length=currentIndex+1; }catch(e){}
+    if(rpgBattle.enemyHp<=0 && enemy){ setTimeout(function(){ enemy.classList.add('rpg-defeated'); },300); }
+  }
 }
-// バトル終了（showResultからフック）
+// バトル終了（showResult からフック）
 function rpgShowResult(){
-  var b=rpgBattle; rpgBattle=null; rpgHideHud();
+  var b=rpgBattle; rpgBattle=null; rpgHideBattle();
   document.getElementById('quiz-screen').style.display='none';
-  var victory = (b.enemyHp<=0 && b.heroHp>0);
+  var victory=(b.enemyHp<=0 && b.heroHp>0);
   var s=rpgState();
-  var winBonus = victory ? (b.node.type==='boss'?60:25) : 5;
-  var gainXp = b.xpGain + winBonus;
-  var prevLv = rpgLevelForXp(s.xp);
-  s.xp += gainXp;
-  var newLv = rpgLevelForXp(s.xp);
-  s.level = newLv;
-  var leveled = newLv>prevLv;
-  var firstClear=false;
+  var winBonus=victory?(b.node.type==='boss'?60:25):5;
+  var gainXp=b.xpGain+winBonus;
+  var prevLv=rpgLevelForXp(s.xp); s.xp+=gainXp; var newLv=rpgLevelForXp(s.xp); s.level=newLv;
+  var leveled=newLv>prevLv, firstClear=false, continentClear=false;
   if(victory){
-    var key=rpgNodeKey(b.area, b.ch.id, b.node.id);
+    var key=rpgNodeKey(b.area,b.ch.id,b.node.id);
     if(!s.cleared[key]){ s.cleared[key]=Date.now(); firstClear=true; }
     if(b.node.type==='boss') s.coll['trophy_'+b.ch.id]=1;
+    // 大陸の最終ボスを倒したら 先生救出＋クリスタル
+    var world=RPG_WORLD[b.area], lastCh=world.chapters[world.chapters.length-1], lastBoss=lastCh.nodes[lastCh.nodes.length-1];
+    if(b.ch.id===lastCh.id && b.node.id===lastBoss.id && !s.crystals[b.area]){ s.crystals[b.area]=Date.now(); continentClear=true; }
   }
   rpgSave(s);
-  var ptBonus = victory ? (b.node.type==='boss'?50:20) : 0;
+  var ptBonus=victory?(b.node.type==='boss'?50:20):0;
   if(ptBonus){ totalPoints+=ptBonus; safeLS.setItem('c_points', totalPoints); try{ updateScoreBar(); }catch(e){} }
-  rpgRenderResult(b, victory, gainXp, ptBonus, leveled, firstClear);
+  if(continentClear){ rpgRescueScene(b, gainXp, ptBonus, leveled); }
+  else rpgRenderResult(b, victory, gainXp, ptBonus, leveled, firstClear);
 }
 function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   hideMainScreens();
   document.getElementById('rpg-screen').style.display='block';
+  document.body.classList.add('rpg-mode');
   document.getElementById('rpg-map-view').style.display='none';
   var rv=document.getElementById('rpg-result-view'); rv.style.display='block';
-  var s=rpgState();
-  var acc=Math.round(b.correct/b.total*100);
-  setCharacter(victory?(b.node.type==='boss'?'dolphin':'shiba'):'tiger');
-  var L=[];
-  L.push('<div class="rpg-res-emoji">'+(victory?'⚔️✨':'🛡️💦')+'</div>');
-  L.push('<div class="rpg-res-title">'+escapeHtml(victory?(b.node.name+' を たおした！'):(b.node.name+' に にげられた…'))+'</div>');
-  L.push('<div class="rpg-res-sub">正かい '+b.correct+' / '+b.total+'（'+acc+'%）</div>');
-  L.push('<div class="rpg-res-xp">＋'+xp+' けいけんち'+(pt?('　＋'+pt+'pt🌺'):'')+'</div>');
-  if(leveled) L.push('<div class="rpg-res-levelup">🎉 レベルアップ！ Lv.'+s.level+' になった！</div>');
-  if(firstClear && b.node.type==='boss') L.push('<div class="rpg-res-levelup">🏆 「'+escapeHtml(b.ch.title)+'」クリア！つぎの章がひらいたよ</div>');
-  if(!victory) L.push('<div class="rpg-res-tip">💡 まちがえた問題は「📕ノート」で復習できるよ。復習してからもう一度いどもう！</div>');
-  var btns='';
-  if(rpgStaminaLeft()>0) btns+='<button class="btn-retry" onclick="startRpgBattle(\''+b.area+'\','+b.chIdx+','+b.nodeIdx+')">🔁 もう一度たたかう</button>';
-  btns+='<button class="btn-retry" onclick="showRpg()">🗺️ マップへもどる</button>';
-  rv.innerHTML='<div class="rpg-res-card">'+L.join('')+'<div class="rpg-res-btns">'+btns+'</div></div>';
+  var s=rpgState(), acc=Math.round(b.correct/b.total*100);
+  var L='<div class="rpg-res-card '+(victory?'win':'lose')+'">';
+  L+='<div class="rpg-res-banner">'+(victory?'VICTORY':'しっぱい…')+'</div>';
+  L+='<div class="rpg-res-mon '+(victory?'beat':'')+'">'+(RPG_SVG[b.node.mon]||'')+'</div>';
+  L+='<div class="rpg-res-title">'+escapeHtml(victory?(b.node.name+' を たおした！'):(b.node.name+' に にげられた…'))+'</div>';
+  L+='<div class="rpg-res-sub">正かい '+b.correct+' / '+b.total+'（'+acc+'%）</div>';
+  L+='<div class="rpg-res-xp">＋'+xp+' けいけんち'+(pt?('　＋'+pt+'pt🌺'):'')+'</div>';
+  if(leveled) L+='<div class="rpg-res-levelup">🎉 レベルアップ！ Lv.'+s.level+'</div>';
+  if(firstClear && b.node.type==='boss') L+='<div class="rpg-res-levelup">🏆「'+escapeHtml(b.ch.title)+'」クリア！ つぎの道が ひらけた</div>';
+  if(!victory) L+='<div class="rpg-res-tip">💡 まちがえた問題は「📕ノート」で 復習できるよ。復習して リベンジしよう！</div>';
+  L+='<div class="rpg-res-btns">';
+  if(rpgStaminaLeft()>0) L+='<button class="rpg-btn" onclick="rpgEnterNode(\''+b.area+'\','+b.chIdx+','+b.nodeIdx+')">🔁 もういちど たたかう</button>';
+  L+='<button class="rpg-btn ghost" onclick="showRpg()">🗺️ マップへ もどる</button></div></div>';
+  rv.innerHTML=L;
   if(victory){ confetti(); if(b.node.type==='boss') setTimeout(confetti,400); }
-  var msg=victory?(b.node.type==='boss'?'やった！ボスをたおしたね！さいこう！🎉':'よくやった！つぎのマスへ進もう！'):'おしい！あと少しだった。復習してリベンジだ！🐯';
+  var msg=victory?(b.node.type==='boss'?'やった！ボスを たおしたね！さいこう！🎉':'よくやった！つぎのマスへ 進もう！'):'おしい！あと少しだった。復習して リベンジだ！🐯';
   setLunaText(msg); try{ speak(msg); }catch(e){}
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+}
+function rpgRescueScene(b, xp, pt, leveled){
+  var world=RPG_WORLD[b.area];
+  var lines=[
+    { who:'', char:'scroll', text:'モヤの霧が はれていく…！ 霧の中から 声がきこえる。' },
+    { who:world.teacherName+'先生', char:world.teacher, text:'…たすかった！ きみが 勇者か。ありがとう、ずっと 待っていたんだ。' },
+    { who:world.teacherName+'先生', char:world.teacher, text:'これが「'+world.crystal+'」だ。きみに あずけよう。' },
+    { who:world.teacherName+'先生', char:world.teacher, text:'ひとつ コツをおしえよう。まちがえた問題こそ 宝物だ。「まちがいノート」で もういちど とけば、かならず 力になる。' },
+    { who:'ミミ学園長', char:'owl', text:'すごいわ！ クリスタルが ひとつ あつまった（'+rpgCrystalCount()+'/5）。' },
+    { who:'ミミ学園長', char:'owl', text:'ほら、遠くに 魔王城の かげが 見えてきた…。のこりの先生も 助けにいきましょう！' }
+  ];
+  rpgStoryPlay(lines, function(){ rpgRenderResult(b, true, xp, pt, leveled, true); });
 }
 
 function renderCalendar(){

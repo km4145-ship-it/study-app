@@ -3606,6 +3606,33 @@ const socGens = [
   function(){ const deg=pick([15,30,45,60,75,90]); const h=deg/15; return {q:`地球は15度で1時間ずれる。経度差${deg}度の時差は何時間？`, sub:'時差の基礎', level:'★★☆', hint:'÷15', type:'free', ans:`${h}`, altAns:[`${h}時間`], explain:`【考え方】経度15度で時差1時間。\n【手順】${deg}÷15=${h}時間\n【ポイント】地球は24時間で360度回る。`}; },
 ];
 // ---- 英語ジェネレーター ----
+// ---- 中1英語 模試レベル強化（全国模試・英検5級形式：整序・対話文完成・読解。8月まで範囲に適合） ----
+BANK.english.exam.push(
+  { q:'正しく並べた文は？（私は毎朝6時に起きます）', sub:'語順（整序）', level:'★★★', hint:'主語＋動詞＋時刻＋頻度', type:'choice', choices:['I get up at six every morning.','I get at six up every morning.','Every morning six I get up at.','I at six get up every morning.'], ans:'I get up at six every morning.', explain:'【考え方】英語は主語＋動詞が基本。時刻(at six)→頻度(every morning)の順。\n【手順】I get up / at six / every morning.\n【ポイント】「〜時に」はat＋時刻。修飾語は文の後ろへ。' },
+  { q:'正しく並べた文は？（あなたは何のスポーツが好きですか）', sub:'語順（整序・疑問詞）', level:'★★★', hint:'疑問詞＋名詞を文頭に', type:'choice', choices:['What sport do you like?','What do you like sport?','Do you what sport like?','What sport you do like?'], ans:'What sport do you like?', explain:'【考え方】「何の＋名詞」はWhat＋名詞のかたまりで文頭。\n【手順】What sport＋do you like?\n【ポイント】What color/What subjectも同じ形。' },
+  { q:'正しく並べた文は？（彼女は私の英語の先生です）', sub:'語順（整序）', level:'★★☆', hint:'my English teacher の語順', type:'choice', choices:['She is my English teacher.','She is English my teacher.','My English is she teacher.','She my English teacher is.'], ans:'She is my English teacher.', explain:'【考え方】所有格(my)＋種類(English)＋名詞(teacher)の順。\n【手順】She is / my English teacher.\n【ポイント】日本語と同じ「私の英語の先生」の順で並ぶ。' },
+  { q:'正しく並べた文は？（あなたは日曜日に何をしますか）', sub:'語順（整序・疑問詞）', level:'★★★', hint:'What＋do you＋動詞', type:'choice', choices:['What do you do on Sundays?','What you do do on Sundays?','Do you what do on Sundays?','What do on Sundays you do?'], ans:'What do you do on Sundays?', explain:'【考え方】疑問詞What＋疑問文の語順(do you do)。\n【手順】2つ目のdoは「する」という動詞。\n【ポイント】What do you do?＝「何をしますか」。doが2回出てよい。' },
+  { q:'正しく並べた文は？（この箱を運ばないでください）', sub:'語順（否定の命令文）', level:'★★★', hint:'Don\'t＋動詞の原形', type:'choice', choices:['Don\'t carry this box.','Not carry this box.','You don\'t carry this box?','Don\'t this box carry.'], ans:'Don\'t carry this box.', explain:'【考え方】否定の命令文はDon\'t＋原形で始める。\n【手順】Don\'t carry＋this box.\n【ポイント】主語Youは置かない。' },
+  { q:'対話：A: Do you play the guitar? B: (   ) I play it every day.', sub:'対話文完成', level:'★★☆', hint:'Doで聞かれたらdoで答える', type:'choice', choices:['Yes, I do.','Yes, I am.','Yes, you do.','Yes, it is.'], ans:'Yes, I do.', explain:'【考え方】Do you〜?にはdo/don\'tで答える。\n【手順】Yes, I do.／No, I don\'t.\n【ポイント】be動詞で聞かれたらbe動詞で、doで聞かれたらdoで答える。' },
+  { q:'対話：A: (   ) B: It\'s ten thirty.', sub:'対話文完成（疑問詞）', level:'★★★', hint:'時刻を答えている', type:'choice', choices:['What time is it?','What day is it?','How old are you?','When do you get up?'], ans:'What time is it?', explain:'【考え方】答えが「10時30分」→時刻をたずねる文。\n【手順】What time is it? — It\'s ten thirty.\n【ポイント】What day＝曜日、What time＝時刻。答えから逆算する。' },
+  { q:'対話：A: Where is my cap? B: (   )', sub:'対話文完成（場所）', level:'★★★', hint:'場所を答える', type:'choice', choices:['It\'s under the chair.','Yes, it is.','It\'s ten o\'clock.','You are welcome.'], ans:'It\'s under the chair.', explain:'【考え方】Where〜?には場所を答える。\n【手順】It\'s under the chair.（いすの下だよ）\n【ポイント】Yes/Noで答えない。under/on/inなど前置詞で場所を示す。' },
+  { q:'対話：A: Is this your notebook? B: No, (   ). It\'s Yuki\'s.', sub:'対話文完成（be動詞）', level:'★★☆', hint:'thisはitで受ける', type:'choice', choices:['it isn\'t','this isn\'t','I\'m not','it doesn\'t'], ans:'it isn\'t', explain:'【考え方】Is this〜?への答えはit。\n【手順】No, it isn\'t.\n【ポイント】this/thatは答えの文ではitに変わる。' },
+  { q:'対話：A: How many caps do you have? B: (   )', sub:'対話文完成（数）', level:'★★★', hint:'数を答える', type:'choice', choices:['I have about twenty.','Yes, I do.','It\'s five hundred yen.','They are new.'], ans:'I have about twenty.', explain:'【考え方】How many〜?には数を答える。\n【手順】I have about twenty.（20個くらい）\n【ポイント】How many＝いくつ。about＝約。' },
+  { q:'Ken is my friend. I like (   ) very much.', sub:'代名詞（目的格）', level:'★★★', hint:'動詞のあとの「彼を」', type:'choice', choices:['him','he','his','her'], ans:'him', explain:'【考え方】動詞の目的語は目的格。\n【手順】like him（彼を好き）\n【ポイント】he-his-him、she-her-her、they-their-them。' },
+  { q:'(   ) bag is yours, this one or that one?', sub:'疑問詞 Which', level:'★★★', hint:'2つから選ぶ', type:'choice', choices:['Which','What','Whose','Who'], ans:'Which', explain:'【考え方】A or B と選択肢がある→「どちらの」。\n【手順】Which bag〜, this one or that one?\n【ポイント】選択はWhich、持ち主はWhose。' },
+  { q:'(   ) bike is this? — It\'s my sister\'s.', sub:'疑問詞 Whose', level:'★★★', hint:'持ち主をたずねる', type:'choice', choices:['Whose','Who','Which','What'], ans:'Whose', explain:'【考え方】答えが「姉のもの」→持ち主。\n【手順】Whose bike is this?\n【ポイント】Whose＝だれの。名詞\'s＝「〜のもの」。' },
+  { q:'My school is (   ) the library and the park.', sub:'前置詞（場所）', level:'★★★', hint:'AとBの間', type:'choice', choices:['between','under','on','from'], ans:'between', explain:'【考え方】「AとBの間」の前置詞。\n【手順】between A and B\n【ポイント】between＝2つの間、among＝3つ以上の間。' },
+  { q:'I want (   ) orange and two apples.', sub:'冠詞 a/an', level:'★★☆', hint:'母音の音で始まる語', type:'choice', choices:['an','a','the','two'], ans:'an', explain:'【考え方】母音の音（a,i,u,e,o）で始まる語にはan。\n【手順】an orange\n【ポイント】an apple, an egg, an hour（発音で判断）。' },
+  { q:'(   ) your father busy now?', sub:'be動詞と一般動詞の区別', level:'★★★', hint:'busyは形容詞（動詞がない）', type:'choice', choices:['Is','Does','Do','Are'], ans:'Is', explain:'【考え方】文に一般動詞がない（busy＝形容詞）→be動詞の疑問文。\n【手順】Is your father busy?\n【ポイント】動詞があればDo/Does、なければbe動詞。' },
+  { q:'What (   ) on TV? — I watch soccer games.', sub:'疑問文の語順', level:'★★★', hint:'疑問詞のあとは do you＋動詞', type:'choice', choices:['do you watch','you watch','are you watch','watch you'], ans:'do you watch', explain:'【考え方】疑問詞のあとは疑問文の語順。\n【手順】What do you watch on TV?\n【ポイント】be動詞とdoを混ぜない（are you watchは誤り）。' },
+  { q:'"the third month of the year" は何月？', sub:'語彙（月・序数）', level:'★★☆', hint:'3番目の月', type:'choice', choices:['March','May','April','September'], ans:'March', explain:'【考え方】third＝3番目。年の3番目の月。\n【手順】1月January→2月February→3月March\n【ポイント】first/second/thirdの序数と月名をセットで。' },
+  { q:'時計が 9:15 のとき、What time is it? の答えは？', sub:'時刻の表現', level:'★★☆', hint:'時→分の順で読む', type:'choice', choices:['It\'s nine fifteen.','It\'s fifteen nine.','It\'s nine fifty.','It\'s five nineteen.'], ans:'It\'s nine fifteen.', explain:'【考え方】時刻は「時→分」の順にそのまま読む。\n【手順】9:15＝nine fifteen\n【ポイント】fifteen(15)とfifty(50)の聞き分け・読み分けに注意。' },
+  { q:'反対の意味の語は？ "before"', sub:'語彙（反意語）', level:'★★☆', hint:'あとで', type:'choice', choices:['after','ago','late','next'], ans:'after', explain:'【考え方】before（〜の前）の反対。\n【手順】before ⇔ after\n【ポイント】before school／after school のペアで覚える。' },
+  { passage:'Hi, I\'m Emi. I\'m from Osaka. I\'m a junior high school student. I like music very much, and I play the piano every day. My favorite subject is English. I have two dogs, Koro and Shiro. They are very cute.', q:'【読解】エミが毎日していることは？', sub:'読解（内容一致）', level:'★★★', hint:'every day のある文をさがす', type:'choice', choices:['ピアノをひく','犬の散歩をする','英語の歌を歌う','大阪に行く'], ans:'ピアノをひく', explain:'【考え方】every dayを含む文を探す。\n【手順】I play the piano every day.＝毎日ピアノをひく\n【ポイント】設問のキーワード（毎日）を本文から探すのが読解のコツ。' },
+  { passage:'Hi, I\'m Emi. I\'m from Osaka. I\'m a junior high school student. I like music very much, and I play the piano every day. My favorite subject is English. I have two dogs, Koro and Shiro. They are very cute.', q:'【読解】エミについて本文の内容と合うものは？', sub:'読解（内容一致）', level:'★★★', hint:'1つずつ本文と照らし合わせる', type:'choice', choices:['犬を2ひき飼っている','東京の出身だ','好きな教科は音楽だ','ねこを飼っている'], ans:'犬を2ひき飼っている', explain:'【考え方】選択肢を本文と1つずつ照合。\n【手順】I have two dogs → 犬2ひき◯。出身はOsaka、好きな教科はEnglish。\n【ポイント】「音楽が好き」と「好きな教科」のひっかけに注意。' },
+  { passage:'Ken is my classmate. He is on the soccer team. We practice soccer together on Tuesdays and Fridays. Ken and I walk to school every day. His house is near my house.', q:'【読解】ケンと「私」がサッカーを練習する曜日は？', sub:'読解（内容一致）', level:'★★★', hint:'on ＋曜日s', type:'choice', choices:['火曜日と金曜日','月曜日と水曜日','土曜日と日曜日','木曜日だけ'], ans:'火曜日と金曜日', explain:'【考え方】on Tuesdays and Fridaysを読み取る。\n【手順】Tuesday＝火曜、Friday＝金曜\n【ポイント】曜日+s＝「毎週〜曜日に」。' },
+  { passage:'Ken is my classmate. He is on the soccer team. We practice soccer together on Tuesdays and Fridays. Ken and I walk to school every day. His house is near my house.', q:'【読解】本文の内容と合うものは？', sub:'読解（内容一致）', level:'★★★', hint:'walk to school に注目', type:'choice', choices:['ケンと「私」は毎日歩いて学校に行く','ケンはバスで学校に行く','ケンの家は学校の中にある','ケンは野球部に入っている'], ans:'ケンと「私」は毎日歩いて学校に行く', explain:'【考え方】walk to school every day＝毎日歩いて通学。\n【手順】soccer team（サッカー部）、house is near my house（家が近い）も確認\n【ポイント】本文にない情報（バス・野球部）を選ばない。' }
+);
 const ENG_SUBJ3 = ['He','She','My father','My sister','Tom','Ken','My brother'];
 const ENG_VERBS = [['play','plays','tennis'],['like','likes','music'],['watch','watches','TV'],['go','goes','to school'],['have','has','a dog'],['study','studies','English'],['wash','washes','the car']];
 const ENG_PLURAL = [['box','boxes'],['watch','watches'],['city','cities'],['leaf','leaves'],['child','children'],['knife','knives'],['country','countries'],['dish','dishes']];
@@ -3616,6 +3643,19 @@ const engGens = [
   function(){ const subj=pick([['I','am'],['You','are'],['He','is'],['She','is'],['They','are'],['We','are'],['Tom','is']]); return {q:`${subj[0]} (   ) a student.`, sub:'be動詞', level:'★★☆', hint:'主語に合うbe動詞', type:'choice', choices:shuffleArr(['am','is','are','be']), ans:subj[1], explain:`【考え方】主語に合うbe動詞を選ぶ。\n【手順】${subj[0]} のbe動詞は ${subj[1]}\n【ポイント】I→am、you/複数→are、3単数→is。`}; },
   function(){ const p=pick(ENG_PREP_TIME); return {q:`I get up early (   ) ${p[0]}.`, sub:'前置詞（時）', level:'★★★', hint:'in/on/at の使い分け', type:'choice', choices:shuffleArr(['in','on','at','to']), ans:p[1], explain:`【考え方】時を表す前置詞 in/on/at を使い分ける。\n【手順】${p[2]}\n【ポイント】時刻はat、曜日・日付はon、月・季節・年はin。`}; },
   function(){ const pr=pick([['私の','my'],['あなたの','your'],['彼の','his'],['彼女の','her'],['私たちの','our'],['彼らの','their']]); return {q:`This is (   ) bag.（${pr[0]}）`, sub:'代名詞（所有格）', level:'★★★', hint:'名詞の前の形', type:'choice', choices:shuffleArr([pr[1],'the','a','it']), ans:pr[1], explain:`【考え方】名詞の前は所有格。\n【手順】${pr[0]}（名詞の前）は ${pr[1]}\n【ポイント】my/your/his/her/our/their。`}; },
+  // ---- 模試レベル追加（目的格・疑問詞・時刻・整序・be/do識別） ----
+  function(){ const pr=pick([['彼','him','he','his'],['彼女','her','she','hers'],['彼ら','them','they','their'],['私','me','I','my'],['私たち','us','we','our']]); return {q:`I know (   ) very well.（${pr[0]}を）`, sub:'代名詞（目的格）', level:'★★★', hint:'動詞のあとの形', type:'choice', choices:shuffleArr([pr[1],pr[2],pr[3],'it']), ans:pr[1], explain:`【考え方】動詞の目的語は目的格。\n【手順】「${pr[0]}を」＝${pr[1]}\n【ポイント】I-my-me、he-his-him のように3つの形をセットで覚える。`}; },
+  function(){ const w=pick([['Where','do you study','— In my room.','場所'],['When','do you watch TV','— After dinner.','時'],['Who','is that tall boy','— He is my brother.','人'],['What','do you have in your bag','— Two books and a pen.','物'],['How','do you come to school','— By bus.','手段']]); return {q:`(   ) ${w[1]}? ${w[2]}`, sub:'疑問詞の使い分け', level:'★★★', hint:'答えの文から判断（'+w[3]+'）', type:'choice', choices:shuffleArr(['Where','When','Who','What','How'].filter(x=>x!==w[0]).slice(0,3).concat([w[0]])), ans:w[0], explain:`【考え方】答えの内容（${w[3]}）に合う疑問詞を選ぶ。\n【手順】${w[0]} ${w[1]}?\n【ポイント】場所Where・時When・人Who・物What・手段How。`}; },
+  function(){ const h=rint(1,12), m=pick([10,15,20,30,40,45,50]); const NUM=['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve']; const MIN={10:'ten',15:'fifteen',20:'twenty',30:'thirty',40:'forty',45:'forty-five',50:'fifty'}; const ok=`It's ${NUM[h]} ${MIN[m]}.`; const cand=[`It's ${MIN[m]} ${NUM[h]}.`, `It's ${NUM[h]} ${MIN[m===15?50:15]}.`, `It's ${NUM[(h%12)+1]} ${MIN[m]}.`, `It's ${NUM[h]} o'clock.`]; const ngs=[]; cand.forEach(function(c){ if(c!==ok && ngs.indexOf(c)<0 && ngs.length<3) ngs.push(c); }); return {q:`時計が「${h}:${String(m).padStart(2,'0')}」のとき、What time is it? の答えは？`, sub:'時刻の表現', level:'★★☆', hint:'時→分の順', type:'choice', choices:shuffleArr([ok].concat(ngs)), ans:ok, explain:`【考え方】時刻は「時→分」の順に読む。\n【手順】${h}:${String(m).padStart(2,'0')}＝${NUM[h]} ${MIN[m]}\n【ポイント】fifteen(15)とfifty(50)の混同に注意。`}; },
+  function(){ const s=pick([
+    ['私は放課後に図書館で勉強します','I study in the library after school.',['I study after school in the library the.','After school I in the library study.','I in the library study after school.']],
+    ['あなたは毎日歩いて学校に行きますか','Do you walk to school every day?',['Are you walk to school every day?','Do you to school walk every day?','You do walk to school every day?']],
+    ['私たちは毎週日曜日にテニスをします','We play tennis every Sunday.',['We plays tennis every Sunday.','We tennis play every Sunday.','Every Sunday play we tennis.']],
+    ['これはだれのかさですか','Whose umbrella is this?',['Who umbrella is this?','Whose is umbrella this?','Whose this umbrella is?']],
+    ['ドアを開けてください','Please open the door.',['Please opens the door.','Please the door open.','You please open the door.']]
+  ]); return {q:`正しく並べた文は？（${s[0]}）`, sub:'語順（整序）', level:'★★★', hint:'主語＋動詞を軸に組み立てる', type:'choice', choices:shuffleArr([s[1]].concat(s[2])), ans:s[1], explain:`【考え方】英語は主語＋動詞の順が基本。\n【手順】${s[1]}\n【ポイント】修飾語（場所・時）は文の後ろに置く。`}; },
+  function(){ const s=pick([['(   ) you like math?','Do','like（一般動詞）がある'],['(   ) your mother a teacher?','Is','動詞がない（a teacherは名詞）'],['(   ) Ken and Tom brothers?','Are','主語が複数・動詞がない'],['(   ) you a new student?','Are','動詞がない'],['(   ) they play baseball?','Do','play（一般動詞）がある']]); return {q:s[0], sub:'be動詞と一般動詞の区別', level:'★★★', hint:'一般動詞があるか探す', type:'choice', choices:shuffleArr(['Do','Is','Are','Does'].filter(x=>x!==s[1]).slice(0,3).concat([s[1]])), ans:s[1], explain:`【考え方】文中に一般動詞があればDo/Does、なければbe動詞。\n【手順】${s[2]}→${s[1]}\n【ポイント】be動詞とdoは同じ文で併用しない。`}; },
+  function(){ const W=[['school','学校'],['friend','友だち'],['breakfast','朝食'],['library','図書館'],['subject','教科'],['weekend','週末'],['buy','買う'],['speak','話す'],['teach','教える'],['visit','訪れる'],['famous','有名な'],['together','いっしょに']]; const w=pick(W); const o=shuffleArr(W.filter(x=>x!==w)).slice(0,3).map(x=>x[1]); return {q:`英単語 "${w[0]}" の意味は？`, sub:'語彙（基本単語）', level:'★☆☆', hint:'英検5級レベルの基本語', type:'choice', choices:shuffleArr([w[1]].concat(o)), ans:w[1], explain:`【考え方】基本単語の意味。\n【手順】${w[0]}＝${w[1]}\n【ポイント】教科書の太字単語は必ず覚える。`}; },
 ];
 // ---- 国語ジェネレーター（語彙プール） ----
 const JP_READ = [['日和','ひより'],['風情','ふぜい'],['相殺','そうさい'],['貪欲','どんよく'],['市井','しせい'],['漸次','ぜんじ'],['逐一','ちくいち'],['名残','なごり'],['境内','けいだい'],['流布','るふ'],['会得','えとく'],['出納','すいとう'],['思惑','おもわく'],['遂行','すいこう'],['形相','ぎょうそう'],['由緒','ゆいしょ'],['示唆','しさ'],['言質','げんち']];
@@ -3723,6 +3763,57 @@ g4EngGens = g4EngGens.concat([
  function(){ var w=pick([['晴れ','sunny'],['雨','rainy'],['くもり','cloudy'],['雪','snowy']]); var o=shuffleArr(['sunny','rainy','cloudy','snowy']).filter(function(x){return x!==w[1];}).slice(0,3); return {q:'天気「'+w[0]+'」を英語で？', sub:'英語（天気）', level:'★★☆', hint:'weather', type:'choice', choices:shuffleArr([w[1]].concat(o)), ans:w[1], explain:'【考え方】天気の英語。\n【手順】'+w[0]+'＝'+w[1]+'\n【ポイント】-y がつく形。'}; },
 ]);
 
+// ---- 小4英語 模試レベル強化（Let's Try!2の全単元＋英検Jr.ゴールド〜英検5級入口レベル）----
+// 単語当てだけでなく「文・会話・語順・時刻・小文字」で差がつく出題にする
+g4EngGens = g4EngGens.concat([
+ // 大文字⇔小文字（Let's Try!2 Unit6：小文字）
+ function(){ var A='ABCDEFGHIJKLMNOPQRSTUVWXYZ', i=rint(0,25); var big=A[i], sml=big.toLowerCase(); var o=shuffleArr(A.toLowerCase().split('').filter(function(x){return x!==sml;})).slice(0,3); return {q:'大文字「'+big+'」の小文字は？', sub:'英語（小文字）', level:'★★☆', hint:'形がにているものも', type:'choice', choices:shuffleArr([sml].concat(o)), ans:sml, explain:'【考え方】大文字と小文字の対応。\n【手順】'+big+' → '+sml+'\n【ポイント】b/d、p/qなど形のにた文字に注意。'}; },
+ // 辞書順（間の文字）
+ function(){ var A='ABCDEFGHIJKLMNOPQRSTUVWXYZ', i=rint(1,24); var mid=A[i]; var o=shuffleArr(A.split('').filter(function(x){return x!==mid;})).slice(0,3); return {q:'アルファベット順で「'+A[i-1]+'」と「'+A[i+1]+'」の間の文字は？', sub:'英語（アルファベット順）', level:'★★★', hint:'A〜Zを声に出して', type:'choice', choices:shuffleArr([mid].concat(o)), ans:mid, explain:'【考え方】アルファベットの並び順。\n【手順】'+A[i-1]+'→'+mid+'→'+A[i+1]+'\n【ポイント】順番をリズムで覚える。'}; },
+ // 時刻（Let's Try!2 Unit4：What time is it?）
+ function(){ var h=rint(1,12); var NUM=['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve']; var half=Math.random()<0.5; var ok=half?("It's "+NUM[h]+" thirty."):("It's "+NUM[h]+" o'clock."); var disp=half?(h+':30'):(h+':00'); var ng=[half?("It's "+NUM[h]+" o'clock."):("It's "+NUM[h]+" thirty."), "It's "+NUM[(h%12)+1]+(half?" thirty.":" o'clock."), "It's "+NUM[(h+1)%12+1]+" o'clock."]; return {q:'時計が「'+disp+'」のとき What time is it? の答えは？', sub:'英語（時刻）', level:'★★★', hint:'30分はthirty', type:'choice', choices:shuffleArr([ok].concat(ng)), ans:ok, explain:'【考え方】時→分の順で読む。\n【手順】'+disp+'＝'+ok+'\n【ポイント】ちょうど＝o\'clock、30分＝thirty。'}; },
+ // 曜日の順序（あした・きのう）
+ function(){ var D=[['日曜日','Sunday'],['月曜日','Monday'],['火曜日','Tuesday'],['水曜日','Wednesday'],['木曜日','Thursday'],['金曜日','Friday'],['土曜日','Saturday']]; var i=rint(0,6); var tomorrow=Math.random()<0.5; var base=D[i], ansD=tomorrow?D[(i+1)%7]:D[(i+6)%7]; var o=shuffleArr(D.filter(function(x){return x!==ansD;})).slice(0,3).map(function(x){return x[1];}); return {q:'今日は'+base[0]+'（'+base[1]+'）。'+(tomorrow?'明日':'昨日')+'は英語で？', sub:'英語（曜日の順）', level:'★★★', hint:'曜日の順番を思い出そう', type:'choice', choices:shuffleArr([ansD[1]].concat(o)), ans:ansD[1], explain:'【考え方】曜日の順番。\n【手順】'+base[0]+'の'+(tomorrow?'次':'前')+'は'+ansD[0]+'＝'+ansD[1]+'\n【ポイント】Sun→Mon→Tue→Wed→Thu→Fri→Sat。'}; },
+ // 会話の応答（Let's Try! の定番表現）
+ function(){ var c=pick([
+   ['How are you?','I\'m fine, thank you.',['I\'m ten years old.','It\'s sunny.','My name is Ken.']],
+   ['What\'s your name?','My name is Ken.',['I\'m fine.','It\'s Monday.','Yes, I do.']],
+   ['How old are you?','I\'m ten years old.',['I\'m fine, thank you.','It\'s ten o\'clock.','I like ten.']],
+   ['What do you want?','I want a new cap.',['I\'m from Japan.','You\'re welcome.','See you.']],
+   ['How\'s the weather?','It\'s sunny.',['It\'s Tuesday.','I\'m sunny.','Yes, it is.']],
+   ['Do you like dogs?','Yes, I do.',['Yes, I am.','No, I am.','It\'s a dog.']]
+ ]); return {q:'「'+c[0]+'」と聞かれたときの答えは？', sub:'英語（会話の応答）', level:'★★★', hint:'何を聞かれているかな', type:'choice', choices:shuffleArr([c[1]].concat(c[2])), ans:c[1], explain:'【考え方】質問の意味に合う答えを選ぶ。\n【手順】'+c[0]+' → '+c[1]+'\n【ポイント】How old＝年れい、weather＝天気、Do you〜?はYes, I do.'}; },
+ // 語順（3〜4語の文）
+ function(){ var s=pick([
+   ['ぼくはサッカーが好きです','I like soccer.',['Like I soccer.','Soccer like I.','I soccer like.']],
+   ['これは私のえんぴつです','This is my pencil.',['This my is pencil.','Is this my pencil.','My pencil this is.']],
+   ['私は新しい自転車がほしいです','I want a new bike.',['I want new a bike.','I a new bike want.','Want I a new bike.']],
+   ['私はりんごを3つ持っています','I have three apples.',['I three have apples.','Have I three apples.','I apples have three.']]
+ ]); return {q:'正しい英語の文は？（'+s[0]+'）', sub:'英語（語順）', level:'★★★', hint:'「だれが」「どうする」の順', type:'choice', choices:shuffleArr([s[1]].concat(s[2])), ans:s[1], explain:'【考え方】英語は「だれが→どうする→なにを」の順。\n【手順】'+s[1]+'\n【ポイント】日本語と順番がちがうことに注意。'}; },
+ // 数 11〜20
+ function(){ var N=[['11','eleven'],['12','twelve'],['13','thirteen'],['14','fourteen'],['15','fifteen'],['16','sixteen'],['17','seventeen'],['18','eighteen'],['19','nineteen'],['20','twenty']]; var n=pick(N); var o=shuffleArr(N.filter(function(x){return x!==n;})).slice(0,3).map(function(x){return x[1];}); return {q:'数字「'+n[0]+'」を英語で？', sub:'英語（数11-20）', level:'★★☆', hint:'-teenがつく数', type:'choice', choices:shuffleArr([n[1]].concat(o)), ans:n[1], explain:'【考え方】11〜20の英語。\n【手順】'+n[0]+'＝'+n[1]+'\n【ポイント】13〜19は-teen。'}; },
+ // 数 10〜90（十のくらい）
+ function(){ var N=[['20','twenty'],['30','thirty'],['40','forty'],['50','fifty'],['60','sixty'],['70','seventy'],['80','eighty'],['90','ninety']]; var n=pick(N); var teen={'20':'twelve','30':'thirteen','40':'fourteen','50':'fifteen','60':'sixteen','70':'seventeen','80':'eighteen','90':'nineteen'}[n[0]]; var o=shuffleArr(N.filter(function(x){return x!==n;})).slice(0,2).map(function(x){return x[1];}).concat([teen]); return {q:'数字「'+n[0]+'」を英語で？', sub:'英語（数10とび）', level:'★★★', hint:'-tyがつく数。-teenとまちがえない', type:'choice', choices:shuffleArr([n[1]].concat(o)), ans:n[1], explain:'【考え方】十のくらいの数は-ty。\n【手順】'+n[0]+'＝'+n[1]+'\n【ポイント】fifteen(15)とfifty(50)のようにまぎらわしい数に注意。'}; },
+ // 月
+ function(){ var M=[['1月','January'],['2月','February'],['3月','March'],['4月','April'],['5月','May'],['6月','June'],['7月','July'],['8月','August'],['9月','September'],['10月','October'],['11月','November'],['12月','December']]; var m=pick(M); var o=shuffleArr(M.filter(function(x){return x!==m;})).slice(0,3).map(function(x){return x[1];}); return {q:'「'+m[0]+'」を英語で？', sub:'英語（月）', level:'★★★', hint:'たん生日の月から覚えよう', type:'choice', choices:shuffleArr([m[1]].concat(o)), ans:m[1], explain:'【考え方】月の英語。\n【手順】'+m[0]+'＝'+m[1]+'\n【ポイント】最初は大文字で書く。'}; },
+ // 教科（Let's Try!2〜小5先取り）
+ function(){ var S=[['算数','math'],['国語','Japanese'],['理科','science'],['音楽','music'],['体育','P.E.'],['図工','arts and crafts']]; var s=pick(S); var o=shuffleArr(S.filter(function(x){return x!==s;})).slice(0,3).map(function(x){return x[1];}); return {q:'教科「'+s[0]+'」を英語で？', sub:'英語（教科）', level:'★★☆', hint:'時間割を英語で', type:'choice', choices:shuffleArr([s[1]].concat(o)), ans:s[1], explain:'【考え方】教科の英語。\n【手順】'+s[0]+'＝'+s[1]+'\n【ポイント】P.E.＝体育の略。'}; },
+ // なぞなぞ読み取り（What's this?）
+ function(){ var r=pick([
+   ['It has long ears. It likes carrots.','rabbit',['lion','fish','bird']],
+   ['It is big and gray. It has a long nose.','elephant',['rabbit','cat','dog'] ],
+   ['We use it on rainy days.','umbrella',['cap','desk','ball']],
+   ['It is yellow. Monkeys like it.','banana',['apple','egg','milk']]
+ ]); return {q:'What\'s this? 「'+r[0]+'」…答えは？', sub:'英語（なぞなぞ読み取り）', level:'★★★', hint:'ヒントの英語をよく読んで', type:'choice', choices:shuffleArr([r[1]].concat(r[2])), ans:r[1], explain:'【考え方】英語のヒントから物を当てる。\n【手順】'+r[0]+' → '+r[1]+'\n【ポイント】知っている単語（ears/nose/rainy）を手がかりに。'}; },
+ // 文の意味の読み取り
+ function(){ var s=pick([
+   ['I have P.E. on Monday.','月曜日に体育がある',['月曜日に音楽がある','日曜日に体育がある','毎日体育がある']],
+   ['I want two eggs and milk.','たまご2つと牛乳がほしい',['たまご1つがほしい','パンと牛乳がほしい','たまごが大好きだ']],
+   ['My favorite color is green.','いちばん好きな色は緑だ',['緑の服を持っている','好きな色は青だ','緑がきらいだ']],
+   ['Let\'s play cards after school.','放課後にカードで遊ぼう',['朝にカードで遊ぼう','放課後にサッカーをしよう','カードを買いに行こう']]
+ ]); return {q:'「'+s[0]+'」の意味は？', sub:'英語（文の意味）', level:'★★★', hint:'単語を1つずつ確かめて', type:'choice', choices:shuffleArr([s[1]].concat(s[2])), ans:s[1], explain:'【考え方】文全体の意味を読み取る。\n【手順】'+s[0]+'＝'+s[1]+'\n【ポイント】on＋曜日＝「〜曜日に」、after school＝放課後。'}; },
+]);
+
 var G4 = { math:function(){return pick(g4MathGens)();}, japanese:function(){return pick(g4JpGens)();}, science:function(){return pick(g4SciGens)();}, social:function(){return pick(g4SocGens)();}, english:function(){return pick(g4EngGens)();} };
 function g4Gens(area){ return ({math:g4MathGens,japanese:g4JpGens,science:g4SciGens,social:g4SocGens,english:g4EngGens})[area]||g4MathGens; }
 const GEN = { math:()=>pick(mathGens)(), science:()=>pick(sciGens)(), social:()=>pick(socGens)(), english:()=>pick(engGens)(), japanese:()=>pick(jpGens)() };
@@ -3809,7 +3900,7 @@ const SOC_MID8_GEO = [
 
 // --- 中学(8月まで)用ジェネレーター（範囲内のものだけ） ---
 const jpMid8Gens = [ ()=>pick(jpGens)() ]; // 漢字読み・対義語・四字熟語は1学期範囲
-const engMid8Gens = [ engGens[1], engGens[2], engGens[3], engGens[4] ]; // 三単現(engGens[0])を除外：複数形/be動詞/前置詞/所有格
+const engMid8Gens = [ engGens[1], engGens[2], engGens[3], engGens[4], engGens[5], engGens[6], engGens[7], engGens[8], engGens[9], engGens[10] ]; // 三単現(engGens[0])を除外。複数形/be動詞/前置詞/所有格＋目的格/疑問詞/時刻/整序/be・do識別/基本語彙
 const sciMid8Gens = [ sciGens[0], sciGens[1], sciGens[2], ()=>pick(SCI_MID8_BIO) ]; // 密度・濃度＋生物。物理/地学は除外
 const socMid8Gens = [ socGens[0], socGens[1], socGens[3], ()=>pick(SOC_MID8_GEO) ]; // 時差・自転＋地理/古代史。縮尺(日本地形図)は除外
 const elemGens = {
@@ -4439,10 +4530,16 @@ function buildExam(area, formNo){
   return withSeed(_seedOf('exam_'+area)+formNo*2654435761, function(){ return buildExamInner(area); });
 }
 function buildExamInner(area){
-  // 小学生モード：学年に合った自動生成問題で25問
+  // 小学生モード：学年別ジェネレーターから、レベル枠（基礎5・標準12・応用8）を守って25問
+  // （やさしい単語問題ばかりにならないよう、応用★★★を必ず8問入れて差がつく模試にする）
   if(typeof muGradeBand==='function' && muGradeBand()==='elem'){
-    var _o=[],_s={},_g=0;
-    while(_o.length<25 && _g<400){ _g++; var _q=genQuestion(area); if(_q&&_q.q&&!_s[_q.q]){ _s[_q.q]=1; var _c=Object.assign({},_q); _c.pts=(_c.level==='★★★')?5:((_c.level==='★★☆')?3:2); _o.push(_c); } }
+    var _b={ '★☆☆':[], '★★☆':[], '★★★':[] }, _s={}, _g=0;
+    var _add=function(q){ if(!q||!q.q||_s[q.q]) return; var lv=_b[q.level]?q.level:'★★☆'; if(_b[lv].length>=EXAM_QUOTA[lv]) return; _s[q.q]=1; _b[lv].push(Object.assign({},q)); };
+    var _need=function(){ return ['★☆☆','★★☆','★★★'].some(function(lv){ return _b[lv].length<EXAM_QUOTA[lv]; }); };
+    while(_need() && _g<1500){ _g++; _add(genQuestion(area)); }
+    var _o=[].concat(_b['★☆☆'],_b['★★☆'],_b['★★★']); _g=0;
+    while(_o.length<25 && _g<600){ _g++; var _q=genQuestion(area); if(_q&&_q.q&&!_s[_q.q]){ _s[_q.q]=1; _o.push(Object.assign({},_q)); } }
+    _o.forEach(function(q){ q.pts=(q.level==='★★★')?5:((q.level==='★★☆')?3:2); });
     return shuffleArr(_o).slice(0,25);
   }
   const useAug = examRange()==='aug';

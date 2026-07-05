@@ -2191,7 +2191,9 @@ function getVoiceDefault(key, def) {
   const v = safeLS.getItem(key);
   return (v && v.trim()) ? v.trim() : def;
 }
-function profileVoice(prof){ return getVoiceDefault('voice_'+prof, prof==='kai'?'EbuvaInXUGWtpYRUnKLQ':(prof==='loco'?'uYwU1hsbnP5viqq9qhob':'KgETZ36CCLD1Cob4xpkv')); }
+// 既定はElevenLabsの「公式プリメイド音声」（どのアカウントのAPIキーでも使える）。
+// kai=Adam(低め男性)/loco=Domi(元気)/hana=Rachel(やさしい女性)。multilingual_v2で日本語も話す。
+function profileVoice(prof){ return getVoiceDefault('voice_'+prof, prof==='kai'?'pNInz6obpgDQGcFmaJgB':(prof==='loco'?'AZnzlk1XvdvUeBnXmlld':'21m00Tcm4TlvDq8ikWAM')); }
 function charDefaultVoice(charKey){ var prof=(CHARS[charKey]&&CHARS[charKey].voice)||'hana'; return profileVoice(prof); }
 let voiceIds = {};
 Object.keys(CHARS).forEach(function(k){ voiceIds[k]=getVoiceDefault('voice_'+k, charDefaultVoice(k)); });
@@ -2677,9 +2679,25 @@ function saveApiKey() {
     document.getElementById('el-api-key').placeholder = '保存済み';
   }
   const on = !!elevenLabsKey;
-  document.getElementById('voice-status').textContent = on ? '🔊 音声オン' : '🔇 音声オフ';
-  document.getElementById('voice-status').className = 'voice-status ' + (on ? 'voice-on' : 'voice-off');
-  if (on) speak('APIキーを保存したよ！');
+  try{ unlockSpeech(); }catch(e){}
+  if (on) {
+    setVoiceStatus('⏳ イレブンラボに接続を確認中…', true);
+    verifyElevenLabs().then(function(okv){ if(okv) speak('イレブンラボの声に せっていしたよ！'); });
+  } else {
+    setVoiceStatus('🔇 音声オフ', false);
+  }
+}
+// APIキーが有効かをElevenLabsに確認して、理由をはっきり表示する
+async function verifyElevenLabs(){
+  if(!elevenLabsKey) return false;
+  try{
+    const r = await fetch('https://api.elevenlabs.io/v1/user', { headers: { 'xi-api-key': elevenLabsKey } });
+    if(r.ok){ setVoiceStatus('🔊 イレブンラボ 接続OK', true); return true; }
+    if(r.status===401) showVoiceError('APIキーが無効です（401）。キーをコピーし直してね');
+    else if(r.status===429) showVoiceError('利用上限を超えています（429）');
+    else showVoiceError('接続エラー（'+r.status+'）');
+    return false;
+  }catch(e){ showVoiceError('通信できません（ネット/ブラウザ制限）→内蔵音声', e&&e.message); return false; }
 }
 
 function renderVoiceSettings(){
@@ -2711,7 +2729,7 @@ async function testVoiceFor(key){
 // =================== TTS ===================
 function getCharVoiceId() {
   const id = voiceIds[currentChar] || charDefaultVoice(currentChar);
-  return id || 'KgETZ36CCLD1Cob4xpkv';
+  return id || '21m00Tcm4TlvDq8ikWAM'; // Rachel（公式プリメイド）
 }
 
 // speak: fire-and-forget
@@ -2728,6 +2746,10 @@ async function introThenQuestion(introText) {
 // iOS/Safari対策：内蔵音声(speechSynthesis)はタップ操作の中で一度呼ばないと解除されない。
 // スタートボタンなどユーザー操作の瞬間に空発声して解除しておく。
 let speechUnlocked = false;
+// ElevenLabs等のmp3再生用の1つのAudio要素を使い回す。タップ中に一度再生して解除しておくと、
+// 非同期fetchの後（＝タップの外）でも再生がブロックされない（iPad/Safariの自動再生対策）。
+var ttsAudioEl = null;
+function ensureAudioEl(){ if(!ttsAudioEl){ try{ ttsAudioEl = new Audio(); ttsAudioEl.preload='auto'; }catch(e){} } return ttsAudioEl; }
 function unlockSpeech() {
   if (speechUnlocked) return;
   try {
@@ -2736,9 +2758,18 @@ function unlockSpeech() {
       u.volume = 0; u.lang = 'ja-JP';
       window.speechSynthesis.speak(u);
       window.speechSynthesis.getVoices(); // 声リストの読み込みを促す
-      speechUnlocked = true;
     }
   } catch(e) {}
+  // mp3再生（ElevenLabs）用のAudio要素をタップの瞬間に解除
+  try {
+    var a = ensureAudioEl();
+    if (a) {
+      a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=';
+      var pr = a.play();
+      if (pr && pr.then) pr.then(function(){ try{ a.pause(); a.currentTime=0; }catch(e){} }).catch(function(){});
+    }
+  } catch(e) {}
+  speechUnlocked = true;
 }
 
 // 声をテスト（ボタンから直接呼ぶ。ユーザー操作なので音声が許可される）
@@ -2910,7 +2941,8 @@ function playBlob(blob, fallbackText, mySeq) {
     if (mySeq !== speechSeq) { resolve(); return; }   // すでに新しい発話が始まっている → 再生しない
     try {
       const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
+      const audio = ensureAudioEl() || new Audio();   // タップで解除済みの要素を使い回す（自動再生ブロック回避）
+      audio.src = url;
       currentAudio = audio;
       let settled = false;
       const done = () => { if (settled) return; settled = true; try { URL.revokeObjectURL(url); } catch(e){} resolve(); };

@@ -776,6 +776,18 @@
         <button class="btn-sm" onclick="testVoice()">🔊 声をテスト</button>
         <span class="voice-status voice-off" id="voice-status">🔇 音声オフ</span>
       </div>
+      <p class="settings-hint" style="margin-top:10px">🇯🇵 内蔵音声（APIキーなし）の日本語トーンを調整できます。声の種類は端末によって変わります。</p>
+      <div class="settings-row">
+        <label>声（日本語）</label>
+        <select id="tts-voice-sel" onchange="ttsSaveVoice()"><option value="">おすすめ（自動）</option></select>
+      </div>
+      <div class="settings-row">
+        <label>話す速さ</label>
+        <select id="tts-rate-sel" onchange="ttsSaveRate()"><option value="0.85">ゆっくり</option><option value="1">ふつう</option><option value="1.12">はやめ</option></select>
+        <label style="margin-left:6px">高さ</label>
+        <select id="tts-pitch-sel" onchange="ttsSavePitch()"><option value="-0.2">ひくめ</option><option value="0">ふつう</option><option value="0.15">たかめ</option></select>
+        <button class="btn-sm" onclick="ttsTest()">🔊 ためす</button>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -2233,6 +2245,7 @@ function init() {
   renderAreaGrid();
   renderSubjects();
   renderVoiceSettings();
+  try{ if('speechSynthesis' in window){ window.speechSynthesis.onvoiceschanged=function(){ try{ ttsPopulateVoices(); }catch(e){} }; } }catch(e){}
   if (elevenLabsKey) {
     document.getElementById('el-api-key').placeholder = '保存済み';
     document.getElementById('voice-status').textContent = '🔊 音声オン';
@@ -2596,6 +2609,7 @@ function openSettings()  { var _cu=muCurrentUser(); if(!_cu || !_cu.admin){ show
 function daysUntilTest(){ const td=safeLS.getItem('testdate'); if(!td) return null; const now=new Date(); now.setHours(0,0,0,0); return Math.round((_toDate(td)-now)/86400000); }
 function refreshSettingsDisp(){
   try{ renderUserAdmin(); }catch(e){}
+  try{ ttsPopulateVoices(); }catch(e){}
   const td=safeLS.getItem('testdate'); const t=document.getElementById('testdate-disp'); if(t) t.textContent= td?('（'+td+'／あと'+daysUntilTest()+'日）'):'（未設定）';
   const rw=lsGetJSON('reward',null); const r=document.getElementById('reward-disp'); if(r) r.textContent= rw?('（'+rw.points+'pt で '+rw.text+'）'):'（未設定）';
   const re=getRealExams(); const rd=document.getElementById('realexam-disp');
@@ -2822,11 +2836,23 @@ function stripEmoji(text) {
 }
 // TTS用：絵文字を除去し、日本語を正しい読みに変換
 function forTTS(text) { return toReading(stripEmoji(text)); }
-function pickJaVoice() {
-  try {
-    const vs = window.speechSynthesis.getVoices() || [];
-    return vs.find(v => /ja[-_]?JP/i.test(v.lang)) || vs.find(v => /ja/i.test(v.lang)) || null;
-  } catch(e) { return null; }
+function ttsAllJaVoices(){ try{ return (window.speechSynthesis.getVoices()||[]).filter(v=>/ja([-_]?jp)?/i.test(v.lang)); }catch(e){ return []; } }
+// 声の質を点数化：内蔵(local)・高品質(Enhanced/Premium/Neural)・定番(Kyoko/O-ren/Siri/Google)を優先
+function ttsScore(v){ var n=((v.name||'')+' '+(v.voiceURI||'')); var s=0;
+  if(v.localService) s+=3;
+  if(/enhanced|premium|neural/i.test(n)) s+=4;
+  if(/kyoko|o-?ren|hattori|siri|google/i.test(n)) s+=3;
+  return s; }
+function ttsRateFactor(){ var v=parseFloat(safeLS.getItem('tts_rate')); return isNaN(v)?1.0:v; }
+function ttsPitchOffset(){ var v=parseFloat(safeLS.getItem('tts_pitch')); return isNaN(v)?0:v; }
+function pickJaVoice(prof) {
+  var vs = ttsAllJaVoices(); if(!vs.length) return null;
+  var chosen = (safeLS.getItem('tts_voice')||'').trim();
+  if(chosen){ var m = vs.find(function(v){return v.voiceURI===chosen;}) || vs.find(function(v){return v.name===chosen;}); if(m) return m; }
+  var sorted = vs.slice().sort(function(a,b){ return ttsScore(b)-ttsScore(a); });
+  // 鬼コーチ(kai)は別の声があれば2番手を使って差をつける（自動選択のときだけ）
+  if(prof==='kai' && sorted.length>1) return sorted[1];
+  return sorted[0];
 }
 // 発話の世代カウンタ：新しい発話が始まると古い発話は破棄される（重なり防止）
 var speechSeq = 0;
@@ -2838,12 +2864,15 @@ function speakBuiltin(text, mySeq) {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(forTTS(text));
       u.lang = 'ja-JP';
-      const v = pickJaVoice(); if (v) u.voice = v;
-      // キャラごとに声色を変える
+      // キャラごとに声色を変える（自然なトーンに調整＋設定の速さ/高さを反映）
       const _prof = (CHARS[currentChar] && CHARS[currentChar].voice) || 'hana';
-      if (_prof === 'kai')      { u.pitch = 0.4; u.rate = 0.95; }
-      else if (_prof === 'loco'){ u.pitch = 1.0; u.rate = 1.08; }
-      else                            { u.pitch = 1.35; u.rate = 1.02; }
+      const v = pickJaVoice(_prof); if (v) u.voice = v;
+      let _bp, _br;
+      if (_prof === 'kai')      { _bp = 0.72; _br = 0.96; }   // 鬼コーチ：低め・落ち着き
+      else if (_prof === 'loco'){ _bp = 1.05; _br = 1.06; }   // 元気キャラ：ややテンポよく
+      else                      { _bp = 1.15; _br = 1.0;  }   // やさしいキャラ：少し高め（前の1.35は甲高すぎた）
+      u.pitch = Math.max(0, Math.min(2, _bp + ttsPitchOffset()));
+      u.rate  = Math.max(0.5, Math.min(1.5, _br * ttsRateFactor()));
       const ind = document.getElementById('speaking-indicator');
       if (ind) ind.style.display = 'inline';
       let done = false;
@@ -5946,6 +5975,20 @@ function checkBadges(ctx){
 
 // ---- もう一度聞く ----
 function replayVoice(){ if(lastSpokenText) speak(lastSpokenText); }
+// ===== 内蔵音声（日本語）のトーン設定 =====
+function ttsPopulateVoices(){
+  var sel=document.getElementById('tts-voice-sel'); if(!sel) return;
+  var cur=(safeLS.getItem('tts_voice')||'');
+  var vs=ttsAllJaVoices();
+  sel.innerHTML='<option value="">おすすめ（自動）</option>'+vs.map(function(v){ return '<option value="'+escapeHtml(v.voiceURI)+'">'+escapeHtml(v.name)+'</option>'; }).join('');
+  sel.value = vs.some(function(v){return v.voiceURI===cur;}) ? cur : '';
+  var r=document.getElementById('tts-rate-sel'); if(r){ var rv=safeLS.getItem('tts_rate')||'1'; r.value=Array.prototype.some.call(r.options,function(o){return o.value===rv;})?rv:'1'; }
+  var p=document.getElementById('tts-pitch-sel'); if(p){ var pv=safeLS.getItem('tts_pitch')||'0'; p.value=Array.prototype.some.call(p.options,function(o){return o.value===pv;})?pv:'0'; }
+}
+function ttsSaveVoice(){ safeLS.setItem('tts_voice', (document.getElementById('tts-voice-sel')||{}).value||''); ttsTest(); }
+function ttsSaveRate(){ safeLS.setItem('tts_rate', (document.getElementById('tts-rate-sel')||{}).value||'1'); ttsTest(); }
+function ttsSavePitch(){ safeLS.setItem('tts_pitch', (document.getElementById('tts-pitch-sel')||{}).value||'0'); ttsTest(); }
+function ttsTest(){ try{ unlockSpeech(); }catch(e){} var el=document.getElementById('el-api-key'); var hasKey=!!elevenLabsKey; speak(hasKey?'こんにちは！この声で よんでいきます。':'こんにちは！いっしょに がんばろう。'); }
 
 // ---- 成績レポート（推移・マスター度・週・保護者）----
 function renderTrend(){

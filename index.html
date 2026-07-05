@@ -776,7 +776,18 @@
         <button class="btn-sm" onclick="testVoice()">🔊 声をテスト</button>
         <span class="voice-status voice-off" id="voice-status">🔇 音声オフ</span>
       </div>
-      <p class="settings-hint" style="margin-top:10px">🇯🇵 内蔵音声（APIキーなし）の日本語トーンを調整できます。声の種類は端末によって変わります。</p>
+      <p class="settings-hint" style="margin-top:10px">🇯🇵 <b>日本語ネイティブの声</b>（イレブンラボ）。外国なまりが気になるときは、日本語の声にすると自然になります。有料プランで使えます。</p>
+      <div class="settings-row">
+        <button class="btn-sm" onclick="ttsLoadJaVoices()">🔎 日本語の声をさがす</button>
+        <select id="el-ja-voice" style="max-width:150px"></select>
+        <button class="btn-sm" onclick="ttsPreviewJa()" title="この声の見本を聞く">▶</button>
+      </div>
+      <div class="settings-row">
+        <button class="btn-sm" style="background:#0891b2" onclick="ttsApplyJa()">この声にする（全員）</button>
+        <button class="btn-sm" style="background:#64748b" onclick="ttsResetJaDefault()">おすすめ3声にもどす</button>
+      </div>
+      <p class="settings-hint" id="el-ja-status"></p>
+      <p class="settings-hint" style="margin-top:10px">🔈 内蔵音声（APIキーなし）の日本語トーンを調整できます。声の種類は端末によって変わります。</p>
       <div class="settings-row">
         <label>声（日本語）</label>
         <select id="tts-voice-sel" onchange="ttsSaveVoice()"><option value="">おすすめ（自動）</option></select>
@@ -2191,9 +2202,10 @@ function getVoiceDefault(key, def) {
   const v = safeLS.getItem(key);
   return (v && v.trim()) ? v.trim() : def;
 }
-// 既定はElevenLabsの「公式プリメイド音声」（どのアカウントのAPIキーでも使える）。
-// kai=Adam(低め男性)/loco=Domi(元気)/hana=Rachel(やさしい女性)。multilingual_v2で日本語も話す。
-function profileVoice(prof){ return getVoiceDefault('voice_'+prof, prof==='kai'?'pNInz6obpgDQGcFmaJgB':(prof==='loco'?'AZnzlk1XvdvUeBnXmlld':'21m00Tcm4TlvDq8ikWAM')); }
+// 既定は「日本語ネイティブ」のイレブンラボ音声（外国なまりを解消）。
+// hana=コノハ(やさしい女性)/loco=ユウコ(明るい女性)/kai=カグヤ(落ち着いた男性・ナレーション)。
+// 有料プランなら voice_id で直接使える。設定の「日本語の声をさがす」で変更も可。
+function profileVoice(prof){ return getVoiceDefault('voice_'+prof, prof==='kai'?'cOfrdzGy8S6oHQrFrI7b':(prof==='loco'?'J6YFreR6shJoaDfv7tLf':'T7yYq3WpB94yAuOXraRi')); }
 function charDefaultVoice(charKey){ var prof=(CHARS[charKey]&&CHARS[charKey].voice)||'hana'; return profileVoice(prof); }
 let voiceIds = {};
 Object.keys(CHARS).forEach(function(k){ voiceIds[k]=getVoiceDefault('voice_'+k, charDefaultVoice(k)); });
@@ -2729,7 +2741,7 @@ async function testVoiceFor(key){
 // =================== TTS ===================
 function getCharVoiceId() {
   const id = voiceIds[currentChar] || charDefaultVoice(currentChar);
-  return id || '21m00Tcm4TlvDq8ikWAM'; // Rachel（公式プリメイド）
+  return id || 'T7yYq3WpB94yAuOXraRi'; // コノハ（日本語ネイティブ女性）
 }
 
 // speak: fire-and-forget
@@ -2919,19 +2931,41 @@ function speakBuiltin(text, mySeq) {
 
 // キャラごとの声の調整（同じ声IDで代用しても少し雰囲気を変える）
 function charVoiceSettings() {
+  // 日本語の明瞭さを優先：styleは低め（高いと発音が崩れやすい）、speaker_boostで芯を出す
   const prof = (CHARS[currentChar] && CHARS[currentChar].voice) || 'hana';
-  if (prof === 'kai')  return { stability: 0.75, similarity_boost: 0.85, style: 0.0 };
-  if (prof === 'loco') return { stability: 0.35, similarity_boost: 0.8,  style: 0.55 };
-  return { stability: 0.62, similarity_boost: 0.8, style: 0.2 };
+  if (prof === 'kai')  return { stability: 0.6,  similarity_boost: 0.9, style: 0.0,  use_speaker_boost: true };
+  if (prof === 'loco') return { stability: 0.45, similarity_boost: 0.85, style: 0.15, use_speaker_boost: true };
+  return { stability: 0.55, similarity_boost: 0.9, style: 0.0, use_speaker_boost: true };
+}
+// 声IDと所有者ID（ボイスライブラリの声を追加するのに使う）
+function ttsOwners(){ try{ return JSON.parse(safeLS.getItem('el_voice_owners')||'{}'); }catch(e){ return {}; } }
+// ボイスライブラリの声を自分のアカウントに追加（無料枠等で直接使えない時のフォールバック）
+async function addSharedVoice(voiceId){
+  var owner = ttsOwners()[voiceId]; if(!owner) return false;
+  try{
+    var r = await fetch('https://api.elevenlabs.io/v1/voices/add/'+owner+'/'+encodeURIComponent(voiceId), {
+      method:'POST', headers:{ 'xi-api-key':elevenLabsKey, 'Content-Type':'application/json' },
+      body: JSON.stringify({ new_name: '学習アプリ '+String(voiceId).slice(0,6) })
+    });
+    return r.ok;
+  }catch(e){ return false; }
 }
 // ElevenLabsから音声を取得（成功:{ok:true,blob}、失敗:{ok:false,status}）
 async function fetchVoiceBlob(voiceId, cleanText) {
-  const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-    method: 'POST',
-    headers: { 'xi-api-key': elevenLabsKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: cleanText, model_id: 'eleven_multilingual_v2', voice_settings: charVoiceSettings() })
-  });
-  if (!resp.ok) { let body=''; try{ body=await resp.text(); }catch(e){} return { ok:false, status:resp.status, body }; }
+  const body = JSON.stringify({ text: cleanText, model_id: 'eleven_multilingual_v2', voice_settings: charVoiceSettings() });
+  const req = function(){ return fetch('https://api.elevenlabs.io/v1/text-to-speech/'+voiceId, {
+    method:'POST', headers:{ 'xi-api-key':elevenLabsKey, 'Content-Type':'application/json' }, body:body }); };
+  let resp = await req();
+  if (!resp.ok && resp.status===400) {
+    let t=''; try{ t=await resp.text(); }catch(e){}
+    // 「声が見つからない」→ ライブラリから追加して再試行
+    if (/voice.*not.*found|voice_not_found|does not exist/i.test(t) && await addSharedVoice(voiceId)) {
+      resp = await req();
+    } else {
+      return { ok:false, status:400, body:t };
+    }
+  }
+  if (!resp.ok) { let b=''; try{ b=await resp.text(); }catch(e){} return { ok:false, status:resp.status, body:b }; }
   const blob = await resp.blob();
   return { ok:true, blob };
 }
@@ -6016,6 +6050,48 @@ function ttsPopulateVoices(){
   sel.value = vs.some(function(v){return v.voiceURI===cur;}) ? cur : '';
   var r=document.getElementById('tts-rate-sel'); if(r){ var rv=safeLS.getItem('tts_rate')||'1'; r.value=Array.prototype.some.call(r.options,function(o){return o.value===rv;})?rv:'1'; }
   var p=document.getElementById('tts-pitch-sel'); if(p){ var pv=safeLS.getItem('tts_pitch')||'0'; p.value=Array.prototype.some.call(p.options,function(o){return o.value===pv;})?pv:'0'; }
+}
+// ===== 日本語ネイティブの声（ElevenLabsボイスライブラリ）=====
+async function ttsLoadJaVoices(){
+  var sel=document.getElementById('el-ja-voice'), st=document.getElementById('el-ja-status');
+  if(!elevenLabsKey){ if(st) st.textContent='先に上のAPIキーを保存してね。'; return; }
+  if(st) st.textContent='🔎 日本語の声をさがしています…';
+  try{
+    var r=await fetch('https://api.elevenlabs.io/v1/shared-voices?language=ja&page_size=100&sort=trending', { headers:{ 'xi-api-key':elevenLabsKey } });
+    if(!r.ok){ if(st) st.textContent='取得できませんでした（'+r.status+(r.status===401?'：キーが無効':'')+'）'; return; }
+    var data=await r.json(); var voices=(data&&data.voices)||[];
+    if(!voices.length){ if(st) st.textContent='日本語の声が見つかりませんでした。'; return; }
+    var owners=ttsOwners();
+    if(sel) sel.innerHTML=voices.map(function(v){ owners[v.voice_id]=v.public_owner_id;
+      var g=(v.gender==='female'?'女性':(v.gender==='male'?'男性':''));
+      return '<option value="'+escapeHtml(v.voice_id)+'" data-preview="'+escapeHtml(v.preview_url||'')+'">'+escapeHtml(v.name)+(g?('（'+g+'）'):'')+'</option>'; }).join('');
+    try{ safeLS.setItem('el_voice_owners', JSON.stringify(owners)); }catch(e){}
+    if(st) st.textContent=voices.length+'個の日本語の声が見つかったよ。えらんで▶で見本を聞き、「この声にする」でけってい。';
+  }catch(e){ if(st) st.textContent='通信できませんでした（ネット/ブラウザ制限）。'; }
+}
+function ttsPreviewJa(){
+  var sel=document.getElementById('el-ja-voice'); if(!sel||!sel.value){ return; }
+  var opt=sel.options[sel.selectedIndex]; var url=opt&&opt.getAttribute('data-preview');
+  if(url){ try{ unlockSpeech(); var a=ensureAudioEl(); if(a){ a.src=url; var p=a.play(); if(p&&p.catch) p.catch(function(){}); } }catch(e){} }
+}
+function ttsApplyJa(){
+  var sel=document.getElementById('el-ja-voice'), st=document.getElementById('el-ja-status');
+  if(!sel||!sel.value){ if(st) st.textContent='先に「日本語の声をさがす」でえらんでね。'; return; }
+  var vid=sel.value;
+  ['hana','loco','kai'].forEach(function(p){ try{ safeLS.setItem('voice_'+p, vid); }catch(e){} });
+  Object.keys(CHARS).forEach(function(k){ voiceIds[k]=vid; try{ safeLS.setItem('voice_'+k, ''); }catch(e){} });
+  showToast('🎤','日本語の声にしたよ','ぜんぶの先生が この声で話します');
+  try{ renderVoiceSettings(); }catch(e){}
+  try{ setCharacter(currentChar||'owl'); }catch(e){}
+  speak('こんにちは！この声で いっしょに がんばろう。');
+}
+function ttsResetJaDefault(){
+  ['hana','loco','kai'].forEach(function(p){ try{ safeLS.removeItem('voice_'+p); }catch(e){} });
+  Object.keys(CHARS).forEach(function(k){ try{ safeLS.removeItem('voice_'+k); }catch(e){} voiceIds[k]=charDefaultVoice(k); });
+  showToast('🎤','おすすめの声にもどしたよ','コノハ／ユウコ／カグヤ');
+  try{ renderVoiceSettings(); }catch(e){}
+  try{ setCharacter(currentChar||'owl'); }catch(e){}
+  speak('おすすめの声に もどしたよ。');
 }
 function ttsSaveVoice(){ safeLS.setItem('tts_voice', (document.getElementById('tts-voice-sel')||{}).value||''); ttsTest(); }
 function ttsSaveRate(){ safeLS.setItem('tts_rate', (document.getElementById('tts-rate-sel')||{}).value||'1'); ttsTest(); }

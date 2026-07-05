@@ -111,7 +111,7 @@ window.FIREBASE_CONFIG = {
     return Object.keys(s).filter(function(u){ return !del[u]; }); }
 
   // ---- Firestore ----
-  var db=null, fam=null, ready=false, unsubShared=null, unsubMember=null, memberUid=null;
+  var db=null, fam=null, ready=false, unsubShared=null, unsubMember=null, unsubReset=null, memberUid=null;
   var DEFAULT_FAMILY='0000'; // 既定で必ずクラウドDBに保存（端末ごとの設定不要）
   function famCode(){ var c=(rget('mu_family')||'').trim(); return c || DEFAULT_FAMILY; }
   function legacyRef(){ return db.collection('families').doc(fam); }
@@ -169,17 +169,65 @@ window.FIREBASE_CONFIG = {
     }, function(){});
   }
 
-  // ---- v1 → v2 移行（旧 families/{fam} の data を分割保存）----
-  function migrateLegacy(){
+  // ---- リセット伝播＋v1 → v2 移行（families/{fam} 親ドキュメントの確認）----
+  function basicWipe(){ var kill=[];
+    for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i);
+      if(k && (k.indexOf('u:')===0 || isSharedKey(k) || k==='mu_current')) kill.push(k); }
+    kill.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
+    return kill.length; }
+  function checkLegacy(){
     return legacyRef().get().then(function(d){
-      if(!d.exists) return;
-      var raw=d.data()||{};
-      if(raw.v2done || !raw.data) return;
-      applyKeys(raw.data);           // 旧データをローカルへマージ
-      doSaveAll();                   // 新構造で保存
-      return legacyRef().set({ v2done:true }, {merge:true});
-    }).catch(function(){});
+      var raw = d.exists ? (d.data()||{}) : {};
+      // 他の端末で「完全リセット」が実行されていたら、この端末のデータも初期化する
+      var cloudReset = parseInt(raw.resetAt||0,10)||0;
+      var localReset = parseInt(rget('mu_reset_at')||'0',10)||0;
+      if(cloudReset > localReset){
+        var killed = 0;
+        try{ killed = (window.muLocalWipe ? window.muLocalWipe() : basicWipe()) || 0; }catch(e){ killed = basicWipe(); }
+        rset('mu_reset_at', String(cloudReset));
+        if(killed > 0){ try{ sessionStorage.clear(); }catch(e){} try{ location.reload(); }catch(e){} return 'reset'; }
+      }
+      if(raw.data && !raw.v2done){
+        applyKeys(raw.data);         // 旧v1データをローカルへマージ（新構造への保存は起動時のdoSaveAllが行う）
+        return legacyRef().set({ v2done:true }, {merge:true}).then(function(){ return 'migrated'; });
+      }
+      return 'ok';
+    }).catch(function(){ return 'ok'; });
   }
+  // アプリを開いたままの端末にもリセットを即時伝播する（親ドキュメントの resetAt を監視）
+  function stopSync(){
+    ready=false; clearTimeout(saveT); dirtyShared=false; dirtyMembers={};
+    if(unsubShared){ try{ unsubShared(); }catch(e){} unsubShared=null; }
+    if(unsubMember){ try{ unsubMember(); }catch(e){} unsubMember=null; }
+  }
+  function listenReset(){
+    if(unsubReset){ try{ unsubReset(); }catch(e){} }
+    unsubReset = legacyRef().onSnapshot(function(d){
+      if(d.metadata && d.metadata.hasPendingWrites) return;
+      if(!d.exists) return;
+      var cloudReset = parseInt(((d.data()||{}).resetAt)||0,10)||0;
+      var localReset = parseInt(rget('mu_reset_at')||'0',10)||0;
+      if(cloudReset > localReset){
+        stopSync();
+        try{ (window.muLocalWipe ? window.muLocalWipe() : basicWipe()); }catch(e){ basicWipe(); }
+        rset('mu_reset_at', String(cloudReset));
+        try{ sessionStorage.clear(); }catch(e){}
+        try{ location.reload(); }catch(e){}
+      }
+    }, function(){});
+  }
+  // ---- 完全リセット：クラウドの全データを削除し、全端末にリセットを伝播 ----
+  window.cloudWipeAll = function(){
+    if(!db||!fam) return Promise.reject(new Error('cloud-not-ready'));
+    stopSync();
+    var epoch = Date.now();
+    return legacyRef().collection('members').get().then(function(qs){
+      var dels=[]; qs.forEach(function(doc){ dels.push(doc.ref.delete()); });
+      return Promise.all(dels);
+    }).then(function(){ return sharedRef().delete(); })
+      .then(function(){ return legacyRef().set({ v2done:true, resetAt: epoch }); })  // merge無し＝旧v1のdataも消える
+      .then(function(){ rset('mu_reset_at', String(epoch)); return true; });
+  };
 
   // ---- 公開API ----
   var readyResolve, readyPromise=new Promise(function(r){ readyResolve=r; });
@@ -214,7 +262,7 @@ window.FIREBASE_CONFIG = {
     rset('mu_family', c); try{ sessionStorage.removeItem('mu_synced'); }catch(e){}
     alert('家族コードを設定しました。クラウド同期を開始します。'); location.reload();
   };
-  window.cloudFamilyClear = function(){ rset('mu_family',''); if(unsubShared){ try{ unsubShared(); }catch(e){} } if(unsubMember){ try{ unsubMember(); }catch(e){} } alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
+  window.cloudFamilyClear = function(){ rset('mu_family',''); stopSync(); if(unsubReset){ try{ unsubReset(); }catch(e){} unsubReset=null; } alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
 
   // ---- 保存フック：localStorageに書いたら該当ドキュメントだけを保存 ----
   localStorage.setItem = function(k,v){
@@ -232,16 +280,18 @@ window.FIREBASE_CONFIG = {
     firebase.auth().signInAnonymously().then(function(){
       db = firebase.firestore();
       try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
-      migrateLegacy().then(function(){
+      checkLegacy().then(function(r){
+        if(r==='reset') return 'reset';
         // まずクラウド→ローカルへマージ（先に読まずに書くと古い端末がクラウドを上書きしてしまう）
         var pulls=[ sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); }).catch(function(){}) ];
         localUids().forEach(function(uid){
           pulls.push( memberRef(uid).get().then(function(d){ if(d.exists) applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }).catch(function(){}) );
         });
         return Promise.all(pulls);
-      }).then(function(){
+      }).then(function(r){
+        if(r==='reset') return;   // リセット直後はリロードするので同期を開始しない
         ready = true;
-        listenShared();
+        listenShared(); listenReset();
         var cur = rget('mu_current'); if(cur) listenMember(cur);
         doSaveAll();  // マージ済みの全データを新構造で保存
         readyResolve(true);

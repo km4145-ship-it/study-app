@@ -839,6 +839,10 @@
       <div class="settings-row">
         <button class="btn-sm" style="background:#ef4444" onclick="resetHistory()">🗑️ 実施履歴をすべて消す</button>
       </div>
+      <p class="settings-hint" style="margin-top:12px">完全リセット：全ユーザー・全学習記録・設定（管理者PIN含む）を<b>クラウドごと</b>消して、購入時の状態に戻します。他の端末も次に開いたときに自動で初期化されます。<b>元に戻せません。</b></p>
+      <div class="settings-row">
+        <button class="btn-sm" style="background:#7f1d1d" onclick="muFullReset()">💥 完全リセット（全端末・クラウドも消す）</button>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -2293,6 +2297,40 @@ function muShowPicker(){ renderUserSelect(); var ov=document.getElementById('use
 }
 // クラウドから変更が届いたときの画面反映（cloud-sync.jsから呼ばれる）
 window.muOnCloudUpdate = function(){ try{ muUpdateHeader(); var ov=document.getElementById('user-select-overlay'); if(ov && ov.style.display==='flex'){ renderUserSelect(); } }catch(e){} };
+// ===== 完全リセット（全ユーザー・全設定・クラウド・全端末）=====
+// この端末のアプリ関連データをすべて削除（mu_family=家族コード と mu_reset_at=リセット時刻 は残す）
+var MU_WIPE_KEYS=['mu_users','mu_deleted','mu_admin_pin','mu_current','theme','fontsize','furigana','el_api_key','testdate','reward','line_endpoint','extra_questions','family_pin','pin_trust','last_backup'];
+window.muLocalWipe = function(){
+  var kill=[];
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i); if(!k) continue;
+    if(k.indexOf('u:')===0 || MU_PER_USER[k] || k.indexOf('voice_')===0 || MU_WIPE_KEYS.indexOf(k)>=0) kill.push(k);
+  }
+  kill.forEach(function(k){ _rawDel(k); });
+  return kill.length;
+};
+async function muFullReset(){
+  if(!confirm('💥 完全リセット\n\n全ユーザーの学習記録・ユーザー登録・設定（管理者PIN・声・テスト日・ごほうび等）を、クラウドと全端末から完全に消して、最初の状態に戻します。\n\nこの操作は絶対に元に戻せません。よろしいですか？')) return;
+  var t=prompt('最終確認：本当に実行する場合は「リセット」と入力してください');
+  if(t===null) return;
+  if((''+t).trim()!=='リセット'){ alert('入力が一致しないため、中止しました。'); return; }
+  if(window.cloudWipeAll){
+    // クラウド接続の準備を待ってから、クラウド側を全削除（他の端末にもリセットが伝わる）
+    try{ await Promise.race([window.cloudReady(), sleep(8000)]); }catch(e){}
+    if(window.cloudEnabled && window.cloudEnabled()){
+      try{
+        showToast('☁️','クラウドのデータを削除中…','そのままお待ちください');
+        await window.cloudWipeAll();
+      }catch(e){ alert('クラウドのデータ削除に失敗しました。通信状態を確認して、もう一度お試しください。\n（中止しました。データは消えていません）'); return; }
+    } else {
+      if(!confirm('クラウドに接続できていません。この端末のデータだけを消しますか？\n（クラウドや他の端末のデータは残るため、次回の同期で戻ることがあります）')) return;
+    }
+  }
+  window.muLocalWipe();
+  try{ sessionStorage.clear(); }catch(e){}
+  alert('完全リセットしました。最初の状態で起動します。');
+  try{ location.reload(); }catch(e){}
+}
 function muApplyGradeLabels(){ try{ var m=AREAS.find(function(x){return x.key==='math';}); if(m){ m.name=(muGradeBand()==='elem')?'算数':'数学'; } }catch(e){} }
 function muApplyAdminUI(){ try{ var b=document.getElementById('nav-settings-btn'); if(b){ var cu=muCurrentUser(); b.style.display=(cu&&cu.admin)?'':'none'; } }catch(e){} }
 function muBoot(){

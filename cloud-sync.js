@@ -71,8 +71,23 @@ window.FIREBASE_CONFIG = {
       nu.bioCreds=Object.keys(creds);
       byId[u.id]=nu; });
     return JSON.stringify(order.map(function(id){return byId[id];}).slice(0,8)); }catch(e){ return b||a; } }
+  function mergeRpg(a,b){ try{ var x=JSON.parse(a||'null'), y=JSON.parse(b||'null');
+    if(!x) return b; if(!y) return a;
+    var stam;
+    var xs=x.stamina||{date:'',used:0}, ys=y.stamina||{date:'',used:0};
+    if(xs.date===ys.date) stam={date:xs.date, used:Math.max(xs.used||0, ys.used||0)};
+    else stam=(xs.date>ys.date)? xs : ys;   // 新しい日付の消費状況を採用
+    var o={ v:1,
+      xp: Math.max(x.xp||0, y.xp||0),
+      level: Math.max(x.level||1, y.level||1),
+      cleared: Object.assign({}, x.cleared||{}, y.cleared||{}),   // クリア実績は端末間で合算
+      coll: Object.assign({}, x.coll||{}, y.coll||{}),
+      pet: (y.pet||x.pet||null),
+      stamina: stam };
+    return JSON.stringify(o); }catch(e){ return b||a; } }
   function mergeKey(k,cur,inc){
     if(k==='mu_users') return mergeUsers(cur,inc);
+    if(/:rpg_state$/.test(k)) return mergeRpg(cur,inc);
     if(isArr(k)) return mergeArr(cur,inc);
     if(isCounter(k)) return String(Math.max(parseInt(cur||'0',10)||0,parseInt(inc||'0',10)||0));
     if(isObjMax(k)) return mergeObjMax(cur,inc);

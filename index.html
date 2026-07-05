@@ -787,6 +787,14 @@
         <button class="btn-sm" style="background:#64748b" onclick="ttsResetJaDefault()">おすすめ3声にもどす</button>
       </div>
       <p class="settings-hint" id="el-ja-status"></p>
+      <p class="settings-hint" style="margin-top:10px">🎭 <b>声のパターン</b>（ワンタップで先生たちの声を切り替え・イレブンラボの声）</p>
+      <div class="settings-row" style="flex-wrap:wrap;gap:6px">
+        <button class="btn-sm" onclick="ttsApplyPack('std')">🦉 標準</button>
+        <button class="btn-sm" onclick="ttsApplyPack('female')">👩 女性</button>
+        <button class="btn-sm" onclick="ttsApplyPack('male')">👨 男性</button>
+        <button class="btn-sm" onclick="ttsApplyPack('anime')">🐰 アニメ・かわいい</button>
+        <button class="btn-sm" onclick="ttsApplyPack('genki')">🌸 元気な子</button>
+      </div>
       <p class="settings-hint" style="margin-top:10px">🔈 内蔵音声（APIキーなし）の日本語トーンを調整できます。声の種類は端末によって変わります。</p>
       <div class="settings-row">
         <label>声（日本語）</label>
@@ -2284,6 +2292,8 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 // Called when user taps the start button (after user gesture = audio allowed)
 async function startApp() {
   unlockSpeech(); // タップの瞬間に内蔵音声を解除（iOS/Safari対策）
+  // ストレージを「永続」にするようブラウザに要求（APIキー等がアプリ更新や放置で消えるのを防ぐ）
+  try{ if(navigator.storage && navigator.storage.persist){ navigator.storage.persist(); } }catch(e){}
   var so=document.getElementById('start-overlay'); if(so) so.style.display='none';
   muShowPicker(); // まずユーザー選択画面
   setTimeout(function(){ try{ backupReminder(); }catch(e){} }, 1600);
@@ -2524,7 +2534,17 @@ function muShowPicker(){ renderUserSelect(); var ov=document.getElementById('use
   }
 }
 // クラウドから変更が届いたときの画面反映（cloud-sync.jsから呼ばれる）
-window.muOnCloudUpdate = function(){ try{ muUpdateHeader(); var ov=document.getElementById('user-select-overlay'); if(ov && ov.style.display==='flex'){ renderUserSelect(); } }catch(e){} };
+window.muOnCloudUpdate = function(){ try{
+  muUpdateHeader();
+  var ov=document.getElementById('user-select-overlay'); if(ov && ov.style.display==='flex'){ renderUserSelect(); }
+  // クラウドから届いた設定を“その場で”反映（リロード不要）。別端末・アプリ更新・別URLでも
+  // APIキーや声の設定が自動で戻る。
+  try{
+    var k=safeLS.getItem('el_api_key')||'';
+    if(k && k!==elevenLabsKey){ elevenLabsKey=k; setVoiceStatus('🔊 音声オン（クラウドから復元）', true); }
+    voiceIds={}; Object.keys(CHARS).forEach(function(kk){ voiceIds[kk]=getVoiceDefault('voice_'+kk, charDefaultVoice(kk)); });
+  }catch(e){}
+}catch(e){} };
 // ===== 完全リセット（全ユーザー・全設定・クラウド・全端末）=====
 // この端末のアプリ関連データをすべて削除（mu_family=家族コード と mu_reset_at=リセット時刻 は残す）
 var MU_WIPE_KEYS=['mu_users','mu_deleted','mu_admin_pin','mu_current','theme','fontsize','furigana','el_api_key','testdate','reward','line_endpoint','extra_questions','family_pin','pin_trust','last_backup'];
@@ -6083,6 +6103,23 @@ function ttsApplyJa(){
   showToast('🎤','日本語の声にしたよ','ぜんぶの先生が この声で話します');
   try{ renderVoiceSettings(); }catch(e){}
   try{ setCharacter(currentChar||'owl'); }catch(e){}
+  speak('こんにちは！この声で いっしょに がんばろう。');
+}
+// 声のパターン（イレブンラボの日本語ネイティブ音声を3声セットで用意。キャラごとに声が変わる）
+var TTS_VOICE_PACKS = {
+  std:   { label:'標準',            ids:{ hana:'T7yYq3WpB94yAuOXraRi', loco:'J6YFreR6shJoaDfv7tLf', kai:'cOfrdzGy8S6oHQrFrI7b' } }, // コノハ/ユウコ/カグヤ
+  female:{ label:'女性',            ids:{ hana:'T7yYq3WpB94yAuOXraRi', loco:'J6YFreR6shJoaDfv7tLf', kai:'G3EZ8O36A0x9lmeOtr0f' } }, // コノハ/ユウコ/カオリ
+  male:  { label:'男性',            ids:{ hana:'aEdqPekRcUrJjvnAh1Eb', loco:'GKDaBI8TKSBJVhsCLD6n', kai:'3JDquces8E8bkmvbh6Bc' } }, // コウイチ/アサヒ/オオタニ
+  anime: { label:'アニメ・かわいい', ids:{ hana:'GxhGYQesaQaYKePCZDEC', loco:'RWZ1lnBIIgPBTpyCnKn2', kai:'l5KWIFmhhsVdaYchBLIn' } }, // ちいちゃん/レンレン/そよかぜモチ
+  genki: { label:'元気な子',        ids:{ hana:'8EkOjt4xTPGMclNlh1pk', loco:'EGPLqH9Wz2tNLu58EJVR', kai:'EVmK7c3z026INySFvQLP' } }  // モリオキ/サクラ/ミオ
+};
+function ttsApplyPack(key){
+  var p=TTS_VOICE_PACKS[key]; if(!p) return;
+  ['hana','loco','kai'].forEach(function(prof){ try{ safeLS.setItem('voice_'+prof, p.ids[prof]); }catch(e){} });
+  Object.keys(CHARS).forEach(function(k){ try{ safeLS.removeItem('voice_'+k); }catch(e){} voiceIds[k]=charDefaultVoice(k); });
+  try{ renderVoiceSettings(); }catch(e){}
+  showToast('🎭','「'+p.label+'」の声にしたよ', elevenLabsKey?'キャラごとに声が変わります':'※イレブンラボのAPIキーを入れると反映されます');
+  try{ unlockSpeech(); setCharacter('owl'); }catch(e){}
   speak('こんにちは！この声で いっしょに がんばろう。');
 }
 function ttsResetJaDefault(){

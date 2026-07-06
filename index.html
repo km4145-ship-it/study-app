@@ -841,7 +841,7 @@
 
     <div class="settings-section">
       <h3>💾 進捗の保存・引き継ぎ</h3>
-      <p class="settings-hint">記録はこの端末のブラウザに保存されています。ときどき「書き出し」でバックアップを取り、別の端末へは「読み込み」で引き継げます。</p>
+      <p class="settings-hint">記録は<b>クラウドに自動で保存・読み込み</b>されます（家族コードで全端末に同期）。どの端末でも、ユーザーを選べば続きから使えます。下の「書き出し／読み込み」は、オフラインの手動バックアップ用（ふだんは使わなくてOK）です。</p>
       <div class="settings-row">
         <button class="btn-sm" onclick="exportData()">💾 書き出し（保存）</button>
         <label for="import-file" class="btn-sm imp-label" style="cursor:pointer;background:var(--primary)">📂 読み込み</label>
@@ -2296,7 +2296,7 @@ async function startApp() {
   try{ if(navigator.storage && navigator.storage.persist){ navigator.storage.persist(); } }catch(e){}
   var so=document.getElementById('start-overlay'); if(so) so.style.display='none';
   muShowPicker(); // まずユーザー選択画面
-  setTimeout(function(){ try{ backupReminder(); }catch(e){} }, 1600);
+  // バックアップのおすすめ通知は廃止（記録はクラウドに自動保存・自動読み込みされるため）
 }
 
 // =================== SETTINGS MODAL ===================
@@ -2352,6 +2352,7 @@ function exportData(){
   }catch(e){ showToast('⚠️','書き出しに失敗','もう一度お試しください'); }
 }
 function backupReminder(){
+  return; // 廃止：クラウド同期が主のため通知しない（呼ばれても何もしない）
   try{
     var last=localStorage.getItem('last_backup');
     var days = last ? Math.floor((Date.now()-Date.parse(last))/86400000) : 999;

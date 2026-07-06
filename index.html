@@ -1348,6 +1348,27 @@
   .rpg-btn{ background:linear-gradient(135deg,#f59e0b,#db2777); color:#fff; border:none; border-radius:12px; padding:13px; font-size:1rem; font-weight:800; cursor:pointer; font-family:inherit; }
   .rpg-btn.ghost{ background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); }
   @media (min-width:560px){ .rpg-stage-sky{ height:250px; } .rpg-enemy{ width:120px; height:120px; } }
+  /* ---- 相棒ペット ---- */
+  .rpg-pet-card{ display:flex; align-items:center; gap:12px; width:100%; margin-top:12px; background:linear-gradient(135deg,#0f766e,#0891b2); color:#fff; border:2px solid rgba(252,211,77,.4); border-radius:16px; padding:12px 14px; cursor:pointer; font-family:inherit; text-align:left; }
+  .rpg-pet{ width:60px; height:60px; flex:0 0 auto; } .rpg-pet svg{ width:100%; height:100%; filter:drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+  .rpg-pet-bounce{ animation:rpgPetBounce .5s; }
+  @keyframes rpgPetBounce{ 0%,100%{transform:translateY(0)} 30%{transform:translateY(-12px) scale(1.08)} 60%{transform:translateY(0) scale(.96)} }
+  .rpg-pet-info{ flex:1; min-width:0; }
+  .rpg-pet-name{ font-weight:800; font-size:.95rem; }
+  .rpg-pet-sub{ font-size:.76rem; opacity:.92; margin-top:2px; }
+  .rpg-pet-hint{ font-size:.72rem; opacity:.8; margin-top:3px; }
+  /* ---- ずかん ---- */
+  .rpg-dex-btn{ width:100%; margin-top:12px; background:var(--card2); color:var(--text); border:2px solid var(--primary-light); border-radius:14px; padding:12px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .rpg-dex-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; margin:8px 0; }
+  .rpg-dex-cell{ background:var(--card2); border:2px solid var(--primary-light); border-radius:12px; padding:6px 4px; text-align:center; }
+  .rpg-dex-cell.unseen{ opacity:.7; }
+  .rpg-dex-svg{ width:56px; height:56px; margin:0 auto; display:flex; align-items:center; justify-content:center; } .rpg-dex-svg svg{ width:100%; height:100%; }
+  .rpg-dex-cell.unseen .rpg-dex-svg{ background:#e2e8f0; border-radius:50%; } :root[data-theme="dark"] .rpg-dex-cell.unseen .rpg-dex-svg{ background:#334155; }
+  .rpg-dex-q{ font-size:1.8rem; color:#94a3b8; font-weight:900; }
+  .rpg-dex-name{ display:block; font-size:.66rem; font-weight:700; color:var(--text); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rpg-sticker-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(46px,1fr)); gap:7px; margin:8px 0; }
+  .rpg-sticker{ aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:1.6rem; background:var(--card2); border:2px solid var(--primary-light); border-radius:12px; }
+  .rpg-sticker.unseen{ opacity:.4; font-size:1.2rem; }
   /* ---- 正解のキラッと演出 ---- */
   #sparkle-layer{ position:fixed; inset:0; z-index:100000; pointer-events:none; }
   .sparkle{ position:fixed; font-size:1.3rem; transform:translate(-50%,-50%); animation:sparkleFly .72s ease-out forwards; will-change:transform,opacity; }
@@ -5776,6 +5797,17 @@ var RPG_SVG = {
   crystal:'<svg viewBox="0 0 40 48"><path d="M20 2 L34 16 L20 46 L6 16Z" fill="#38f0e0" stroke="#0e7490" stroke-width="2"/><path d="M20 2 L20 46 M6 16 L34 16" stroke="#a5f3fc" stroke-width="1.4" opacity=".85"/><path d="M20 2 L13 16 L20 46" fill="#7cf9ec" opacity=".5"/></svg>'
 };
 
+// ---- 相棒ペット（4段階で育つ）＋ごほうびシール ----
+var PET_SVG=[
+  '<svg viewBox="0 0 100 100"><ellipse cx="50" cy="90" rx="24" ry="5" fill="rgba(0,0,0,.2)"/><ellipse cx="50" cy="54" rx="26" ry="32" fill="#fef3c7" stroke="#f59e0b" stroke-width="3"/><path d="M26 52 q6 -6 12 0 q6 6 12 0 q6 -6 12 0" stroke="#f59e0b" stroke-width="2.5" fill="none"/><circle cx="40" cy="40" r="4" fill="#fca5a5"/><circle cx="60" cy="44" r="3.4" fill="#a7f3d0"/><circle cx="52" cy="66" r="3" fill="#c4b5fd"/></svg>',
+  '<svg viewBox="0 0 100 100"><ellipse cx="50" cy="90" rx="22" ry="5" fill="rgba(0,0,0,.2)"/><ellipse cx="50" cy="58" rx="26" ry="26" fill="#5eead4" stroke="#0d9488" stroke-width="3"/><path d="M40 34 q-4 -12 4 -10 M60 34 q4 -12 -4 -10" stroke="#0d9488" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="42" cy="56" r="7" fill="#fff"/><circle cx="44" cy="58" r="3.5" fill="#0f172a"/><circle cx="41" cy="54" r="1.5" fill="#fff"/><circle cx="58" cy="56" r="7" fill="#fff"/><circle cx="60" cy="58" r="3.5" fill="#0f172a"/><circle cx="57" cy="54" r="1.5" fill="#fff"/><path d="M45 68 q5 5 10 0" stroke="#0d9488" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="34" cy="64" r="4" fill="#fca5a5" opacity=".6"/><circle cx="66" cy="64" r="4" fill="#fca5a5" opacity=".6"/></svg>',
+  '<svg viewBox="0 0 100 100"><ellipse cx="50" cy="92" rx="22" ry="5" fill="rgba(0,0,0,.2)"/><ellipse cx="50" cy="70" rx="18" ry="20" fill="#34d399" stroke="#059669" stroke-width="3"/><ellipse cx="50" cy="46" rx="20" ry="18" fill="#5eead4" stroke="#0d9488" stroke-width="3"/><path d="M40 30 l-3 -12 l8 8 M60 30 l3 -12 l-8 8" fill="#0d9488"/><circle cx="43" cy="46" r="6" fill="#fff"/><circle cx="45" cy="48" r="3" fill="#0f172a"/><circle cx="57" cy="46" r="6" fill="#fff"/><circle cx="59" cy="48" r="3" fill="#0f172a"/><path d="M46 56 q4 4 8 0" stroke="#0d9488" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M32 70 l-8 6 M68 70 l8 6" stroke="#059669" stroke-width="4" stroke-linecap="round"/></svg>',
+  '<svg viewBox="0 0 100 100"><ellipse cx="50" cy="92" rx="24" ry="5" fill="rgba(0,0,0,.2)"/><path d="M34 54 Q12 40 8 58 Q20 60 18 72 Q30 62 40 66Z" fill="#2dd4bf" stroke="#0d9488" stroke-width="2"/><path d="M66 54 Q88 40 92 58 Q80 60 82 72 Q70 62 60 66Z" fill="#2dd4bf" stroke="#0d9488" stroke-width="2"/><ellipse cx="50" cy="68" rx="20" ry="22" fill="#10b981" stroke="#047857" stroke-width="3"/><ellipse cx="50" cy="42" rx="21" ry="19" fill="#34d399" stroke="#059669" stroke-width="3"/><path d="M40 26 l-3 -14 l9 9 M60 26 l3 -14 l-9 9" fill="#059669"/><path d="M50 34 l5 6 l-5 5 l-5 -5Z" fill="#fde047"/><circle cx="43" cy="44" r="6" fill="#fff"/><circle cx="45" cy="46" r="3" fill="#0f172a"/><circle cx="57" cy="44" r="6" fill="#fff"/><circle cx="59" cy="46" r="3" fill="#0f172a"/><path d="M45 54 q5 5 10 0" stroke="#047857" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>'
+];
+var PET_STAGE_NAME=['たまご','ベビー','わかもの','せいたい'];
+var PET_WINS_FOR=[0,4,14,34];   // 累計勝利数で進化
+var STICKERS=['🌈','🍭','🎈','🏆','⚡','🌸','🚀','🦄','🍩','💎','🎃','⭐','🍓','🐣','🎵','🔥'];
+
 // ---- 世界とモンスター配置（P1：数の大陸／2章8ノード。posはマップ上の%座標）----
 var RPG_STAMINA_MAX = 8;
 var rpgBattle = null;
@@ -5862,9 +5894,17 @@ function rpgBossTaunt(node){
 }
 
 // ---- 状態（rpg_state：ユーザー別・クラウド同期・完全リセット対応）----
-function rpgDefault(){ return { v:1, level:1, xp:0, cleared:{}, coll:{}, crystals:{}, story:{}, stamina:{date:'',used:0} }; }
+function rpgDefault(){ return { v:1, level:1, xp:0, cleared:{}, coll:{}, crystals:{}, story:{}, dex:{}, stickers:{}, pet:{stage:0,wins:0,name:'',fed:''}, stamina:{date:'',used:0} }; }
 function rpgState(){ var s=lsGetJSON('rpg_state',null); if(!s||typeof s!=='object') s=rpgDefault();
-  ['cleared','coll','crystals','story'].forEach(function(k){ if(!s[k]) s[k]={}; }); if(!s.stamina) s.stamina={date:'',used:0}; return s; }
+  ['cleared','coll','crystals','story','dex','stickers'].forEach(function(k){ if(!s[k]) s[k]={}; });
+  if(!s.pet) s.pet={stage:0,wins:0,name:'',fed:''}; if(!s.stamina) s.stamina={date:'',used:0}; return s; }
+function rpgPetStageFor(wins){ var st=0; for(var i=0;i<PET_WINS_FOR.length;i++){ if(wins>=PET_WINS_FOR[i]) st=i; } return st; }
+// 全モンスター一覧（図鑑用）
+function rpgAllMonsters(){ var list=[], seen={}; RPG_CONTINENTS.forEach(function(a){ RPG_WORLD[a].chapters.forEach(function(c){ c.nodes.forEach(function(n){ if(!seen[n.mon]){ seen[n.mon]=1; list.push({mon:n.mon,name:n.name}); } }); }); }); list.push({mon:'villain',name:'魔王シグマ'}); return list; }
+// まだ持っていないシールを1つ（全部持っていればランダム）
+function rpgGiveSticker(s){ var owned=s.stickers||{}; var avail=STICKERS.filter(function(x){ return !owned[x]; });
+  var pick=avail.length?avail[Math.floor(Math.random()*avail.length)]:STICKERS[Math.floor(Math.random()*STICKERS.length)];
+  s.stickers[pick]=1; return pick; }
 function rpgSave(s){ lsSetJSON('rpg_state', s); }
 function rpgSeen(k){ return !!rpgState().story[k]; }
 function rpgMarkSeen(k){ var s=rpgState(); s.story[k]=1; rpgSave(s); }
@@ -5978,6 +6018,13 @@ function rpgRenderContinents(){
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
     '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち　🔥のこり冒険 '+rpgStaminaLeft()+'/'+RPG_STAMINA_MAX+'</div>'+
     '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+cc+' / 5</span></div></div>';
+  // 相棒ペット
+  var pet=s.pet||{stage:0,wins:0,name:''}, pst=Math.min(pet.stage||0,3), pname=pet.name||'あいぼう';
+  var nextW=PET_WINS_FOR[Math.min(pst+1,PET_WINS_FOR.length-1)], toNext=(pst<3)?Math.max(0,nextW-(pet.wins||0)):0;
+  h+='<div class="rpg-pet-card" onclick="rpgPatPet()"><div class="rpg-pet" id="rpg-pet-svg">'+PET_SVG[pst]+'</div>'+
+     '<div class="rpg-pet-info"><div class="rpg-pet-name">🐾 '+escapeHtml(pname)+'（'+PET_STAGE_NAME[pst]+'）</div>'+
+     '<div class="rpg-pet-sub">'+(pst<3?('バトルに かつと そだつよ。しんかまで あと '+toNext+'かい'):'さいだいまで そだった！りっぱ！')+'</div>'+
+     '<div class="rpg-pet-hint">タップで なでる 🖐️</div></div></div>';
   h+='<div class="rpg-world-title">🗺️ どの大陸に 行く？</div>';
   h+='<div class="rpg-continents">';
   RPG_CONTINENTS.forEach(function(area){
@@ -5997,6 +6044,8 @@ function rpgRenderContinents(){
   RPG_CONTINENTS.forEach(function(area){ var w=RPG_WORLD[area]; var got=!!s.crystals[area];
     h+='<div class="rpg-party-mem'+(got?'':' locked')+'" title="'+escapeHtml(w.teacherName)+'先生">'+(got?_charSVG(w.teacher):'<span class="rpg-party-q">？</span>')+'</div>'; });
   h+='</div></div>';
+  // ずかん（あつめたもの）
+  h+='<button class="rpg-dex-btn" onclick="rpgShowDex()">📖 ずかんを見る（モンスター '+Object.keys(s.dex).length+'/'+rpgAllMonsters().length+'・シール '+Object.keys(s.stickers).length+'/'+STICKERS.length+'）</button>';
   // 魔王城
   var maouCleared=!!s.cleared['maou'];
   if(maouCleared){
@@ -6007,6 +6056,36 @@ function rpgRenderContinents(){
     h+='<div class="rpg-castle-card locked"><span class="rpg-castle-em">🏰</span><span><b>魔王城（偏差値65）</b><br><small>クリスタルを 5つ あつめると 決戦できる（いま '+cc+'/5）</small></span></div>';
   }
   document.getElementById('rpg-map-view').innerHTML=h;
+}
+// 相棒ペットをなでる（初回は名前をつける）
+function rpgPatPet(){
+  var s=rpgState();
+  if(!s.pet.name){ var n=prompt('あいぼうに 名前を つけよう！（8文字まで）','たまちゃん'); if(n===null) return; s.pet.name=(''+n).trim().slice(0,8)||'たまちゃん'; rpgSave(s); rpgRenderContinents(); showToast('🐾','なまえを つけたよ','「'+s.pet.name+'」と なかよくしてね！'); return; }
+  var el=document.getElementById('rpg-pet-svg'); if(el){ el.classList.remove('rpg-pet-bounce'); void el.offsetWidth; el.classList.add('rpg-pet-bounce'); sparkleBurst(el); }
+  sfx('coin'); vibe(15);
+}
+// ずかん（あつめたモンスター＆シール）
+function rpgShowDex(){
+  try{ sfx('click'); }catch(e){}
+  rpgBattle=null; rpgHideBattle(); hideMainScreens();
+  document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
+  document.getElementById('rpg-result-view').style.display='none';
+  var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
+  var s=rpgState(), mons=rpgAllMonsters();
+  var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
+  h+='<div class="rpg-world-title">📖 モンスターずかん（'+Object.keys(s.dex).length+' / '+mons.length+'）</div>';
+  h+='<div class="rpg-dex-grid">';
+  mons.forEach(function(m){ var got=!!s.dex[m.mon];
+    h+='<div class="rpg-dex-cell'+(got?'':' unseen')+'"><div class="rpg-dex-svg">'+(got?RPG_SVG[m.mon]:'<span class="rpg-dex-q">？</span>')+'</div><span class="rpg-dex-name">'+(got?escapeHtml(m.name):'？？？')+'</span></div>'; });
+  h+='</div>';
+  var sk=Object.keys(s.stickers);
+  h+='<div class="rpg-world-title">🎁 ごほうびシール（'+sk.length+' / '+STICKERS.length+'）</div>';
+  h+='<div class="rpg-sticker-grid">';
+  STICKERS.forEach(function(x){ var got=!!s.stickers[x]; h+='<div class="rpg-sticker'+(got?'':' unseen')+'">'+(got?x:'❔')+'</div>'; });
+  h+='</div>';
+  h+='<div class="rpg-map-hint">ボスを たおすと シールが もらえるよ。ぜんぶ あつめよう！</div>';
+  mv.innerHTML=h;
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
 
 // ================= マップ（大陸ごと）=================
@@ -6159,6 +6238,11 @@ function rpgShowResult(){
     var key=rpgNodeKey(b.area,b.ch.id,b.node.id);
     if(!s.cleared[key]){ s.cleared[key]=Date.now(); firstClear=true; }
     if(b.node.type==='boss') s.coll['trophy_'+b.ch.id]=1;
+    // 図鑑に登録＋相棒ペットのせいちょう
+    if(b.node.mon){ s.dex[b.node.mon]=1; }
+    s.pet.wins=(s.pet.wins||0)+1; s.pet.stage=rpgPetStageFor(s.pet.wins);
+    // ボス撃破でごほうびシール
+    if(b.node.type==='boss'){ b.sticker=rpgGiveSticker(s); }
     // 大陸の最終ボスを倒したら 先生救出＋クリスタル
     var world=RPG_WORLD[b.area], lastCh=world.chapters[world.chapters.length-1], lastBoss=lastCh.nodes[lastCh.nodes.length-1];
     if(b.ch.id===lastCh.id && b.node.id===lastBoss.id && !s.crystals[b.area]){ s.crystals[b.area]=Date.now(); continentClear=true; }
@@ -6184,6 +6268,7 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   L+='<div class="rpg-res-xp">＋'+xp+' けいけんち'+(pt?('　＋'+pt+'pt🌺'):'')+'</div>';
   if(leveled) L+='<div class="rpg-res-levelup">🎉 レベルアップ！ Lv.'+s.level+'</div>';
   if(firstClear && b.node.type==='boss') L+='<div class="rpg-res-levelup">🏆「'+escapeHtml(b.ch.title)+'」クリア！ つぎの道が ひらけた</div>';
+  if(b.sticker) L+='<div class="rpg-res-levelup">🎁 ごほうびシール「'+b.sticker+'」をゲット！</div>';
   if(!victory) L+='<div class="rpg-res-tip">💡 まちがえた問題は「📕ノート」で 復習できるよ。復習して リベンジしよう！</div>';
   L+='<div class="rpg-res-btns">';
   var retryFn = b.maou ? 'rpgStartMaou()' : ('rpgEnterNode(\''+b.area+'\','+b.chIdx+','+b.nodeIdx+')');
@@ -6248,7 +6333,7 @@ function rpgBeginMaou(){
 function rpgResolveMaou(b){
   var win=(b.enemyHp<=0 && b.heroHp>0), s=rpgState();
   var gx=b.xpGain+(win?150:10); s.xp+=gx; s.level=rpgLevelForXp(s.xp);
-  if(win && !s.cleared['maou']) s.cleared['maou']=Date.now();
+  if(win){ if(!s.cleared['maou']) s.cleared['maou']=Date.now(); s.dex['villain']=1; s.pet.wins=(s.pet.wins||0)+1; s.pet.stage=rpgPetStageFor(s.pet.wins); b.sticker=rpgGiveSticker(s); }
   rpgSave(s);
   if(win){ totalPoints+=200; safeLS.setItem('c_points', totalPoints); try{ updateScoreBar(); }catch(e){} rpgEnding(b, gx); }
   else { rpgRenderResult(b, false, gx, 0, false, false); }

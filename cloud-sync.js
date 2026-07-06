@@ -84,7 +84,10 @@ window.FIREBASE_CONFIG = {
       coll: Object.assign({}, x.coll||{}, y.coll||{}),
       crystals: Object.assign({}, x.crystals||{}, y.crystals||{}),// 集めたクリスタルも合算
       story: Object.assign({}, x.story||{}, y.story||{}),         // 見たストーリーも合算（再表示を防ぐ）
-      pet: (y.pet||x.pet||null),
+      dex: Object.assign({}, x.dex||{}, y.dex||{}),               // 図鑑（倒したモンスター）も合算
+      stickers: Object.assign({}, x.stickers||{}, y.stickers||{}),// あつめたシールも合算
+      pet: (function(){ var xp=x.pet||{}, yp=y.pet||{}; var w=Math.max(xp.wins||0,yp.wins||0);
+        return { wins:w, stage:Math.max(xp.stage||0,yp.stage||0), name:(yp.name||xp.name||''), fed:((xp.fed||'')>(yp.fed||'')?xp.fed:yp.fed)||'' }; })(),
       stamina: stam };
     return JSON.stringify(o); }catch(e){ return b||a; } }
   function mergeKey(k,cur,inc){

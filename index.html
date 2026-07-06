@@ -481,6 +481,7 @@
   .passage-area { background:var(--card2); border:1px solid var(--primary-light); border-radius:10px; padding:12px 14px; margin-bottom:12px; font-size:0.86rem; line-height:1.85; max-height:300px; overflow-y:auto; white-space:pre-wrap; color:var(--text); }
   .passage-label { font-size:0.72rem; font-weight:700; color:var(--primary-light); margin-bottom:6px; }
   .hensachi-banner { background:linear-gradient(135deg,#0891b2,#ec4899); color:#fff; border-radius:12px; padding:10px 14px; font-weight:700; font-size:0.9rem; text-align:center; margin-bottom:10px; }
+  .week-weak { margin-top:8px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:8px 12px; font-size:0.82rem; font-weight:700; color:#9a3412; }
   .hensachi-note { font-size:0.72rem; color:var(--primary-light); margin:4px 2px 0; }
   .start-mini { width:62px; display:inline-block; }
   .start-mini .char-svg { width:100%; }
@@ -7070,7 +7071,9 @@ function renderWeek(){
   const tq=inWk.reduce(function(sm,e){return sm+(e.total||0);},0), tc=inWk.reduce(function(sm,e){return sm+(e.score||0);},0);
   const rate=tq?Math.round(tc/tq*100):0;
   const days=wk.filter(function(d){return (hist[d]||0)>0;}).length;
-  el.innerHTML='<div class="rec-summary">'+card(q,'今週の問題')+card(rate+'%','今週の正答率')+card(fmtTime(t),'今週の学習時間')+card(days+'/7日','学習した日')+'</div>';
+  var wk3=weakTopics(3);
+  var weakLine = wk3.length? '<div class="week-weak">📉 今の苦手トップ3：'+wk3.map(function(r){return escapeHtml(r.sub)+'（'+r.rate+'%）';}).join('　')+'</div>' : '';
+  el.innerHTML='<div class="rec-summary">'+card(q,'今週の問題')+card(rate+'%','今週の正答率')+card(fmtTime(t),'今週の学習時間')+card(days+'/7日','学習した日')+'</div>'+weakLine;
 }
 function renderParent(){
   const el=document.getElementById('rec-parent'); if(!el) return;
@@ -7101,22 +7104,28 @@ function renderHensachiGoal(){
   const TARGET=65;
   const exams=loadLog().filter(e=>e.mode==='exam'&&typeof e.hensachi==='number');
   if(exams.length===0){ el.innerHTML='<div class="rec-empty">模擬試験を受けると、偏差値65までの距離がここに出るよ。まずは1教科チャレンジ！</div>'; return; }
-  let rows='', reached=0, counted=0, bestAll=0;
+  function estOf(es){   // 直近3回の模試の移動平均±ばらつき（半範囲）
+    const r=es.slice().sort((a,b)=>a.ts-b.ts).slice(-3).map(e=>e.hensachi);
+    const avg=r.reduce((s,h)=>s+h,0)/r.length;
+    const spread=r.length>=2 ? (Math.max.apply(null,r)-Math.min.apply(null,r))/2 : 3;
+    return { avg:Math.round(avg), spread:Math.max(1,Math.round(spread)) };
+  }
+  let rows='', reached=0, counted=0, estSum=0, estSpread=0, estN=0;
   AREAS.forEach(function(a){
     const es=exams.filter(e=>e.area===a.key); if(es.length===0) return;
     counted++;
     const best=Math.max.apply(null, es.map(e=>e.hensachi));
-    if(best>bestAll) bestAll=best;
-    const pct=Math.min(100, Math.round(best/TARGET*100));
+    const est=estOf(es); estSum+=est.avg; estSpread+=est.spread; estN++;
+    const pct=Math.min(100, Math.round(est.avg/TARGET*100));
     const ok=best>=TARGET; if(ok) reached++;
-    const gap=Math.round((TARGET-best)*10)/10;
-    const col= ok?'#10b981':(best>=58?'#f59e0b':'#ef4444');
+    const col= est.avg>=TARGET?'#10b981':(est.avg>=58?'#f59e0b':'#ef4444');
     rows+='<div class="weak-row"><div class="weak-name">'+a.icon+a.name+'</div>'+
       '<div class="weak-bar-wrap"><div class="weak-bar" style="width:'+pct+'%;background:'+col+'"></div></div>'+
-      '<div class="weak-val">最高'+best+'　'+(ok?'<span style="color:#059669;font-weight:700">到達🎉</span>':'あと'+gap)+'</div></div>';
+      '<div class="weak-val">いま <b>'+est.avg+'</b>（±'+est.spread+'）　最高'+best+'</div></div>';
   });
-  const banner='<div class="hensachi-banner">🎯 目標 偏差値65：'+reached+' / '+counted+' 教科 到達</div>';
-  el.innerHTML=banner+rows+'<div class="hensachi-note">※偏差値は各教科の模擬試験の最高値。テストを受けるほど精度が上がります。</div>';
+  const oAvg=estN?Math.round(estSum/estN):0, oSpread=estN?Math.max(1,Math.round(estSpread/estN)):3;
+  const banner='<div class="hensachi-banner">📊 いまの偏差値の目安：<b>'+oAvg+'（±'+oSpread+'）</b>　🎯 目標65：'+reached+'/'+counted+'教科 到達</div>';
+  el.innerHTML=banner+rows+'<div class="hensachi-note">※「いま」は直近3回の模試の移動平均±ばらつき。テストを受けるほど幅が縮まり精度が上がります。</div>';
 }
 
 // ---- 学習記録の追加セクション描画 ----

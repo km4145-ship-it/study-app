@@ -776,11 +776,11 @@
         <button class="btn-sm" onclick="testVoice()">🔊 声をテスト</button>
         <span class="voice-status voice-off" id="voice-status">🔇 音声オフ</span>
       </div>
-      <p class="settings-hint" style="margin-top:10px">🇯🇵 <b>日本語ネイティブの声</b>（イレブンラボ）。外国なまりが気になるときは、日本語の声にすると自然になります。有料プランで使えます。</p>
+      <p class="settings-hint" style="margin-top:10px">🇯🇵 <b>日本語ネイティブの声を1つえらぶ</b>（イレブンラボ）。外国なまりが気になるときに。▶で試聴できます。</p>
       <div class="settings-row">
-        <button class="btn-sm" onclick="ttsLoadJaVoices()">🔎 日本語の声をさがす</button>
-        <select id="el-ja-voice" style="max-width:150px"></select>
-        <button class="btn-sm" onclick="ttsPreviewJa()" title="この声の見本を聞く">▶</button>
+        <select id="el-ja-cat" onchange="ttsFillJaVoices()"><option value="">すべて</option><option value="female">女性</option><option value="male">男性</option><option value="cute">かわいい</option></select>
+        <select id="el-ja-voice" style="max-width:120px"></select>
+        <button class="btn-sm" onclick="ttsPreviewJa()" title="この声で読み上げてみる">▶ ためす</button>
       </div>
       <div class="settings-row">
         <button class="btn-sm" style="background:#0891b2" onclick="ttsApplyJa()">この声にする（全員）</button>
@@ -2644,6 +2644,7 @@ function daysUntilTest(){ const td=safeLS.getItem('testdate'); if(!td) return nu
 function refreshSettingsDisp(){
   try{ renderUserAdmin(); }catch(e){}
   try{ ttsPopulateVoices(); }catch(e){}
+  try{ ttsFillJaVoices(); }catch(e){}
   const td=safeLS.getItem('testdate'); const t=document.getElementById('testdate-disp'); if(t) t.textContent= td?('（'+td+'／あと'+daysUntilTest()+'日）'):'（未設定）';
   const rw=lsGetJSON('reward',null); const r=document.getElementById('reward-disp'); if(r) r.textContent= rw?('（'+rw.points+'pt で '+rw.text+'）'):'（未設定）';
   const re=getRealExams(); const rd=document.getElementById('realexam-disp');
@@ -6072,27 +6073,61 @@ function ttsPopulateVoices(){
   var p=document.getElementById('tts-pitch-sel'); if(p){ var pv=safeLS.getItem('tts_pitch')||'0'; p.value=Array.prototype.some.call(p.options,function(o){return o.value===pv;})?pv:'0'; }
 }
 // ===== 日本語ネイティブの声（ElevenLabsボイスライブラリ）=====
-async function ttsLoadJaVoices(){
-  var sel=document.getElementById('el-ja-voice'), st=document.getElementById('el-ja-status');
-  if(!elevenLabsKey){ if(st) st.textContent='先に上のAPIキーを保存してね。'; return; }
-  if(st) st.textContent='🔎 日本語の声をさがしています…';
-  try{
-    var r=await fetch('https://api.elevenlabs.io/v1/shared-voices?language=ja&page_size=100&sort=trending', { headers:{ 'xi-api-key':elevenLabsKey } });
-    if(!r.ok){ if(st) st.textContent='取得できませんでした（'+r.status+(r.status===401?'：キーが無効':'')+'）'; return; }
-    var data=await r.json(); var voices=(data&&data.voices)||[];
-    if(!voices.length){ if(st) st.textContent='日本語の声が見つかりませんでした。'; return; }
-    var owners=ttsOwners();
-    if(sel) sel.innerHTML=voices.map(function(v){ owners[v.voice_id]=v.public_owner_id;
-      var g=(v.gender==='female'?'女性':(v.gender==='male'?'男性':''));
-      return '<option value="'+escapeHtml(v.voice_id)+'" data-preview="'+escapeHtml(v.preview_url||'')+'">'+escapeHtml(v.name)+(g?('（'+g+'）'):'')+'</option>'; }).join('');
-    try{ safeLS.setItem('el_voice_owners', JSON.stringify(owners)); }catch(e){}
-    if(st) st.textContent=voices.length+'個の日本語の声が見つかったよ。えらんで▶で見本を聞き、「この声にする」でけってい。';
-  }catch(e){ if(st) st.textContent='通信できませんでした（ネット/ブラウザ制限）。'; }
+// 日本語ネイティブ音声のカタログ（アプリ内蔵。ElevenLabs shared-voices APIは401になることが
+// あるので使わない。▶ためすで実際にTTS再生して選ぶ）。cat: female/male/cute
+var JA_VOICE_CATALOG = [
+  { name:'コノハ', id:'T7yYq3WpB94yAuOXraRi', cat:'female' },
+  { name:'ミオ',   id:'EVmK7c3z026INySFvQLP', cat:'female' },
+  { name:'カオリ', id:'G3EZ8O36A0x9lmeOtr0f', cat:'female' },
+  { name:'ユウコ', id:'J6YFreR6shJoaDfv7tLf', cat:'female' },
+  { name:'サクラ', id:'EGPLqH9Wz2tNLu58EJVR', cat:'female' },
+  { name:'シズカ', id:'WQz3clzUdMqvBf0jswZQ', cat:'female' },
+  { name:'ヒナ',   id:'lhTvHflPVOqgSWyuWQry', cat:'female' },
+  { name:'ユイ',   id:'fUjY9K2nAIwlALOwSiwc', cat:'female' },
+  { name:'ハナコ', id:'IIUvcn96WSMnC5WxNypI', cat:'female' },
+  { name:'スミレ', id:'KtSs8OSniRPofXnr5PeA', cat:'female' },
+  { name:'モリオキ', id:'8EkOjt4xTPGMclNlh1pk', cat:'female' },
+  { name:'カグヤ', id:'cOfrdzGy8S6oHQrFrI7b', cat:'male' },
+  { name:'コウイチ', id:'aEdqPekRcUrJjvnAh1Eb', cat:'male' },
+  { name:'オオタニ', id:'3JDquces8E8bkmvbh6Bc', cat:'male' },
+  { name:'トシ',   id:'4E2rGmyoHYBHfdVr32pj', cat:'male' },
+  { name:'ヒデキ', id:'nHEVPT3LS1V37bXZNr82', cat:'male' },
+  { name:'ケン',   id:'hBWDuZMNs32sP5dKzMuc', cat:'male' },
+  { name:'ソラ',   id:'4sirbXwrtRlmPV80MJkQ', cat:'male' },
+  { name:'ジュン', id:'JOcmGzB8OFjY8MhjHHEf', cat:'male' },
+  { name:'リョウ', id:'pUgmTF2V1ptIKsYb6qON', cat:'male' },
+  { name:'タロウ', id:'lHuO7jiPwSHOxWn1h1Fy', cat:'male' },
+  { name:'ヤマト', id:'bqpOyYNUu11tjjvRUbKn', cat:'male' },
+  { name:'ちいちゃん', id:'GxhGYQesaQaYKePCZDEC', cat:'cute' },
+  { name:'レンレン',   id:'RWZ1lnBIIgPBTpyCnKn2', cat:'cute' },
+  { name:'そよかぜモチ', id:'l5KWIFmhhsVdaYchBLIn', cat:'cute' },
+  { name:'なつ',   id:'B2hIadtwF0bAORTkJkOs', cat:'cute' },
+  { name:'あかり', id:'EkK6wL8GaH8IgBZTTDGJ', cat:'cute' },
+  { name:'よな',   id:'iRDEKpk9hSfW2qkoxsr7', cat:'cute' },
+  { name:'りん',   id:'DIcmWR2oXfmLIlrj43rH', cat:'cute' },
+  { name:'いつき', id:'oAlEJuW30knHWhA6cF0e', cat:'cute' },
+  { name:'さくや', id:'8kgj5469z1URcH4MB2G4', cat:'cute' },
+  { name:'ライム', id:'q3eHxuMah31iifOfMrz0', cat:'cute' }
+];
+function _jaCatLabel(c){ return c==='male'?'男性':(c==='cute'?'かわいい':'女性'); }
+function ttsFillJaVoices(){
+  var sel=document.getElementById('el-ja-voice'); if(!sel) return;
+  var cat=(document.getElementById('el-ja-cat')||{}).value||'';
+  var list=JA_VOICE_CATALOG.filter(function(v){ return !cat || v.cat===cat; });
+  var cur=sel.value;
+  sel.innerHTML=list.map(function(v){ return '<option value="'+v.id+'">'+escapeHtml(v.name)+'（'+_jaCatLabel(v.cat)+'）</option>'; }).join('');
+  if(list.some(function(v){ return v.id===cur; })) sel.value=cur;
 }
+// 選んだ声で実際に読み上げて試聴（preview_url不要・shared-voices API不要）
 function ttsPreviewJa(){
-  var sel=document.getElementById('el-ja-voice'); if(!sel||!sel.value){ return; }
-  var opt=sel.options[sel.selectedIndex]; var url=opt&&opt.getAttribute('data-preview');
-  if(url){ try{ unlockSpeech(); var a=ensureAudioEl(); if(a){ a.src=url; var p=a.play(); if(p&&p.catch) p.catch(function(){}); } }catch(e){} }
+  var sel=document.getElementById('el-ja-voice'), st=document.getElementById('el-ja-status'); if(!sel||!sel.value) return;
+  if(!elevenLabsKey){ try{ elevenLabsKey=safeLS.getItem('el_api_key')||''; }catch(e){} }
+  if(!elevenLabsKey){ if(st) st.textContent='イレブンラボのAPIキーを入れると、この声で試せます。'; return; }
+  try{ unlockSpeech(); }catch(e){}
+  var pc=currentChar, prev=voiceIds['owl'];
+  voiceIds['owl']=sel.value; currentChar='owl';
+  try{ speak('こんにちは！この声で いっしょに がんばろう。'); }catch(e){}
+  currentChar=pc; voiceIds['owl']=prev;   // 声IDはspeak開始時に確定済みなので即もどしてOK
 }
 function ttsApplyJa(){
   var sel=document.getElementById('el-ja-voice'), st=document.getElementById('el-ja-status');

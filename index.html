@@ -835,6 +835,14 @@
     </div>
 
     <div class="settings-section">
+      <h3>🧪 テスト用（管理者のみ）</h3>
+      <p class="settings-hint">動作テスト用。コイン＋10万・アロハポイント＋10万・ガチャチケット＋50 を追加します。</p>
+      <div class="settings-row">
+        <button class="btn-sm" onclick="rpgTestGrant()">🪙 テスト用に 10万 付与</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <h3>🖥️ 表示</h3>
       <div class="settings-row">
         <label>ダークモード（夜の学習に）</label>
@@ -6024,6 +6032,15 @@ function rpgCosState(s){
   return c;
 }
 function rpgCoin(){ return rpgCosState(rpgState()).coin||0; }
+function rpgTestGrant(){   // テスト用：コイン・ポイント・チケットをまとめて付与（設定の管理者ボタンから）
+  try{
+    var s=rpgState(), cos=rpgCosState(s); cos.coin=(cos.coin||0)+100000; cos.tickets=(cos.tickets||0)+50; rpgSave(s);
+    totalPoints=(totalPoints||0)+100000; safeLS.setItem('c_points', totalPoints);
+    try{ updateScoreBar(); }catch(e){}
+    try{ sfx('coin'); confetti(); }catch(e){}
+    showToast('🧪','テスト用に付与したよ','コイン＋10万・ポイント＋10万・チケット＋50');
+  }catch(e){}
+}
 // 装備中のアクセサリーをキャラに重ねる（オーラ＝背景の光＋各部位）
 function rpgCosBadge(kind){
   var c=rpgCosState(rpgState()), eq=c.equip[kind]||{}, html='', svg='';

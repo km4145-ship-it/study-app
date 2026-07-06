@@ -88,6 +88,8 @@ window.FIREBASE_CONFIG = {
       stickers: Object.assign({}, x.stickers||{}, y.stickers||{}),// あつめたシールも合算
       pet: (function(){ var xp=x.pet||{}, yp=y.pet||{}; var w=Math.max(xp.wins||0,yp.wins||0);
         return { wins:w, stage:Math.max(xp.stage||0,yp.stage||0), name:(yp.name||xp.name||''), fed:((xp.fed||'')>(yp.fed||'')?xp.fed:yp.fed)||'' }; })(),
+      daily: (function(){ var xd=x.daily||{}, yd=y.daily||{}; if((xd.date||'')===(yd.date||'')){ return { date:xd.date||yd.date||'', correct:Math.max(xd.correct||0,yd.correct||0), wins:Math.max(xd.wins||0,yd.wins||0), maxStreak:Math.max(xd.maxStreak||0,yd.maxStreak||0), claimed:Object.assign({},xd.claimed||{},yd.claimed||{}) }; } return ((xd.date||'')>(yd.date||'')? xd : yd); })(),
+      login: (function(){ var xl=x.login||{}, yl=y.login||{}; return { last:((xl.last||'')>(yl.last||'')?xl.last:yl.last)||'', streak:Math.max(xl.streak||0,yl.streak||0) }; })(),
       stamina: stam };
     return JSON.stringify(o); }catch(e){ return b||a; } }
   function mergeKey(k,cur,inc){

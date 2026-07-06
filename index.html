@@ -1357,6 +1357,15 @@
   .rpg-pet-name{ font-weight:800; font-size:.95rem; }
   .rpg-pet-sub{ font-size:.76rem; opacity:.92; margin-top:2px; }
   .rpg-pet-hint{ font-size:.72rem; opacity:.8; margin-top:3px; }
+  /* ---- 今日のミッション ---- */
+  .rpg-mission{ margin-top:12px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border-radius:16px; padding:12px 14px; box-shadow:0 4px 14px rgba(217,119,6,.3); }
+  .rpg-mission-ttl{ font-weight:800; font-size:.92rem; margin-bottom:8px; }
+  .rpg-mission-row{ display:flex; align-items:center; gap:8px; padding:5px 0; border-top:1px solid rgba(255,255,255,.25); font-size:.86rem; }
+  .rpg-mission-row:first-of-type{ border-top:none; }
+  .rpg-mission-ic{ font-size:1.1rem; flex:0 0 auto; }
+  .rpg-mission-tx{ flex:1; font-weight:700; }
+  .rpg-mission-pg{ font-weight:800; background:rgba(0,0,0,.2); border-radius:99px; padding:2px 9px; font-size:.8rem; }
+  .rpg-mission-row.done{ opacity:.85; } .rpg-mission-row.done .rpg-mission-tx{ text-decoration:line-through; }
   /* ---- ずかん ---- */
   .rpg-dex-btn{ width:100%; margin-top:12px; background:var(--card2); color:var(--text); border:2px solid var(--primary-light); border-radius:14px; padding:12px; font-weight:800; cursor:pointer; font-family:inherit; }
   .rpg-dex-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; margin:8px 0; }
@@ -3453,6 +3462,7 @@ function handleAnswer(correct, correctAns) {
     if(correct){ sfx(totalStreak>=3?'crit':'correct'); vibe(20); sparkleBurst(document.getElementById('feedback')); }
     else { sfx('wrong'); vibe([30,50,30]); }
   }
+  if(correct){ rpgBumpDailyCorrect(totalStreak); }  // 今日のミッション用（全モードの正解を集計）
   if(rpgBattle) rpgAfterAnswer(correct);
   document.getElementById('btn-next').classList.add('show');
 }
@@ -5894,10 +5904,35 @@ function rpgBossTaunt(node){
 }
 
 // ---- 状態（rpg_state：ユーザー別・クラウド同期・完全リセット対応）----
-function rpgDefault(){ return { v:1, level:1, xp:0, cleared:{}, coll:{}, crystals:{}, story:{}, dex:{}, stickers:{}, pet:{stage:0,wins:0,name:'',fed:''}, stamina:{date:'',used:0} }; }
+function rpgDefault(){ return { v:1, level:1, xp:0, cleared:{}, coll:{}, crystals:{}, story:{}, dex:{}, stickers:{}, pet:{stage:0,wins:0,name:'',fed:''}, daily:{date:'',correct:0,wins:0,maxStreak:0,claimed:{}}, login:{last:'',streak:0}, stamina:{date:'',used:0} }; }
 function rpgState(){ var s=lsGetJSON('rpg_state',null); if(!s||typeof s!=='object') s=rpgDefault();
   ['cleared','coll','crystals','story','dex','stickers'].forEach(function(k){ if(!s[k]) s[k]={}; });
-  if(!s.pet) s.pet={stage:0,wins:0,name:'',fed:''}; if(!s.stamina) s.stamina={date:'',used:0}; return s; }
+  if(!s.pet) s.pet={stage:0,wins:0,name:'',fed:''}; if(!s.login) s.login={last:'',streak:0}; if(!s.stamina) s.stamina={date:'',used:0}; return s; }
+function rpgDateStr(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function rpgYesterday(){ return rpgDateStr(new Date(Date.now()-86400000)); }
+function rpgDailyGet(s){ if(!s.daily || s.daily.date!==rpgToday()) s.daily={date:rpgToday(),correct:0,wins:0,maxStreak:0,claimed:{}}; if(!s.daily.claimed) s.daily.claimed={}; return s.daily; }
+function rpgBumpDailyCorrect(streak){ try{ var s=rpgState(); var d=rpgDailyGet(s); d.correct++; if((streak||0)>d.maxStreak) d.maxStreak=streak; rpgSave(s); }catch(e){} }
+function rpgMissions(){ return [
+  { id:'m1', icon:'🎯', text:'もんだいに 8もん せいかい', goal:8, pts:10, get:function(d){ return d.correct; } },
+  { id:'m2', icon:'⚔️', text:'バトルに 1かい かつ',      goal:1, pts:10, get:function(d){ return d.wins; } },
+  { id:'m3', icon:'🔥', text:'3もん れんぞくで せいかい', goal:3, pts:10, get:function(d){ return d.maxStreak; } }
+]; }
+function rpgCheckMissions(){
+  var s=rpgState(), d=rpgDailyGet(s), ms=rpgMissions(), changed=false, allDone=true;
+  ms.forEach(function(m){ if(d.claimed[m.id]) return; if(m.get(d)>=m.goal){ d.claimed[m.id]=1; totalPoints+=m.pts; changed=true; try{ showToast(m.icon,'ミッション たっせい！',m.text+'  ＋'+m.pts+'pt'); sfx('coin'); }catch(e){} } });
+  ms.forEach(function(m){ if(!d.claimed[m.id]) allDone=false; });
+  if(allDone && !d.claimed.all){ d.claimed.all=1; var st=rpgGiveSticker(s); totalPoints+=30; changed=true; try{ showToast('🎉','きょうの ミッション ぜんぶ たっせい！','シール「'+st+'」＋30pt！'); sfx('fanfare'); confetti(); }catch(e){} }
+  if(changed){ safeLS.setItem('c_points', totalPoints); try{ updateScoreBar(); }catch(e){} rpgSave(s); }
+}
+function rpgLoginBonus(){
+  var s=rpgState(), lg=s.login||{last:'',streak:0};
+  if(lg.last===rpgToday()) return;
+  var streak=(lg.last===rpgYesterday())?((lg.streak||0)+1):1;
+  var coins=20+Math.min(streak,7)*5;
+  s.login={last:rpgToday(),streak:streak}; totalPoints+=coins; safeLS.setItem('c_points', totalPoints); rpgSave(s);
+  try{ updateScoreBar(); }catch(e){}
+  try{ setTimeout(function(){ showToast('🎁','ログインボーナス '+streak+'日め！','コイン ＋'+coins+'pt もらった！'); sfx('fanfare'); confetti(); }, 350); }catch(e){}
+}
 function rpgPetStageFor(wins){ var st=0; for(var i=0;i<PET_WINS_FOR.length;i++){ if(wins>=PET_WINS_FOR[i]) st=i; } return st; }
 // 全モンスター一覧（図鑑用）
 function rpgAllMonsters(){ var list=[], seen={}; RPG_CONTINENTS.forEach(function(a){ RPG_WORLD[a].chapters.forEach(function(c){ c.nodes.forEach(function(n){ if(!seen[n.mon]){ seen[n.mon]=1; list.push({mon:n.mon,name:n.name}); } }); }); }); list.push({mon:'villain',name:'魔王シグマ'}); return list; }
@@ -5976,6 +6011,7 @@ function showRpg(){
   document.getElementById('rpg-result-view').style.display='none';
   document.getElementById('rpg-map-view').style.display='block';
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+  try{ rpgLoginBonus(); }catch(e){}
   if(!rpgSeen('prologue')){
     rpgShowTitle();
   } else {
@@ -6010,6 +6046,7 @@ function rpgAreaTotalNodes(area){ var n=0; RPG_WORLD[area].chapters.forEach(func
 function rpgAreaClearedNodes(area){ var n=0, s=rpgState(); RPG_WORLD[area].chapters.forEach(function(c){ c.nodes.forEach(function(nd){ if(s.cleared[rpgNodeKey(area,c.id,nd.id)]) n++; }); }); return n; }
 // ================= 大陸セレクト =================
 function rpgRenderContinents(){
+  try{ rpgCheckMissions(); }catch(e){}
   var s=rpgState(), cc=rpgCrystalCount();
   var into=s.xp-rpgXpForLevel(s.level), need=rpgXpForLevel(s.level+1)-rpgXpForLevel(s.level);
   var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
@@ -6025,6 +6062,12 @@ function rpgRenderContinents(){
      '<div class="rpg-pet-info"><div class="rpg-pet-name">🐾 '+escapeHtml(pname)+'（'+PET_STAGE_NAME[pst]+'）</div>'+
      '<div class="rpg-pet-sub">'+(pst<3?('バトルに かつと そだつよ。しんかまで あと '+toNext+'かい'):'さいだいまで そだった！りっぱ！')+'</div>'+
      '<div class="rpg-pet-hint">タップで なでる 🖐️</div></div></div>';
+  // 今日のミッション
+  var dm=rpgDailyGet(s);
+  h+='<div class="rpg-mission"><div class="rpg-mission-ttl">📅 きょうのミッション（クリアで pt）</div>';
+  rpgMissions().forEach(function(m){ var cur=Math.min(m.get(dm),m.goal), done=cur>=m.goal;
+    h+='<div class="rpg-mission-row'+(done?' done':'')+'"><span class="rpg-mission-ic">'+(done?'✅':m.icon)+'</span><span class="rpg-mission-tx">'+m.text+'</span><span class="rpg-mission-pg">'+cur+'/'+m.goal+'</span></div>'; });
+  h+='</div>';
   h+='<div class="rpg-world-title">🗺️ どの大陸に 行く？</div>';
   h+='<div class="rpg-continents">';
   RPG_CONTINENTS.forEach(function(area){
@@ -6241,6 +6284,7 @@ function rpgShowResult(){
     // 図鑑に登録＋相棒ペットのせいちょう
     if(b.node.mon){ s.dex[b.node.mon]=1; }
     s.pet.wins=(s.pet.wins||0)+1; s.pet.stage=rpgPetStageFor(s.pet.wins);
+    var _dw=rpgDailyGet(s); _dw.wins++;   // 今日のミッション：バトル勝利
     // ボス撃破でごほうびシール
     if(b.node.type==='boss'){ b.sticker=rpgGiveSticker(s); }
     // 大陸の最終ボスを倒したら 先生救出＋クリスタル
@@ -6333,7 +6377,7 @@ function rpgBeginMaou(){
 function rpgResolveMaou(b){
   var win=(b.enemyHp<=0 && b.heroHp>0), s=rpgState();
   var gx=b.xpGain+(win?150:10); s.xp+=gx; s.level=rpgLevelForXp(s.xp);
-  if(win){ if(!s.cleared['maou']) s.cleared['maou']=Date.now(); s.dex['villain']=1; s.pet.wins=(s.pet.wins||0)+1; s.pet.stage=rpgPetStageFor(s.pet.wins); b.sticker=rpgGiveSticker(s); }
+  if(win){ if(!s.cleared['maou']) s.cleared['maou']=Date.now(); s.dex['villain']=1; s.pet.wins=(s.pet.wins||0)+1; s.pet.stage=rpgPetStageFor(s.pet.wins); var _dm=rpgDailyGet(s); _dm.wins++; b.sticker=rpgGiveSticker(s); }
   rpgSave(s);
   if(win){ totalPoints+=200; safeLS.setItem('c_points', totalPoints); try{ updateScoreBar(); }catch(e){} rpgEnding(b, gx); }
   else { rpgRenderResult(b, false, gx, 0, false, false); }

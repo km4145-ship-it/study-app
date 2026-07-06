@@ -819,6 +819,17 @@
     </div>
 
     <div class="settings-section">
+      <h3>🎮 ゲームの音・手ごたえ</h3>
+      <p class="settings-hint">正解・こうげき・レベルアップなどの効果音と、タブレット/スマホの「ブルッ」（しんどう）を切り替えます。声の読み上げとは別です。</p>
+      <div class="settings-row">
+        <label>効果音</label>
+        <button class="btn-sm" id="sfx-btn" onclick="toggleSfx()">🔊 オン</button>
+        <label style="margin-left:8px">しんどう</label>
+        <button class="btn-sm" id="vibe-btn" onclick="toggleVibe()">📳 オン</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <h3>🖥️ 表示</h3>
       <div class="settings-row">
         <label>ダークモード（夜の学習に）</label>
@@ -1337,7 +1348,14 @@
   .rpg-btn{ background:linear-gradient(135deg,#f59e0b,#db2777); color:#fff; border:none; border-radius:12px; padding:13px; font-size:1rem; font-weight:800; cursor:pointer; font-family:inherit; }
   .rpg-btn.ghost{ background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); }
   @media (min-width:560px){ .rpg-stage-sky{ height:250px; } .rpg-enemy{ width:120px; height:120px; } }
-  @media (prefers-reduced-motion:reduce){ .mon-svg,.rpg-enemy svg,.rpg-title-btn,.rpg-crystals svg,.rpg-node.open .rpg-node-face,.rpg-castle.ready,.rpg-title-stars,.rpg-story-next,.rpg-hit,.rpg-attack,.rpg-hurt,.rpg-enemy-attack,.rpg-shake{ animation:none!important; } }
+  /* ---- 正解のキラッと演出 ---- */
+  #sparkle-layer{ position:fixed; inset:0; z-index:100000; pointer-events:none; }
+  .sparkle{ position:fixed; font-size:1.3rem; transform:translate(-50%,-50%); animation:sparkleFly .72s ease-out forwards; will-change:transform,opacity; }
+  @keyframes sparkleFly{ 0%{ transform:translate(-50%,-50%) scale(.3); opacity:0; } 25%{ opacity:1; } 100%{ transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.1); opacity:0; } }
+  .score-pop{ animation:scorePop .45s ease-out; }
+  @keyframes scorePop{ 0%{ transform:scale(1); } 40%{ transform:scale(1.5); color:var(--gold,#f59e0b); } 100%{ transform:scale(1); } }
+  body.combo-glow #quiz-box{ box-shadow:0 0 0 3px rgba(252,211,77,.5), 0 8px 26px rgba(252,211,77,.35)!important; }
+  @media (prefers-reduced-motion:reduce){ .mon-svg,.rpg-enemy svg,.rpg-title-btn,.rpg-crystals svg,.rpg-node.open .rpg-node-face,.rpg-castle.ready,.rpg-title-stars,.rpg-story-next,.rpg-hit,.rpg-attack,.rpg-hurt,.rpg-enemy-attack,.rpg-shake,.sparkle,.score-pop{ animation:none!important; } }
   </style>
   <div id="rpg-screen" style="display:none">
     <div class="rpg-topbar"><button class="rpg-back" onclick="backToSubjects()">← 学習トップ</button><div class="rpg-topttl">🗡️ まなびの王国クエスト</div></div>
@@ -2338,6 +2356,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 // Called when user taps the start button (after user gesture = audio allowed)
 async function startApp() {
   unlockSpeech(); // タップの瞬間に内蔵音声を解除（iOS/Safari対策）
+  sfx('start');
   // ストレージを「永続」にするようブラウザに要求（APIキー等がアプリ更新や放置で消えるのを防ぐ）
   try{ if(navigator.storage && navigator.storage.persist){ navigator.storage.persist(); } }catch(e){}
   var so=document.getElementById('start-overlay'); if(so) so.style.display='none';
@@ -2692,6 +2711,7 @@ function refreshSettingsDisp(){
   try{ renderUserAdmin(); }catch(e){}
   try{ ttsPopulateVoices(); }catch(e){}
   try{ ttsFillJaVoices(); }catch(e){}
+  try{ _sfxBtnSync(); }catch(e){}
   const td=safeLS.getItem('testdate'); const t=document.getElementById('testdate-disp'); if(t) t.textContent= td?('（'+td+'／あと'+daysUntilTest()+'日）'):'（未設定）';
   const rw=lsGetJSON('reward',null); const r=document.getElementById('reward-disp'); if(r) r.textContent= rw?('（'+rw.points+'pt で '+rw.text+'）'):'（未設定）';
   const re=getRealExams(); const rd=document.getElementById('realexam-disp');
@@ -2849,7 +2869,53 @@ function unlockSpeech() {
       if (pr && pr.then) pr.then(function(){ try{ a.pause(); a.currentTime=0; }catch(e){} }).catch(function(){});
     }
   } catch(e) {}
+  try{ var sc=_sfxAC(); if(sc && sc.state==='suspended') sc.resume(); }catch(e){}
   speechUnlocked = true;
+}
+
+// ===== 効果音（Web Audioで合成・オフライン自己完結。外部ファイル不要）=====
+var _sfxCtx=null;
+function _sfxAC(){ if(_sfxCtx) return _sfxCtx; try{ _sfxCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ _sfxCtx=null; } return _sfxCtx; }
+function sfxEnabled(){ try{ return safeLS.getItem('sfx_on')!=='0'; }catch(e){ return true; } }
+function vibeEnabled(){ try{ return safeLS.getItem('vibe_on')!=='0'; }catch(e){ return true; } }
+function _tone(ac,f,t0,dur,type,vol){ try{ var o=ac.createOscillator(),g=ac.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(f,t0); g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(vol||0.2,t0+0.012); g.gain.exponentialRampToValueAtTime(0.0008,t0+dur); o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0+dur+0.03); }catch(e){} }
+function _slide(ac,f1,f2,t0,dur,type,vol){ try{ var o=ac.createOscillator(),g=ac.createGain(); o.type=type||'square'; o.frequency.setValueAtTime(f1,t0); o.frequency.exponentialRampToValueAtTime(Math.max(30,f2),t0+dur); g.gain.setValueAtTime(vol||0.15,t0); g.gain.exponentialRampToValueAtTime(0.0008,t0+dur); o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0+dur+0.03); }catch(e){} }
+function _noise(ac,t0,dur,vol){ try{ var len=Math.floor(ac.sampleRate*dur), b=ac.createBuffer(1,len,ac.sampleRate), d=b.getChannelData(0); for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len); var n=ac.createBufferSource(); n.buffer=b; var g=ac.createGain(); g.gain.setValueAtTime(vol||0.15,t0); g.gain.exponentialRampToValueAtTime(0.001,t0+dur); var f=ac.createBiquadFilter(); f.type='highpass'; f.frequency.value=700; n.connect(f); f.connect(g); g.connect(ac.destination); n.start(t0); n.stop(t0+dur); }catch(e){} }
+function sfx(name){
+  if(!sfxEnabled()) return;
+  var ac=_sfxAC(); if(!ac) return;
+  try{ if(ac.state==='suspended') ac.resume(); }catch(e){}
+  var t=ac.currentTime;
+  switch(name){
+    case 'click':   _tone(ac,660,t,0.07,'triangle',0.12); break;
+    case 'correct': [523,659,784].forEach(function(f,i){ _tone(ac,f,t+i*0.07,0.16,'sine',0.2); }); break;
+    case 'wrong':   _slide(ac,320,170,t,0.28,'sawtooth',0.14); break;
+    case 'attack':  _noise(ac,t,0.1,0.16); _slide(ac,420,120,t,0.12,'square',0.13); break;
+    case 'crit':    [784,988,1319,1568].forEach(function(f,i){ _tone(ac,f,t+i*0.05,0.14,'square',0.15); }); break;
+    case 'miss':    _slide(ac,260,150,t,0.2,'sine',0.11); break;
+    case 'defeat':  _slide(ac,600,80,t,0.4,'sawtooth',0.15); [1047,1319].forEach(function(f,i){ _tone(ac,f,t+0.26+i*0.08,0.2,'sine',0.13); }); break;
+    case 'coin':    _tone(ac,988,t,0.07,'square',0.15); _tone(ac,1319,t+0.06,0.14,'square',0.15); break;
+    case 'crystal': [1047,1319,1568,2093].forEach(function(f,i){ _tone(ac,f,t+i*0.06,0.22,'sine',0.13); }); break;
+    case 'levelup': [523,659,784,1047].forEach(function(f,i){ _tone(ac,f,t+i*0.09,0.24,'triangle',0.2); }); break;
+    case 'unlock':  _tone(ac,440,t,0.09,'square',0.13); _tone(ac,880,t+0.09,0.16,'square',0.13); break;
+    case 'fanfare': [523,659,784,1047,784,1047,1319].forEach(function(f,i){ _tone(ac,f,t+i*0.12,0.3,'triangle',0.2); }); break;
+    case 'start':   [392,523,659].forEach(function(f,i){ _tone(ac,f,t+i*0.08,0.2,'triangle',0.17); }); break;
+    default: break;
+  }
+}
+function vibe(p){ if(!vibeEnabled()) return; try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+// 正解のキラッと演出（要素の近くに星が弾ける）
+function sparkleBurst(target){
+  try{
+    var host=document.getElementById('sparkle-layer'); if(!host){ host=document.createElement('div'); host.id='sparkle-layer'; document.body.appendChild(host); }
+    var r=(target&&target.getBoundingClientRect)?target.getBoundingClientRect():{left:innerWidth/2-20,top:innerHeight/2-20,width:40,height:40};
+    var cx=r.left+r.width/2, cy=r.top+r.height/2;
+    var em=['⭐','✨','🌟','💫','🎉'];
+    for(var i=0;i<10;i++){ (function(i){ var s=document.createElement('div'); s.className='sparkle'; s.textContent=em[i%em.length];
+      var ang=Math.PI*2*i/10+Math.random(), dist=40+Math.random()*46;
+      s.style.left=cx+'px'; s.style.top=cy+'px'; s.style.setProperty('--dx',(Math.cos(ang)*dist)+'px'); s.style.setProperty('--dy',(Math.sin(ang)*dist)+'px');
+      host.appendChild(s); setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); },750); })(i); }
+  }catch(e){}
 }
 
 // 声をテスト（ボタンから直接呼ぶ。ユーザー操作なので音声が許可される）
@@ -3096,12 +3162,21 @@ async function speakAndWait(text) {
 }
 
 function setLunaText(t) { document.getElementById('luna-text').textContent = t; }
+var _lastPointsShown = null;
 function updateScoreBar() {
   document.getElementById('total-correct').textContent = totalCorrect;
   document.getElementById('total-streak').textContent  = totalStreak;
-  document.getElementById('total-points').textContent  = totalPoints;
+  var pe=document.getElementById('total-points'); pe.textContent = totalPoints;
+  // ポイントが増えたらポップ＆コイン音
+  if(_lastPointsShown!==null && totalPoints>_lastPointsShown){ try{ pe.classList.remove('score-pop'); void pe.offsetWidth; pe.classList.add('score-pop'); }catch(e){} }
+  _lastPointsShown = totalPoints;
   renderDailyRing();
 }
+// ===== 効果音・しんどうの設定 =====
+function _sfxBtnSync(){ var b=document.getElementById('sfx-btn'); if(b) b.textContent=sfxEnabled()?'🔊 オン':'🔇 オフ';
+  var v=document.getElementById('vibe-btn'); if(v) v.textContent=vibeEnabled()?'📳 オン':'🚫 オフ'; }
+function toggleSfx(){ var on=!sfxEnabled(); safeLS.setItem('sfx_on', on?'1':'0'); _sfxBtnSync(); if(on){ try{ unlockSpeech(); sfx('coin'); }catch(e){} } }
+function toggleVibe(){ var on=!vibeEnabled(); safeLS.setItem('vibe_on', on?'1':'0'); _sfxBtnSync(); if(on) vibe([20,40,20]); }
 function saveStats() {
   safeLS.setItem('c_correct', totalCorrect);
   safeLS.setItem('c_streak',  totalStreak);
@@ -3352,6 +3427,11 @@ function handleAnswer(correct, correctAns) {
   checkBadges();
   checkReward();
   updateNbBadge();
+  // 効果音・振動・キラッと演出（RPGバトル中はrpgAfterAnswerで戦闘音を出すので二重にしない）
+  if(!rpgBattle){
+    if(correct){ sfx(totalStreak>=3?'crit':'correct'); vibe(20); sparkleBurst(document.getElementById('feedback')); }
+    else { sfx('wrong'); vibe([30,50,30]); }
+  }
   if(rpgBattle) rpgAfterAnswer(correct);
   document.getElementById('btn-next').classList.add('show');
 }
@@ -5882,6 +5962,7 @@ function rpgShowTitle(){
     '</div>';
 }
 function rpgStartAdventure(){
+  try{ unlockSpeech(); sfx('start'); }catch(e){}
   rpgStoryPlay(RPG_STORY.prologue, function(){ rpgMarkSeen('prologue'); rpgRenderContinents(); });
 }
 // 大陸ごとの進捗
@@ -5974,7 +6055,8 @@ function rpgMapPathSVG(area){
 }
 function rpgEnterNode(area, ci, ni){
   if(rpgStaminaLeft()<=0){ showToast('😴','きょうの冒険はここまで','よくがんばったね！つづきは明日。ふつうの学習はできるよ'); return; }
-  if(!rpgNodeUnlocked(area, ci, ni)){ showToast('🔒','まだ行けないよ','前のマスをクリアするとひらけるよ'); return; }
+  if(!rpgNodeUnlocked(area, ci, ni)){ sfx('wrong'); showToast('🔒','まだ行けないよ','前のマスをクリアするとひらけるよ'); return; }
+  sfx('click'); vibe(15);
   var ch=RPG_WORLD[area].chapters[ci], node=ch.nodes[ni];
   var pre=[];
   var introKey=area+':'+ch.id+':intro';
@@ -6033,15 +6115,20 @@ function rpgAfterAnswer(correct){
     rpgBattle.enemyHp=Math.max(0, rpgBattle.enemyHp-dmg);
     rpgBattle.xpGain += (rpgBattle.node.type!=='zako'?15:10) + (crit?5:0);
     if(hero){ hero.classList.remove('rpg-attack'); void hero.offsetWidth; hero.classList.add('rpg-attack'); }
+    sfx(crit?'crit':'attack'); vibe(crit?[12,24,12,24]:22);
+    try{ document.body.classList.toggle('combo-glow', rpgBattle.combo>=3); }catch(e){}
     setTimeout(function(){
       if(enemy){ enemy.classList.remove('rpg-hit'); void enemy.offsetWidth; enemy.classList.add('rpg-hit'); }
       if(sky){ sky.classList.remove('rpg-flash'); void sky.offsetWidth; sky.classList.add('rpg-flash'); }
       rpgFloat((crit?'会心！ ':'')+'-'+dmg, crit?'crit':'dmg');
+      if(enemy) sparkleBurst(enemy);
     }, 180);
   } else {
     rpgBattle.combo=0;
     rpgBattle.heroHp=Math.max(0, rpgBattle.heroHp-1);
+    try{ document.body.classList.remove('combo-glow'); }catch(e){}
     if(enemy){ enemy.classList.remove('rpg-enemy-attack'); void enemy.offsetWidth; enemy.classList.add('rpg-enemy-attack'); }
+    sfx('miss'); vibe([40,60,40]);
     setTimeout(function(){
       if(hero){ hero.classList.remove('rpg-hurt'); void hero.offsetWidth; hero.classList.add('rpg-hurt'); }
       var stg=document.getElementById('rpg-stage'); if(stg){ stg.classList.remove('rpg-shake'); void stg.offsetWidth; stg.classList.add('rpg-shake'); }
@@ -6051,9 +6138,10 @@ function rpgAfterAnswer(correct){
   rpgUpdateGauges();
   if(rpgBattle.enemyHp<=0 || rpgBattle.heroHp<=0){
     rpgBattle.over=true;
+    try{ document.body.classList.remove('combo-glow'); }catch(e){}
     // 残りの問題を打ち切って、次の「つぎへ」でリザルトへ
     try{ currentQuestions.length=currentIndex+1; }catch(e){}
-    if(rpgBattle.enemyHp<=0 && enemy){ setTimeout(function(){ enemy.classList.add('rpg-defeated'); },300); }
+    if(rpgBattle.enemyHp<=0 && enemy){ setTimeout(function(){ enemy.classList.add('rpg-defeated'); sfx('defeat'); vibe([25,40,25,40,60]); },300); }
   }
 }
 // バトル終了（showResult からフック）
@@ -6103,7 +6191,8 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   if(RPG_WORLD[b.area]) L+='<button class="rpg-btn" onclick="rpgOpenMap(\''+b.area+'\')">🗺️ 大陸マップへ</button>';
   L+='<button class="rpg-btn ghost" onclick="showRpg()">🏔️ 大陸せんたく</button></div></div>';
   rv.innerHTML=L;
-  if(victory){ confetti(); if(b.node.type==='boss') setTimeout(confetti,400); }
+  if(victory){ confetti(); sfx(b.node.type==='boss'?'fanfare':'levelup'); if(pt) setTimeout(function(){ sfx('coin'); },300); if(leveled) setTimeout(function(){ sfx('levelup'); },600); if(b.node.type==='boss') setTimeout(confetti,400); vibe([20,40,20,40,80]); }
+  else { sfx('wrong'); vibe(60); }
   var msg=victory?(b.node.type==='boss'?'やった！ボスを たおしたね！さいこう！🎉':'よくやった！つぎのマスへ 進もう！'):'おしい！あと少しだった。復習して リベンジだ！🐯';
   setLunaText(msg); try{ speak(msg); }catch(e){}
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
@@ -6118,6 +6207,7 @@ function rpgRescueScene(b, xp, pt, leveled){
     { who:'ミミ学園長', char:'owl', text:'すごいわ！ クリスタルが ひとつ あつまった（'+rpgCrystalCount()+'/5）。' },
     { who:'ミミ学園長', char:'owl', text:(rpgCrystalCount()>=5 ? '5つ そろった…！ ついに 魔王城の 扉がひらく。決戦のときよ！' : 'ほら、遠くに 魔王城の かげが 見えてきた…。のこりの先生も 助けにいきましょう！') }
   ];
+  try{ sfx('crystal'); vibe([30,60,30,60,120]); }catch(e){}
   rpgStoryPlay(lines, function(){ rpgRenderResult(b, true, xp, pt, leveled, true); });
 }
 // ================= 魔王戦（模試のように5教科ミックス。偏差値65の壁＝σ）=================
@@ -6191,6 +6281,7 @@ function rpgRenderEnding(b, xp){
     '<div class="rpg-res-btns"><button class="rpg-btn ghost" onclick="showRpg()">🏔️ 大陸せんたくへ</button></div></div>';
   rv.innerHTML=L;
   try{ confetti(); setTimeout(confetti,400); setTimeout(confetti,800); }catch(e){}
+  try{ sfx('fanfare'); setTimeout(function(){ sfx('crystal'); },900); vibe([40,80,40,80,40,80,200]); }catch(e){}
   try{ setCharacter('dolphin'); }catch(e){}
   var m='おめでとう！王国は すくわれた！さいこうの勇者だね！🎉'; setLunaText(m); try{ speak(m); }catch(e){}
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
@@ -6289,7 +6380,7 @@ function checkBadges(ctx){
     let ok=false; try { ok = b.check(stats, ctx||null); } catch(e){ ok=false; }
     if(ok){ earned[b.id] = todayKey(); changed = true; showToast(b.emoji, '🏅 バッジ獲得！', b.title+'｜'+b.desc, 3800); }
   });
-  if(changed) lsSetJSON('badges', earned);
+  if(changed){ lsSetJSON('badges', earned); try{ sfx('fanfare'); vibe([20,40,20,40,80]); }catch(e){} }
 }
 
 // ---- もう一度聞く ----

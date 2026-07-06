@@ -1214,6 +1214,52 @@
   .rpg-stage-sky.plains{ background:linear-gradient(180deg,#1e3a8a,#3b82f6 55%,#86efac 88%); }
   .rpg-stage-sky.forest{ background:linear-gradient(180deg,#14532d,#166534 50%,#4ade80 90%); }
   .rpg-stage-sky.boss{ background:linear-gradient(180deg,#450a0a,#7f1d1d 55%,#b91c1c 92%); }
+  .rpg-stage-sky.ja{ background:linear-gradient(180deg,#134e4a,#0f766e 55%,#5eead4 92%); }
+  .rpg-stage-sky.desert{ background:linear-gradient(180deg,#b45309,#f59e0b 55%,#fde68a 92%); }
+  .rpg-stage-sky.cave{ background:linear-gradient(180deg,#1e1b4b,#4c1d95 55%,#7c3aed 92%); }
+  .rpg-stage-sky.ruins{ background:linear-gradient(180deg,#44403c,#78716c 55%,#d6c9a8 92%); }
+  /* ---- 大陸セレクト ---- */
+  .rpg-world-title{ font-weight:900; color:var(--rpg-gold-d,#b45309); font-size:1.05rem; margin:14px 2px 8px; }
+  .rpg-continents{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .rpg-cont{ display:flex; flex-direction:column; align-items:center; gap:5px; background:linear-gradient(160deg,#312e81,#4c1d95); color:#fff; border:2px solid rgba(252,211,77,.4); border-radius:16px; padding:14px 10px; cursor:pointer; font-family:inherit; transition:transform .1s; }
+  @media (hover:hover){ .rpg-cont:hover{ transform:translateY(-3px); } }
+  .rpg-cont:active{ transform:scale(.97); }
+  .rpg-cont.done{ border-color:var(--rpg-cyan,#38f0e0); box-shadow:0 0 0 2px rgba(56,240,224,.3); }
+  .rpg-cont-emoji{ font-size:2.2rem; line-height:1; }
+  .rpg-cont-name{ font-weight:800; font-size:.9rem; }
+  .rpg-cont-bar{ width:100%; height:8px; background:rgba(0,0,0,.35); border-radius:99px; overflow:hidden; }
+  .rpg-cont-bar i{ display:block; height:100%; background:linear-gradient(90deg,#fbbf24,#fde68a); border-radius:99px; }
+  .rpg-cont-meta{ font-size:.74rem; opacity:.92; }
+  .rpg-cont-crystal{ color:#a5f3fc; font-weight:800; }
+  .rpg-cont-crystal svg{ width:14px; height:16px; vertical-align:-3px; }
+  .rpg-party{ margin-top:14px; background:var(--card2); border-radius:14px; padding:10px 12px; }
+  .rpg-party-ttl{ font-weight:800; font-size:.9rem; color:var(--text); margin-bottom:6px; }
+  .rpg-party-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .rpg-party-mem{ width:46px; height:56px; border-radius:12px; background:var(--card); border:2px solid var(--primary-light); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .rpg-party-mem svg{ width:90%; height:90%; }
+  .rpg-party-mem.locked{ filter:grayscale(1) brightness(.75); }
+  .rpg-party-q{ font-size:1.4rem; color:#94a3b8; font-weight:900; }
+  .rpg-castle-card{ display:flex; align-items:center; gap:12px; width:100%; margin-top:14px; border-radius:16px; padding:14px 16px; font-family:inherit; text-align:left; border:2px solid; }
+  .rpg-castle-card .rpg-castle-em{ font-size:2.4rem; flex:0 0 auto; }
+  .rpg-castle-card.ready{ background:linear-gradient(135deg,#7f1d1d,#b91c1c); color:#fff; border-color:var(--rpg-gold,#fcd34d); cursor:pointer; animation:rpgBtnBob 2s ease-in-out infinite; }
+  .rpg-castle-card.locked{ background:var(--card2); color:var(--muted,#64748b); border-color:#cbd5e1; }
+  .rpg-castle-card.cleared{ background:linear-gradient(135deg,#312e81,#6d28d9); color:#fde68a; border-color:var(--rpg-gold,#fcd34d); cursor:pointer; font-weight:800; justify-content:center; }
+  .rpg-castle-card b{ font-size:1rem; } .rpg-castle-card small{ opacity:.9; }
+  /* ---- 大陸マップ ---- */
+  .rpg-cont-banner{ text-align:center; font-weight:800; color:#fff; background:linear-gradient(135deg,#312e81,#6d28d9); border-radius:12px; padding:8px 12px; margin:10px 0 2px; font-size:.92rem; }
+  .rpg-goal{ position:absolute; transform:translate(-50%,-50%); z-index:2; text-align:center; filter:drop-shadow(0 0 8px rgba(56,240,224,.7)); }
+  .rpg-goal svg{ width:34px; height:40px; }
+  .rpg-goal.got svg{ filter:none; } .rpg-goal:not(.got) svg{ opacity:.55; filter:grayscale(.5); }
+  .rpg-goal-lbl{ display:block; font-size:.58rem; font-weight:900; color:#fff; background:rgba(14,116,144,.9); border-radius:6px; padding:1px 5px; margin-top:-2px; }
+  /* ---- エンディング ---- */
+  .rpg-end-card{ max-width:460px; margin:16px auto; border-radius:22px; padding:24px 20px; text-align:center; color:#fff; background:radial-gradient(ellipse at 50% 0%,#4c1d95,#160f30 75%); border:2px solid var(--rpg-gold,#fcd34d); box-shadow:0 14px 44px rgba(0,0,0,.4); }
+  .rpg-end-crown{ font-size:3.4rem; animation:rpgPop .6s; }
+  .rpg-end-title{ font-size:1.6rem; font-weight:900; background:linear-gradient(180deg,#fef3c7,#fcd34d 60%,#d97706); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 2px 0 #7c2d12); margin:4px 0; }
+  .rpg-end-sub{ color:#e9d5ff; font-weight:700; font-size:.9rem; }
+  .rpg-end-team{ display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin:16px 0; }
+  .rpg-end-mem{ width:48px; height:58px; } .rpg-end-mem svg{ width:100%; height:100%; }
+  .rpg-end-stats{ font-weight:800; color:#fde68a; margin-bottom:8px; }
+  .rpg-end-msg{ font-size:.86rem; color:#e9d5ff; background:rgba(0,0,0,.25); border-radius:10px; padding:10px 12px; margin-bottom:6px; }
   .rpg-stage-sky::before{ content:""; position:absolute; inset:0; background-image:radial-gradient(1.5px 1.5px at 15% 20%,rgba(255,255,255,.8),transparent),radial-gradient(1px 1px at 60% 15%,rgba(255,255,255,.7),transparent),radial-gradient(2px 2px at 82% 30%,rgba(255,255,255,.6),transparent),radial-gradient(1px 1px at 35% 28%,rgba(255,255,255,.6),transparent); opacity:.7; }
   .rpg-stage-ground{ position:absolute; left:0; right:0; bottom:0; height:44px; background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.28)); }
   .rpg-fx{ position:absolute; inset:0; z-index:6; pointer-events:none; }
@@ -5634,6 +5680,18 @@ var RPG_SVG = {
   ghost:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="24" ry="5" fill="rgba(0,0,0,.22)"/><path d="M30 60 Q30 26 60 26 Q90 26 90 60 L90 96 Q84 88 78 96 Q72 88 66 96 Q60 88 54 96 Q48 88 42 96 Q36 88 30 96Z" fill="#e0f2fe" stroke="#7dd3fc" stroke-width="2.5" opacity=".92"/><path d="M42 50 h10 v10 h-10Z M58 60 h10 v10 h-10Z M46 70 h10 v8 h-10Z" fill="none" stroke="#38bdf8" stroke-width="2" opacity=".6"/><circle cx="49" cy="56" r="7.5" fill="#0369a1"/><circle cx="51" cy="58" r="3.4" fill="#fff"/><circle cx="71" cy="56" r="7.5" fill="#0369a1"/><circle cx="73" cy="58" r="3.4" fill="#fff"/><ellipse cx="60" cy="74" rx="6" ry="8" fill="#0369a1"/></svg>',
   slugking:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="108" rx="40" ry="8" fill="rgba(0,0,0,.3)"/><path d="M40 30 L34 12 L46 22 L60 8 L74 22 L86 12 L80 30Z" fill="#fcd34d" stroke="#b45309" stroke-width="2.5"/><circle cx="46" cy="22" r="3" fill="#f43f5e"/><circle cx="60" cy="16" r="3.4" fill="#f43f5e"/><circle cx="74" cy="22" r="3" fill="#f43f5e"/><path d="M18 88 Q12 42 60 36 Q108 42 102 88 Q102 102 60 102 Q18 102 18 88Z" fill="#14b8a6" stroke="#0f766e" stroke-width="3.5"/><path d="M34 86 Q28 58 60 55 Q92 58 86 86 Q86 96 60 96 Q34 96 34 86Z" fill="#5eead4" opacity=".5"/><circle cx="46" cy="70" r="11" fill="#fff"/><circle cx="49" cy="73" r="5.4" fill="#0f172a"/><circle cx="43" cy="66" r="2.4" fill="#fff"/><circle cx="74" cy="70" r="11" fill="#fff"/><circle cx="77" cy="73" r="5.4" fill="#0f172a"/><circle cx="71" cy="66" r="2.4" fill="#fff"/><path d="M46 88 Q60 96 74 88" stroke="#0f766e" stroke-width="3" fill="none" stroke-linecap="round"/><text x="60" y="52" font-size="16" text-anchor="middle" fill="#0f766e" font-weight="bold">＝?</text></svg>',
   dragon:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="40" ry="8" fill="rgba(0,0,0,.3)"/><path d="M24 64 Q6 40 4 62 Q10 66 8 78 Q22 70 32 78Z" fill="#166534"/><path d="M96 64 Q114 40 116 62 Q110 66 112 78 Q98 70 88 78Z" fill="#166534"/><path d="M42 34 L34 14 L52 28Z" fill="#166534"/><path d="M78 34 L86 14 L68 28Z" fill="#166534"/><path d="M22 74 Q20 36 60 32 Q100 36 98 74 Q98 102 60 106 Q22 102 22 74Z" fill="#16a34a" stroke="#14532d" stroke-width="3.5"/><path d="M40 92 Q60 82 80 92 Q80 100 60 100 Q40 100 40 92Z" fill="#bbf7d0" opacity=".5"/><path d="M60 44 l6 8 l-6 6 l-6 -6Z" fill="#fde047"/><circle cx="47" cy="66" r="10" fill="#fca5a5"/><circle cx="50" cy="68" r="5" fill="#7f1d1d"/><circle cx="44" cy="62" r="2.2" fill="#fff"/><circle cx="73" cy="66" r="10" fill="#fca5a5"/><circle cx="76" cy="68" r="5" fill="#7f1d1d"/><circle cx="70" cy="62" r="2.2" fill="#fff"/><path d="M46 88 L54 82 L60 88 L66 82 L74 88" stroke="#14532d" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  inkblob:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="106" rx="32" ry="7" fill="rgba(0,0,0,.3)"/><path d="M26 90 Q20 46 60 42 Q100 46 94 90 Q94 101 60 101 Q26 101 26 90Z" fill="#312e4d" stroke="#1e1b3a" stroke-width="3"/><circle cx="49" cy="72" r="8.5" fill="#fff"/><circle cx="51" cy="74" r="4.2" fill="#0f172a"/><circle cx="47" cy="70" r="1.8" fill="#fff"/><circle cx="73" cy="72" r="8.5" fill="#fff"/><circle cx="75" cy="74" r="4.2" fill="#0f172a"/><circle cx="71" cy="70" r="1.8" fill="#fff"/><text x="60" y="60" font-size="17" text-anchor="middle" fill="#c4b5fd" font-weight="bold">あ</text><path d="M50 86 Q60 92 70 86" stroke="#c4b5fd" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>',
+  fudebird:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="112" rx="16" ry="4" fill="rgba(0,0,0,.25)"/><path d="M52 18 Q60 8 68 18 L64 40 L56 40Z" fill="#7c2d12"/><path d="M50 40 Q60 34 70 40 Q78 70 70 96 Q60 108 50 96 Q42 70 50 40Z" fill="#f5f5f4" stroke="#a8a29e" stroke-width="2.5"/><circle cx="52" cy="60" r="7.5" fill="#1c1917"/><circle cx="54" cy="62" r="3.2" fill="#fff"/><circle cx="68" cy="60" r="7.5" fill="#1c1917"/><circle cx="70" cy="62" r="3.2" fill="#fff"/><text x="60" y="86" font-size="15" text-anchor="middle" fill="#1c1917" font-weight="bold">文</text></svg>',
+  kanjioni:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="108" rx="38" ry="8" fill="rgba(0,0,0,.3)"/><path d="M40 30 L34 12 L46 22 L60 8 L74 22 L86 12 L80 30Z" fill="#fcd34d" stroke="#b45309" stroke-width="2.5"/><rect x="34" y="34" width="52" height="62" rx="4" fill="#fef3c7" stroke="#b45309" stroke-width="3"/><circle cx="34" cy="36" r="5" fill="#92400e"/><circle cx="86" cy="36" r="5" fill="#92400e"/><circle cx="49" cy="58" r="8" fill="#fff" stroke="#b45309" stroke-width="1.5"/><circle cx="51" cy="60" r="4" fill="#0f172a"/><circle cx="71" cy="58" r="8" fill="#fff" stroke="#b45309" stroke-width="1.5"/><circle cx="73" cy="60" r="4" fill="#0f172a"/><text x="60" y="90" font-size="24" text-anchor="middle" fill="#7c2d12" font-weight="bold">漢</text></svg>',
+  abcube:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="108" rx="34" ry="7" fill="rgba(0,0,0,.28)"/><rect x="24" y="60" width="10" height="24" rx="4" fill="#d97706"/><rect x="86" y="60" width="10" height="24" rx="4" fill="#d97706"/><rect x="34" y="40" width="52" height="52" rx="8" fill="#f59e0b" stroke="#b45309" stroke-width="3"/><rect x="42" y="24" width="36" height="22" rx="6" fill="#fbbf24" stroke="#b45309" stroke-width="2.5"/><text x="60" y="42" font-size="16" text-anchor="middle" fill="#7c2d12" font-weight="bold">A</text><circle cx="49" cy="66" r="8.5" fill="#fff"/><circle cx="51" cy="68" r="4.2" fill="#0f172a"/><circle cx="71" cy="66" r="8.5" fill="#fff"/><circle cx="73" cy="68" r="4.2" fill="#0f172a"/><path d="M50 82 h20" stroke="#7c2d12" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  qbird:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="108" rx="26" ry="6" fill="rgba(0,0,0,.28)"/><path d="M30 66 Q20 54 10 60 Q18 66 16 76 Q30 72 38 78Z" fill="#0ea5e9"/><path d="M90 66 Q100 54 110 60 Q102 66 104 76 Q90 72 82 78Z" fill="#0ea5e9"/><ellipse cx="60" cy="66" rx="28" ry="30" fill="#38bdf8" stroke="#0369a1" stroke-width="3"/><path d="M60 44 L54 50 L66 50Z" fill="#f59e0b"/><circle cx="50" cy="62" r="8" fill="#fff"/><circle cx="52" cy="64" r="4" fill="#0f172a"/><circle cx="70" cy="62" r="8" fill="#fff"/><circle cx="72" cy="64" r="4" fill="#0f172a"/><text x="60" y="82" font-size="18" text-anchor="middle" fill="#075985" font-weight="bold">?</text></svg>',
+  grammaro:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="108" rx="40" ry="8" fill="rgba(0,0,0,.3)"/><path d="M40 30 L34 12 L46 22 L60 8 L74 22 L86 12 L80 30Z" fill="#fcd34d" stroke="#b45309" stroke-width="2.5"/><path d="M18 88 Q12 42 60 36 Q108 42 102 88 Q102 102 60 102 Q18 102 18 88Z" fill="#2563eb" stroke="#1e3a8a" stroke-width="3.5"/><circle cx="47" cy="66" r="10" fill="#fff"/><circle cx="50" cy="68" r="5" fill="#0f172a"/><circle cx="73" cy="66" r="10" fill="#fff"/><circle cx="76" cy="68" r="5" fill="#0f172a"/><text x="60" y="52" font-size="15" text-anchor="middle" fill="#dbeafe" font-weight="bold">ABC</text><path d="M46 86 Q60 94 74 86" stroke="#1e3a8a" stroke-width="3" fill="none" stroke-linecap="round"/></svg>',
+  flaskun:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="30" ry="6" fill="rgba(0,0,0,.28)"/><rect x="46" y="18" width="28" height="8" rx="3" fill="#065f46"/><path d="M50 24 L50 44 L32 92 Q30 104 44 104 L76 104 Q90 104 88 92 L70 44 L70 24Z" fill="#a7f3d0" stroke="#047857" stroke-width="3" opacity=".9"/><path d="M38 78 Q60 70 82 78 L86 92 Q88 100 78 100 L42 100 Q32 100 34 92Z" fill="#10b981"/><circle cx="50" cy="64" r="8" fill="#fff"/><circle cx="52" cy="66" r="4" fill="#0f172a"/><circle cx="70" cy="64" r="8" fill="#fff"/><circle cx="72" cy="66" r="4" fill="#0f172a"/><circle cx="46" cy="90" r="3" fill="#d1fae5"/><circle cx="66" cy="92" r="4" fill="#d1fae5"/></svg>',
+  microbe:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="104" rx="30" ry="7" fill="rgba(0,0,0,.25)"/><path d="M40 44 Q34 30 48 30 Q54 20 64 28 Q80 24 80 40 Q96 46 88 60 Q98 74 84 80 Q86 96 70 92 Q60 102 50 92 Q34 96 36 80 Q24 70 34 60 Q26 48 40 44Z" fill="#84cc16" stroke="#4d7c0f" stroke-width="3"/><circle cx="52" cy="56" r="9" fill="#fff"/><circle cx="54" cy="58" r="4.4" fill="#0f172a"/><circle cx="50" cy="54" r="1.9" fill="#fff"/><circle cx="74" cy="56" r="9" fill="#fff"/><circle cx="76" cy="58" r="4.4" fill="#0f172a"/><circle cx="72" cy="54" r="1.9" fill="#fff"/><circle cx="46" cy="72" r="4" fill="#4d7c0f"/><circle cx="70" cy="74" r="5" fill="#4d7c0f"/><path d="M54 84 Q62 88 70 84" stroke="#4d7c0f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>',
+  voltdrake:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="38" ry="8" fill="rgba(0,0,0,.3)"/><path d="M40 34 L32 12 L52 28Z" fill="#6d28d9"/><path d="M80 34 L88 12 L68 28Z" fill="#6d28d9"/><path d="M22 74 Q20 34 60 30 Q100 34 98 74 Q98 102 60 106 Q22 102 22 74Z" fill="#7c3aed" stroke="#4c1d95" stroke-width="3.5"/><path d="M58 40 L66 54 L58 54 L64 68 L52 52 L60 52Z" fill="#fde047"/><circle cx="47" cy="66" r="10" fill="#fde047"/><circle cx="50" cy="68" r="5" fill="#0f172a"/><circle cx="73" cy="66" r="10" fill="#fde047"/><circle cx="76" cy="68" r="5" fill="#0f172a"/><path d="M46 90 L54 84 L60 90 L66 84 L74 90" stroke="#4c1d95" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  mapmoth:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="106" rx="28" ry="6" fill="rgba(0,0,0,.25)"/><path d="M58 60 Q28 40 12 54 Q28 58 22 74 Q40 68 58 74Z" fill="#d6b98c" stroke="#92702f" stroke-width="2.5"/><path d="M62 60 Q92 40 108 54 Q92 58 98 74 Q80 68 62 74Z" fill="#d6b98c" stroke="#92702f" stroke-width="2.5"/><ellipse cx="60" cy="66" rx="14" ry="24" fill="#a16207" stroke="#713f12" stroke-width="2.5"/><path d="M54 46 L50 36 M66 46 L70 36" stroke="#713f12" stroke-width="2.5" stroke-linecap="round"/><circle cx="55" cy="58" r="5.5" fill="#fff"/><circle cx="56" cy="60" r="2.8" fill="#0f172a"/><circle cx="65" cy="58" r="5.5" fill="#fff"/><circle cx="66" cy="60" r="2.8" fill="#0f172a"/></svg>',
+  haniwa:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="26" ry="6" fill="rgba(0,0,0,.28)"/><ellipse cx="36" cy="60" rx="7" ry="16" fill="#c2724a" stroke="#8a4a2b" stroke-width="2.5"/><ellipse cx="84" cy="60" rx="7" ry="16" fill="#c2724a" stroke="#8a4a2b" stroke-width="2.5"/><path d="M44 40 Q44 24 60 24 Q76 24 76 40 L78 96 Q78 104 60 104 Q42 104 42 96Z" fill="#c2724a" stroke="#8a4a2b" stroke-width="3"/><ellipse cx="50" cy="52" rx="6" ry="8" fill="#3f1f12"/><ellipse cx="70" cy="52" rx="6" ry="8" fill="#3f1f12"/><ellipse cx="60" cy="72" rx="6" ry="8" fill="#3f1f12"/></svg>',
+  tokiou:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="38" ry="8" fill="rgba(0,0,0,.3)"/><path d="M40 30 L34 12 L46 22 L60 8 L74 22 L86 12 L80 30Z" fill="#fcd34d" stroke="#b45309" stroke-width="2.5"/><circle cx="60" cy="66" r="38" fill="#1e3a8a" stroke="#fcd34d" stroke-width="3.5"/><circle cx="60" cy="66" r="30" fill="#eff6ff"/><path d="M60 66 L60 44 M60 66 L76 66" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/><circle cx="50" cy="60" r="6.5" fill="#fff" stroke="#1e3a8a" stroke-width="1.5"/><circle cx="51" cy="62" r="3.2" fill="#0f172a"/><circle cx="70" cy="60" r="6.5" fill="#fff" stroke="#1e3a8a" stroke-width="1.5"/><circle cx="71" cy="62" r="3.2" fill="#0f172a"/></svg>',
   villain:'<svg viewBox="0 0 120 120" class="mon-svg"><ellipse cx="60" cy="110" rx="30" ry="6" fill="rgba(0,0,0,.35)"/><path d="M60 14 Q92 20 92 62 Q92 104 60 106 Q28 104 28 62 Q28 20 60 14Z" fill="#3b0764" stroke="#1e1b4b" stroke-width="3"/><path d="M60 22 Q82 28 82 58 Q82 80 60 82 Q38 80 38 58 Q38 28 60 22Z" fill="#0b0219"/><path d="M30 44 L16 32 M90 44 L104 32 M26 66 L12 66 M94 66 L108 66" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" opacity=".85"/><circle cx="50" cy="54" r="4.5" fill="#f43f5e"/><circle cx="70" cy="54" r="4.5" fill="#f43f5e"/><text x="60" y="94" font-size="28" text-anchor="middle" fill="#a78bfa" font-weight="bold">σ</text></svg>',
   crystal:'<svg viewBox="0 0 40 48"><path d="M20 2 L34 16 L20 46 L6 16Z" fill="#38f0e0" stroke="#0e7490" stroke-width="2"/><path d="M20 2 L20 46 M6 16 L34 16" stroke="#a5f3fc" stroke-width="1.4" opacity=".85"/><path d="M20 2 L13 16 L20 46" fill="#7cf9ec" opacity=".5"/></svg>'
 };
@@ -5656,9 +5714,43 @@ var RPG_WORLD = {
         { id:'n3', type:'zako', name:'めいろオバケ',     mon:'ghost', count:7, lv:3, pos:{x:34,y:28} },
         { id:'boss',type:'boss',name:'森の主 ウッドラゴン',mon:'dragon',count:10,lv:4, pos:{x:64,y:18} }
       ]}
+    ]},
+  japanese:{ name:'ことばの大陸', emoji:'📖', teacher:'cat', teacherName:'ミケ', crystal:'ことばのクリスタル',
+    chapters:[
+      { id:'j1', title:'ことばの森', story:'j1', nodes:[
+        { id:'n1', type:'zako', name:'すみスライム',   mon:'inkblob',  count:6, lv:1, pos:{x:26,y:84} },
+        { id:'n2', type:'zako', name:'ふでゴースト',   mon:'fudebird', count:6, lv:2, pos:{x:62,y:58} },
+        { id:'boss',type:'boss',name:'かんじ大王',     mon:'kanjioni', count:9, lv:3, pos:{x:50,y:26} }
+      ]}
+    ]},
+  english:{ name:'アルファベット大陸', emoji:'🔤', teacher:'rabbit', teacherName:'ラビィ', crystal:'英語のクリスタル',
+    chapters:[
+      { id:'e1', title:'ABCの砂ばく', story:'e1', nodes:[
+        { id:'n1', type:'zako', name:'アルファゴーレム', mon:'abcube',   count:6, lv:1, pos:{x:26,y:84} },
+        { id:'n2', type:'zako', name:'はてなバード',     mon:'qbird',    count:6, lv:2, pos:{x:62,y:58} },
+        { id:'boss',type:'boss',name:'グラマー大王',     mon:'grammaro', count:9, lv:3, pos:{x:50,y:26} }
+      ]}
+    ]},
+  science:{ name:'じっけんの大陸', emoji:'🧪', teacher:'fox', teacherName:'ナナ博士', crystal:'理科のクリスタル',
+    chapters:[
+      { id:'s1', title:'じっけんの洞くつ', story:'s1', nodes:[
+        { id:'n1', type:'zako', name:'フラスコン',     mon:'flaskun',   count:6, lv:1, pos:{x:26,y:84} },
+        { id:'n2', type:'zako', name:'ミクロん',       mon:'microbe',   count:6, lv:2, pos:{x:62,y:58} },
+        { id:'boss',type:'boss',name:'ボルトドラゴン', mon:'voltdrake', count:9, lv:3, pos:{x:50,y:26} }
+      ]}
+    ]},
+  social:{ name:'れきしの大陸', emoji:'🗺️', teacher:'bear', teacherName:'クマ', crystal:'社会のクリスタル',
+    chapters:[
+      { id:'c1', title:'れきしの遺跡', story:'c1', nodes:[
+        { id:'n1', type:'zako', name:'ちずモス',   mon:'mapmoth', count:6, lv:1, pos:{x:26,y:84} },
+        { id:'n2', type:'zako', name:'はにわ兵',   mon:'haniwa',  count:6, lv:2, pos:{x:62,y:58} },
+        { id:'boss',type:'boss',name:'トキ大王',   mon:'tokiou',  count:9, lv:3, pos:{x:50,y:26} }
+      ]}
     ]}
 };
+var RPG_CONTINENTS = ['math','japanese','english','science','social'];
 var RPG_CASTLE_POS = {x:50,y:6};
+var RPG_GOAL_POS = {x:50,y:8};
 
 // ---- ストーリー（あたたかく・ほぼひらがな・小4も中1も読める）----
 var RPG_STORY = {
@@ -5673,11 +5765,19 @@ var RPG_STORY = {
     { who:'ミミ学園長', char:'owl', text:'…いまのが 魔王シグマ。こわがらないで。さあ、地図をひらいて！ 冒険の はじまりよ。' }
   ],
   m1:[ { who:'ミミ学園長', char:'owl', text:'ここは「計算の平原」。まずは たしざん・ひきざんの モンスターたち。落ちついて 1問ずつ こたえてね。' } ],
-  m2:[ { who:'ミミ学園長', char:'owl', text:'「まよいの森」の おくには つよい主がいる。ここをぬければ、とらわれた先生を 救えるはず！' } ]
+  m2:[ { who:'ミミ学園長', char:'owl', text:'「まよいの森」の おくには つよい主がいる。ここをぬければ、とらわれた先生を 救えるはず！' } ],
+  j1:[ { who:'ミミ学園長', char:'owl', text:'「ことばの森」だよ。漢字や ことばの モンスターがいる。ミケ先生が この森に とらわれているの。助けてあげて！' } ],
+  e1:[ { who:'ミミ学園長', char:'owl', text:'「ABCの砂ばく」。英語の モンスターたち。ラビィ先生を さがしに行こう！' } ],
+  s1:[ { who:'ミミ学園長', char:'owl', text:'「じっけんの洞くつ」。理科の ふしぎな モンスター。ナナ博士が まっているわ。' } ],
+  c1:[ { who:'ミミ学園長', char:'owl', text:'「れきしの遺跡」。地図や 歴史の モンスター。クマ先生を たすけよう！' } ]
 };
 function rpgBossTaunt(node){
   var t={ slugking:'グフフ…計算が こわくて にげてきたのか？ この計算王を たおせるかな！',
-          dragon:'グオオ…この森は わたさぬ！ ちえのクリスタルは 魔王さまの ものだ！' };
+          dragon:'グオオ…この森は わたさぬ！ ちえのクリスタルは 魔王さまの ものだ！',
+          kanjioni:'われは かんじ大王！ 一文字たりとも よませぬぞ！',
+          grammaro:'フフン、English は むずかしいぞ？ Are you ready？',
+          voltdrake:'ビリビリ…！ 実験の ちからを あなどるな、勇者よ！',
+          tokiou:'時は もどせぬ！ 歴史の おもみを 知るがよい！' };
   return [{ who:node.name, char:'villain', text:(t[node.mon]||'いくぞ、勇者！') }];
 }
 
@@ -5759,8 +5859,18 @@ function showRpg(){
   if(!rpgSeen('prologue')){
     rpgShowTitle();
   } else {
-    rpgRenderMap();
+    rpgRenderContinents();
   }
+}
+function rpgOpenMap(area){
+  rpgBattle=null; rpgHideBattle();
+  hideMainScreens();
+  document.getElementById('rpg-screen').style.display='block';
+  document.body.classList.add('rpg-mode');
+  document.getElementById('rpg-result-view').style.display='none';
+  var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
+  rpgRenderMap(area);
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
 function rpgShowTitle(){
   var mv=document.getElementById('rpg-map-view');
@@ -5772,26 +5882,70 @@ function rpgShowTitle(){
     '</div>';
 }
 function rpgStartAdventure(){
-  rpgStoryPlay(RPG_STORY.prologue, function(){ rpgMarkSeen('prologue'); rpgRenderMap(); });
+  rpgStoryPlay(RPG_STORY.prologue, function(){ rpgMarkSeen('prologue'); rpgRenderContinents(); });
 }
-
-// ================= マップ =================
-function rpgRenderMap(){
-  var area='math', world=RPG_WORLD[area], s=rpgState();
+// 大陸ごとの進捗
+function rpgAreaTotalNodes(area){ var n=0; RPG_WORLD[area].chapters.forEach(function(c){ n+=c.nodes.length; }); return n; }
+function rpgAreaClearedNodes(area){ var n=0, s=rpgState(); RPG_WORLD[area].chapters.forEach(function(c){ c.nodes.forEach(function(nd){ if(s.cleared[rpgNodeKey(area,c.id,nd.id)]) n++; }); }); return n; }
+// ================= 大陸セレクト =================
+function rpgRenderContinents(){
+  var s=rpgState(), cc=rpgCrystalCount();
   var into=s.xp-rpgXpForLevel(s.level), need=rpgXpForLevel(s.level+1)-rpgXpForLevel(s.level);
   var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
-  // ヘッダー：勇者ステータス＋クリスタル
   var h='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+'</div><div class="rpg-hero-info">'+
     '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
     '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち　🔥のこり冒険 '+rpgStaminaLeft()+'/'+RPG_STAMINA_MAX+'</div>'+
+    '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+cc+' / 5</span></div></div>';
+  h+='<div class="rpg-world-title">🗺️ どの大陸に 行く？</div>';
+  h+='<div class="rpg-continents">';
+  RPG_CONTINENTS.forEach(function(area){
+    var w=RPG_WORLD[area], tot=rpgAreaTotalNodes(area), cl=rpgAreaClearedNodes(area);
+    var got=!!s.crystals[area], p=Math.round(cl/tot*100);
+    h+='<button class="rpg-cont'+(got?' done':'')+'" onclick="rpgOpenMap(\''+area+'\')">'+
+       '<span class="rpg-cont-emoji">'+w.emoji+'</span>'+
+       '<span class="rpg-cont-name">'+escapeHtml(w.name)+'</span>'+
+       '<span class="rpg-cont-bar"><i style="width:'+p+'%"></i></span>'+
+       '<span class="rpg-cont-meta">'+(got?('<span class="rpg-cont-crystal">'+RPG_SVG.crystal+' クリア</span>'):(cl+'/'+tot+' マス'))+'</span>'+
+       '</button>';
+  });
+  h+='</div>';
+  // パーティ（救出した先生）
+  var rescued=RPG_CONTINENTS.filter(function(a){ return s.crystals[a]; });
+  h+='<div class="rpg-party"><div class="rpg-party-ttl">🐾 なかまの先生（'+rescued.length+'/5）</div><div class="rpg-party-row">';
+  RPG_CONTINENTS.forEach(function(area){ var w=RPG_WORLD[area]; var got=!!s.crystals[area];
+    h+='<div class="rpg-party-mem'+(got?'':' locked')+'" title="'+escapeHtml(w.teacherName)+'先生">'+(got?_charSVG(w.teacher):'<span class="rpg-party-q">？</span>')+'</div>'; });
+  h+='</div></div>';
+  // 魔王城
+  var maouCleared=!!s.cleared['maou'];
+  if(maouCleared){
+    h+='<button class="rpg-castle-card cleared" onclick="rpgRenderEnding(null,0)">🏰 王国は すくわれた！ もう一度 エンディングを見る</button>';
+  } else if(cc>=5){
+    h+='<button class="rpg-castle-card ready" onclick="rpgStartMaou()"><span class="rpg-castle-em">🏰</span><span><b>決戦！ 魔王シグマ</b><br><small>5教科の力で 偏差値65の壁を こえろ！</small></span></button>';
+  } else {
+    h+='<div class="rpg-castle-card locked"><span class="rpg-castle-em">🏰</span><span><b>魔王城（偏差値65）</b><br><small>クリスタルを 5つ あつめると 決戦できる（いま '+cc+'/5）</small></span></div>';
+  }
+  document.getElementById('rpg-map-view').innerHTML=h;
+}
+
+// ================= マップ（大陸ごと）=================
+function rpgRenderMap(area){
+  area=area||'math'; var world=RPG_WORLD[area], s=rpgState();
+  var into=s.xp-rpgXpForLevel(s.level), need=rpgXpForLevel(s.level+1)-rpgXpForLevel(s.level);
+  var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
+  var got=!!s.crystals[area];
+  var h='<button class="rpg-back" onclick="showRpg()">← 大陸をえらぶ</button>';
+  h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+'</div><div class="rpg-hero-info">'+
+    '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
+    '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
+    '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち　🔥のこり冒険 '+rpgStaminaLeft()+'/'+RPG_STAMINA_MAX+'</div>'+
     '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+rpgCrystalCount()+' / 5</span></div></div>';
-  // マップ本体（パララックス背景＋パス＋ノード）
-  h+='<div class="rpg-map">';
+  h+='<div class="rpg-cont-banner">'+world.emoji+' '+escapeHtml(world.name)+'　—　'+escapeHtml(world.crystal)+'をめざせ</div>';
+  h+='<div class="rpg-map map-'+area+'">';
   h+='<div class="rpg-map-bg"></div>';
   h+=rpgMapPathSVG(area);
-  // 魔王城（最終・ロック）
-  h+='<div class="rpg-castle'+(rpgCrystalCount()>=5?' ready':'')+'" style="left:'+RPG_CASTLE_POS.x+'%;top:'+RPG_CASTLE_POS.y+'%">🏰<span class="rpg-castle-lbl">魔王城<br>偏差値65</span></div>';
+  // ゴール＝この大陸のクリスタル
+  h+='<div class="rpg-goal'+(got?' got':'')+'" style="left:'+RPG_GOAL_POS.x+'%;top:'+RPG_GOAL_POS.y+'%">'+RPG_SVG.crystal+'<span class="rpg-goal-lbl">'+(got?'かくとく！':escapeHtml(world.crystal))+'</span></div>';
   world.chapters.forEach(function(ch, ci){
     ch.nodes.forEach(function(node, ni){
       var open=rpgNodeUnlocked(area, ci, ni), done=rpgIsCleared(area, ch.id, node.id);
@@ -5802,18 +5956,17 @@ function rpgRenderMap(){
          '<span class="rpg-node-face">'+(open?RPG_SVG[node.mon]:'')+'</span>'+
          '<span class="rpg-node-name">'+escapeHtml(node.name)+'</span></button>';
     });
-    // 章ラベル（先頭ノード付近）
-    var f=ch.nodes[0];
-    h+='<div class="rpg-ch-flag" style="left:'+f.pos.x+'%;top:'+(f.pos.y+9)+'%">'+(ci+1)+'章 '+escapeHtml(ch.title)+'</div>';
+    if(world.chapters.length>1){ var f=ch.nodes[0];
+      h+='<div class="rpg-ch-flag" style="left:'+f.pos.x+'%;top:'+(f.pos.y+9)+'%">'+(ci+1)+'章 '+escapeHtml(ch.title)+'</div>'; }
   });
   h+='</div>';
-  h+='<div class="rpg-map-hint">🗺️ ひかっているマスを タップして バトル！ 章のボスを たおすと 先生が助かるよ</div>';
+  h+='<div class="rpg-map-hint">🗺️ ひかっているマスを タップして バトル！ ボスを たおすと 先生が助かり クリスタルが もらえるよ</div>';
   document.getElementById('rpg-map-view').innerHTML=h;
 }
 function rpgMapPathSVG(area){
   var world=RPG_WORLD[area], pts=[];
   world.chapters.forEach(function(ch){ ch.nodes.forEach(function(n){ pts.push(n.pos); }); });
-  pts.push(RPG_CASTLE_POS);
+  pts.push(RPG_GOAL_POS);
   var d='M '+pts.map(function(p){ return p.x+' '+p.y; }).join(' L ');
   return '<svg class="rpg-path" viewBox="0 0 100 100" preserveAspectRatio="none">'+
     '<path d="'+d+'" fill="none" stroke="rgba(252,211,77,.35)" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="0.2 3"/>'+
@@ -5853,7 +6006,7 @@ function rpgShowBattle(){
   document.getElementById('rpg-enemy-name').textContent=rpgBattle.node.name;
   document.getElementById('rpg-hero-sprite').innerHTML=_charSVG(rpgHeroChar());
   document.getElementById('rpg-hero-name').textContent=escapeHtml(rpgHeroName());
-  var sky=document.getElementById('rpg-stage-sky'); if(sky){ sky.className='rpg-stage-sky '+(rpgBattle.chIdx>=1?'forest':'plains')+(rpgBattle.node.type==='boss'?' boss':''); }
+  var sky=document.getElementById('rpg-stage-sky'); if(sky){ sky.className='rpg-stage-sky '+rpgSkyClass(rpgBattle)+(rpgBattle.node.type!=='zako'?' boss':''); }
   rpgUpdateGauges();
 }
 function rpgHideBattle(){ var st=document.getElementById('rpg-stage'); if(st) st.style.display='none'; document.body.classList.remove('rpg-battle'); }
@@ -5878,7 +6031,7 @@ function rpgAfterAnswer(correct){
     rpgBattle.correct++; rpgBattle.combo++;
     var crit=rpgBattle.combo>=3; var dmg=crit?2:1;
     rpgBattle.enemyHp=Math.max(0, rpgBattle.enemyHp-dmg);
-    rpgBattle.xpGain += (rpgBattle.node.type==='boss'?15:10) + (crit?5:0);
+    rpgBattle.xpGain += (rpgBattle.node.type!=='zako'?15:10) + (crit?5:0);
     if(hero){ hero.classList.remove('rpg-attack'); void hero.offsetWidth; hero.classList.add('rpg-attack'); }
     setTimeout(function(){
       if(enemy){ enemy.classList.remove('rpg-hit'); void enemy.offsetWidth; enemy.classList.add('rpg-hit'); }
@@ -5907,6 +6060,7 @@ function rpgAfterAnswer(correct){
 function rpgShowResult(){
   var b=rpgBattle; rpgBattle=null; rpgHideBattle();
   document.getElementById('quiz-screen').style.display='none';
+  if(b.maou){ return rpgResolveMaou(b); }
   var victory=(b.enemyHp<=0 && b.heroHp>0);
   var s=rpgState();
   var winBonus=victory?(b.node.type==='boss'?60:25):5;
@@ -5944,8 +6098,10 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   if(firstClear && b.node.type==='boss') L+='<div class="rpg-res-levelup">🏆「'+escapeHtml(b.ch.title)+'」クリア！ つぎの道が ひらけた</div>';
   if(!victory) L+='<div class="rpg-res-tip">💡 まちがえた問題は「📕ノート」で 復習できるよ。復習して リベンジしよう！</div>';
   L+='<div class="rpg-res-btns">';
-  if(rpgStaminaLeft()>0) L+='<button class="rpg-btn" onclick="rpgEnterNode(\''+b.area+'\','+b.chIdx+','+b.nodeIdx+')">🔁 もういちど たたかう</button>';
-  L+='<button class="rpg-btn ghost" onclick="showRpg()">🗺️ マップへ もどる</button></div></div>';
+  var retryFn = b.maou ? 'rpgStartMaou()' : ('rpgEnterNode(\''+b.area+'\','+b.chIdx+','+b.nodeIdx+')');
+  if(rpgStaminaLeft()>0) L+='<button class="rpg-btn" onclick="'+retryFn+'">🔁 もういちど たたかう</button>';
+  if(RPG_WORLD[b.area]) L+='<button class="rpg-btn" onclick="rpgOpenMap(\''+b.area+'\')">🗺️ 大陸マップへ</button>';
+  L+='<button class="rpg-btn ghost" onclick="showRpg()">🏔️ 大陸せんたく</button></div></div>';
   rv.innerHTML=L;
   if(victory){ confetti(); if(b.node.type==='boss') setTimeout(confetti,400); }
   var msg=victory?(b.node.type==='boss'?'やった！ボスを たおしたね！さいこう！🎉':'よくやった！つぎのマスへ 進もう！'):'おしい！あと少しだった。復習して リベンジだ！🐯';
@@ -5960,9 +6116,84 @@ function rpgRescueScene(b, xp, pt, leveled){
     { who:world.teacherName+'先生', char:world.teacher, text:'これが「'+world.crystal+'」だ。きみに あずけよう。' },
     { who:world.teacherName+'先生', char:world.teacher, text:'ひとつ コツをおしえよう。まちがえた問題こそ 宝物だ。「まちがいノート」で もういちど とけば、かならず 力になる。' },
     { who:'ミミ学園長', char:'owl', text:'すごいわ！ クリスタルが ひとつ あつまった（'+rpgCrystalCount()+'/5）。' },
-    { who:'ミミ学園長', char:'owl', text:'ほら、遠くに 魔王城の かげが 見えてきた…。のこりの先生も 助けにいきましょう！' }
+    { who:'ミミ学園長', char:'owl', text:(rpgCrystalCount()>=5 ? '5つ そろった…！ ついに 魔王城の 扉がひらく。決戦のときよ！' : 'ほら、遠くに 魔王城の かげが 見えてきた…。のこりの先生も 助けにいきましょう！') }
   ];
   rpgStoryPlay(lines, function(){ rpgRenderResult(b, true, xp, pt, leveled, true); });
+}
+// ================= 魔王戦（模試のように5教科ミックス。偏差値65の壁＝σ）=================
+function rpgSkyClass(b){
+  if(b.maou) return 'boss';
+  var a=b.area;
+  if(a==='math') return b.chIdx>=1?'forest':'plains';
+  return ({japanese:'ja', english:'desert', science:'cave', social:'ruins'})[a] || 'plains';
+}
+function rpgBuildMixedQuestions(count){
+  var subs=RPG_CONTINENTS.slice(), qs=[], seen={}, guard=0, i=0;
+  while(qs.length<count && guard<count*40){ guard++; var a=subs[i%subs.length]; i++;
+    var q=genQuestion(a); if(q&&q.q&&q.ans!==undefined&&!seen[q.q]){ seen[q.q]=1; qs.push(Object.assign({area:a},q)); } }
+  return qs;
+}
+function rpgStartMaou(){
+  if(rpgCrystalCount()<5){ showToast('🔒','まだ魔王に いどめない','5つのクリスタルを あつめよう'); return; }
+  if(rpgStaminaLeft()<=0){ showToast('😴','きょうはここまで','また明日 いどもう'); return; }
+  var lines=[
+    { who:'魔王シグマ', char:'villain', text:'よくぞ ここまで来た、勇者よ。だが「偏差値65の壁」は こえられまい！' },
+    { who:'ミミ学園長', char:'owl', text:'だいじょうぶ。あなたは 5教科ぜんぶを のりこえてきた。今の力を ぶつけて！' }
+  ];
+  rpgStoryPlay(lines, function(){ rpgBeginMaou(); });
+}
+function rpgBeginMaou(){
+  var qs=rpgBuildMixedQuestions(15);
+  if(qs.length<5){ showToast('⚠️','問題を用意できませんでした','少し時間をおいてね'); return; }
+  var node={ id:'maou', type:'maou', name:'魔王シグマ', mon:'villain', count:qs.length };
+  var hits=Math.ceil(qs.length*0.8);
+  rpgBattle={ area:'maou', chIdx:0, nodeIdx:0, node:node, ch:{id:'maou',title:'決戦'}, maou:true,
+    enemyMax:hits, enemyHp:hits, heroMax:(qs.length-hits+1), heroHp:(qs.length-hits+1),
+    total:qs.length, correct:0, combo:0, xpGain:0, over:false };
+  rpgUseStamina();
+  document.body.classList.add('rpg-battle');
+  runQuestionSession(qs, '👑 魔王シグマ', '魔王シグマとの 決戦だ！ 5教科の力を ぶつけろ！', 'tiger');
+  rpgShowBattle();
+}
+function rpgResolveMaou(b){
+  var win=(b.enemyHp<=0 && b.heroHp>0), s=rpgState();
+  var gx=b.xpGain+(win?150:10); s.xp+=gx; s.level=rpgLevelForXp(s.xp);
+  if(win && !s.cleared['maou']) s.cleared['maou']=Date.now();
+  rpgSave(s);
+  if(win){ totalPoints+=200; safeLS.setItem('c_points', totalPoints); try{ updateScoreBar(); }catch(e){} rpgEnding(b, gx); }
+  else { rpgRenderResult(b, false, gx, 0, false, false); }
+}
+function rpgEnding(b, xp){
+  var lines=[
+    { who:'', char:'scroll', text:'魔王シグマの すがたが 光に つつまれ、ゆっくりと きえていく…。' },
+    { who:'魔王シグマ', char:'villain', text:'ばかな…「偏差値65の壁」を こえたと いうのか…あっぱれだ、勇者よ…。' },
+    { who:'', char:'scroll', text:'モヤの霧が すっかり はれ、まなびの王国に ちえの光が もどってきた！' },
+    { who:'ミミ学園長', char:'owl', text:'やったわね！ あなたは 5教科すべてを のりこえ、王国を すくった 本物の勇者よ。' },
+    { who:'ミミ学園長', char:'owl', text:'でも、ほんとうの ぼうけんは これから。まいにち 少しずつ、もっと 上を めざそう！' }
+  ];
+  rpgStoryPlay(lines, function(){ rpgRenderEnding(b, xp); });
+}
+function rpgRenderEnding(b, xp){
+  hideMainScreens();
+  document.getElementById('rpg-screen').style.display='block';
+  document.body.classList.add('rpg-mode');
+  document.getElementById('rpg-map-view').style.display='none';
+  var rv=document.getElementById('rpg-result-view'); rv.style.display='block';
+  var s=rpgState();
+  var team=RPG_CONTINENTS.map(function(a){ return '<div class="rpg-end-mem">'+_charSVG(RPG_WORLD[a].teacher)+'</div>'; }).join('');
+  var L='<div class="rpg-end-card">'+
+    '<div class="rpg-end-crown">👑</div>'+
+    '<div class="rpg-end-title">王国を すくった！</div>'+
+    '<div class="rpg-end-sub">魔王シグマ ＝ 偏差値65の壁を こえた！</div>'+
+    '<div class="rpg-end-team">'+team+'</div>'+
+    '<div class="rpg-end-stats">Lv.'+s.level+'　💎 クリスタル 5/5'+(b?('　正かい '+b.correct+'/'+b.total):'')+'</div>'+
+    '<div class="rpg-end-msg">まいにち 少しずつ。きみの ぼうけんは まだまだ つづく！ 本物の模試でも 偏差値65を めざそう。</div>'+
+    '<div class="rpg-res-btns"><button class="rpg-btn ghost" onclick="showRpg()">🏔️ 大陸せんたくへ</button></div></div>';
+  rv.innerHTML=L;
+  try{ confetti(); setTimeout(confetti,400); setTimeout(confetti,800); }catch(e){}
+  try{ setCharacter('dolphin'); }catch(e){}
+  var m='おめでとう！王国は すくわれた！さいこうの勇者だね！🎉'; setLunaText(m); try{ speak(m); }catch(e){}
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
 
 function renderCalendar(){

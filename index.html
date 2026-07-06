@@ -1454,6 +1454,15 @@
   /* 復習ダンジョン（未復習があると目立つ） */
   .rpg-review-on{ background:linear-gradient(135deg,#dc2626,#f59e0b)!important; color:#fff!important; border-color:#fca5a5!important; animation:rpgReviewPulse 1.5s ease-in-out infinite; }
   @keyframes rpgReviewPulse{ 0%,100%{ box-shadow:0 0 0 rgba(220,38,38,.3); } 50%{ box-shadow:0 0 14px rgba(220,38,38,.7); } }
+  /* デイリー宝箱 */
+  .rpg-dailybox{ display:flex; align-items:center; gap:12px; width:100%; margin:10px 0; border:none; border-radius:16px; padding:12px 16px; cursor:pointer; font-family:inherit; text-align:left; color:#fff; }
+  .rpg-dailybox.ready{ background:linear-gradient(135deg,#7c3aed,#db2777); animation:rpgDbBounce 1.2s ease-in-out infinite; box-shadow:0 4px 16px rgba(219,39,119,.4); }
+  .rpg-dailybox.done{ background:linear-gradient(135deg,#64748b,#475569); opacity:.85; }
+  .rpg-db-icon{ font-size:34px; line-height:1; }
+  .rpg-dailybox.ready .rpg-db-icon{ animation:rpgBoxShake .6s ease-in-out infinite; }
+  .rpg-db-txt{ font-size:.95rem; line-height:1.3; }
+  .rpg-db-txt small{ font-size:.76rem; opacity:.92; font-weight:600; }
+  @keyframes rpgDbBounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
   @keyframes rpgPetBounce{ 0%,100%{transform:translateY(0)} 30%{transform:translateY(-12px) scale(1.08)} 60%{transform:translateY(0) scale(.96)} }
   .rpg-pet-info{ flex:1; min-width:0; }
   .rpg-pet-name{ font-weight:800; font-size:.95rem; }
@@ -6316,6 +6325,8 @@ function rpgRenderContinents(){
   rpgMissions().forEach(function(m){ var cur=Math.min(m.get(dm),m.goal), done=cur>=m.goal;
     h+='<div class="rpg-mission-row'+(done?' done':'')+'"><span class="rpg-mission-ic">'+(done?'✅':m.icon)+'</span><span class="rpg-mission-tx">'+m.text+'</span><span class="rpg-mission-pg">'+cur+'/'+m.goal+'</span></div>'; });
   h+='</div>';
+  var _db=rpgDailyBoxReady();
+  h+='<button class="rpg-dailybox'+(_db?' ready':' done')+'" onclick="rpgOpenDailyBox()"><span class="rpg-db-icon">🎁</span><span class="rpg-db-txt"><b>デイリー宝箱</b><br><small>'+(_db?'きょうの ぶんが あるよ！ タップして あけよう':'また あした あけられるよ')+'</small></span></button>';
   h+='<div class="rpg-world-title">🗺️ どの大陸に 行く？</div>';
   h+='<div class="rpg-continents">';
   RPG_CONTINENTS.forEach(function(area){
@@ -6385,15 +6396,29 @@ function rpgShowDex(){
 // ================= きせかえショップ =================
 // ===== 宝箱ガチャ =====
 function _gachaPool(){ var pool=[]; ['hero','pet'].forEach(function(kind){ var g=COS_DATA[kind]; for(var sl in g){ g[sl].forEach(function(it){ pool.push({kind:kind,slot:sl,it:it}); }); } }); return pool; }
+function _gachaPick(){ var pool=_gachaPool(), wr={N:60,R:30,S:10}, tot=0, weighted=[];   // レア度で重み付け抽選
+  pool.forEach(function(p){ var w=wr[p.it.r||'N']||30; weighted.push({p:p,w:w}); tot+=w; });
+  var roll=Math.random()*tot, acc=0, pick=weighted[0].p;
+  for(var i=0;i<weighted.length;i++){ acc+=weighted[i].w; if(roll<acc){ pick=weighted[i].p; break; } }
+  return pick; }
+// デイリー宝箱：1日1回 無料で引ける
+function rpgDailyBoxReady(){ try{ return rpgState().dailyBox!==rpgToday(); }catch(e){ return false; } }
+function rpgOpenDailyBox(){
+  var s=rpgState();
+  if(s.dailyBox===rpgToday()){ showToast('🎁','きょうは もう あけたよ','また あした あけよう！'); return; }
+  var cos=rpgCosState(s); s.dailyBox=rpgToday();
+  var pick=_gachaPick();
+  var dup=!!cos.owned[pick.it.id], refund=0;
+  if(dup){ refund=({N:15,R:25,S:45})[pick.it.r||'N']||15; cos.coin=(cos.coin||0)+refund; } else { cos.owned[pick.it.id]=1; }
+  rpgSave(s);
+  rpgGachaReveal(pick, dup, refund);
+}
 function rpgGachaDraw(){
   var s=rpgState(), cos=rpgCosState(s);
   var useTicket=(cos.tickets||0)>0;
   if(!useTicket && (cos.coin||0)<40){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','40コイン か 無料チケットが いるよ（ボスをたおすと もらえる）'); return; }
   if(useTicket) cos.tickets--; else cos.coin-=40;
-  var pool=_gachaPool(), wr={N:60,R:30,S:10}, tot=0, weighted=[];
-  pool.forEach(function(p){ var w=wr[p.it.r||'N']||30; weighted.push({p:p,w:w}); tot+=w; });
-  var roll=Math.random()*tot, acc=0, pick=weighted[0].p;
-  for(var i=0;i<weighted.length;i++){ acc+=weighted[i].w; if(roll<acc){ pick=weighted[i].p; break; } }
+  var pick=_gachaPick();
   var dup=!!cos.owned[pick.it.id], refund=0;
   if(dup){ refund=({N:15,R:25,S:45})[pick.it.r||'N']||15; cos.coin+=refund; } else { cos.owned[pick.it.id]=1; }
   rpgSave(s);

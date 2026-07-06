@@ -827,6 +827,11 @@
         <label style="margin-left:8px">しんどう</label>
         <button class="btn-sm" id="vibe-btn" onclick="toggleVibe()">📳 オン</button>
       </div>
+      <div class="settings-row">
+        <label>音楽（BGM）</label>
+        <button class="btn-sm" id="bgm-btn" onclick="toggleBgm()">🎵 オン</button>
+        <span class="settings-hint" style="margin-left:6px">冒険モードで流れます</span>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -2908,9 +2913,26 @@ var _sfxCtx=null;
 function _sfxAC(){ if(_sfxCtx) return _sfxCtx; try{ _sfxCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ _sfxCtx=null; } return _sfxCtx; }
 function sfxEnabled(){ try{ return safeLS.getItem('sfx_on')!=='0'; }catch(e){ return true; } }
 function vibeEnabled(){ try{ return safeLS.getItem('vibe_on')!=='0'; }catch(e){ return true; } }
-function _tone(ac,f,t0,dur,type,vol){ try{ var o=ac.createOscillator(),g=ac.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(f,t0); g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(vol||0.2,t0+0.012); g.gain.exponentialRampToValueAtTime(0.0008,t0+dur); o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0+dur+0.03); }catch(e){} }
-function _slide(ac,f1,f2,t0,dur,type,vol){ try{ var o=ac.createOscillator(),g=ac.createGain(); o.type=type||'square'; o.frequency.setValueAtTime(f1,t0); o.frequency.exponentialRampToValueAtTime(Math.max(30,f2),t0+dur); g.gain.setValueAtTime(vol||0.15,t0); g.gain.exponentialRampToValueAtTime(0.0008,t0+dur); o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0+dur+0.03); }catch(e){} }
-function _noise(ac,t0,dur,vol){ try{ var len=Math.floor(ac.sampleRate*dur), b=ac.createBuffer(1,len,ac.sampleRate), d=b.getChannelData(0); for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len); var n=ac.createBufferSource(); n.buffer=b; var g=ac.createGain(); g.gain.setValueAtTime(vol||0.15,t0); g.gain.exponentialRampToValueAtTime(0.001,t0+dur); var f=ac.createBiquadFilter(); f.type='highpass'; f.frequency.value=700; n.connect(f); f.connect(g); g.connect(ac.destination); n.start(t0); n.stop(t0+dur); }catch(e){} }
+// 残響バス（合成リバーブ）：全効果音をここに通して「響き」を出し、こもりを解消する
+var _sfxBus=null;
+function _sfxOut(ac){
+  if(_sfxBus && _sfxBus._ac===ac) return _sfxBus.input;
+  var master=ac.createGain(); master.gain.value=0.95; master.connect(ac.destination);
+  var conv=ac.createConvolver();
+  var len=Math.floor(ac.sampleRate*1.0), ir=ac.createBuffer(2,len,ac.sampleRate);
+  for(var ch=0;ch<2;ch++){ var d=ir.getChannelData(ch); for(var i=0;i<len;i++){ d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.8); } }
+  conv.buffer=ir;
+  var wet=ac.createGain(); wet.gain.value=0.22; conv.connect(wet); wet.connect(master);
+  var input=ac.createGain(); input.connect(master); input.connect(conv);
+  _sfxBus={_ac:ac, input:input};
+  return input;
+}
+// キラキラ（高音の輝き）：連続正解や豪華演出で重ねる
+function _sparkle(ac,t){ [1568,2093,2637].forEach(function(f,i){ _tone(ac,f,t+i*0.05,0.14,'triangle',0.09); }); }
+var _sfxCombo=0;  // 連続正解カウント（正解で+1、まちがいで0）
+function _tone(ac,f,t0,dur,type,vol){ try{ var o=ac.createOscillator(),g=ac.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(f,t0); g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(vol||0.2,t0+0.012); g.gain.exponentialRampToValueAtTime(0.0008,t0+dur); o.connect(g); g.connect(_sfxOut(ac)); o.start(t0); o.stop(t0+dur+0.03); }catch(e){} }
+function _slide(ac,f1,f2,t0,dur,type,vol){ try{ var o=ac.createOscillator(),g=ac.createGain(); o.type=type||'square'; o.frequency.setValueAtTime(f1,t0); o.frequency.exponentialRampToValueAtTime(Math.max(30,f2),t0+dur); g.gain.setValueAtTime(vol||0.15,t0); g.gain.exponentialRampToValueAtTime(0.0008,t0+dur); o.connect(g); g.connect(_sfxOut(ac)); o.start(t0); o.stop(t0+dur+0.03); }catch(e){} }
+function _noise(ac,t0,dur,vol){ try{ var len=Math.floor(ac.sampleRate*dur), b=ac.createBuffer(1,len,ac.sampleRate), d=b.getChannelData(0); for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len); var n=ac.createBufferSource(); n.buffer=b; var g=ac.createGain(); g.gain.setValueAtTime(vol||0.15,t0); g.gain.exponentialRampToValueAtTime(0.001,t0+dur); var f=ac.createBiquadFilter(); f.type='highpass'; f.frequency.value=700; n.connect(f); f.connect(g); g.connect(_sfxOut(ac)); n.start(t0); n.stop(t0+dur); }catch(e){} }
 function sfx(name){
   if(!sfxEnabled()) return;
   var ac=_sfxAC(); if(!ac) return;
@@ -2918,24 +2940,31 @@ function sfx(name){
   var t=ac.currentTime;
   switch(name){
     case 'click':   _tone(ac,660,t,0.07,'triangle',0.12); break;
-    case 'correct': [523,659,784].forEach(function(f,i){ _tone(ac,f,t+i*0.07,0.16,'sine',0.2); }); break;
-    case 'wrong':   _slide(ac,320,170,t,0.28,'sawtooth',0.14); break;
+    case 'correct': {
+      _sfxCombo++;
+      var _cv=[[523,659,784],[587,740,880],[659,784,988],[523,784,1047]];              // B:数種の正解メロディからランダム
+      _cv[Math.floor(Math.random()*_cv.length)].forEach(function(f,i){ _tone(ac,f,t+i*0.06,0.16,'triangle',0.2); });
+      if(_sfxCombo>=3) _sparkle(ac,t+0.14);                                            // C:3連続でキラキラ追加
+      if(_sfxCombo>=5){ _tone(ac,1568,t+0.2,0.26,'triangle',0.16); _tone(ac,2093,t+0.3,0.3,'sine',0.12); }  // 5連続でさらに豪華
+      break;
+    }
+    case 'wrong':   _sfxCombo=0; _slide(ac,320,170,t,0.28,'sawtooth',0.14); break;
     case 'attack':  _noise(ac,t,0.1,0.16); _slide(ac,420,120,t,0.12,'square',0.13); break;
     case 'crit':    [784,988,1319,1568].forEach(function(f,i){ _tone(ac,f,t+i*0.05,0.14,'square',0.15); }); break;
-    case 'miss':    _slide(ac,260,150,t,0.2,'sine',0.11); break;
+    case 'miss':    _sfxCombo=0; _slide(ac,260,150,t,0.2,'sine',0.11); break;
     case 'defeat':  _slide(ac,600,80,t,0.4,'sawtooth',0.15); [1047,1319].forEach(function(f,i){ _tone(ac,f,t+0.26+i*0.08,0.2,'sine',0.13); }); break;
     case 'coin':    _tone(ac,988,t,0.07,'square',0.15); _tone(ac,1319,t+0.06,0.14,'square',0.15); break;
     case 'crystal': [1047,1319,1568,2093].forEach(function(f,i){ _tone(ac,f,t+i*0.06,0.22,'sine',0.13); }); break;
-    case 'levelup': [523,659,784,1047].forEach(function(f,i){ _tone(ac,f,t+i*0.09,0.24,'triangle',0.2); }); break;
+    case 'levelup': [523,659,784,1047].forEach(function(f,i){ _tone(ac,f,t+i*0.09,0.24,'triangle',0.2); }); _sparkle(ac,t+0.42); break;
     case 'unlock':  _tone(ac,440,t,0.09,'square',0.13); _tone(ac,880,t+0.09,0.16,'square',0.13); break;
-    case 'fanfare': [523,659,784,1047,784,1047,1319].forEach(function(f,i){ _tone(ac,f,t+i*0.12,0.3,'triangle',0.2); }); break;
+    case 'fanfare': [523,659,784,1047,784,1047,1319].forEach(function(f,i){ _tone(ac,f,t+i*0.12,0.3,'triangle',0.2); }); _sparkle(ac,t+0.5); _sparkle(ac,t+0.78); break;
     case 'start':   [392,523,659].forEach(function(f,i){ _tone(ac,f,t+i*0.08,0.2,'triangle',0.17); }); break;
     default: break;
   }
 }
 function vibe(p){ if(!vibeEnabled()) return; try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 // ===== BGM（Web Audioで合成するループ音楽・オフライン可）=====
-function bgmEnabled(){ try{ return safeLS.getItem('bgm_on')==='1'; }catch(e){ return false; } }   // 既定オフ（ONにすると鳴る）
+function bgmEnabled(){ try{ return safeLS.getItem('bgm_on')!=='0'; }catch(e){ return true; } }   // 既定オン（設定でオフにできる）
 var _bgmGain=null, _bgmTimer=null, _bgmCur=null, _bgmStep=0;
 function _bgmFreqs(track){
   var C=261.63,D=293.66,E=329.63,F=349.23,G=392,A=440,B=493.88,C2=523.25,D2=587.33,E2=659.25,G3=196,A3=220,B3=246.94,F3=174.61;
@@ -3235,7 +3264,11 @@ function updateScoreBar() {
 }
 // ===== 効果音・しんどうの設定 =====
 function _sfxBtnSync(){ var b=document.getElementById('sfx-btn'); if(b) b.textContent=sfxEnabled()?'🔊 オン':'🔇 オフ';
-  var v=document.getElementById('vibe-btn'); if(v) v.textContent=vibeEnabled()?'📳 オン':'🚫 オフ'; }
+  var v=document.getElementById('vibe-btn'); if(v) v.textContent=vibeEnabled()?'📳 オン':'🚫 オフ';
+  var g=document.getElementById('bgm-btn'); if(g) g.textContent=bgmEnabled()?'🎵 オン':'🔇 オフ'; }
+function toggleBgm(){ var on=!bgmEnabled(); safeLS.setItem('bgm_on', on?'1':'0'); _sfxBtnSync();
+  if(on){ try{ unlockSpeech(); if(document.body.classList.contains('rpg-mode')){ var _b=(typeof rpgBattle!=='undefined'&&rpgBattle)?rpgBattle.node.type:null; bgmPlay((_b==='boss'||_b==='maou')?'boss':(document.body.classList.contains('rpg-battle')?'battle':'map')); } }catch(e){} }
+  else { try{ bgmStop(); }catch(e){} } }
 function toggleSfx(){ var on=!sfxEnabled(); safeLS.setItem('sfx_on', on?'1':'0'); _sfxBtnSync(); if(on){ try{ unlockSpeech(); sfx('coin'); }catch(e){} } }
 function toggleVibe(){ var on=!vibeEnabled(); safeLS.setItem('vibe_on', on?'1':'0'); _sfxBtnSync(); if(on) vibe([20,40,20]); }
 function saveStats() {
@@ -3408,7 +3441,14 @@ function showQuestion(skipSpeak) {
     setTimeout(() => inp.focus(), 100);
   }
 
-  if (!isExam && !skipSpeak) speak(q.q);
+  if (!isExam && !skipSpeak) {
+    var _sp = q.q;
+    if (q.type === 'choice') {   // 選択肢も読み上げる（全文読み上げ）
+      var _opts = Array.prototype.map.call(document.querySelectorAll('#options-grid .option-btn'), function(b){ return b.textContent; });
+      if (_opts.length) _sp += '。 こたえを えらんでね。 ' + _opts.join('、 ');
+    }
+    speak(_sp);
+  }
 }
 
 function checkChoice(selected, btn) {
@@ -3459,7 +3499,7 @@ function handleAnswer(correct, correctAns) {
     const charMsgs = (CHARS[char] && CHARS[char].praise) || ['正解！すごい！','やったね！','大正解！'];
     const msg = charMsgs[Math.floor(Math.random()*charMsgs.length)];
     setLunaText(msg + (totalStreak >= 3 ? ` 🔥${totalStreak}連続！+${bonus}pt！` : ` +${bonus}pt`));
-    speak(msg);
+    speak(msg + ((currentQuestions[currentIndex]&&currentQuestions[currentIndex].explain) ? '。 かいせつだよ。 ' + currentQuestions[currentIndex].explain : ''));   // 解説も読み上げ
     feedback.className = 'feedback correct';
     const explainTextC = (currentQuestions[currentIndex] && currentQuestions[currentIndex].explain) ? currentQuestions[currentIndex].explain : '';
     feedback.innerHTML = msg + (totalStreak >= 3 ? ` 🔥${totalStreak}連続！ボーナス+${bonus}ポイント！` : ` ✨+${bonus}ポイント！`) + (explainTextC ? `<br><div class="explain-box">${explainTextC.replace(/\n/g,'<br>')}</div>` : '');
@@ -3475,7 +3515,7 @@ function handleAnswer(correct, correctAns) {
     ];
     const msg = kaiMsgs[Math.floor(Math.random()*kaiMsgs.length)];
     setLunaText(msg);
-    speak(msg);
+    speak(msg + ((currentQuestions[currentIndex]&&currentQuestions[currentIndex].explain) ? '。 かいせつだよ。 ' + currentQuestions[currentIndex].explain : ''));   // 解説も読み上げ
     feedback.className = 'feedback wrong';
     const explainText = (currentQuestions[currentIndex] && currentQuestions[currentIndex].explain) ? '\n\n📖 解説：\n' + currentQuestions[currentIndex].explain : '';
     feedback.innerHTML = `惜しい！正解は「${correctAns}」だよ。次頑張ろう！💢` + (explainText ? `<br><div class="explain-box">${explainText.replace(/\n/g,'<br>')}</div>` : '');
@@ -4496,6 +4536,7 @@ function hideMainScreens(){
   });
   const r=document.getElementById('result-screen'); if(r) r.classList.remove('active');
   try{ document.body.classList.remove('rpg-mode'); }catch(e){}
+  try{ bgmStop(); }catch(e){}   // 画面を離れたらBGM停止（冒険画面側でまた再生する）
 }
 // ===== 学習記録 =====
 function loadLog(){ try{ return JSON.parse(safeLS.getItem('study_log')||'[]'); }catch(e){ return []; } }
@@ -6058,6 +6099,7 @@ function showRpg(){
   } else {
     rpgRenderContinents();
   }
+  try{ bgmPlay('map'); }catch(e){}   // 冒険マップBGM
 }
 function rpgOpenMap(area){
   rpgBattle=null; rpgHideBattle();
@@ -6068,6 +6110,7 @@ function rpgOpenMap(area){
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
   rpgRenderMap(area);
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+  try{ bgmPlay('map'); }catch(e){}   // 大陸マップBGM
 }
 function rpgShowTitle(){
   var mv=document.getElementById('rpg-map-view');
@@ -6253,6 +6296,7 @@ function rpgShowBattle(){
   document.getElementById('rpg-hero-name').textContent=escapeHtml(rpgHeroName());
   var sky=document.getElementById('rpg-stage-sky'); if(sky){ sky.className='rpg-stage-sky '+rpgSkyClass(rpgBattle)+(rpgBattle.node.type!=='zako'?' boss':''); }
   rpgUpdateGauges();
+  try{ var _bt=rpgBattle.node.type; bgmPlay((_bt==='boss'||_bt==='maou')?'boss':'battle'); }catch(e){}   // バトルBGM
 }
 function rpgHideBattle(){ var st=document.getElementById('rpg-stage'); if(st) st.style.display='none'; document.body.classList.remove('rpg-battle'); }
 function rpgUpdateGauges(){

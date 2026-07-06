@@ -1450,6 +1450,9 @@
   .rpg-gacha-ov.hint .rpg-gacha-card.cos-s .rpg-gacha-box{ filter:drop-shadow(0 0 22px #fde047); }
   .rpg-gacha-ov.flash::after{ content:''; position:fixed; inset:0; background:#fff; z-index:99; pointer-events:none; animation:rpgFlash .42s ease-out; }
   @keyframes rpgFlash{ from{ opacity:.92; } to{ opacity:0; } }
+  /* 復習ダンジョン（未復習があると目立つ） */
+  .rpg-review-on{ background:linear-gradient(135deg,#dc2626,#f59e0b)!important; color:#fff!important; border-color:#fca5a5!important; animation:rpgReviewPulse 1.5s ease-in-out infinite; }
+  @keyframes rpgReviewPulse{ 0%,100%{ box-shadow:0 0 0 rgba(220,38,38,.3); } 50%{ box-shadow:0 0 14px rgba(220,38,38,.7); } }
   @keyframes rpgPetBounce{ 0%,100%{transform:translateY(0)} 30%{transform:translateY(-12px) scale(1.08)} 60%{transform:translateY(0) scale(.96)} }
   .rpg-pet-info{ flex:1; min-width:0; }
   .rpg-pet-name{ font-weight:800; font-size:.95rem; }
@@ -6198,7 +6201,13 @@ function rpgNodeUnlocked(area, chIdx, nodeIdx){
 function rpgHitsNeeded(node){ return node.type==='boss' ? Math.ceil(node.count*0.8) : Math.ceil(node.count*0.6); }
 function rpgBuildQuestions(area, count){
   var qs=[], seen={}, guard=0;
-  while(qs.length<count && guard<count*50){ guard++; var q=genQuestion(area); if(q&&q.q&&q.ans!==undefined&&!seen[q.q]){ seen[q.q]=1; qs.push(q); } }
+  var weak={}; try{ weakTopics(40).forEach(function(w){ if(w.area===area && w.rate<70) weak[w.sub]=1; }); }catch(e){}   // 苦手サブ単元（正答率<70%）
+  var hasWeak=false; for(var _k in weak){ hasWeak=true; break; }
+  while(qs.length<count && guard<count*60){ guard++;
+    var q=genQuestion(area); if(!q||!q.q||q.ans===undefined||seen[q.q]) continue;
+    if(hasWeak && q.sub && !weak[q.sub] && qs.length<count-1 && Math.random()<0.5) continue;   // 苦手以外は一部スキップ→苦手を優先出題
+    seen[q.q]=1; qs.push(q);
+  }
   return qs;
 }
 
@@ -6328,6 +6337,8 @@ function rpgRenderContinents(){
   // ずかん（あつめたもの）
   h+='<button class="rpg-dex-btn" onclick="rpgShowDex()">📖 ずかんを見る（モンスター '+Object.keys(s.dex).length+'/'+rpgAllMonsters().length+'・シール '+Object.keys(s.stickers).length+'/'+STICKERS.length+'）</button>';
   h+='<button class="rpg-dex-btn" onclick="rpgShowCosmetics()">👕 きせかえショップ（もっている 🪙'+rpgCoin()+' コイン）</button>';
+  var _rc=rpgReviewCount();
+  h+='<button class="rpg-dex-btn'+(_rc>0?' rpg-review-on':'')+'" onclick="rpgStartReview()">📕 ふくしゅうダンジョン'+(_rc>0?('（のこり '+_rc+'問！ にがてを こくふく）'):'（いまは なし）')+'</button>';
   // 魔王城
   var maouCleared=!!s.cleared['maou'];
   if(maouCleared){
@@ -6609,6 +6620,7 @@ function rpgShowResult(){
   var b=rpgBattle; rpgBattle=null; rpgHideBattle();
   document.getElementById('quiz-screen').style.display='none';
   if(b.maou){ return rpgResolveMaou(b); }
+  if(b.review){ return rpgResolveReview(b); }
   var victory=(b.enemyHp<=0 && b.heroHp>0);
   var s=rpgState();
   var winBonus=victory?(b.node.type==='boss'?60:25):5;
@@ -6686,6 +6698,61 @@ function rpgSkyClass(b){
   var a=b.area;
   if(a==='math') return b.chIdx>=1?'forest':'plains';
   return ({japanese:'ja', english:'desert', science:'cave', social:'ruins'})[a] || 'plains';
+}
+// ================= 復習ダンジョン（まちがえた問題でリベンジ／SRS連動）=================
+function rpgReviewCount(){ try{ return (typeof dueMistakes==='function')? dueMistakes().length : 0; }catch(e){ return 0; } }
+function rpgStartReview(){
+  var due=[], all=[]; try{ due=dueMistakes(); }catch(e){} try{ all=getMistakes(); }catch(e){}
+  var pool=due.length? due : all;
+  if(!pool.length){ showToast('🎉','ふくしゅう なし','まちがえた問題が ないよ！ よくできてる！'); return; }
+  if(rpgStaminaLeft()<=0){ showToast('😴','きょうはここまで','また明日 いどもう'); return; }
+  var lines=[
+    { who:'ミミ学園長', char:'owl', text:'ここは「ふくしゅうダンジョン」。まえに まちがえた問題が モンスターに なって あらわれるの。' },
+    { who:'ミミ学園長', char:'owl', text:'もう一度 とけば その問題を こくふくできる。さあ、リベンジよ！' }
+  ];
+  rpgStoryPlay(lines, function(){ rpgBeginReview(pool); });
+}
+function rpgBeginReview(pool){
+  var items=shuffleArr(pool).slice(0,10);
+  var qs=items.map(function(m){ return {q:m.q,sub:m.sub,ans:m.ans,choices:m.choices,type:m.type||'choice',explain:m.explain,hint:m.hint,level:m.level,figure:m.figure,passage:m.passage,altAns:m.altAns,unit:m.unit,area:m.area}; });
+  if(!qs.length){ showToast('⚠️','問題を用意できませんでした',''); return; }
+  var node={ id:'review', type:'review', name:'ふくしゅうモンスター', mon:'review', count:qs.length };
+  var hits=Math.max(1, Math.ceil(qs.length*0.7));
+  rpgBattle={ area:'review', chIdx:0, nodeIdx:0, node:node, ch:{id:'review',title:'復習'}, review:true,
+    enemyMax:hits, enemyHp:hits, heroMax:(qs.length-hits+1), heroHp:(qs.length-hits+1),
+    total:qs.length, correct:0, combo:0, xpGain:0, over:false };
+  rpgUseStamina();
+  document.body.classList.add('rpg-battle');
+  runQuestionSession(qs, '🔁 ふくしゅうダンジョン', 'まえに まちがえた問題との リベンジだ！ 正かいで こくふく！', 'penguin');
+  rpgShowBattle();
+}
+function rpgResolveReview(b){
+  var win=(b.enemyHp<=0 && b.heroHp>0), s=rpgState();
+  var gainXp=b.xpGain+(win?20:5); var prevLv=rpgLevelForXp(s.xp); s.xp+=gainXp; s.level=rpgLevelForXp(s.xp);
+  var leveled=s.level>prevLv, coin=0;
+  if(win){ var cs=rpgCosState(s); coin=8; cs.coin=(cs.coin||0)+coin; }
+  rpgSave(s);
+  hideMainScreens();
+  document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
+  document.getElementById('rpg-map-view').style.display='none';
+  var rv=document.getElementById('rpg-result-view'); rv.style.display='block';
+  var acc=Math.round(b.correct/b.total*100), remain=rpgReviewCount();
+  var L='<div class="rpg-res-card '+(win?'win':'lose')+'">';
+  L+='<div class="rpg-res-banner">'+(win?'VICTORY':'ざんねん…')+'</div>';
+  L+='<div class="rpg-res-mon '+(win?'beat':'')+'">🔁</div>';
+  L+='<div class="rpg-res-title">ふくしゅうダンジョン</div>';
+  L+='<div class="rpg-res-sub">正かい '+b.correct+' / '+b.total+'（'+acc+'%）</div>';
+  L+='<div class="rpg-res-xp">＋'+gainXp+' けいけんち'+(coin?('　🪙＋'+coin+' コイン'):'')+'</div>';
+  if(leveled) L+='<div class="rpg-res-levelup">🎉 レベルアップ！ Lv.'+s.level+'</div>';
+  L+='<div class="rpg-res-levelup">📕 のこりの ふくしゅう：'+remain+'問</div>';
+  L+='<div class="rpg-res-btns">';
+  if(remain>0 && rpgStaminaLeft()>0) L+='<button class="rpg-btn" onclick="rpgStartReview()">🔁 つづけて ふくしゅう</button>';
+  L+='<button class="rpg-btn ghost" onclick="showRpg()">🏔️ 大陸せんたく</button></div></div>';
+  rv.innerHTML=L;
+  if(win){ confetti(); sfx('fanfare'); vibe([20,40,20,40,80]); } else { sfx('wrong'); vibe(60); }
+  var msg=win?'よくできたね！ にがてを こくふくした！':'おしい！ もう一度 チャレンジしよう！';
+  setLunaText(msg); try{ speak(msg); }catch(e){}
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
 function rpgBuildMixedQuestions(count){
   var subs=RPG_CONTINENTS.slice(), qs=[], seen={}, guard=0, i=0;

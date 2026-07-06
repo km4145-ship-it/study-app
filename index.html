@@ -2934,6 +2934,37 @@ function sfx(name){
   }
 }
 function vibe(p){ if(!vibeEnabled()) return; try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+// ===== BGM（Web Audioで合成するループ音楽・オフライン可）=====
+function bgmEnabled(){ try{ return safeLS.getItem('bgm_on')==='1'; }catch(e){ return false; } }   // 既定オフ（ONにすると鳴る）
+var _bgmGain=null, _bgmTimer=null, _bgmCur=null, _bgmStep=0;
+function _bgmFreqs(track){
+  var C=261.63,D=293.66,E=329.63,F=349.23,G=392,A=440,B=493.88,C2=523.25,D2=587.33,E2=659.25,G3=196,A3=220,B3=246.94,F3=174.61;
+  if(track==='map')    return [E,G,C2,G, A,C2,E2,C2, F,A,C2,A, G,B,D2,B];
+  if(track==='battle') return [C2,G,C2,E2, F,C2,A,C2, G,E,G,C2, A,F,A,G];
+  if(track==='boss')   return [A3,C,E,A3, G3,B3,D,G3, F3,A,C2,F3, E,G,B,E];
+  return [C,E,G,C2];
+}
+function bgmPlay(track){
+  if(!bgmEnabled()){ bgmStop(); return; }
+  var ac=_sfxAC(); if(!ac) return; try{ if(ac.state==='suspended') ac.resume(); }catch(e){}
+  if(_bgmCur===track && _bgmTimer) return;
+  bgmStop(); _bgmCur=track; _bgmStep=0;
+  if(!_bgmGain){ _bgmGain=ac.createGain(); _bgmGain.gain.value=0.05; _bgmGain.connect(ac.destination); }
+  var freqs=_bgmFreqs(track), noteDur=(track==='map')?0.32:0.22, wave=(track==='boss')?'sawtooth':(track==='battle'?'square':'triangle');
+  function bar(){
+    if(_bgmCur!==track) return;
+    var ac2=_sfxAC(); if(!ac2){ return; } var t=ac2.currentTime;
+    for(var k=0;k<4;k++){ var f=freqs[(_bgmStep+k)%freqs.length];
+      try{ var o=ac2.createOscillator(), g=ac2.createGain(); o.type=wave; o.frequency.value=f;
+        var st=t+k*noteDur; g.gain.setValueAtTime(0.0001,st); g.gain.linearRampToValueAtTime(0.9,st+0.02); g.gain.exponentialRampToValueAtTime(0.0015,st+noteDur*0.92);
+        o.connect(g); g.connect(_bgmGain); o.start(st); o.stop(st+noteDur); }catch(e){}
+    }
+    _bgmStep=(_bgmStep+4)%freqs.length;
+    _bgmTimer=setTimeout(bar, noteDur*4*1000);
+  }
+  bar();
+}
+function bgmStop(){ _bgmCur=null; if(_bgmTimer){ clearTimeout(_bgmTimer); _bgmTimer=null; } }
 // 正解のキラッと演出（要素の近くに星が弾ける）
 function sparkleBurst(target){
   try{
@@ -5817,6 +5848,15 @@ var PET_SVG=[
 var PET_STAGE_NAME=['たまご','ベビー','わかもの','せいたい'];
 var PET_WINS_FOR=[0,4,14,34];   // 累計勝利数で進化
 var STICKERS=['🌈','🍭','🎈','🏆','⚡','🌸','🚀','🦄','🍩','💎','🎃','⭐','🍓','🐣','🎵','🔥'];
+// 着せ替え（勇者・ペットのアクセサリー。コイン=ポイントで買う）
+var COSMETICS={
+  hero:[ {id:'h_crown',em:'👑',name:'おうかん',price:120}, {id:'h_hat',em:'🎩',name:'シルクハット',price:60}, {id:'h_star',em:'⭐',name:'スター',price:40}, {id:'h_glass',em:'😎',name:'サングラス',price:50}, {id:'h_ribbon',em:'🎀',name:'リボン',price:40}, {id:'h_halo',em:'😇',name:'てんしのわ',price:150} ],
+  pet:[ {id:'p_ribbon',em:'🎀',name:'リボン',price:40}, {id:'p_cap',em:'🧢',name:'キャップ',price:50}, {id:'p_star',em:'✨',name:'キラキラ',price:40}, {id:'p_crown',em:'👑',name:'かんむり',price:120} ]
+};
+function rpgCosById(kind,id){ var a=COSMETICS[kind]||[]; for(var i=0;i<a.length;i++){ if(a[i].id===id) return a[i]; } return null; }
+function rpgCosState(s){ if(!s.cos) s.cos={hero:'',pet:'',owned:{}}; if(!s.cos.owned) s.cos.owned={}; return s.cos; }
+function rpgHeroCosEm(){ var c=rpgCosState(rpgState()); var o=rpgCosById('hero',c.hero); return o?o.em:''; }
+function rpgPetCosEm(){ var c=rpgCosState(rpgState()); var o=rpgCosById('pet',c.pet); return o?o.em:''; }
 
 // ---- 世界とモンスター配置（P1：数の大陸／2章8ノード。posはマップ上の%座標）----
 var RPG_STAMINA_MAX = 8;
@@ -5989,6 +6029,7 @@ function rpgStoryShow(){
   var nameEl=document.getElementById('rpg-story-name'); nameEl.textContent=line.who||''; nameEl.style.display=line.who?'inline-block':'none';
   var txt=document.getElementById('rpg-story-text');
   var full=line.text;
+  try{ if(full) speak(full); }catch(e){}   // ★ストーリーのセリフを読み上げ（無音だったのを修正）
   if(rpgReduced()){ txt.textContent=full; st.typing=false; document.getElementById('rpg-story-next').style.opacity='1'; return; }
   txt.textContent=''; st.typing=true; document.getElementById('rpg-story-next').style.opacity='0';
   var i=0; clearInterval(st.timer);

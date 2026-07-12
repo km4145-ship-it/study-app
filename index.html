@@ -1703,6 +1703,7 @@
 <script src="js/content-data.js?v=1"></script>
 <script src="js/scoring.js?v=1"></script>
 <script src="js/ui-data.js?v=1"></script>
+<script src="js/util.js?v=1"></script>
 <script>
 // =================== CHARACTER SVGs ===================
   // chars.js へ分離
@@ -2994,7 +2995,7 @@ function buildMixLeveled(area, count, level){
 }
 
 // ===== 画面遷移ヘルパー =====
-function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* escapeHtml は js/util.js へ分離 */
 function hideMainScreens(){
   ['subject-select-screen','mode-select-screen','level-select-screen','home-screen','quiz-screen','exam-result-screen','records-screen','roadmap-screen','mistakes-screen','characters-screen','flashcards-screen','study-notes-screen','write-screen','paper-screen','rpg-screen'].forEach(id=>{
     const e=document.getElementById(id); if(e) e.style.display='none';
@@ -3779,7 +3780,7 @@ function markAreaPlayed(area){
 }
 
 // ---- 項目別（苦手）統計 ----
-function topicKey(area, sub){ return area + '|' + sub; }
+/* topicKey は js/util.js へ分離 */
 function recordTopicStat(area, sub, correct){
   const st = lsGetJSON('topic_stats', {});
   const k = topicKey(area, sub);
@@ -3996,7 +3997,7 @@ function startMixedPractice(){
 }
 // ---- 間隔反復（SRS）----
 var SRS_INT=[1,3,7,14,30]; // 忘却対策：2週間後・1か月後にも再出題してから卒業
-function dateKeyOffset(off){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+off); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+/* dateKeyOffset は js/util.js へ分離 */
 function dueMistakes(){ const t=todayKey(); return getMistakes().filter(m=>!m.due || m.due<=t); }
 function dueCount(){ return dueMistakes().length; }
 function srsCorrect(q){
@@ -4099,7 +4100,7 @@ function endMistakePractice(){
 }
 
 // ---- 今日の目標 ----
-function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+/* todayKey は js/util.js へ分離 */
 function getDailyGoal(){ const g = parseInt(safeLS.getItem('daily_goal')||'20',10); return (g>0?g:20); }
 function setGoalPrompt(){
   const cur = getDailyGoal();
@@ -4153,9 +4154,9 @@ var qStartTime=0, hintStage=0, lastQSec=0;
 var totalSeconds = parseInt(safeLS.getItem('c_seconds')||'0')||0;
 function addStudySeconds(sec){ if(!(sec>0)) return; sec=Math.min(sec,180); const r=Math.round(sec); const h=lsGetJSON('study_seconds',{}); const k=todayKey(); h[k]=(h[k]||0)+r; lsSetJSON('study_seconds',h); totalSeconds+=r; safeLS.setItem('c_seconds',totalSeconds); }
 function todaySeconds(){ return (lsGetJSON('study_seconds',{})[todayKey()])||0; }
-function fmtTime(sec){ sec=Math.round(sec||0); if(sec<60) return sec+'秒'; const m=Math.floor(sec/60); if(m<60) return m+'分'; return Math.floor(m/60)+'時間'+(m%60)+'分'; }
+/* fmtTime は js/util.js へ分離 */
 function classifyMistake(t){ const c=lsGetJSON('careless_log',{careless:0,unknown:0}); c[t]=(c[t]||0)+1; lsSetJSON('careless_log',c); const el=document.getElementById('careless-ask'); if(el) el.innerHTML = (t==='careless'?'→ 次は見直しでふせげるね！':'→ 「📖 学ぶ」で要点をチェックしよう。'); }
-function _toDate(s){ const a=s.split('-').map(Number); return new Date(a[0],a[1]-1,a[2]); }
+/* _toDate は js/util.js へ分離 */
 function getStudyDates(){
   const h=getDailyHist(); const set=new Set(Object.keys(h).filter(k=>h[k]>0));
   loadLog().forEach(e=>{ if(e.date) set.add(e.date); });

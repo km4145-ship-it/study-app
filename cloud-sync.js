@@ -178,7 +178,9 @@ window.FIREBASE_CONFIG = {
     if(dirtyShared){ dirtyShared=false;
       sharedRef().set({ data: sharedSnapshot(), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){ dirtyShared=true; }); }
     Object.keys(dirtyMembers).forEach(function(uid){ delete dirtyMembers[uid];
-      memberRef(uid).set({ data: memberSnapshot(uid), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){ dirtyMembers[uid]=true; }); });
+      var snap=memberSnapshot(uid);
+      if(!snap || Object.keys(snap).length===0) return;   // 空データではクラウドを上書きしない（キャッシュ削除直後などの消失を防ぐ）
+      memberRef(uid).set({ data: snap, updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){ dirtyMembers[uid]=true; }); });
   }
   function doSaveAll(){ dirtyShared=true; localUids().forEach(function(u){ dirtyMembers[u]=1; }); doSaveDirty(); }
 
@@ -386,12 +388,17 @@ window.FIREBASE_CONFIG = {
       try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
       checkLegacy().then(function(r){
         if(r==='reset') return 'reset';
-        // まずクラウド→ローカルへマージ（先に読まずに書くと古い端末がクラウドを上書きしてしまう）
-        var pulls=[ sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); }).catch(function(){}) ];
-        localUids().forEach(function(uid){
-          pulls.push( memberRef(uid).get().then(function(d){ if(d.exists) applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }).catch(function(){}) );
-        });
-        return Promise.all(pulls);
+        // ① まず共有設定（ユーザー一覧＝mu_users）を取得して反映する。
+        //    これで localStorage が空でも（キャッシュ削除・別端末・初回でも）家族全員が復元される。
+        return sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); }).catch(function(){})
+          .then(function(){
+            // ② 共有を反映した後の「全ユーザー」ぶんの学習データをクラウドから取得。
+            //    localUids() を“共有プルの後”に評価するのが肝（前だと空で1件も読まれずデータが消えたように見える）。
+            var mpulls = localUids().map(function(uid){
+              return memberRef(uid).get().then(function(d){ if(d.exists) applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }).catch(function(){});
+            });
+            return Promise.all(mpulls);
+          });
       }).then(function(r){
         if(r==='reset') return;   // リセット直後はリロードするので同期を開始しない
         ready = true;

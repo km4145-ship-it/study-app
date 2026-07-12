@@ -28,6 +28,7 @@ const TESTS = [
   ['tests/int-heal.js', 'parentfail'],
   ['tests/int-heal.js', 'noread'],
   ['tests/int-pullshared.js'],
+  ['tests/int-build.js'],
 ];
 
 const root = path.join(__dirname, '..');

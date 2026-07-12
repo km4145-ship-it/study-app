@@ -12,6 +12,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Run tests (依存なし)
         run: node tests/run-all.js
+
+  build:
+    # 本番と同じ手順でビルドし、dist/ が健全（ハンドラ関数が圧縮後も生存）か検証する。
+    # デプロイ前に「本番だけ壊れる」事故を検知するのが目的。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install deps (esbuild)
+        run: npm ci
+      - name: Build dist/
+        run: npm run build
+      - name: Check dist health (ハンドラ関数の生存を検証)
+        run: node scripts/check-globals.js

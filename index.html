@@ -1399,6 +1399,10 @@
   .rpg-cos-cell.rpg-cos-locked{ align-items:center; justify-content:center; background:#eef2f7; border:1.5px dashed #cbd5e1; box-shadow:none; cursor:default; min-height:66px; }
   .rpg-cos-q{ font-size:1.7rem; font-weight:900; color:#9aa7b8; line-height:1; }
   .rpg-cos-prog{ font-size:.7rem; color:#64748b; font-weight:700; margin-left:8px; }
+  /* 冒険画面の上バー（ホーム＋ユーザー表示・切替）※rpg-modeはヘッダーを隠すので、ここに出す */
+  .rpg-topbar{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .rpg-userchip{ display:inline-flex; align-items:center; gap:6px; background:#fff; border:1.5px solid #a5b4fc; border-radius:999px; padding:7px 14px; font-weight:800; font-size:.9rem; color:#334155; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  .rpg-userchip-sw{ font-size:.68rem; color:#0891b2; background:#ecfeff; border-radius:999px; padding:1px 7px; }
   /* UR（虹）レア度 */
   .rpg-cos-cell.cos-ur{ background:linear-gradient(135deg,#fee2e2,#fef9c3,#dcfce7,#dbeafe,#f3e8ff); background-size:220% 220%; border-color:#f472b6; box-shadow:0 0 12px rgba(236,72,153,.55); animation:rpgUrShine 3s ease infinite; }
   .rpg-cos-cell.cos-ur .rpg-cos-em{ animation:rpgAuraPulse 1.4s ease-in-out infinite; }
@@ -6547,7 +6551,9 @@ function rpgRenderContinents(){
   var s=rpgState(), cc=rpgCrystalCount();
   var into=s.xp-rpgXpForLevel(s.level), need=rpgXpForLevel(s.level+1)-rpgXpForLevel(s.level);
   var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
-  var h='<button class="rpg-back" onclick="goHome()">🏠 ホーム（べんきょうに もどる）</button>';
+  var _un=(muCurrentUser()&&muCurrentUser().name)||'ユーザー';
+  var h='<div class="rpg-topbar"><button class="rpg-back" onclick="goHome()">🏠 ホーム</button>'+
+    '<button class="rpg-userchip" onclick="muShowPicker()">👤 '+escapeHtml(_un)+'<span class="rpg-userchip-sw">きりかえ</span></button></div>';
   h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><div class="rpg-hero-info">'+
     '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+

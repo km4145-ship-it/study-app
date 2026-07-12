@@ -2942,13 +2942,10 @@ function muLoadUserData(){
   try{ renderAreaGrid(); }catch(e){}
 }
 function muGreetAndEnter(){
-  setCharacter('owl', false);
   var u=muCurrentUser(); var nm=u?u.name:'';
   var _et=rpgEquippedTitle(); var _tp=_et?('【'+_et.name+'】'):'';
-  var msg=_tp+nm+'さん、こんにちは！🦉 きょうもいっしょにがんばろう。まずは教科をえらんでね。';
-  showSubjectSelect();
-  setLunaText(msg);
-  try{ speak(msg); }catch(e){}
+  showRpg();   // デフォルトで冒険スタート画面をひらく（ホームへは冒険画面の🏠ボタンで戻れる）
+  try{ speak(_tp+nm+'さん、こんにちは！ぼうけんを はじめよう！'); }catch(e){}
 }
 // 管理者用ユーザー管理
 var MU_CHARS=['girl','boy','shiba','cat','rabbit','fox','bear','owl','panda','dolphin','penguin','tiger'];
@@ -3211,10 +3208,11 @@ function vibe(p){ if(!vibeEnabled()) return; try{ if(navigator.vibrate) navigato
 function bgmEnabled(){ try{ return safeLS.getItem('bgm_on')!=='0'; }catch(e){ return true; } }   // 既定オン（設定でオフにできる）
 var _bgmGain=null, _bgmTimer=null, _bgmCur=null, _bgmStep=0;
 function _bgmFreqs(track){
-  var C=261.63,D=293.66,E=329.63,F=349.23,G=392,A=440,B=493.88,C2=523.25,D2=587.33,E2=659.25,G3=196,A3=220,B3=246.94,F3=174.61;
-  if(track==='map')    return [E,G,C2,G, A,C2,E2,C2, F,A,C2,A, G,B,D2,B];
-  if(track==='battle') return [C2,G,C2,E2, F,C2,A,C2, G,E,G,C2, A,F,A,G];
-  if(track==='boss')   return [A3,C,E,A3, G3,B3,D,G3, F3,A,C2,F3, E,G,B,E];
+  var F3=174.61,G3=196,A3=220,B3=246.94,C=261.63,D=293.66,E=329.63,F=349.23,G=392,A=440,B=493.88,C2=523.25,D2=587.33,E2=659.25,F2=698.46,G2=783.99;
+  // ゆったり明るい冒険テーマ／弾む戦闘／重厚なボス（以前より長く反復感を減らした新メロディ）
+  if(track==='map')    return [G,C2,E2,D2, C2,E2,G2,E2, A,C2,E2,C2, D2,B,G,B, C2,E2,D2,C2, A,C2,E2,A, F,A,C2,F, G,B,D2,G];
+  if(track==='battle') return [A,C2,E2,A, G,B,D2,G, F,A,C2,F, E2,D2,C2,B, A,C2,E2,C2, D2,B,G,B, C2,A,F,A, G,E,C2,G];
+  if(track==='boss')   return [A3,E,A3,B3, C,A3,E,C, G3,D,G3,B3, F3,C,A3,F3, A3,C,E,G, F,A,C2,A, E,G,B,E2, A3,E,C,A3];
   return [C,E,G,C2];
 }
 function bgmPlay(track){
@@ -6549,7 +6547,8 @@ function rpgRenderContinents(){
   var s=rpgState(), cc=rpgCrystalCount();
   var into=s.xp-rpgXpForLevel(s.level), need=rpgXpForLevel(s.level+1)-rpgXpForLevel(s.level);
   var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
-  var h='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><div class="rpg-hero-info">'+
+  var h='<button class="rpg-back" onclick="goHome()">🏠 ホーム（べんきょうに もどる）</button>';
+  h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><div class="rpg-hero-info">'+
     '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
     '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち'+'</div>'+

@@ -1,44 +1,17 @@
 'use strict';
-// 採点・進行の“頭脳”にあたる純粋関数の特性テスト（characterization test）。
-// index.html は変更せず、テスト時に関数を「名前でブレース対応抽出」して評価する（行移動に強い）。
-// 目的：将来これらを触る/モジュールへ切り出す際に、挙動が1文字も変わらないことを保証する土台。
+// 採点・進行の“頭脳”にあたる純粋関数（js/scoring.js）の特性テスト（characterization test）。
+// ゴールデン値は分離前の index.html 実装から捕捉したもの＝分離で挙動が1文字も変わらないことを保証する。
 const fs = require('fs');
 const path = require('path');
 const { makeChecker, ROOT } = require('./lib/assert');
 const c = makeChecker('unit-scoring');
 
-const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const code = fs.readFileSync(path.join(ROOT, 'js', 'scoring.js'), 'utf8');
+const api = (new Function(code +
+  '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp};'))();
 
-// 名前から function / const{...} 本体をブレース対応で切り出す
-function grab(name, kind) {
-  const re = kind === 'fn'
-    ? new RegExp('function\\s+' + name + '\\s*\\(')
-    : new RegExp('(const|let|var)\\s+' + name + '\\s*=\\s*\\{');
-  const m = re.exec(src);
-  if (!m) throw new Error('not found: ' + name);
-  const open = src.indexOf('{', m.index);
-  let depth = 0;
-  for (let j = open; j < src.length; j++) {
-    if (src[j] === '{') depth++;
-    else if (src[j] === '}') { depth--; if (depth === 0) return src.slice(m.index, j + 1) + (kind === 'fn' ? '' : ';'); }
-  }
-  throw new Error('unbalanced: ' + name);
-}
-
-let api;
-try {
-  const pieces = [
-    grab('EXAM_STATS', 'const'), grab('_seedOf', 'fn'), grab('withSeed', 'fn'),
-    grab('calcHensachiRaw', 'fn'), grab('judgeOf', 'fn'),
-    grab('rpgXpForLevel', 'fn'), grab('rpgLevelForXp', 'fn'),
-  ].join('\n');
-  api = (new Function(pieces +
-    '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp};'))();
-} catch (e) {
-  c.ok('純関数を index.html から抽出できる（' + e.message + '）', false);
-  c.done();
-  return;
-}
+['_seedOf', 'withSeed', 'calcHensachiRaw', 'judgeOf', 'rpgXpForLevel', 'rpgLevelForXp']
+  .forEach((f) => c.ok(f + ' が関数', typeof api[f] === 'function'));
 
 const r6 = (x) => Math.round(x * 1e6) / 1e6;
 
@@ -71,5 +44,11 @@ c.eq('judgeOf(30)=E', api.judgeOf(30).band, 'E');
 // RPG 経験値カーブ：xp=pow(lv-1,2)*40 と、その逆関数
 c.eq('rpgXpForLevel[1,2,3,5,10]', [1, 2, 3, 5, 10].map(api.rpgXpForLevel).join(','), '0,40,160,640,3240');
 c.eq('rpgLevelForXp[0,40,160,360,1440]', [0, 40, 160, 360, 1440].map(api.rpgLevelForXp).join(','), '1,2,3,4,7');
+
+// index.html 側は再定義せず、モジュールを読み込む
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+c.ok('index.html は calcHensachiRaw を再定義しない', html.indexOf('function calcHensachiRaw(') < 0);
+c.ok('index.html は withSeed を再定義しない', html.indexOf('function withSeed(') < 0);
+c.ok('index.html は js/scoring.js を読み込む', html.indexOf('<script src="js/scoring.js') >= 0);
 
 c.done();

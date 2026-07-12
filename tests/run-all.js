@@ -13,6 +13,7 @@ const TESTS = [
   ['tests/unit-subjects.js'],
   ['tests/unit-questions.js'],
   ['tests/unit-generators.js'],
+  ['tests/unit-audio.js'],
   ['tests/unit-merge-cos.js'],
   ['tests/unit-users.js'],
   ['tests/unit-session.js'],

@@ -1432,6 +1432,12 @@
   .rpg-set-it{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:8px; background:#e2e8f0; font-size:1.05rem; filter:grayscale(1) opacity(.45); }
   .rpg-set-it.o{ background:#fff; filter:none; box-shadow:0 1px 4px rgba(0,0,0,.12); }
   .rpg-set-rw{ font-size:.72rem; color:#64748b; }
+  /* クラウド接続 警告バナー */
+  .cloud-warn{ position:fixed; top:0; left:0; right:0; z-index:2147482000; display:none; align-items:center; gap:10px; background:#b45309; color:#fff; padding:8px 12px; font-size:.82rem; line-height:1.45; box-shadow:0 2px 10px rgba(0,0,0,.3); }
+  .cloud-warn .cw-ic{ font-size:1.25rem; flex:0 0 auto; }
+  .cloud-warn .cw-tx{ flex:1 1 auto; }
+  .cloud-warn .cw-btn{ flex:0 0 auto; background:#fff; color:#b45309; border:0; border-radius:999px; padding:6px 12px; font-weight:800; font-size:.8rem; cursor:pointer; }
+  .cloud-warn .cw-x{ flex:0 0 auto; background:transparent; color:#fff; border:0; font-size:1.15rem; cursor:pointer; padding:2px 6px; line-height:1; }
   @keyframes rpgAuraPulse{ 0%,100%{ transform:scale(1); opacity:.82; } 50%{ transform:scale(1.12); opacity:1; } }
   @keyframes rpgAuraSpin{ to{ transform:rotate(360deg); } }
   @keyframes rpgAuraFlicker{ 0%,100%{ opacity:.9; } 50%{ opacity:.4; } }
@@ -2554,9 +2560,31 @@ function init() {
   setCharacter('owl', false);
   pinGate(); pinUpdateHint();
   muBoot();
+  // 既に接続エラーなら即警告／cloud-sync.js自体が読めていない場合の保険
+  try{ if(window.cloudStatus && window.cloudStatus()==='error') muShowCloudWarn(''); }catch(e){}
+  setTimeout(function(){ try{ if(typeof window.cloudStatus!=='function') muShowCloudWarn('load'); }catch(e){} }, 16000);
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ===== クラウド接続の警告バナー（つながっていない時に知らせる）=====
+function muShowCloudWarn(reason){
+  reason=''+(reason||'');
+  var el=document.getElementById('cloud-warn');
+  if(!el){ el=document.createElement('div'); el.id='cloud-warn'; el.className='cloud-warn'; document.body.appendChild(el); }
+  var detail = (reason==='auth') ? 'ログインできません（匿名ログインの設定を確認）'
+             : (reason==='load') ? 'クラウドの読み込みに失敗（通信を確認）'
+             : (reason.indexOf('PERMISSION')>=0 || reason==='rules' || reason==='read') ? '読み書きが許可されていません（ルールを確認）'
+             : 'つながりません（通信を確認）';
+  el.innerHTML='<span class="cw-ic">⚠️</span>'+
+    '<span class="cw-tx"><b>クラウドに接続できていません</b>（'+detail+'）。 いまの学習は <b>この端末だけ</b>に保存中です（ほかの端末には同期されません）。</span>'+
+    '<button class="cw-btn" onclick="location.reload()">再接続</button>'+
+    '<button class="cw-x" title="とじる" onclick="var e=document.getElementById(\'cloud-warn\'); if(e) e.style.display=\'none\';">×</button>';
+  el.style.display='flex';
+}
+function muHideCloudWarn(){ var el=document.getElementById('cloud-warn'); if(el) el.style.display='none'; }
+// cloud-sync.js から状態変化で呼ばれる
+window.muOnCloudStatus=function(state, reason){ if(state==='ok') muHideCloudWarn(); else if(state==='error') muShowCloudWarn(reason); };
 
 // Called when user taps the start button (after user gesture = audio allowed)
 async function startApp() {

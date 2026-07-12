@@ -287,6 +287,10 @@ window.FIREBASE_CONFIG = {
   var readyResolve, readyPromise=new Promise(function(r){ readyResolve=r; });
   window.cloudReady = function(){ return readyPromise; };
   window.cloudEnabled = function(){ return ready; };
+  // ---- クラウド接続状態（画面の警告バナー用）: 'connecting' | 'ok' | 'error' ----
+  var _cloudStatus='connecting';
+  function setCloudStatus(st, reason){ if(_cloudStatus===st) return; _cloudStatus=st; try{ if(window.muOnCloudStatus) window.muOnCloudStatus(st, reason||''); }catch(e){} }
+  window.cloudStatus = function(){ return _cloudStatus; };
   // ユーザー選択画面用：共通設定（ユーザー一覧）を最新化
   window.cloudPullShared = function(){
     if(!db||!fam) return readyPromise.then(function(){ return window.cloudPullShared(); });
@@ -383,6 +387,8 @@ window.FIREBASE_CONFIG = {
   function start(){
     fam = famCode();
     if(!fam){ return; }
+    setCloudStatus('connecting');
+    setTimeout(function(){ if(_cloudStatus==='connecting') setCloudStatus('error','timeout'); }, 15000);  // 応答が無ければ警告
     firebase.auth().signInAnonymously().then(function(){
       db = firebase.firestore();
       try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
@@ -390,7 +396,8 @@ window.FIREBASE_CONFIG = {
         if(r==='reset') return 'reset';
         // ① まず共有設定（ユーザー一覧＝mu_users）を取得して反映する。
         //    これで localStorage が空でも（キャッシュ削除・別端末・初回でも）家族全員が復元される。
-        return sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); }).catch(function(){})
+        return sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); setCloudStatus('ok'); })
+          .catch(function(e){ setCloudStatus('error', (e&&(e.code||e.message))||'read'); })   // ルール拒否/通信不可を検知
           .then(function(){
             // ② 共有を反映した後の「全ユーザー」ぶんの学習データをクラウドから取得。
             //    localUids() を“共有プルの後”に評価するのが肝（前だと空で1件も読まれずデータが消えたように見える）。
@@ -408,11 +415,11 @@ window.FIREBASE_CONFIG = {
         readyResolve(true);
         try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){}
       });
-    }).catch(function(){});
+    }).catch(function(){ setCloudStatus('error','auth'); });
   }
   Promise.all([
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'),
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'),
     loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js')
-  ]).then(function(){ firebase.initializeApp(CFG); start(); }).catch(function(){});
+  ]).then(function(){ firebase.initializeApp(CFG); start(); }).catch(function(){ setCloudStatus('error','load'); });
 })();

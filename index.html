@@ -6261,8 +6261,8 @@ function rpgMarkSeen(k){ var s=rpgState(); s.story[k]=1; rpgSave(s); }
 function rpgXpForLevel(l){ return Math.pow(Math.max(0,l-1),2)*40; }
 function rpgLevelForXp(xp){ return Math.floor(Math.sqrt(Math.max(0,xp)/40))+1; }
 function rpgToday(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-function rpgStaminaLeft(){ var s=rpgState(); if(s.stamina.date!==rpgToday()) return RPG_STAMINA_MAX; return Math.max(0, RPG_STAMINA_MAX-(s.stamina.used||0)); }
-function rpgUseStamina(){ var s=rpgState(); if(s.stamina.date!==rpgToday()) s.stamina={date:rpgToday(),used:0}; s.stamina.used=(s.stamina.used||0)+1; rpgSave(s); }
+function rpgStaminaLeft(){ return 999; }              // 1日の回数制限は撤廃：いくらでも冒険できる
+function rpgUseStamina(){ /* 制限なし：スタミナを消費しない */ }
 function rpgNodeKey(area,chId,nodeId){ return area+':'+chId+':'+nodeId; }
 function rpgIsCleared(area,chId,nodeId){ return !!rpgState().cleared[rpgNodeKey(area,chId,nodeId)]; }
 function rpgHeroChar(){ var u=(typeof muCurrentUser==='function')?muCurrentUser():null; return (u&&u.char)||'shiba'; }
@@ -6377,7 +6377,7 @@ function rpgRenderContinents(){
   var h='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><div class="rpg-hero-info">'+
     '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
-    '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち　🔥のこり冒険 '+rpgStaminaLeft()+'/'+RPG_STAMINA_MAX+'</div>'+
+    '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち'+'</div>'+
     '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+cc+' / 5</span></div></div>';
   // 相棒ペット
   var pet=s.pet||{stage:0,wins:0,name:''}, pst=Math.min(pet.stage||0,3), pname=pet.name||'あいぼう';
@@ -6623,7 +6623,7 @@ function rpgRenderMap(area){
   h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><div class="rpg-hero-info">'+
     '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
-    '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち　🔥のこり冒険 '+rpgStaminaLeft()+'/'+RPG_STAMINA_MAX+'</div>'+
+    '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち'+'</div>'+
     '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+rpgCrystalCount()+' / 5</span></div></div>';
   h+='<div class="rpg-cont-banner">'+world.emoji+' '+escapeHtml(world.name)+'　—　'+escapeHtml(world.crystal)+'をめざせ</div>';
   h+='<div class="rpg-map map-'+area+'">';

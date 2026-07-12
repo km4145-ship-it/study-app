@@ -6410,20 +6410,22 @@ function rpgMissions(){ return [
   { id:'m3', icon:'🔥', text:'3もん れんぞくで せいかい', goal:3, pts:10, get:function(d){ return d.maxStreak; } }
 ]; }
 function rpgCheckMissions(){
-  var s=rpgState(), d=rpgDailyGet(s), ms=rpgMissions(), changed=false, allDone=true;
-  ms.forEach(function(m){ if(d.claimed[m.id]) return; if(m.get(d)>=m.goal){ d.claimed[m.id]=1; totalPoints+=m.pts; changed=true; try{ showToast(m.icon,'ミッション たっせい！',m.text+'  ＋'+m.pts+'pt'); sfx('coin'); }catch(e){} } });
+  var s=rpgState(), d=rpgDailyGet(s), ms=rpgMissions(), cos=rpgCosState(s), changed=false, allDone=true;
+  ms.forEach(function(m){ if(d.claimed[m.id]) return; if(m.get(d)>=m.goal){ d.claimed[m.id]=1; totalPoints+=m.pts; cos.coin=(cos.coin||0)+12; changed=true; try{ showToast(m.icon,'ミッション たっせい！',m.text+'  ＋'+m.pts+'pt ・ 🪙+12'); sfx('coin'); }catch(e){} } });
   ms.forEach(function(m){ if(!d.claimed[m.id]) allDone=false; });
-  if(allDone && !d.claimed.all){ d.claimed.all=1; var st=rpgGiveSticker(s); totalPoints+=30; changed=true; try{ showToast('🎉','きょうの ミッション ぜんぶ たっせい！','シール「'+st+'」＋30pt！'); sfx('fanfare'); confetti(); }catch(e){} }
+  if(allDone && !d.claimed.all){ d.claimed.all=1; var st=rpgGiveSticker(s); totalPoints+=30; cos.coin=(cos.coin||0)+40; changed=true; try{ showToast('🎉','きょうの ミッション ぜんぶ たっせい！','シール「'+st+'」＋30pt ・ 🪙+40！'); sfx('fanfare'); confetti(); }catch(e){} }
   if(changed){ safeLS.setItem('c_points', totalPoints); try{ updateScoreBar(); }catch(e){} rpgSave(s); }
 }
 function rpgLoginBonus(){
   var s=rpgState(), lg=s.login||{last:'',streak:0};
   if(lg.last===rpgToday()) return;
   var streak=(lg.last===rpgYesterday())?((lg.streak||0)+1):1;
-  var coins=20+Math.min(streak,7)*5;
-  s.login={last:rpgToday(),streak:streak}; totalPoints+=coins; safeLS.setItem('c_points', totalPoints); rpgSave(s);
+  var pts=20+Math.min(streak,7)*5;
+  var coins=15+Math.min(streak,7)*5;   // ガチャ用コインも付与（連続で増える／最大50）
+  var cos=rpgCosState(s); cos.coin=(cos.coin||0)+coins;
+  s.login={last:rpgToday(),streak:streak}; totalPoints+=pts; safeLS.setItem('c_points', totalPoints); rpgSave(s);
   try{ updateScoreBar(); }catch(e){}
-  try{ setTimeout(function(){ showToast('🎁','ログインボーナス '+streak+'日め！','コイン ＋'+coins+'pt もらった！'); sfx('fanfare'); confetti(); }, 350); }catch(e){}
+  try{ setTimeout(function(){ showToast('🎁','ログインボーナス '+streak+'日め！','🪙＋'+coins+' コイン ・ ＋'+pts+'pt もらった！'); sfx('fanfare'); confetti(); }, 350); }catch(e){}
 }
 function rpgPetStageFor(wins){ var st=0; for(var i=0;i<PET_WINS_FOR.length;i++){ if(wins>=PET_WINS_FOR[i]) st=i; } return st; }
 // 全モンスター一覧（図鑑用）
@@ -6652,7 +6654,7 @@ function _gachaPick(){ var pool=_gachaPool(), wr={N:58,R:28,S:11,UR:3}, tot=0, w
   return pick; }
 function _gachaPickRarity(rar){ var pool=_gachaPool().filter(function(p){ return (p.it.r||'N')===rar; }); if(!pool.length) return null; return pool[Math.floor(Math.random()*pool.length)]; }
 // ---- 天井（ピティ）：純粋関数でテストしやすく ----
-var GACHA_PITY_MAX=60;                                   // これだけURなしで引くと次で確定
+var GACHA_PITY_MAX=50;                                   // これだけURなしで引くと次で確定
 function _pityTriggered(pity, max){ return (pity||0) >= (max||GACHA_PITY_MAX); }
 function _gacha10NeedGuarantee(rarities){ return !rarities.some(function(r){ return _cosRank(r)>=2; }); }  // S+が1つも無ければtrue
 // cos に対して n 回抽選：天井・ピティ・所持登録・ダブり還元まで行い、結果配列を返す
@@ -6668,7 +6670,7 @@ function _gachaDrawInto(cos, n){
   if(n>=10 && _gacha10NeedGuarantee(picks.map(function(p){ return p.it.r; }))){ var up=_gachaPickRarity('S'); if(up) picks[picks.length-1]=up; }  // 10連はS+を1つ保証
   return picks.map(function(pick){
     var dup=!!cos.owned[pick.it.id], refund=0;
-    if(dup){ refund=({N:15,R:25,S:45,UR:80})[pick.it.r||'N']||15; cos.coin=(cos.coin||0)+refund; } else { cos.owned[pick.it.id]=1; }
+    if(dup){ refund=({N:20,R:30,S:60,UR:100})[pick.it.r||'N']||20; cos.coin=(cos.coin||0)+refund; } else { cos.owned[pick.it.id]=1; }
     return {pick:pick, dup:dup, refund:refund};
   });
 }
@@ -6694,7 +6696,7 @@ function rpgGachaDraw(){
   rpgGachaReveal(out.pick, out.dup, out.refund);
 }
 function rpgGachaDraw10(){
-  var s=rpgState(), cos=rpgCosState(s), COST=360;
+  var s=rpgState(), cos=rpgCosState(s), COST=320;
   if((cos.coin||0)<COST){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','10れんは 🪙'+COST+' いるよ（40×10より おとくで スペシャル1つ かくてい）'); return; }
   cos.coin-=COST;
   var outs=_gachaDrawInto(cos,10);
@@ -6753,9 +6755,9 @@ function rpgShowCosmetics(){
   var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
   h+='<div class="rpg-world-title">👕 きせかえショップ</div>';
   h+='<div class="rpg-coin-bar">🪙 もっているコイン：<b>'+cos.coin+'</b>　<span class="rpg-coin-hint">バトルにかつと コインがたまるよ</span></div>';
-  h+='<div class="rpg-gacha-bar"><div class="rpg-gacha-bar-l"><b>🎁 たからばこガチャ</b><br><span class="rpg-coin-hint">チケット '+(cos.tickets||0)+'まい ・ なければ 🪙40 ／ 10れん 🪙360（スペシャル1つ かくてい）</span></div>'+
+  h+='<div class="rpg-gacha-bar"><div class="rpg-gacha-bar-l"><b>🎁 たからばこガチャ</b><br><span class="rpg-coin-hint">チケット '+(cos.tickets||0)+'まい ・ なければ 🪙40 ／ 10れん 🪙320（スペシャル1つ かくてい）</span></div>'+
      '<div class="rpg-gacha-btns"><button class="rpg-gacha-btn" onclick="rpgGachaDraw()">'+((cos.tickets||0)>0?'ひく（チケット）':'ひく（🪙40）')+'</button>'+
-     '<button class="rpg-gacha-btn g10" onclick="rpgGachaDraw10()">10れん（🪙360）</button></div></div>';
+     '<button class="rpg-gacha-btn g10" onclick="rpgGachaDraw10()">10れん（🪙320）</button></div></div>';
   // 今のすがた プレビュー
   h+='<div class="rpg-cos-preview">'+
      '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><span>ゆうしゃ</span></div>'+
@@ -6966,7 +6968,7 @@ function rpgShowResult(){
     // 図鑑に登録＋相棒ペットのせいちょう
     if(b.node.mon){ s.dex[b.node.mon]=1; }
     s.pet.wins=(s.pet.wins||0)+1; s.pet.stage=rpgPetStageFor(s.pet.wins);
-    var _cg=(b.node.type==='boss')?15:5; var _cs=rpgCosState(s); _cs.coin=(_cs.coin||0)+_cg; b.coinGain=_cg;   // 着せ替え用コインを獲得
+    var _cg=(b.node.type==='boss')?35:10; var _cs=rpgCosState(s); _cs.coin=(_cs.coin||0)+_cg; b.coinGain=_cg;   // 着せ替え用コインを獲得（勝利10/ボス35）
     var _dw=rpgDailyGet(s); _dw.wins++;   // 今日のミッション：バトル勝利
     // ボス撃破でごほうびシール
     if(b.node.type==='boss'){ b.sticker=rpgGiveSticker(s); var _ct=rpgCosState(s); _ct.tickets=(_ct.tickets||0)+1; b.gotTicket=1; }   // ボス撃破で宝箱チケット
@@ -7062,7 +7064,7 @@ function rpgResolveReview(b){
   var win=(b.enemyHp<=0 && b.heroHp>0), s=rpgState();
   var gainXp=b.xpGain+(win?20:5); var prevLv=rpgLevelForXp(s.xp); s.xp+=gainXp; s.level=rpgLevelForXp(s.xp);
   var leveled=s.level>prevLv, coin=0;
-  if(win){ var cs=rpgCosState(s); coin=8; cs.coin=(cs.coin||0)+coin; }
+  if(win){ var cs=rpgCosState(s); coin=12; cs.coin=(cs.coin||0)+coin; }
   rpgSave(s);
   hideMainScreens();
   document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');

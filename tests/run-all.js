@@ -17,6 +17,7 @@ const TESTS = [
   ['tests/unit-audio.js'],
   ['tests/unit-furigana.js'],
   ['tests/unit-reading-ja.js'],
+  ['tests/unit-scoring.js'],
   ['tests/unit-merge-cos.js'],
   ['tests/unit-users.js'],
   ['tests/unit-session.js'],

@@ -89,6 +89,11 @@ window.FIREBASE_CONFIG = {
     if(Object.keys(equip).length) o.equip=equip;
     if(x.welcome||y.welcome) o.welcome=1;   // 初回100コインボーナスの再付与を防ぐ
     if(x.pity!=null||y.pity!=null) o.pity=Math.max(parseInt(x.pity||0,10)||0, parseInt(y.pity||0,10)||0);  // ガチャ天井カウンタを保全
+    var titles={}; [x.titles,y.titles].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) titles[k]=o2[k]; }); } });
+    if(Object.keys(titles).length) o.titles=titles;                       // 手に入れた称号は端末間で合算
+    var sets={}; [x.sets,y.sets].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) sets[k]=o2[k]; }); } });
+    if(Object.keys(sets).length) o.sets=sets;                             // セット受領済みも合算（二重ごほうびを防ぐ）
+    if(x.title||y.title) o.title = y.title||x.title;                      // 装備中の称号（クラウド優先）
     return o;
   }
   function mergeRpg(a,b){ try{ var x=JSON.parse(a||'null'), y=JSON.parse(b||'null');

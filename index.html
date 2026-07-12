@@ -1418,6 +1418,20 @@
   .rpg-g10-cell.cos-ur .rpg-g10-rar{ background:linear-gradient(90deg,#f472b6,#38bdf8); }
   .rpg-g10-nm{ font-size:.56rem; color:#475569; margin-top:2px; text-align:center; line-height:1.2; }
   .rpg-g10-new{ font-size:.54rem; font-weight:800; color:#16a34a; } .rpg-g10-dup{ font-size:.54rem; color:#b45309; }
+  /* 称号・コレクション */
+  .rpg-title-grid{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 2px; }
+  .rpg-title-chip{ background:#f1f5f9; border:1.5px solid #cbd5e1; border-radius:999px; padding:6px 12px; font-size:.82rem; font-weight:700; color:#334155; cursor:pointer; }
+  .rpg-title-chip.on{ background:linear-gradient(90deg,#fde68a,#fca5a5); border-color:#f59e0b; color:#7c2d12; }
+  .rpg-cos-title-now{ text-align:center; font-size:.86rem; font-weight:800; color:#b45309; margin:2px 0 6px; }
+  .rpg-set-list{ display:flex; flex-direction:column; gap:8px; }
+  .rpg-set{ background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; padding:9px 11px; }
+  .rpg-set.done{ background:linear-gradient(135deg,#dcfce7,#bbf7d0); border-color:#22c55e; }
+  .rpg-set-h{ display:flex; justify-content:space-between; align-items:center; font-size:.92rem; }
+  .rpg-set-h span{ font-size:.78rem; font-weight:800; color:#16a34a; }
+  .rpg-set-items{ display:flex; gap:6px; margin:6px 0; flex-wrap:wrap; }
+  .rpg-set-it{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:8px; background:#e2e8f0; font-size:1.05rem; filter:grayscale(1) opacity(.45); }
+  .rpg-set-it.o{ background:#fff; filter:none; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  .rpg-set-rw{ font-size:.72rem; color:#64748b; }
   @keyframes rpgAuraPulse{ 0%,100%{ transform:scale(1); opacity:.82; } 50%{ transform:scale(1.12); opacity:1; } }
   @keyframes rpgAuraSpin{ to{ transform:rotate(360deg); } }
   @keyframes rpgAuraFlicker{ 0%,100%{ opacity:.9; } 50%{ opacity:.4; } }
@@ -2739,7 +2753,7 @@ function muRequireAdmin(){
 }
 // ----- ユーザー選択・切替・管理UI -----
 function _charSVG(ch){ return (CHARS[ch] && CHARS[ch].svg) || (CHARS.shiba && CHARS.shiba.svg) || ''; }
-function muUpdateHeader(){ var el=document.getElementById('mu-current-name'); var u=muCurrentUser(); if(el) el.textContent = u ? (u.name+'（'+muGradeLabel(muGradeLevel(u))+'）') : 'ユーザー'; }
+function muUpdateHeader(){ var el=document.getElementById('mu-current-name'); var u=muCurrentUser(); if(!el) return; var tt=''; try{ var et=rpgEquippedTitle(); if(et) tt=' '+et.em; }catch(e){} el.textContent = u ? (u.name+'（'+muGradeLabel(muGradeLevel(u))+'）'+tt) : 'ユーザー'; }
 function renderUserSelect(){
   var el=document.getElementById('user-select-list'); if(!el) return; el.innerHTML='';
   var cur=muCurrentId();
@@ -2895,7 +2909,8 @@ function muLoadUserData(){
 function muGreetAndEnter(){
   setCharacter('owl', false);
   var u=muCurrentUser(); var nm=u?u.name:'';
-  var msg=nm+'さん、こんにちは！🦉 きょうもいっしょにがんばろう。まずは教科をえらんでね。';
+  var _et=rpgEquippedTitle(); var _tp=_et?('【'+_et.name+'】'):'';
+  var msg=_tp+nm+'さん、こんにちは！🦉 きょうもいっしょにがんばろう。まずは教科をえらんでね。';
   showSubjectSelect();
   setLunaText(msg);
   try{ speak(msg); }catch(e){}
@@ -6099,6 +6114,69 @@ var COS_DATA={
 };
 var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['aura','✨ オーラ']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']] };
 var COS_RARITY={ N:{name:'ノーマル',cls:'cos-n'}, R:{name:'レア',cls:'cos-r'}, S:{name:'スペシャル',cls:'cos-s'}, UR:{name:'ウルトラ',cls:'cos-ur'} };
+// ===== コレクション（セット）＆ 称号 =====
+var COS_SETS=[
+  { id:'set_wizard', name:'まほうつかい', em:'🧙', items:['h_wiz','d_wand','a_star'],       coin:80,  title:'t_wizard' },
+  { id:'set_knight', name:'けんし',       em:'⚔️', items:['h_hat','d_sword','d_shield'],     coin:80,  title:'t_knight' },
+  { id:'set_king',   name:'おうさま',     em:'👑', items:['h_crown','d_trophy'],             coin:100, title:'t_king' },
+  { id:'set_angel',  name:'てんし',       em:'😇', items:['h_halo','a_holy','f_star'],       coin:120, title:'t_angel' },
+  { id:'set_rainbow',name:'にじいろ',     em:'🌈', items:['a_rain','pa_rain'],               coin:80,  title:'t_rainbow' },
+  { id:'set_galaxy', name:'ぎんが',       em:'🌌', items:['a_galaxy','pa_galaxy'],           coin:200, title:'t_galaxy' }
+];
+var COS_TITLES={
+  t_wizard:{ name:'だいまほうつかい', em:'🧙' },
+  t_knight:{ name:'せんしの ほこり', em:'⚔️' },
+  t_king:{ name:'せかいの おうさま', em:'👑' },
+  t_angel:{ name:'てんしの まもり', em:'😇' },
+  t_rainbow:{ name:'にじの かなた', em:'🌈' },
+  t_galaxy:{ name:'ぎんがの ゆうしゃ', em:'🌌' },
+  t_collector:{ name:'コレクター', em:'📦' },        // 所持アイテムが半分
+  t_master:{ name:'きせかえマスター', em:'🌟' },      // 全アイテムコンプ
+  t_first_ur:{ name:'にじいろの きせき', em:'✨' }    // URを初ゲット
+};
+// アイテムidから中身を引く（レア度など）
+function rpgItemById(id){ var pool=_gachaPool(); for(var i=0;i<pool.length;i++){ if(pool[i].it.id===id) return pool[i].it; } return null; }
+// いま装備中の称号（無ければnull）
+function rpgEquippedTitle(){ try{ var c=(rpgState().cos)||{}; return (c.title&&COS_TITLES[c.title])||null; }catch(e){ return null; } }
+// セット完成・称号付与の判定（純粋関数：cosを更新し、新規に得たものを返す）
+function _computeCollections(cos, sets, titles, pool){
+  if(!cos.titles) cos.titles={}; if(!cos.sets) cos.sets={};
+  var earned=[];
+  sets.forEach(function(set){ if(cos.sets[set.id]) return;
+    if(set.items.every(function(id){ return !!cos.owned[id]; })){
+      cos.sets[set.id]=1; cos.coin=(cos.coin||0)+(set.coin||0);
+      if(set.title) cos.titles[set.title]=1;
+      earned.push({kind:'set', set:set});
+    } });
+  var total=pool.length, owned=Object.keys(cos.owned||{}).filter(function(k){ return cos.owned[k]; }).length;
+  function grant(t){ if(!cos.titles[t]){ cos.titles[t]=1; earned.push({kind:'title', tid:t}); } }
+  if(total && owned>=Math.ceil(total/2)) grant('t_collector');
+  if(total && owned>=total) grant('t_master');
+  if(pool.some(function(p){ return p.r==='UR' && cos.owned[p.id]; })) grant('t_first_ur');
+  return earned;
+}
+function rpgCheckCollections(s){ var cos=rpgCosState(s); return _computeCollections(cos, COS_SETS, COS_TITLES, _gachaPool().map(function(p){ return {id:p.it.id, r:p.it.r}; })); }
+// セット/称号ゲットの お知らせ（ガチャ演出のあとに順番に出す）
+var _pendingCollect=[];
+function rpgAnnounceCollect(){
+  var list=_pendingCollect; _pendingCollect=[];
+  list.forEach(function(e, i){ setTimeout(function(){
+    if(e.kind==='set'){ try{ sfx('fanfare'); confetti(); }catch(_){}
+      showToast(e.set.em||'🎉','セット「'+e.set.name+'」かんせい！','🪙+'+(e.set.coin||0)+(e.set.title?(' ・ 称号「'+((COS_TITLES[e.set.title]||{}).name||'')+'」ゲット！'):''), 4200); }
+    else { try{ sfx('coin'); }catch(_){}
+      var t=COS_TITLES[e.tid]||{}; showToast(t.em||'🏅','称号ゲット！','「'+(t.name||'')+'」', 3800); }
+  }, 400 + i*1300); });
+}
+// 称号を つける／はずす
+function rpgTitleEquip(tid){
+  var s=rpgState(), cos=rpgCosState(s);
+  if(tid && !cos.titles[tid]) return;
+  cos.title=(cos.title===tid)?'':tid;   // 同じものを もう一度おすと はずす
+  rpgSave(s);
+  try{ sfx('click'); }catch(e){}
+  try{ muUpdateHeader(); }catch(e){}
+  rpgShowCosmetics();
+}
 function rpgCosById(kind,id){ var g=COS_DATA[kind]; if(!g) return null; for(var sl in g){ var a=g[sl]; for(var i=0;i<a.length;i++){ if(a[i].id===id) return a[i]; } } return null; }
 function rpgCosState(s){
   if(!s.cos) s.cos={};
@@ -6109,6 +6187,8 @@ function rpgCosState(s){
     if(c.hero){ c.equip.hero.hat=c.hero; c.owned[c.hero]=1; }
     if(c.pet){ c.equip.pet.hat=c.pet; c.owned[c.pet]=1; } }
   if(!c.equip.hero) c.equip.hero={}; if(!c.equip.pet) c.equip.pet={};
+  if(!c.titles) c.titles={};   // 手に入れた称号
+  if(!c.sets) c.sets={};       // ごほうび受け取り済みセット
   return c;
 }
 function rpgCoin(){ return rpgCosState(rpgState()).coin||0; }
@@ -6499,6 +6579,7 @@ function rpgOpenDailyBox(){
   if(s.dailyBox===rpgToday()){ showToast('🎁','きょうは もう あけたよ','また あした あけよう！'); return; }
   var cos=rpgCosState(s); s.dailyBox=rpgToday();
   var out=_gachaDrawInto(cos,1)[0];
+  _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   rpgGachaReveal(out.pick, out.dup, out.refund);
 }
@@ -6508,6 +6589,7 @@ function rpgGachaDraw(){
   if(!useTicket && (cos.coin||0)<40){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','40コイン か 無料チケットが いるよ（ボスをたおすと もらえる）'); return; }
   if(useTicket) cos.tickets--; else cos.coin-=40;
   var out=_gachaDrawInto(cos,1)[0];
+  _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   rpgGachaReveal(out.pick, out.dup, out.refund);
 }
@@ -6516,6 +6598,7 @@ function rpgGachaDraw10(){
   if((cos.coin||0)<COST){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','10れんは 🪙'+COST+' いるよ（40×10より おとくで スペシャル1つ かくてい）'); return; }
   cos.coin-=COST;
   var outs=_gachaDrawInto(cos,10);
+  _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   rpgGacha10Reveal(outs);
 }
@@ -6559,7 +6642,7 @@ function rpgGacha10Reveal(outs){
   ov.style.display='flex';
   try{ sfx(best>=2?'fanfare':'crystal'); vibe(best>=2?[20,40,20,40,90]:20); confetti(); if(best>=3){ setTimeout(confetti,300); setTimeout(confetti,600); } }catch(e){}
 }
-function rpgGachaClose(){ var ov=document.getElementById('rpg-gacha-ov'); if(ov){ ov.classList.remove('open','g10'); ov.style.display='none'; } try{ if(document.body.classList.contains('rpg-mode')) rpgShowCosmetics(); }catch(e){} }
+function rpgGachaClose(){ var ov=document.getElementById('rpg-gacha-ov'); if(ov){ ov.classList.remove('open','g10'); ov.style.display='none'; } try{ if(document.body.classList.contains('rpg-mode')) rpgShowCosmetics(); }catch(e){} try{ rpgAnnounceCollect(); }catch(e){} }
 function rpgShowCosmetics(){
   try{ sfx('click'); }catch(e){}
   rpgBattle=null; rpgHideBattle(); hideMainScreens();
@@ -6577,6 +6660,7 @@ function rpgShowCosmetics(){
   h+='<div class="rpg-cos-preview">'+
      '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><span>ゆうしゃ</span></div>'+
      '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+PET_SVG[Math.min((s.pet&&s.pet.stage)||0,3)]+rpgCosBadge('pet')+'</div><span>あいぼう</span></div></div>';
+  var _et=rpgEquippedTitle(); if(_et) h+='<div class="rpg-cos-title-now">いまの称号：'+_et.em+' '+_et.name+'</div>';
   ['hero','pet'].forEach(function(kind){
     h+='<div class="rpg-world-title" style="font-size:1.05rem;margin-top:10px">'+(kind==='hero'?'🦸 ゆうしゃ':'🐾 あいぼう')+'</div>';
     COS_SLOTS[kind].forEach(function(sd){
@@ -6597,6 +6681,22 @@ function rpgShowCosmetics(){
       h+='</div>';
     });
   });
+  // 🏅 称号セクション
+  h+='<div class="rpg-world-title" style="font-size:1.05rem;margin-top:14px">🏅 称号（なまえの よこに つく）</div>';
+  var ownedTitles=Object.keys(cos.titles||{}).filter(function(t){ return cos.titles[t]&&COS_TITLES[t]; });
+  if(!ownedTitles.length){ h+='<div class="rpg-map-hint">セットを そろえたり コンプすると 称号が もらえるよ！</div>'; }
+  else { h+='<div class="rpg-title-grid"><button class="rpg-title-chip'+(!cos.title?' on':'')+'" onclick="rpgTitleEquip(\'\')">なし</button>';
+    ownedTitles.forEach(function(tid){ var t=COS_TITLES[tid]; h+='<button class="rpg-title-chip'+(cos.title===tid?' on':'')+'" onclick="rpgTitleEquip(\''+tid+'\')">'+t.em+' '+t.name+'</button>'; });
+    h+='</div>'; }
+  // 📚 コレクション（セット）セクション
+  h+='<div class="rpg-world-title" style="font-size:1.05rem;margin-top:14px">📚 コレクション</div><div class="rpg-set-list">';
+  COS_SETS.forEach(function(set){
+    var have=set.items.filter(function(id){ return !!cos.owned[id]; }).length, done=(have>=set.items.length);
+    h+='<div class="rpg-set'+(done?' done':'')+'"><div class="rpg-set-h"><b>'+set.em+' '+set.name+'</b><span>'+(done?'✓ かんせい':have+'/'+set.items.length)+'</span></div>';
+    h+='<div class="rpg-set-items">'+set.items.map(function(id){ var it=rpgItemById(id); return '<span class="rpg-set-it'+(cos.owned[id]?' o':'')+'">'+(it?it.em:'？')+'</span>'; }).join('')+'</div>';
+    h+='<div class="rpg-set-rw">ごほうび：🪙'+set.coin+(set.title?(' ＋称号「'+((COS_TITLES[set.title]||{}).name||'')+'」'):'')+'</div></div>';
+  });
+  h+='</div>';
   h+='<div class="rpg-map-hint">部位ごとに 1つずつ つけられるよ！ タップで「かう／そうび」、そうび中を もう一度おすと はずせる。</div>';
   mv.innerHTML=h;
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}

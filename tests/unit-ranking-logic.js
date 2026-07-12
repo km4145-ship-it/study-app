@@ -61,6 +61,46 @@ c.eq('進捗% (750-500)/(1000-500)=50', g.pct, 50);
 c.eq('合計0の目標は500', api.rankFamilyGoal(0).target, 500);
 c.eq('合計0の進捗0%', api.rankFamilyGoal(0).pct, 0);
 
+// --- 期間ランキング（通算/今週/今月）---
+const api2 = (new Function(code +
+  '\nreturn { rankWeekRange, rankMonthRange, rankSumDailyHist, rankActiveDays, rankPeriodBestHensachi, rankBuildRowsPeriod, rankFamilyTotalCum };'))();
+const WED = '2026-07-15'; // 水曜（週= 月2026-07-13 〜 水2026-07-15）
+c.eq('週範囲(月〜today)', JSON.stringify(api2.rankWeekRange(WED)), JSON.stringify({ from: '2026-07-13', to: '2026-07-15' }));
+c.eq('月範囲(1日〜today)', JSON.stringify(api2.rankMonthRange(WED)), JSON.stringify({ from: '2026-07-01', to: '2026-07-15' }));
+
+const dh = JSON.stringify({ '2026-06-30': 10, '2026-07-06': 5, '2026-07-13': 2, '2026-07-14': 4, '2026-07-15': 3 });
+const wr = api2.rankWeekRange(WED), mr = api2.rankMonthRange(WED);
+c.eq('週合計問題数(2+4+3)', api2.rankSumDailyHist(dh, wr.from, wr.to), 9);
+c.eq('月合計問題数(5+2+4+3)', api2.rankSumDailyHist(dh, mr.from, mr.to), 14);
+c.eq('週の学習日数', api2.rankActiveDays(dh, wr.from, wr.to), 3);
+c.eq('月の学習日数', api2.rankActiveDays(dh, mr.from, mr.to), 4);
+c.eq('全期間の学習日数', api2.rankActiveDays(dh, '0000-00-00', '9999-99-99'), 5);
+c.eq('壊れたdaily_histは0', api2.rankSumDailyHist('{bad', wr.from, wr.to), 0);
+
+const elog2 = JSON.stringify([{ mode: 'exam', hensachi: 55, date: '2026-07-14' }, { mode: 'exam', hensachi: 60, date: '2026-05-01' }]);
+c.eq('週の最高偏差値(55)', api2.rankPeriodBestHensachi(elog2, wr.from, wr.to), 55);
+c.eq('月の最高偏差値(55)', api2.rankPeriodBestHensachi(elog2, mr.from, mr.to), 55);
+c.eq('期間外は0', api2.rankPeriodBestHensachi(elog2, '2026-08-01', '2026-08-31'), 0);
+
+const pMembers = {
+  u1: { c_answered: '320', daily_hist: JSON.stringify({ '2026-07-13': 2, '2026-07-14': 4, '2026-07-15': 3 }), study_log: JSON.stringify([{ mode: 'exam', hensachi: 55, date: '2026-07-14' }]) },
+  u2: { c_answered: '280', daily_hist: JSON.stringify({ '2026-07-15': 10 }) },
+  u3: { c_answered: '150' },
+};
+const wrows = api2.rankBuildRowsPeriod(pMembers, users, WED, 'week');
+const u1w = wrows.find((r) => r.id === 'u1');
+c.eq('週: u1 の問題数=9', u1w.answered, 9);
+c.eq('週: u1 の学習日数=3', u1w.activeDays, 3);
+c.eq('週: u1 の偏差値=55', u1w.hensachi, 55);
+c.eq('週でも cumAnswered は通算(320)', u1w.cumAnswered, 320);
+const wsorted = api.rankSort(wrows, 'answered');
+c.eq('週の問題数1位は u2(10)', wsorted[0].id, 'u2');
+c.eq('週の問題数2位は u1(9)', wsorted[1].id, 'u1');
+c.eq('家族の通算合計(cum)=750', api2.rankFamilyTotalCum(wrows), 750);
+
+const arows = api2.rankBuildRowsPeriod(pMembers, users, WED, 'all');
+c.eq('通算: u1 の問題数=c_answered(320)', arows.find((r) => r.id === 'u1').answered, 320);
+
 // index.html/モジュール整合
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は js/ranking.js を読み込む', html.indexOf('<script src="js/ranking.js') >= 0);

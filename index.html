@@ -1648,8 +1648,13 @@
   .rk-bar-wrap{ height:15px; background:rgba(255,255,255,.16); border-radius:9px; overflow:hidden; }
   .rk-bar{ height:100%; background:linear-gradient(90deg,#f59e0b,#ec4899,#a78bfa); border-radius:9px; transition:width .6s ease; }
   .rk-tabs{ display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; justify-content:center; }
+  .rk-periods{ margin-bottom:8px; }
+  .rk-metrics{ margin-bottom:14px; }
   .rk-tab{ border:2px solid #e2e8f0; background:#fff; color:#475569; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer; }
   .rk-tab.on{ background:#6366f1; border-color:#6366f1; color:#fff; box-shadow:0 3px 10px rgba(99,102,241,.3); }
+  .rk-periods .rk-tab{ padding:8px 16px; font-size:14px; }
+  .rk-periods .rk-tab.on{ background:#0f172a; border-color:#0f172a; }
+  .rk-tab-sm{ padding:5px 12px; font-size:12px; }
   .rk-list{ display:flex; flex-direction:column; gap:9px; }
   .rk-row{ display:flex; align-items:center; gap:11px; background:#fff; border:2px solid #eef2f7; border-radius:15px; padding:9px 13px; }
   .rk-row.me{ border-color:#6366f1; background:#eef2ff; box-shadow:0 3px 10px rgba(99,102,241,.16); }
@@ -3033,8 +3038,9 @@ function buildMixLeveled(area, count, level){
 /* escapeHtml は js/util.js へ分離 */
 // ===== 家族ランキング（兄弟で競う・協力）=====
 // 集計ロジックは js/ranking.js（純粋関数）、全員ぶんのデータ取得は cloud-sync の cloudFetchAllMembers。
+var _rankPeriod = 'all';        // 'all'|'week'|'month'
 var _rankMetric = 'answered';   // 表示中の指標
-var _rankCache = null;          // { rows, total, cloud }
+var _rankData = null;           // { allMembers, roster, cloud }
 function showRanking(){
   hideMainScreens();
   document.getElementById('ranking-screen').style.display='block';
@@ -3045,16 +3051,15 @@ function showRanking(){
 function _rankLocalCurrent(){
   var id=muCurrentId(); if(!id) return null;
   var d={};
-  ['c_answered','c_points','study_log','rpg_state'].forEach(function(k){ var v=safeLS.getItem(k); if(v!=null) d[k]=v; });
+  ['c_answered','c_points','study_log','rpg_state','daily_hist'].forEach(function(k){ var v=safeLS.getItem(k); if(v!=null) d[k]=v; });
   return { uid:id, data:d };
 }
 function _rankLoad(){
-  var roster=muGetUsers(), today=todayKey(), overlay=_rankLocalCurrent();
+  var roster=muGetUsers(), overlay=_rankLocalCurrent();
   function finish(allMembers, cloud){
     allMembers=allMembers||{};
     if(overlay) allMembers[overlay.uid]=Object.assign({}, allMembers[overlay.uid]||{}, overlay.data);
-    var rows=rankBuildRows(allMembers, roster, today);
-    _rankCache={ rows:rows, total:rankFamilyTotal(rows), cloud:cloud };
+    _rankData={ allMembers:allMembers, roster:roster, cloud:cloud };
     _rankRender();
   }
   if(window.cloudFetchAllMembers && window.cloudEnabled && window.cloudEnabled()){
@@ -3064,30 +3069,46 @@ function _rankLoad(){
       .catch(function(){ if(done)return; done=true; clearTimeout(to); finish({}, false); });
   } else { finish({}, false); }
 }
+// 期間ごとに使える指標（今週/今月は「学習日数」、通算は「連続日数・ポイント」）
+function _rankMetricsFor(period){
+  return period==='all'
+    ? [['answered','📚 問題数'],['streak','🔥 連続日数'],['hensachi','📈 偏差値'],['points','⭐ ポイント']]
+    : [['answered','📚 問題数'],['activeDays','📅 学習日数'],['hensachi','📈 偏差値']];
+}
+function _rankSetPeriod(p){
+  _rankPeriod=p;
+  if(_rankMetricsFor(p).map(function(m){return m[0];}).indexOf(_rankMetric)<0) _rankMetric='answered';
+  _rankRender();
+}
 function _rankSetMetric(k){ _rankMetric=k; _rankRender(); }
 function _rankMetricVal(r,k){
-  if(k==='answered') return r.answered+'<small>問</small>';
-  if(k==='streak')   return r.streak+'<small>日</small>';
-  if(k==='hensachi') return (r.hensachi? r.hensachi : '—')+(r.hensachi?'<small></small>':'');
-  if(k==='points')   return r.points+'<small>pt</small>';
+  if(k==='answered')   return r.answered+'<small>問</small>';
+  if(k==='streak')     return r.streak+'<small>日</small>';
+  if(k==='activeDays') return r.activeDays+'<small>日</small>';
+  if(k==='hensachi')   return (r.hensachi? r.hensachi : '—')+(r.hensachi?'<small></small>':'');
+  if(k==='points')     return r.points+'<small>pt</small>';
   return '';
 }
 function _rankRender(){
-  if(!_rankCache) return;
+  if(!_rankData) return;
   var host=document.getElementById('ranking-body');
-  var roster=muGetUsers();
+  var roster=_rankData.roster;
   if(!roster.length){ host.innerHTML='<div class="rk-empty">まだ ユーザーが いません。<br>設定からユーザーを つくってね。</div>'; return; }
-  var rows=rankSort(_rankCache.rows, _rankMetric);
+  var rows=rankSort(rankBuildRowsPeriod(_rankData.allMembers, roster, todayKey(), _rankPeriod), _rankMetric);
   var curId=muCurrentId();
-  var goal=rankFamilyGoal(_rankCache.total);
+  var cumTotal=rankFamilyTotalCum(rows);
+  var goal=rankFamilyGoal(cumTotal);
   var h='';
-  // 家族の共同目標バー（合計問題数→魔王シグマ討伐）
+  // 家族の共同目標バー（通算の合計問題数→魔王シグマ討伐）
   h+='<div class="rk-goal"><div class="rk-goal-top">🐉 家族みんなで魔王シグマ討伐！</div>'+
-     '<div class="rk-goal-sub">合計 '+_rankCache.total+' 問 ／ つぎの目標 '+goal.target+' 問（あと '+goal.remaining+' 問！）</div>'+
+     '<div class="rk-goal-sub">通算 '+cumTotal+' 問 ／ つぎの目標 '+goal.target+' 問（あと '+goal.remaining+' 問！）</div>'+
      '<div class="rk-bar-wrap"><div class="rk-bar" style="width:'+goal.pct+'%"></div></div></div>';
-  // 指標タブ
-  var metrics=[['answered','📚 問題数'],['streak','🔥 連続日数'],['hensachi','📈 偏差値'],['points','⭐ ポイント']];
-  h+='<div class="rk-tabs">'+metrics.map(function(m){ return '<button class="rk-tab'+(_rankMetric===m[0]?' on':'')+'" onclick="_rankSetMetric(\''+m[0]+'\')">'+m[1]+'</button>'; }).join('')+'</div>';
+  // 期間タブ
+  var periods=[['all','🏅 通算'],['week','📅 今週'],['month','🗓️ 今月']];
+  h+='<div class="rk-tabs rk-periods">'+periods.map(function(p){ return '<button class="rk-tab'+(_rankPeriod===p[0]?' on':'')+'" onclick="_rankSetPeriod(\''+p[0]+'\')">'+p[1]+'</button>'; }).join('')+'</div>';
+  // 指標タブ（期間に応じて変わる）
+  var metrics=_rankMetricsFor(_rankPeriod);
+  h+='<div class="rk-tabs rk-metrics">'+metrics.map(function(m){ return '<button class="rk-tab rk-tab-sm'+(_rankMetric===m[0]?' on':'')+'" onclick="_rankSetMetric(\''+m[0]+'\')">'+m[1]+'</button>'; }).join('')+'</div>';
   // 順位リスト
   h+='<div class="rk-list">';
   rows.forEach(function(r,i){
@@ -3096,11 +3117,13 @@ function _rankRender(){
     h+='<div class="'+cls+'"><div class="rk-medal">'+medal+'</div>'+
        '<div class="rk-ava">'+_charSVG(r.char)+'</div>'+
        '<div class="rk-name">'+escapeHtml(r.name)+(r.id===curId?'<span class="rk-you">あなた</span>':'')+
-       '<div class="rk-sub">Lv'+r.level+'・のべ'+r.answered+'問</div></div>'+
+       '<div class="rk-sub">Lv'+r.level+'・のべ'+r.cumAnswered+'問・🔥'+r.streak+'日</div></div>'+
        '<div class="rk-val">'+_rankMetricVal(r,_rankMetric)+'</div></div>';
   });
   h+='</div>';
-  if(!_rankCache.cloud) h+='<div class="rk-note">☁️ いまはこの端末のぶんだけ表示中。ほかの家族のきろくは、クラウド接続後に自動でならびます。</div>';
+  var plabel=_rankPeriod==='week'?'今週':_rankPeriod==='month'?'今月':'通算';
+  if(!_rankData.cloud) h+='<div class="rk-note">☁️ いまはこの端末のぶんだけ表示中。ほかの家族のきろくは、クラウド接続後に自動でならびます。</div>';
+  else h+='<div class="rk-note">📊 「'+plabel+'」の記録で ならんでいます。期間・指標のタブで切りかえられます。</div>';
   host.innerHTML=h;
 }
 function hideMainScreens(){

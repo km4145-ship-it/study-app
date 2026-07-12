@@ -75,6 +75,63 @@ function rankSort(rows, key) {
 // 家族の合計問題数
 function rankFamilyTotal(rows) { return rows.reduce(function (s, r) { return s + (r.answered || 0); }, 0); }
 
+// ===== 期間ランキング（通算 / 今週 / 今月）=====
+// daily_hist = {'YYYY-MM-DD': その日の問題数} を期間で合計する。日付は文字列比較でOK（YYYY-MM-DD）。
+function _rankKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function _rankAddDays(dateStr, n) { var d = _rankToDate(dateStr); d.setDate(d.getDate() + n); return _rankKey(d); }
+
+// 今週（月曜〜today）
+function rankWeekRange(todayStr) {
+  var dow = _rankToDate(todayStr).getDay();   // 0=日..6=土
+  var backToMon = (dow + 6) % 7;              // 月曜までの戻り日数
+  return { from: _rankAddDays(todayStr, -backToMon), to: todayStr };
+}
+// 今月（1日〜today）
+function rankMonthRange(todayStr) {
+  var d = _rankToDate(todayStr);
+  return { from: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01', to: todayStr };
+}
+// daily_hist を期間で合計（問題数）
+function rankSumDailyHist(json, from, to) {
+  var h; try { h = JSON.parse(json || '{}'); } catch (e) { return 0; }
+  if (!h || typeof h !== 'object') return 0;
+  var s = 0; Object.keys(h).forEach(function (k) { if (k >= from && k <= to) s += (+h[k] || 0); }); return s;
+}
+// 期間内に学習した日数（>0の日を数える）
+function rankActiveDays(json, from, to) {
+  var h; try { h = JSON.parse(json || '{}'); } catch (e) { return 0; }
+  if (!h || typeof h !== 'object') return 0;
+  var n = 0; Object.keys(h).forEach(function (k) { if (k >= from && k <= to && (+h[k] || 0) > 0) n++; }); return n;
+}
+// 期間内の模試の最高偏差値
+function rankPeriodBestHensachi(logJson, from, to) {
+  var log; try { log = JSON.parse(logJson || '[]'); } catch (e) { return 0; }
+  if (!Array.isArray(log)) return 0;
+  var hs = log.filter(function (e) { return e && e.mode === 'exam' && typeof e.hensachi === 'number' && e.date && e.date >= from && e.date <= to; })
+    .map(function (e) { return e.hensachi; });
+  return hs.length ? Math.max.apply(null, hs) : 0;
+}
+// 期間指定で行を構築。period: 'all'|'week'|'month'。
+//   answered は期間内の問題数（allは通算 c_answered）、activeDays は期間内の学習日数、
+//   hensachi は期間内の最高偏差値（allは全期間）。cumAnswered/points/streak/level は通算。
+function rankBuildRowsPeriod(allMembers, users, todayStr, period) {
+  allMembers = allMembers || {}; users = users || []; period = period || 'all';
+  var range = period === 'week' ? rankWeekRange(todayStr) : period === 'month' ? rankMonthRange(todayStr) : { from: '0000-00-00', to: '9999-99-99' };
+  return users.map(function (u) {
+    var data = allMembers[u.id] || {};
+    var cum = rankUserMetrics(data, todayStr);
+    return {
+      id: u.id, name: u.name, char: u.char, admin: !!u.admin,
+      answered: period === 'all' ? cum.answered : rankSumDailyHist(data.daily_hist, range.from, range.to),
+      cumAnswered: cum.answered, points: cum.points, streak: cum.streak, level: cum.level,
+      activeDays: rankActiveDays(data.daily_hist, range.from, range.to),
+      hensachi: period === 'all' ? cum.hensachi : rankPeriodBestHensachi(data.study_log, range.from, range.to),
+    };
+  });
+}
+// 家族の通算合計問題数（共同目標バー用）
+function rankFamilyTotalCum(rows) { return rows.reduce(function (s, r) { return s + (r.cumAnswered != null ? r.cumAnswered : r.answered || 0); }, 0); }
+
 // 合計問題数 → 次の共同目標マイルストーンの進捗
 function rankFamilyGoal(total) {
   var target = RANK_GOALS[RANK_GOALS.length - 1] * 2, prev = RANK_GOALS[RANK_GOALS.length - 1], stage = RANK_GOALS.length + 1;

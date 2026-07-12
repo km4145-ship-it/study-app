@@ -71,26 +71,50 @@ window.FIREBASE_CONFIG = {
       nu.bioCreds=Object.keys(creds);
       byId[u.id]=nu; });
     return JSON.stringify(order.map(function(id){return byId[id];}).slice(0,8)); }catch(e){ return b||a; } }
+  // 着せ替え（そうび・コイン・チケット・所持アイテム）のマージ。ひとつも失わない方針：
+  //   owned … 端末間で合算（所持アイテムは絶対に消さない）
+  //   coin/tickets … 大きい方を採用（同期でコインが消える事故を防ぐ）
+  //   equip … スロットごとに合算（クラウド優先）
+  function mergeCos(x,y){
+    if(!x && !y) return undefined;   // どちらにも無ければ作らない（rpgCosStateが後で初期化）
+    x=x||{}; y=y||{};
+    var owned={};
+    [x.owned,y.owned].forEach(function(o){ if(o&&typeof o==='object'){ Object.keys(o).forEach(function(k){ if(o[k]) owned[k]=o[k]; }); } });
+    var equip={};
+    ['hero','pet'].forEach(function(kind){ var ex=(x.equip&&x.equip[kind])||null, ey=(y.equip&&y.equip[kind])||null;
+      if(ex||ey) equip[kind]=Object.assign({}, ex||{}, ey||{}); });
+    var o={ coin: Math.max(parseInt(x.coin||0,10)||0, parseInt(y.coin||0,10)||0),
+            tickets: Math.max(parseInt(x.tickets||0,10)||0, parseInt(y.tickets||0,10)||0),
+            owned: owned };
+    if(Object.keys(equip).length) o.equip=equip;
+    if(x.welcome||y.welcome) o.welcome=1;   // 初回100コインボーナスの再付与を防ぐ
+    return o;
+  }
   function mergeRpg(a,b){ try{ var x=JSON.parse(a||'null'), y=JSON.parse(b||'null');
     if(!x) return b; if(!y) return a;
     var stam;
     var xs=x.stamina||{date:'',used:0}, ys=y.stamina||{date:'',used:0};
     if(xs.date===ys.date) stam={date:xs.date, used:Math.max(xs.used||0, ys.used||0)};
     else stam=(xs.date>ys.date)? xs : ys;   // 新しい日付の消費状況を採用
-    var o={ v:1,
-      xp: Math.max(x.xp||0, y.xp||0),
-      level: Math.max(x.level||1, y.level||1),
-      cleared: Object.assign({}, x.cleared||{}, y.cleared||{}),   // クリア実績は端末間で合算
-      coll: Object.assign({}, x.coll||{}, y.coll||{}),
-      crystals: Object.assign({}, x.crystals||{}, y.crystals||{}),// 集めたクリスタルも合算
-      story: Object.assign({}, x.story||{}, y.story||{}),         // 見たストーリーも合算（再表示を防ぐ）
-      dex: Object.assign({}, x.dex||{}, y.dex||{}),               // 図鑑（倒したモンスター）も合算
-      stickers: Object.assign({}, x.stickers||{}, y.stickers||{}),// あつめたシールも合算
-      pet: (function(){ var xp=x.pet||{}, yp=y.pet||{}; var w=Math.max(xp.wins||0,yp.wins||0);
-        return { wins:w, stage:Math.max(xp.stage||0,yp.stage||0), name:(yp.name||xp.name||''), fed:((xp.fed||'')>(yp.fed||'')?xp.fed:yp.fed)||'' }; })(),
-      daily: (function(){ var xd=x.daily||{}, yd=y.daily||{}; if((xd.date||'')===(yd.date||'')){ return { date:xd.date||yd.date||'', correct:Math.max(xd.correct||0,yd.correct||0), wins:Math.max(xd.wins||0,yd.wins||0), maxStreak:Math.max(xd.maxStreak||0,yd.maxStreak||0), claimed:Object.assign({},xd.claimed||{},yd.claimed||{}) }; } return ((xd.date||'')>(yd.date||'')? xd : yd); })(),
-      login: (function(){ var xl=x.login||{}, yl=y.login||{}; return { last:((xl.last||'')>(yl.last||'')?xl.last:yl.last)||'', streak:Math.max(xl.streak||0,yl.streak||0) }; })(),
-      stamina: stam };
+    // まず全フィールドを引き継ぐ（cos/dailyBox 等の未知フィールドを捨てない。既定はクラウドy優先）。
+    // 以下でスマートマージすべきフィールドだけを上書きする。
+    var o=Object.assign({}, x, y);
+    o.v=1;
+    o.xp=Math.max(x.xp||0, y.xp||0);
+    o.level=Math.max(x.level||1, y.level||1);
+    o.cleared=Object.assign({}, x.cleared||{}, y.cleared||{});   // クリア実績は端末間で合算
+    o.coll=Object.assign({}, x.coll||{}, y.coll||{});
+    o.crystals=Object.assign({}, x.crystals||{}, y.crystals||{});// 集めたクリスタルも合算
+    o.story=Object.assign({}, x.story||{}, y.story||{});         // 見たストーリーも合算（再表示を防ぐ）
+    o.dex=Object.assign({}, x.dex||{}, y.dex||{});               // 図鑑（倒したモンスター）も合算
+    o.stickers=Object.assign({}, x.stickers||{}, y.stickers||{});// あつめたシールも合算
+    o.pet=(function(){ var xp=x.pet||{}, yp=y.pet||{}; var w=Math.max(xp.wins||0,yp.wins||0);
+      return { wins:w, stage:Math.max(xp.stage||0,yp.stage||0), name:(yp.name||xp.name||''), fed:((xp.fed||'')>(yp.fed||'')?xp.fed:yp.fed)||'' }; })();
+    o.daily=(function(){ var xd=x.daily||{}, yd=y.daily||{}; if((xd.date||'')===(yd.date||'')){ return { date:xd.date||yd.date||'', correct:Math.max(xd.correct||0,yd.correct||0), wins:Math.max(xd.wins||0,yd.wins||0), maxStreak:Math.max(xd.maxStreak||0,yd.maxStreak||0), claimed:Object.assign({},xd.claimed||{},yd.claimed||{}) }; } return ((xd.date||'')>(yd.date||'')? xd : yd); })();
+    o.login=(function(){ var xl=x.login||{}, yl=y.login||{}; return { last:((xl.last||'')>(yl.last||'')?xl.last:yl.last)||'', streak:Math.max(xl.streak||0,yl.streak||0) }; })();
+    o.stamina=stam;
+    o.cos=mergeCos(x.cos, y.cos);   // ★そうび・コイン・チケット・所持アイテムを保全（旧コードは丸ごと捨てていた＝データ消失の原因）
+    if(o.cos===undefined) delete o.cos;
     return JSON.stringify(o); }catch(e){ return b||a; } }
   function mergeKey(k,cur,inc){
     if(k==='mu_users') return mergeUsers(cur,inc);

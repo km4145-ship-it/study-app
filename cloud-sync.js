@@ -245,6 +245,9 @@ window.FIREBASE_CONFIG = {
         applyKeys(raw.data);         // 旧v1データをローカルへマージ（新構造への保存は起動時のdoSaveAllが行う）
         return legacyRef().set({ v2done:true }, {merge:true}).then(function(){ return 'migrated'; });
       }
+      // v1親docのユーザー一覧を常にマージ（union）して回復力を持たせる。
+      // v2の mu_users が何らかの事故で縮んでいても、ここで消えたユーザーが復活する（mergeUsersは合算のみ＝減らない）。
+      if(raw.data && raw.data.mu_users){ try{ applyKeys({ mu_users: raw.data.mu_users }); }catch(e){} }
       return 'ok';
     }).catch(function(){ return 'ok'; });
   }
@@ -392,11 +395,12 @@ window.FIREBASE_CONFIG = {
     firebase.auth().signInAnonymously().then(function(){
       db = firebase.firestore();
       try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
+      var readOk=false;   // クラウドを実際に読めたか（読めない時は書き戻さない＝上書き事故の防止）
       checkLegacy().then(function(r){
         if(r==='reset') return 'reset';
         // ① まず共有設定（ユーザー一覧＝mu_users）を取得して反映する。
         //    これで localStorage が空でも（キャッシュ削除・別端末・初回でも）家族全員が復元される。
-        return sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); setCloudStatus('ok'); })
+        return sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); readOk=true; setCloudStatus('ok'); })
           .catch(function(e){ setCloudStatus('error', (e&&(e.code||e.message))||'read'); })   // ルール拒否/通信不可を検知
           .then(function(){
             // ② 共有を反映した後の「全ユーザー」ぶんの学習データをクラウドから取得。
@@ -411,7 +415,7 @@ window.FIREBASE_CONFIG = {
         ready = true;
         listenShared(); listenReset();
         var cur = rget('mu_current'); if(cur) listenMember(cur);
-        doSaveAll();  // マージ済みの全データを新構造で保存
+        if(readOk) doSaveAll();   // ★クラウドを読めた時だけ書き戻す。読めない時に古い/空のローカルでクラウドを上書きしない（ユーザー一覧が縮む事故の再発防止）
         readyResolve(true);
         try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){}
       });

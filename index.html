@@ -991,6 +991,7 @@
     <button class="nav-btn" onclick="showMistakes()" title="まちがいノート">📕 ノート<span class="nb-badge" id="nb-badge" style="display:none">0</span></button>
     <button class="nav-btn" onclick="showCharacters()" title="キャラクター紹介">🐾 キャラ</button>
     <button class="nav-btn nav-rpg" onclick="showRpg()" title="冒険モード（RPGで偏差値65をめざす）">🗡️ 冒険</button>
+    <button class="nav-btn" onclick="showRanking()" title="家族ランキング（兄弟で競う・協力）">🏆 家族</button>
     <button class="nav-btn" onclick="muShowPicker()" title="ユーザー切替">👤 <span id="mu-current-name">ユーザー</span></button>
     <button class="nav-btn" id="nav-settings-btn" onclick="openSettings()" title="設定" aria-label="設定">⚙️</button>
   </div>
@@ -1633,6 +1634,39 @@
       <button class="danger-link" onclick="clearRecords()">学習記録をすべて消す</button>
     </div>
   </div>
+
+  <div id="ranking-screen" style="display:none">
+    <button class="btn-back" onclick="goHome()">← もどる</button>
+    <div class="screen-title">🏆 家族ランキング</div>
+    <div id="ranking-body"></div>
+  </div>
+  <style>
+  #ranking-screen{ padding:6px 12px 44px; max-width:640px; margin:0 auto; }
+  .rk-goal{ background:linear-gradient(135deg,#1e293b,#4c1d95); color:#fff; border-radius:18px; padding:15px 17px; margin:10px 0 16px; box-shadow:0 6px 18px rgba(76,29,149,.28); }
+  .rk-goal-top{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; }
+  .rk-goal-sub{ font-size:12px; opacity:.9; margin:5px 0 9px; }
+  .rk-bar-wrap{ height:15px; background:rgba(255,255,255,.16); border-radius:9px; overflow:hidden; }
+  .rk-bar{ height:100%; background:linear-gradient(90deg,#f59e0b,#ec4899,#a78bfa); border-radius:9px; transition:width .6s ease; }
+  .rk-tabs{ display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; justify-content:center; }
+  .rk-tab{ border:2px solid #e2e8f0; background:#fff; color:#475569; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer; }
+  .rk-tab.on{ background:#6366f1; border-color:#6366f1; color:#fff; box-shadow:0 3px 10px rgba(99,102,241,.3); }
+  .rk-list{ display:flex; flex-direction:column; gap:9px; }
+  .rk-row{ display:flex; align-items:center; gap:11px; background:#fff; border:2px solid #eef2f7; border-radius:15px; padding:9px 13px; }
+  .rk-row.me{ border-color:#6366f1; background:#eef2ff; box-shadow:0 3px 10px rgba(99,102,241,.16); }
+  .rk-row.top1{ border-color:#f5c518; background:linear-gradient(135deg,#fffbeb,#fff); }
+  .rk-medal{ font-size:23px; width:32px; text-align:center; flex:0 0 32px; }
+  .rk-rank{ font-size:15px; font-weight:800; color:#94a3b8; }
+  .rk-ava{ width:44px; height:44px; flex:0 0 44px; }
+  .rk-ava svg{ width:100%; height:100%; }
+  .rk-name{ flex:1; font-weight:800; font-size:15px; color:#1e293b; }
+  .rk-you{ display:inline-block; margin-left:6px; font-size:10px; background:#6366f1; color:#fff; border-radius:6px; padding:1px 6px; vertical-align:middle; }
+  .rk-sub{ font-weight:600; font-size:11px; color:#94a3b8; margin-top:2px; }
+  .rk-val{ font-size:21px; font-weight:800; color:#334155; }
+  .rk-val small{ font-size:11px; font-weight:700; color:#94a3b8; margin-left:1px; }
+  .rk-note{ margin-top:16px; font-size:12px; color:#94a3b8; text-align:center; line-height:1.7; }
+  .rk-loading{ text-align:center; padding:44px; color:#94a3b8; font-size:14px; }
+  .rk-empty{ text-align:center; padding:30px; color:#94a3b8; }
+  </style>
 
   <!-- まちがいノート -->
   <div id="mistakes-screen" style="display:none">
@@ -2997,8 +3031,80 @@ function buildMixLeveled(area, count, level){
 
 // ===== 画面遷移ヘルパー =====
 /* escapeHtml は js/util.js へ分離 */
+// ===== 家族ランキング（兄弟で競う・協力）=====
+// 集計ロジックは js/ranking.js（純粋関数）、全員ぶんのデータ取得は cloud-sync の cloudFetchAllMembers。
+var _rankMetric = 'answered';   // 表示中の指標
+var _rankCache = null;          // { rows, total, cloud }
+function showRanking(){
+  hideMainScreens();
+  document.getElementById('ranking-screen').style.display='block';
+  document.getElementById('ranking-body').innerHTML='<div class="rk-loading">家族のきろくを あつめています…⏳</div>';
+  _rankLoad();
+}
+// 現ユーザーの最新ローカルデータ（クラウドが遅れていても自分の行は最新に）
+function _rankLocalCurrent(){
+  var id=muCurrentId(); if(!id) return null;
+  var d={};
+  ['c_answered','c_points','study_log','rpg_state'].forEach(function(k){ var v=safeLS.getItem(k); if(v!=null) d[k]=v; });
+  return { uid:id, data:d };
+}
+function _rankLoad(){
+  var roster=muGetUsers(), today=todayKey(), overlay=_rankLocalCurrent();
+  function finish(allMembers, cloud){
+    allMembers=allMembers||{};
+    if(overlay) allMembers[overlay.uid]=Object.assign({}, allMembers[overlay.uid]||{}, overlay.data);
+    var rows=rankBuildRows(allMembers, roster, today);
+    _rankCache={ rows:rows, total:rankFamilyTotal(rows), cloud:cloud };
+    _rankRender();
+  }
+  if(window.cloudFetchAllMembers && window.cloudEnabled && window.cloudEnabled()){
+    var done=false;
+    var to=setTimeout(function(){ if(!done){ done=true; finish({}, false); } }, 8000);
+    window.cloudFetchAllMembers().then(function(all){ if(done)return; done=true; clearTimeout(to); finish(all, all!=null); })
+      .catch(function(){ if(done)return; done=true; clearTimeout(to); finish({}, false); });
+  } else { finish({}, false); }
+}
+function _rankSetMetric(k){ _rankMetric=k; _rankRender(); }
+function _rankMetricVal(r,k){
+  if(k==='answered') return r.answered+'<small>問</small>';
+  if(k==='streak')   return r.streak+'<small>日</small>';
+  if(k==='hensachi') return (r.hensachi? r.hensachi : '—')+(r.hensachi?'<small></small>':'');
+  if(k==='points')   return r.points+'<small>pt</small>';
+  return '';
+}
+function _rankRender(){
+  if(!_rankCache) return;
+  var host=document.getElementById('ranking-body');
+  var roster=muGetUsers();
+  if(!roster.length){ host.innerHTML='<div class="rk-empty">まだ ユーザーが いません。<br>設定からユーザーを つくってね。</div>'; return; }
+  var rows=rankSort(_rankCache.rows, _rankMetric);
+  var curId=muCurrentId();
+  var goal=rankFamilyGoal(_rankCache.total);
+  var h='';
+  // 家族の共同目標バー（合計問題数→魔王シグマ討伐）
+  h+='<div class="rk-goal"><div class="rk-goal-top">🐉 家族みんなで魔王シグマ討伐！</div>'+
+     '<div class="rk-goal-sub">合計 '+_rankCache.total+' 問 ／ つぎの目標 '+goal.target+' 問（あと '+goal.remaining+' 問！）</div>'+
+     '<div class="rk-bar-wrap"><div class="rk-bar" style="width:'+goal.pct+'%"></div></div></div>';
+  // 指標タブ
+  var metrics=[['answered','📚 問題数'],['streak','🔥 連続日数'],['hensachi','📈 偏差値'],['points','⭐ ポイント']];
+  h+='<div class="rk-tabs">'+metrics.map(function(m){ return '<button class="rk-tab'+(_rankMetric===m[0]?' on':'')+'" onclick="_rankSetMetric(\''+m[0]+'\')">'+m[1]+'</button>'; }).join('')+'</div>';
+  // 順位リスト
+  h+='<div class="rk-list">';
+  rows.forEach(function(r,i){
+    var medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'<span class="rk-rank">'+(i+1)+'</span>';
+    var cls='rk-row'+(r.id===curId?' me':'')+(i===0?' top1':'');
+    h+='<div class="'+cls+'"><div class="rk-medal">'+medal+'</div>'+
+       '<div class="rk-ava">'+_charSVG(r.char)+'</div>'+
+       '<div class="rk-name">'+escapeHtml(r.name)+(r.id===curId?'<span class="rk-you">あなた</span>':'')+
+       '<div class="rk-sub">Lv'+r.level+'・のべ'+r.answered+'問</div></div>'+
+       '<div class="rk-val">'+_rankMetricVal(r,_rankMetric)+'</div></div>';
+  });
+  h+='</div>';
+  if(!_rankCache.cloud) h+='<div class="rk-note">☁️ いまはこの端末のぶんだけ表示中。ほかの家族のきろくは、クラウド接続後に自動でならびます。</div>';
+  host.innerHTML=h;
+}
 function hideMainScreens(){
-  ['subject-select-screen','mode-select-screen','level-select-screen','home-screen','quiz-screen','exam-result-screen','records-screen','roadmap-screen','mistakes-screen','characters-screen','flashcards-screen','study-notes-screen','write-screen','paper-screen','rpg-screen'].forEach(id=>{
+  ['subject-select-screen','mode-select-screen','level-select-screen','home-screen','quiz-screen','exam-result-screen','records-screen','roadmap-screen','mistakes-screen','characters-screen','flashcards-screen','study-notes-screen','write-screen','paper-screen','rpg-screen','ranking-screen'].forEach(id=>{
     const e=document.getElementById(id); if(e) e.style.display='none';
   });
   const r=document.getElementById('result-screen'); if(r) r.classList.remove('active');

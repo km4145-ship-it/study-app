@@ -1392,6 +1392,13 @@
   .rpg-aura-holy{ background:radial-gradient(circle, rgba(254,240,138,.95), rgba(255,255,255,.5) 45%, transparent 72%); animation:rpgAuraPulse 1.8s ease-in-out infinite; }
   .rpg-aura-galaxy{ background:conic-gradient(#312e81,#7c3aed,#db2777,#2563eb,#312e81); opacity:.6; filter:blur(4px); animation:rpgAuraSpin 6s linear infinite; }
   .rpg-aura-phantom{ background:radial-gradient(circle, rgba(148,163,184,.8), rgba(30,41,59,.35) 55%, transparent 72%); animation:rpgAuraFlicker 1s steps(2) infinite; }
+  .rpg-aura-frost{ background:radial-gradient(circle, rgba(191,219,254,.9), rgba(59,130,246,.3) 55%, transparent 72%); }
+  .rpg-aura-toxic{ background:radial-gradient(circle, rgba(163,230,53,.85), rgba(21,128,61,.3) 55%, transparent 72%); animation:rpgAuraFlicker 1s steps(2) infinite; }
+  .rpg-aura-shadow{ background:radial-gradient(circle, rgba(100,116,139,.85), rgba(15,23,42,.45) 55%, transparent 72%); }
+  /* 未入手アイテムは？で隠す（個人ごと・何があるかは分からない） */
+  .rpg-cos-cell.rpg-cos-locked{ align-items:center; justify-content:center; background:#eef2f7; border:1.5px dashed #cbd5e1; box-shadow:none; cursor:default; min-height:66px; }
+  .rpg-cos-q{ font-size:1.7rem; font-weight:900; color:#9aa7b8; line-height:1; }
+  .rpg-cos-prog{ font-size:.7rem; color:#64748b; font-weight:700; margin-left:8px; }
   /* UR（虹）レア度 */
   .rpg-cos-cell.cos-ur{ background:linear-gradient(135deg,#fee2e2,#fef9c3,#dcfce7,#dbeafe,#f3e8ff); background-size:220% 220%; border-color:#f472b6; box-shadow:0 0 12px rgba(236,72,153,.55); animation:rpgUrShine 3s ease infinite; }
   .rpg-cos-cell.cos-ur .rpg-cos-em{ animation:rpgAuraPulse 1.4s ease-in-out infinite; }
@@ -6140,6 +6147,66 @@ var COS_DATA={
     aura:[ {id:'pa_heart',em:'💗',name:'ハート',price:60,r:'N',aura:'heart'}, {id:'pa_star',em:'✨',name:'きらめき',price:80,r:'R',aura:'star'}, {id:'pa_fire',em:'🔥',name:'ほのお',price:90,r:'R',aura:'fire'}, {id:'pa_thunder',em:'⚡',name:'いなずま',price:130,r:'S',aura:'thunder'}, {id:'pa_rain',em:'🌈',name:'にじ',price:130,r:'S',aura:'rainbow'}, {id:'pa_galaxy',em:'🌌',name:'ぎんが',price:280,r:'UR',aura:'galaxy'} ]
   }
 };
+// ==== 追加アイテム 約100種（絵文字ベース＝SVG不要で確実に表示・？で隠す前提の収集用）====
+(function(){
+  var ADD={
+    hero:{
+      hat:[
+        {id:'hh_star',em:'⭐',name:'ほし',price:30,r:'N'},{id:'hh_moon',em:'🌙',name:'つき',price:30,r:'N'},{id:'hh_sun',em:'☀️',name:'たいよう',price:30,r:'N'},
+        {id:'hh_snow',em:'❄️',name:'ゆき',price:30,r:'N'},{id:'hh_cherry',em:'🌸',name:'さくら',price:30,r:'N'},{id:'hh_maple',em:'🍁',name:'もみじ',price:30,r:'N'},
+        {id:'hh_sunf',em:'🌻',name:'ひまわり',price:40,r:'N'},{id:'hh_mush',em:'🍄',name:'きのこ',price:40,r:'N'},{id:'hh_apple',em:'🍎',name:'りんご',price:40,r:'N'},
+        {id:'hh_straw',em:'🍓',name:'いちご',price:40,r:'N'},{id:'hh_balloon',em:'🎈',name:'ふうせん',price:40,r:'N'},{id:'hh_bee',em:'🐝',name:'はち',price:40,r:'N'},
+        {id:'hh_clover',em:'🍀',name:'よつば',price:60,r:'R'},{id:'hh_rose',em:'🌹',name:'ばら',price:60,r:'R'},{id:'hh_gift',em:'🎁',name:'プレゼント',price:60,r:'R'},
+        {id:'hh_pump',em:'🎃',name:'かぼちゃ',price:60,r:'R'},{id:'hh_ghost',em:'👻',name:'おばけ',price:70,r:'R'},{id:'hh_fly',em:'🦋',name:'ちょう',price:70,r:'R'},
+        {id:'hh_bolt',em:'⚡',name:'いなずま',price:70,r:'R'},{id:'hh_fire',em:'🔥',name:'ほのお',price:70,r:'R'},{id:'hh_snowman',em:'⛄',name:'ゆきだるま',price:80,r:'R'},
+        {id:'hh_dove',em:'🕊️',name:'はと',price:80,r:'R'},{id:'hh_dragon',em:'🐲',name:'りゅう',price:120,r:'S'},{id:'hh_uni',em:'🦄',name:'ユニコーン',price:130,r:'S'},
+        {id:'hh_rain',em:'🌈',name:'にじ',price:140,r:'S'},{id:'hh_comet',em:'☄️',name:'すいせい',price:150,r:'S'},{id:'hh_crown2',em:'👑',name:'おうかんII',price:160,r:'S'},
+        {id:'hh_galaxy',em:'🌌',name:'ぎんがぼう',price:300,r:'UR'}
+      ],
+      face:[
+        {id:'hf_wink',em:'😉',name:'ウインク',price:30,r:'N'},{id:'hf_smile',em:'😊',name:'にこにこ',price:30,r:'N'},{id:'hf_cool',em:'😎',name:'クール',price:40,r:'N'},
+        {id:'hf_nerd',em:'🤓',name:'めがねII',price:40,r:'N'},{id:'hf_mask',em:'😷',name:'マスク',price:40,r:'N'},{id:'hf_star',em:'🤩',name:'キラキラめ',price:50,r:'R'},
+        {id:'hf_love',em:'😍',name:'ハートめ',price:50,r:'R'},{id:'hf_snork',em:'🤿',name:'シュノーケル',price:60,r:'R'},{id:'hf_party',em:'🥳',name:'パーティめがね',price:60,r:'R'},
+        {id:'hf_mono',em:'🧐',name:'モノクル',price:70,r:'R'},{id:'hf_cowboy',em:'🤠',name:'カウボーイ',price:70,r:'R'},{id:'hf_robot',em:'🤖',name:'ロボめん',price:80,r:'R'},
+        {id:'hf_alien',em:'👽',name:'うちゅうじん',price:80,r:'R'},{id:'hf_clown',em:'🤡',name:'ピエロ',price:80,r:'R'},{id:'hf_ninja',em:'🥷',name:'にんじゃ',price:110,r:'S'},
+        {id:'hf_devil',em:'😈',name:'こあくま',price:120,r:'S'},{id:'hf_angel',em:'😇',name:'てんし',price:120,r:'S'},{id:'hf_dragon',em:'🐉',name:'りゅうのめん',price:140,r:'S'},
+        {id:'hf_star2',em:'🌟',name:'スターフェイス',price:150,r:'S'},{id:'hf_rain',em:'🌈',name:'にじのめん',price:280,r:'UR'}
+      ],
+      hand:[
+        {id:'hd_star',em:'🌟',name:'きらめきステッキ',price:30,r:'N'},{id:'hd_flower',em:'🌷',name:'チューリップ',price:30,r:'N'},{id:'hd_balloon',em:'🎈',name:'ふうせん',price:30,r:'N'},
+        {id:'hd_candy',em:'🍭',name:'ペロペロ',price:30,r:'N'},{id:'hd_ice',em:'🍦',name:'アイス',price:40,r:'N'},{id:'hd_book',em:'📖',name:'まほうの本',price:40,r:'N'},
+        {id:'hd_pen',em:'🖊️',name:'まほうのペン',price:40,r:'N'},{id:'hd_umb',em:'☂️',name:'かさ',price:40,r:'N'},{id:'hd_music',em:'🎵',name:'おんぷ',price:40,r:'N'},
+        {id:'hd_guitar',em:'🎸',name:'ギター',price:60,r:'R'},{id:'hd_mic',em:'🎤',name:'マイク',price:60,r:'R'},{id:'hd_game',em:'🎮',name:'ゲーム',price:60,r:'R'},
+        {id:'hd_ball',em:'⚽',name:'サッカーボール',price:60,r:'R'},{id:'hd_basket',em:'🏀',name:'バスケ',price:60,r:'R'},{id:'hd_kite',em:'🪁',name:'たこ',price:70,r:'R'},
+        {id:'hd_teddy',em:'🧸',name:'くまさん',price:70,r:'R'},{id:'hd_gem',em:'💎',name:'ほうせき',price:80,r:'R'},{id:'hd_key',em:'🗝️',name:'ひみつのカギ',price:80,r:'R'},
+        {id:'hd_lantern',em:'🏮',name:'ちょうちん',price:80,r:'R'},{id:'hd_rocket',em:'🚀',name:'ロケット',price:110,r:'S'},{id:'hd_orb',em:'🔮',name:'すいしょうだま',price:120,r:'S'},
+        {id:'hd_axe',em:'🪓',name:'おの',price:120,r:'S'},{id:'hd_katana',em:'🗡️',name:'かたなII',price:130,r:'S'},{id:'hd_target',em:'🎯',name:'まと',price:130,r:'S'},
+        {id:'hd_medal',em:'🏅',name:'メダル',price:140,r:'S'},{id:'hd_trophy2',em:'🏆',name:'ゆうしょうはい',price:150,r:'S'},{id:'hd_wand2',em:'🪄',name:'スターワンド',price:280,r:'UR'},
+        {id:'hd_excal',em:'⚔️',name:'せいけんII',price:320,r:'UR'}
+      ],
+      aura:[
+        {id:'ha_frost',em:'🧊',name:'こおり',price:100,r:'R',aura:'frost'},{id:'ha_toxic',em:'☠️',name:'どく',price:110,r:'R',aura:'toxic'},{id:'ha_shadow',em:'🌑',name:'かげ',price:160,r:'S',aura:'shadow'}
+      ]
+    },
+    pet:{
+      hat:[
+        {id:'ph_star',em:'⭐',name:'ほし',price:30,r:'N'},{id:'ph_flower',em:'🌸',name:'はな',price:30,r:'N'},{id:'ph_bow2',em:'🎀',name:'リボンII',price:30,r:'N'},
+        {id:'ph_straw',em:'🍓',name:'いちご',price:30,r:'N'},{id:'ph_leaf',em:'🍀',name:'よつば',price:40,r:'N'},{id:'ph_helm',em:'🪖',name:'ヘルメット',price:40,r:'N'},
+        {id:'ph_party',em:'🎉',name:'クラッカー',price:40,r:'N'},{id:'ph_pump',em:'🎃',name:'かぼちゃ',price:60,r:'R'},{id:'ph_gift',em:'🎁',name:'プレゼント',price:60,r:'R'},
+        {id:'ph_ghost',em:'👻',name:'おばけ',price:60,r:'R'},{id:'ph_music',em:'🎵',name:'おんぷ',price:60,r:'R'},{id:'ph_bolt',em:'⚡',name:'いなずま',price:70,r:'R'},
+        {id:'ph_fire',em:'🔥',name:'ほのお',price:70,r:'R'},{id:'ph_snowman',em:'⛄',name:'ゆきだるま',price:70,r:'R'},{id:'ph_dragon',em:'🐲',name:'りゅう',price:120,r:'S'},
+        {id:'ph_uni',em:'🦄',name:'ユニコーン',price:130,r:'S'},{id:'ph_rain',em:'🌈',name:'にじ',price:140,r:'S'},{id:'ph_galaxy',em:'🌌',name:'ぎんが',price:280,r:'UR'}
+      ],
+      aura:[
+        {id:'pa_frost',em:'🧊',name:'こおり',price:90,r:'R',aura:'frost'},{id:'pa_toxic',em:'☠️',name:'どく',price:110,r:'S',aura:'toxic'},{id:'pa_holy',em:'🌟',name:'ひかり',price:130,r:'S',aura:'holy'}
+      ]
+    }
+  };
+  Object.keys(ADD).forEach(function(kind){ Object.keys(ADD[kind]).forEach(function(slot){
+    if(!COS_DATA[kind][slot]) COS_DATA[kind][slot]=[];
+    ADD[kind][slot].forEach(function(it){ COS_DATA[kind][slot].push(it); });
+  }); });
+})();
 var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['aura','✨ オーラ']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']] };
 var COS_RARITY={ N:{name:'ノーマル',cls:'cos-n'}, R:{name:'レア',cls:'cos-r'}, S:{name:'スペシャル',cls:'cos-s'}, UR:{name:'ウルトラ',cls:'cos-ur'} };
 // ===== コレクション（セット）＆ 称号 =====
@@ -6693,13 +6760,15 @@ function rpgShowCosmetics(){
     h+='<div class="rpg-world-title" style="font-size:1.05rem;margin-top:10px">'+(kind==='hero'?'🦸 ゆうしゃ':'🐾 あいぼう')+'</div>';
     COS_SLOTS[kind].forEach(function(sd){
       var slot=sd[0], items=COS_DATA[kind][slot]||[], equippedId=(cos.equip[kind]||{})[slot]||'';
-      h+='<div class="rpg-cos-slot-ttl">'+sd[1]+(equippedId?'':'　<span class="rpg-cos-none">なし</span>')+'</div>';
+      var ownedN=items.filter(function(it){ return !!cos.owned[it.id]; }).length;
+      h+='<div class="rpg-cos-slot-ttl">'+sd[1]+(equippedId?'':'　<span class="rpg-cos-none">なし</span>')+'<span class="rpg-cos-prog">あつめた '+ownedN+'/'+items.length+'</span></div>';
       h+='<div class="rpg-cos-grid">';
       items.forEach(function(it){
-        var owned=!!cos.owned[it.id], equipped=(equippedId===it.id), canBuy=((cos.coin||0)>=it.price);
+        var owned=!!cos.owned[it.id], equipped=(equippedId===it.id);
+        if(!owned){ h+='<div class="rpg-cos-cell rpg-cos-locked" title="まだ手に入れていないよ（ガチャであつめよう）"><span class="rpg-cos-q">？</span></div>'; return; }  // 未入手＝？で隠す
         var rc=(COS_RARITY[it.r||'N']||{}).cls||'';
-        var cls='rpg-cos-cell '+rc+(equipped?' equipped':'')+(owned?' owned':'');
-        var label=equipped?'✓ そうび中':(owned?'そうびする':(canBuy?('🪙'+it.price):('🔒'+it.price)));
+        var cls='rpg-cos-cell '+rc+(equipped?' equipped':'')+' owned';
+        var label=equipped?'✓ そうび中':'そうびする';
         h+='<button class="'+cls+'" onclick="rpgCosTap(\''+kind+'\',\''+slot+'\',\''+it.id+'\')">'+
            '<span class="rpg-cos-rar">'+(it.r||'N')+'</span>'+
            '<span class="rpg-cos-em">'+it.em+'</span>'+
@@ -6721,25 +6790,21 @@ function rpgShowCosmetics(){
   COS_SETS.forEach(function(set){
     var have=set.items.filter(function(id){ return !!cos.owned[id]; }).length, done=(have>=set.items.length);
     h+='<div class="rpg-set'+(done?' done':'')+'"><div class="rpg-set-h"><b>'+set.em+' '+set.name+'</b><span>'+(done?'✓ かんせい':have+'/'+set.items.length)+'</span></div>';
-    h+='<div class="rpg-set-items">'+set.items.map(function(id){ var it=rpgItemById(id); return '<span class="rpg-set-it'+(cos.owned[id]?' o':'')+'">'+(it?it.em:'？')+'</span>'; }).join('')+'</div>';
+    h+='<div class="rpg-set-items">'+set.items.map(function(id){ var it=rpgItemById(id); return '<span class="rpg-set-it'+(cos.owned[id]?' o':'')+'">'+(cos.owned[id]?(it?it.em:'？'):'？')+'</span>'; }).join('')+'</div>';
     h+='<div class="rpg-set-rw">ごほうび：🪙'+set.coin+(set.title?(' ＋称号「'+((COS_TITLES[set.title]||{}).name||'')+'」'):'')+'</div></div>';
   });
   h+='</div>';
-  h+='<div class="rpg-map-hint">部位ごとに 1つずつ つけられるよ！ タップで「かう／そうび」、そうび中を もう一度おすと はずせる。</div>';
+  h+='<div class="rpg-map-hint">？は まだ手に入れていないアイテム。<b>ガチャ</b>で あつめよう！ 手に入れたアイテムは タップで そうび／もう一度で はずせる（部位ごと 1つ）。</div>';
   mv.innerHTML=h;
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
 function rpgCosTap(kind,slot,id){
   var s=rpgState(), cos=rpgCosState(s), it=rpgCosById(kind,id); if(!it) return;
+  if(!cos.owned[id]) return;   // 未入手は？のまま＝ガチャ専用（ショップでは手に入らない）
   if(!cos.equip[kind]) cos.equip[kind]={};
   var eq=cos.equip[kind];
-  if(eq[slot]===id){ eq[slot]=''; rpgSave(s); try{ sfx('click'); }catch(e){} rpgShowCosmetics(); return; }        // はずす
-  if(cos.owned[id]){ eq[slot]=id; rpgSave(s); try{ sfx('coin'); vibe(15); }catch(e){} rpgShowCosmetics(); return; } // そうび（同じ部位は入れ替え）
-  if((cos.coin||0) < it.price){ try{ sfx('wrong'); }catch(e){} showToast('🪙','コインが たりないよ','あと '+(it.price-(cos.coin||0))+' コイン。バトルで あつめよう！'); return; }
-  cos.coin-=it.price; cos.owned[id]=1; eq[slot]=id; rpgSave(s);   // 買って すぐ装備
-  try{ sfx((it.r==='S')?'fanfare':'crystal'); vibe([15,30,15]); confetti(); }catch(e){}
-  showToast('👕','かえた！','「'+it.name+'」を そうびしたよ！');
-  rpgShowCosmetics();
+  if(eq[slot]===id){ eq[slot]=''; rpgSave(s); try{ sfx('click'); }catch(e){} rpgShowCosmetics(); return; }   // はずす
+  eq[slot]=id; rpgSave(s); try{ sfx('coin'); vibe(15); }catch(e){} rpgShowCosmetics();                          // そうび（同じ部位は入れ替え）
 }
 // ================= マップ（大陸ごと）=================
 function rpgRenderMap(area){

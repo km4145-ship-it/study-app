@@ -6,6 +6,7 @@ const path = require('path');
 const TESTS = [
   ['tests/unit-syntax.js'],
   ['tests/unit-rpg-assets.js'],
+  ['tests/unit-rpg-world.js'],
   ['tests/unit-merge-cos.js'],
   ['tests/unit-users.js'],
   ['tests/unit-session.js'],

@@ -250,6 +250,9 @@ window.FIREBASE_CONFIG = {
       // v1親docのユーザー一覧を常にマージ（union）して回復力を持たせる。
       // v2の mu_users が何らかの事故で縮んでいても、ここで消えたユーザーが復活する（mergeUsersは合算のみ＝減らない）。
       if(raw.data && raw.data.mu_users){ try{ applyKeys({ mu_users: raw.data.mu_users }); }catch(e){} }
+      // v1親docの各ユーザー学習データ(u:uid:*)も常に max マージ＝クロバーされてもポイント/記録が戻る安全網。
+      // mergeKeyはカウンタ=最大値・配列=union・rpg_state=最大合成なので、誰の値も下がらない（設定キーは触らない）。
+      if(raw.data){ try{ var _mem={}; Object.keys(raw.data).forEach(function(k){ if(k.indexOf('u:')===0) _mem[k]=raw.data[k]; }); if(Object.keys(_mem).length) applyKeys(_mem); }catch(e){} }
       return 'ok';
     }).catch(function(){ return 'ok'; });
   }

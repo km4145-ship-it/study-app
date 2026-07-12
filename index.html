@@ -1323,6 +1323,15 @@
   @keyframes rpgFlash{ 0%{opacity:.6} 100%{opacity:0} }
   .rpg-shake{ animation:rpgStageShake .4s!important; }
   @keyframes rpgStageShake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+  /* 不正解＝敵の攻撃（少し長め・迫力）＋やられ演出 */
+  .rpg-enemy-attack-big{ animation:rpgEnAtkBig .8s ease-in-out!important; }
+  @keyframes rpgEnAtkBig{ 0%{transform:translate(0,0) scale(1)} 22%{transform:translate(16px,-10px) scale(1.05)} 52%{transform:translate(-36px,22px) scale(1.16)} 66%{transform:translate(-30px,18px) scale(1.12)} 100%{transform:translate(0,0) scale(1)} }
+  .rpg-hurt-big{ animation:rpgHurtBig .75s ease-out!important; }
+  @keyframes rpgHurtBig{ 0%{transform:translateX(0);filter:none} 14%{transform:translate(18px,5px) rotate(7deg);filter:brightness(.5) sepia(1) saturate(5) hue-rotate(-28deg)} 30%{transform:translate(-12px,0) rotate(-5deg)} 46%{transform:translate(11px,3px)} 62%{transform:translate(-7px,0);filter:brightness(.7) sepia(1) hue-rotate(-28deg)} 100%{transform:translateX(0);filter:none} }
+  .rpg-danger-flash::after{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 60%, rgba(220,0,0,0), rgba(170,0,0,.55)); opacity:0; z-index:6; animation:rpgDangerFlash .8s ease-out; pointer-events:none; }
+  @keyframes rpgDangerFlash{ 0%{opacity:0} 18%{opacity:1} 100%{opacity:0} }
+  .rpg-shake-big{ animation:rpgStageShakeBig .7s!important; }
+  @keyframes rpgStageShakeBig{ 0%,100%{transform:translate(0,0)} 10%{transform:translate(-13px,4px)} 25%{transform:translate(13px,-4px)} 40%{transform:translate(-10px,3px)} 55%{transform:translate(10px,-3px)} 70%{transform:translate(-6px,2px)} 85%{transform:translate(5px,-1px)} }
   /* ---- バトル中の画面リスキン（他モードには影響しない body.rpg-battle スコープ）---- */
   body.rpg-mode .header, body.rpg-mode .wave-deco, body.rpg-mode .score-bar, body.rpg-mode .character-area{ display:none!important; }
   body.rpg-battle .header, body.rpg-battle .wave-deco, body.rpg-battle .score-bar, body.rpg-battle .character-area, body.rpg-battle #topnav{ display:none!important; }
@@ -1559,7 +1568,7 @@
   .score-pop{ animation:scorePop .45s ease-out; }
   @keyframes scorePop{ 0%{ transform:scale(1); } 40%{ transform:scale(1.5); color:var(--gold,#f59e0b); } 100%{ transform:scale(1); } }
   body.combo-glow #quiz-box{ box-shadow:0 0 0 3px rgba(252,211,77,.5), 0 8px 26px rgba(252,211,77,.35)!important; }
-  @media (prefers-reduced-motion:reduce){ .mon-svg,.rpg-enemy svg,.rpg-title-btn,.rpg-crystals svg,.rpg-node.open .rpg-node-face,.rpg-castle.ready,.rpg-title-stars,.rpg-story-next,.rpg-hit,.rpg-attack,.rpg-hurt,.rpg-enemy-attack,.rpg-shake,.sparkle,.score-pop{ animation:none!important; } }
+  @media (prefers-reduced-motion:reduce){ .mon-svg,.rpg-enemy svg,.rpg-title-btn,.rpg-crystals svg,.rpg-node.open .rpg-node-face,.rpg-castle.ready,.rpg-title-stars,.rpg-story-next,.rpg-hit,.rpg-attack,.rpg-hurt,.rpg-enemy-attack,.rpg-enemy-attack-big,.rpg-hurt-big,.rpg-shake-big,.rpg-shake,.sparkle,.score-pop{ animation:none!important; } }
   </style>
   <div id="rpg-screen" style="display:none">
     <div class="rpg-topbar"><button class="rpg-back" onclick="backToSubjects()">← 学習トップ</button><div class="rpg-topttl">🗡️ まなびの王国クエスト</div></div>
@@ -3203,6 +3212,15 @@ function sfx(name){
     case 'attack':  _noise(ac,t,0.1,0.16); _slide(ac,420,120,t,0.12,'square',0.13); break;
     case 'crit':    [784,988,1319,1568].forEach(function(f,i){ _tone(ac,f,t+i*0.05,0.14,'square',0.15); }); break;
     case 'miss':    _sfxCombo=0; _slide(ac,260,150,t,0.2,'sine',0.11); break;
+    case 'swish':   _slide(ac,720,180,t,0.14,'sawtooth',0.14); _noise(ac,t,0.1,0.1); break;   // 敵が斬りかかる風切り音
+    case 'hurtbig': {   // 敵にやられた重い一撃（音量大きめ）
+      _sfxCombo=0;
+      _noise(ac,t,0.18,0.34);                       // ドッ という衝撃
+      _slide(ac,300,55,t,0.42,'sawtooth',0.38);     // 低く沈む被弾音
+      _tone(ac,110,t,0.36,'square',0.26);           // 重い芯
+      _slide(ac,240,80,t+0.15,0.3,'sawtooth',0.3);  // 追い打ち
+      break;
+    }
     case 'defeat':  _slide(ac,600,80,t,0.4,'sawtooth',0.15); [1047,1319].forEach(function(f,i){ _tone(ac,f,t+0.26+i*0.08,0.2,'sine',0.13); }); break;
     case 'coin':    _tone(ac,988,t,0.07,'square',0.15); _tone(ac,1319,t+0.06,0.14,'square',0.15); break;
     case 'crystal': [1047,1319,1568,2093].forEach(function(f,i){ _tone(ac,f,t+i*0.06,0.22,'sine',0.13); }); break;
@@ -6939,13 +6957,16 @@ function rpgAfterAnswer(correct){
     rpgBattle.combo=0;
     rpgBattle.heroHp=Math.max(0, rpgBattle.heroHp-1);
     try{ document.body.classList.remove('combo-glow'); }catch(e){}
-    if(enemy){ enemy.classList.remove('rpg-enemy-attack'); void enemy.offsetWidth; enemy.classList.add('rpg-enemy-attack'); }
-    sfx('miss'); vibe([40,60,40]);
+    // 敵が斬りかかる（少し長めのモーション）→ 間を置いてヒーローがやられる
+    if(enemy){ enemy.classList.remove('rpg-enemy-attack-big'); void enemy.offsetWidth; enemy.classList.add('rpg-enemy-attack-big'); }
+    sfx('swish'); vibe(30);
     setTimeout(function(){
-      if(hero){ hero.classList.remove('rpg-hurt'); void hero.offsetWidth; hero.classList.add('rpg-hurt'); }
-      var stg=document.getElementById('rpg-stage'); if(stg){ stg.classList.remove('rpg-shake'); void stg.offsetWidth; stg.classList.add('rpg-shake'); }
-      rpgFloat('ミス', 'miss');
-    }, 120);
+      if(hero){ hero.classList.remove('rpg-hurt-big'); void hero.offsetWidth; hero.classList.add('rpg-hurt-big'); }
+      if(sky){ sky.classList.remove('rpg-danger-flash'); void sky.offsetWidth; sky.classList.add('rpg-danger-flash'); }
+      var stg=document.getElementById('rpg-stage'); if(stg){ stg.classList.remove('rpg-shake-big'); void stg.offsetWidth; stg.classList.add('rpg-shake-big'); }
+      sfx('hurtbig'); vibe([60,40,90,40,120]);   // やられた！大きめの一撃＋強い振動
+      rpgFloat('-1 ダメージ', 'miss');
+    }, 340);
   }
   rpgUpdateGauges();
   if(rpgBattle.enemyHp<=0 || rpgBattle.heroHp<=0){

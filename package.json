@@ -1,0 +1,9 @@
+{
+  "name": "study-app",
+  "version": "1.10.2",
+  "private": true,
+  "description": "小中学生向け学習アプリ（PWA）。テストは依存ゼロで node のみで動く。",
+  "scripts": {
+    "test": "node tests/run-all.js"
+  }
+}

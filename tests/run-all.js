@@ -1,0 +1,30 @@
+'use strict';
+// 全テストを実行して集計する（依存ゼロ。node tests/run-all.js もしくは npm test）
+const { spawnSync } = require('child_process');
+const path = require('path');
+
+const TESTS = [
+  ['tests/unit-syntax.js'],
+  ['tests/unit-merge-cos.js'],
+  ['tests/unit-users.js'],
+  ['tests/unit-session.js'],
+  ['tests/unit-gacha.js'],
+  ['tests/unit-collections.js'],
+  ['tests/unit-stats.js'],
+  ['tests/int-restore.js'],
+  ['tests/int-status.js', 'ok'],
+  ['tests/int-status.js', 'deny'],
+  ['tests/int-heal.js', 'heal'],
+  ['tests/int-heal.js', 'parentfail'],
+  ['tests/int-heal.js', 'noread'],
+  ['tests/int-pullshared.js'],
+];
+
+const root = path.join(__dirname, '..');
+let failed = 0;
+for (const [file, ...args] of TESTS) {
+  const r = spawnSync(process.execPath, [file, ...args], { stdio: 'inherit', cwd: root });
+  if (r.status !== 0) failed++;
+}
+console.log('\n' + (failed ? ('❌ ' + failed + ' / ' + TESTS.length + ' テストが失敗') : ('✅ 全 ' + TESTS.length + ' テスト合格')));
+process.exit(failed ? 1 : 0);

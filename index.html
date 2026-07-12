@@ -1094,8 +1094,9 @@
         </div>
         <div class="rpg-hero-wrap">
           <div class="rpg-hero" id="rpg-hero-sprite"></div>
-          <div class="rpg-plate hero"><span class="rpg-plate-name" id="rpg-hero-name">勇者</span><div class="rpg-gauge hero"><i id="rpg-hero-hp" style="width:100%"></i></div><span class="rpg-combo" id="rpg-combo"></span></div>
+          <div class="rpg-plate hero"><span class="rpg-plate-name" id="rpg-hero-name">勇者</span><div class="rpg-gauge hero"><i id="rpg-hero-hp" style="width:100%"></i></div><div class="rpg-gauge mp"><i id="rpg-hero-mp" style="width:0%"></i></div><span class="rpg-combo" id="rpg-combo"></span></div>
         </div>
+        <button class="rpg-special-btn" id="rpg-special-btn" onclick="rpgUseSpecial()" style="display:none">✨ ひっさつ 0/6</button>
       </div>
     </div>
     <div class="quiz-area" id="quiz-box">
@@ -1303,6 +1304,13 @@
   .rpg-gauge.enemy i{ background:linear-gradient(90deg,#e11d48,#fb7185); }
   .rpg-gauge.hero i{ background:linear-gradient(90deg,#059669,#34d399); }
   .rpg-combo{ display:block; margin-top:4px; font-size:.74rem; font-weight:900; color:#fde047; text-shadow:0 1px 3px rgba(0,0,0,.6); min-height:14px; }
+  .rpg-gauge.mp{ height:6px; margin-top:3px; }
+  .rpg-gauge.mp i{ background:linear-gradient(90deg,#38bdf8,#818cf8); }
+  .rpg-special-btn{ position:absolute; right:10px; bottom:10px; z-index:7; background:linear-gradient(135deg,#94a3b8,#64748b); color:#fff; border:0; border-radius:999px; padding:8px 14px; font-size:.8rem; font-weight:800; box-shadow:0 3px 10px rgba(0,0,0,.35); cursor:pointer; opacity:.7; }
+  .rpg-special-btn.ready{ background:linear-gradient(135deg,#f59e0b,#ec4899); opacity:1; animation:rpgSpecialPulse 1s ease-in-out infinite; }
+  @keyframes rpgSpecialPulse{ 0%,100%{ transform:scale(1); box-shadow:0 3px 10px rgba(236,72,153,.5) } 50%{ transform:scale(1.07); box-shadow:0 5px 18px rgba(236,72,153,.85) } }
+  .rpg-hero-stats{ font-size:.74rem; font-weight:800; color:#b45309; margin-top:3px; }
+  .rpg-cos-stats{ font-size:.75rem; color:#334155; background:#f1f5f9; border-radius:10px; padding:7px 10px; margin:4px 0 8px; text-align:center; line-height:1.7; font-weight:700; }
   .rpg-float{ position:absolute; top:44%; font-weight:900; font-size:1.5rem; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.6); animation:rpgFloatUp 1s ease-out forwards; }
   .rpg-float.crit{ color:#fde047; font-size:1.9rem; }
   .rpg-float.miss{ color:#cbd5e1; font-size:1.2rem; }
@@ -6258,6 +6266,30 @@ var COS_TITLES={
 };
 // アイテムidから中身を引く（レア度など）
 function rpgItemById(id){ var pool=_gachaPool(); for(var i=0;i<pool.length;i++){ if(pool[i].it.id===id) return pool[i].it; } return null; }
+// ===== キャラのステータス（こうげき/ぼうぎょ/HP/MP）＝レベル＋装備 =====
+var RPG_SPECIAL_COST=6;                                          // 必殺技のMPコスト
+var STAT_EQUIP_MAG={N:2,R:4,S:7,UR:12};                          // 装備のレア度→ステータス上昇量
+var STAT_SLOT={ hat:'def', face:'mp', hand:'atk', aura:'hp' };   // 部位→伸びるステータス（ぼうし=防御/かお=MP/どうぐ=攻撃/オーラ=HP）
+function _rpgBaseStats(lv){ lv=lv||1; return { hp:18+lv*3, atk:6+lv*2, def:3+Math.floor(lv*1.5), mp:5+lv }; }
+function rpgEquipBonus(cos){
+  var b={hp:0,atk:0,def:0,mp:0};
+  ['hero','pet'].forEach(function(kind){
+    var eq=(cos&&cos.equip&&cos.equip[kind])||{};
+    Object.keys(STAT_SLOT).forEach(function(slot){
+      var id=eq[slot]; if(!id) return; var it=rpgItemById(id); if(!it) return;
+      var v=STAT_EQUIP_MAG[it.r||'N']||2; if(kind==='pet') v=Math.ceil(v/2);   // ペット装備は半分
+      b[STAT_SLOT[slot]] += v;
+    });
+  });
+  return b;
+}
+function rpgStats(){ var s=rpgState(), base=_rpgBaseStats(s.level||1), eq=rpgEquipBonus(rpgCosState(s));
+  return { hp:base.hp+eq.hp, atk:base.atk+eq.atk, def:base.def+eq.def, mp:base.mp+eq.mp, base:base, eq:eq }; }
+function rpgDmgTaken(enemyAtk, def){ return Math.max(1, Math.round((enemyAtk||1)*10/(10+(def||0)))); }   // 防御で被ダメ軽減
+function rpgEnemyAtk(node){ var lv=node.lv||1; return (node.type==='boss'||node.type==='maou')?(5+lv*2):(3+lv); }
+function rpgBattleStats(node, hits){ var st=rpgStats();
+  var eHp=Math.max(hits, hits*st.atk);   // 通常攻撃(atk)で約hits回で倒せる＝従来のバトルテンポを維持
+  return { stats:st, enemyAtk:rpgEnemyAtk(node), mp:0, mpMax:st.mp, enemyMax:eHp, enemyHp:eHp, heroMax:st.hp, heroHp:st.hp }; }
 // いま装備中の称号（無ければnull）
 function rpgEquippedTitle(){ try{ var c=(rpgState().cos)||{}; return (c.title&&COS_TITLES[c.title])||null; }catch(e){ return null; } }
 // セット完成・称号付与の判定（純粋関数：cosを更新し、新規に得たものを返す）
@@ -6575,7 +6607,7 @@ function rpgAreaClearedNodes(area){ var n=0, s=rpgState(); RPG_WORLD[area].chapt
 // ================= 大陸セレクト =================
 function rpgRenderContinents(){
   try{ rpgCheckMissions(); }catch(e){}
-  var s=rpgState(), cc=rpgCrystalCount();
+  var s=rpgState(), cc=rpgCrystalCount(), _st=rpgStats();
   var into=s.xp-rpgXpForLevel(s.level), need=rpgXpForLevel(s.level+1)-rpgXpForLevel(s.level);
   var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
   var _un=(muCurrentUser()&&muCurrentUser().name)||'ユーザー';
@@ -6585,6 +6617,7 @@ function rpgRenderContinents(){
     '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
     '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち'+'</div>'+
+    '<div class="rpg-hero-stats">⚔️'+_st.atk+'　🛡️'+_st.def+'　❤️'+_st.hp+'　✨'+_st.mp+'</div>'+
     '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+cc+' / 5</span></div></div>';
   // 相棒ペット
   var pet=s.pet||{stage:0,wins:0,name:''}, pst=Math.min(pet.stage||0,3), pname=pet.name||'あいぼう';
@@ -6788,6 +6821,7 @@ function rpgShowCosmetics(){
      '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><span>ゆうしゃ</span></div>'+
      '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+PET_SVG[Math.min((s.pet&&s.pet.stage)||0,3)]+rpgCosBadge('pet')+'</div><span>あいぼう</span></div></div>';
   var _et=rpgEquippedTitle(); if(_et) h+='<div class="rpg-cos-title-now">いまの称号：'+_et.em+' '+_et.name+'</div>';
+  var _sts=rpgStats(); h+='<div class="rpg-cos-stats">ステータス　⚔️こうげき '+_sts.atk+'（+'+_sts.eq.atk+'）　🛡️ぼうぎょ '+_sts.def+'（+'+_sts.eq.def+'）　❤️HP '+_sts.hp+'（+'+_sts.eq.hp+'）　✨MP '+_sts.mp+'（+'+_sts.eq.mp+'）</div>';
   ['hero','pet'].forEach(function(kind){
     h+='<div class="rpg-world-title" style="font-size:1.05rem;margin-top:10px">'+(kind==='hero'?'🦸 ゆうしゃ':'🐾 あいぼう')+'</div>';
     COS_SLOTS[kind].forEach(function(sd){
@@ -6901,9 +6935,8 @@ function rpgBeginBattle(area, ci, ni){
   var qs=rpgBuildQuestions(area, node.count);
   if(qs.length<3){ showToast('⚠️','問題を用意できませんでした','少し時間をおいてね'); return; }
   var hits=rpgHitsNeeded(node);
-  rpgBattle={ area:area, chIdx:ci, nodeIdx:ni, node:node, ch:ch,
-    enemyMax:hits, enemyHp:hits, heroMax:(qs.length-hits+1), heroHp:(qs.length-hits+1),
-    total:qs.length, correct:0, combo:0, xpGain:0, over:false };
+  rpgBattle=Object.assign({ area:area, chIdx:ci, nodeIdx:ni, node:node, ch:ch,
+    total:qs.length, correct:0, combo:0, xpGain:0, over:false }, rpgBattleStats(node, hits));
   rpgUseStamina();
   document.body.classList.add('rpg-battle');
   var title=(node.type==='boss'?'👑 ':'')+node.name;
@@ -6918,6 +6951,7 @@ function rpgShowBattle(){
   document.getElementById('rpg-hero-sprite').innerHTML=_charSVG(rpgHeroChar())+rpgCosBadge('hero');
   document.getElementById('rpg-hero-name').textContent=escapeHtml(rpgHeroName());
   var sky=document.getElementById('rpg-stage-sky'); if(sky){ sky.className='rpg-stage-sky '+rpgSkyClass(rpgBattle)+(rpgBattle.node.type!=='zako'?' boss':''); }
+  var _sb=document.getElementById('rpg-special-btn'); if(_sb) _sb.style.display='block';   // 必殺技ボタンを表示
   rpgUpdateGauges();
   try{ var _bt=rpgBattle.node.type; bgmPlay((_bt==='boss'||_bt==='maou')?'boss':'battle'); }catch(e){}   // バトルBGM
 }
@@ -6926,6 +6960,8 @@ function rpgUpdateGauges(){
   if(!rpgBattle) return;
   var en=document.getElementById('rpg-enemy-hp'); if(en) en.style.width=Math.round(rpgBattle.enemyHp/rpgBattle.enemyMax*100)+'%';
   var he=document.getElementById('rpg-hero-hp'); if(he) he.style.width=Math.round(rpgBattle.heroHp/rpgBattle.heroMax*100)+'%';
+  var mp=document.getElementById('rpg-hero-mp'); if(mp && rpgBattle.mpMax) mp.style.width=Math.round((rpgBattle.mp||0)/rpgBattle.mpMax*100)+'%';
+  var sb=document.getElementById('rpg-special-btn'); if(sb){ var ready=(rpgBattle.mp||0)>=RPG_SPECIAL_COST && !rpgBattle.over; sb.classList.toggle('ready', ready); sb.textContent = ready ? '✨ ひっさつ！' : ('✨ ひっさつ '+(rpgBattle.mp||0)+'/'+RPG_SPECIAL_COST); }
   var cb=document.getElementById('rpg-combo'); if(cb) cb.textContent=rpgBattle.combo>=2?('🔥'+rpgBattle.combo+' コンボ'):'';
 }
 function rpgFloat(text, kind){
@@ -6941,8 +6977,9 @@ function rpgAfterAnswer(correct){
   var enemy=document.getElementById('rpg-enemy-sprite'), hero=document.getElementById('rpg-hero-sprite'), sky=document.getElementById('rpg-stage-sky');
   if(correct){
     rpgBattle.correct++; rpgBattle.combo++;
-    var crit=rpgBattle.combo>=3; var dmg=crit?2:1;
+    var crit=rpgBattle.combo>=3; var _atk=(rpgBattle.stats&&rpgBattle.stats.atk)||1; var dmg=Math.max(1, Math.round(_atk*(crit?1.6:1)));
     rpgBattle.enemyHp=Math.max(0, rpgBattle.enemyHp-dmg);
+    rpgBattle.mp=Math.min(rpgBattle.mpMax||0, (rpgBattle.mp||0)+2);   // 正解でMPがたまる（必殺技のもと）
     rpgBattle.xpGain += (rpgBattle.node.type!=='zako'?15:10) + (crit?5:0);
     if(hero){ hero.classList.remove('rpg-attack'); void hero.offsetWidth; hero.classList.add('rpg-attack'); }
     sfx(crit?'crit':'attack'); vibe(crit?[12,24,12,24]:22);
@@ -6955,7 +6992,8 @@ function rpgAfterAnswer(correct){
     }, 180);
   } else {
     rpgBattle.combo=0;
-    rpgBattle.heroHp=Math.max(0, rpgBattle.heroHp-1);
+    var takenDmg=rpgDmgTaken(rpgBattle.enemyAtk||3, (rpgBattle.stats&&rpgBattle.stats.def)||0);   // 防御で軽減
+    rpgBattle.heroHp=Math.max(0, rpgBattle.heroHp-takenDmg);
     try{ document.body.classList.remove('combo-glow'); }catch(e){}
     // 敵が斬りかかる（少し長めのモーション）→ 間を置いてヒーローがやられる
     if(enemy){ enemy.classList.remove('rpg-enemy-attack-big'); void enemy.offsetWidth; enemy.classList.add('rpg-enemy-attack-big'); }
@@ -6965,7 +7003,7 @@ function rpgAfterAnswer(correct){
       if(sky){ sky.classList.remove('rpg-danger-flash'); void sky.offsetWidth; sky.classList.add('rpg-danger-flash'); }
       var stg=document.getElementById('rpg-stage'); if(stg){ stg.classList.remove('rpg-shake-big'); void stg.offsetWidth; stg.classList.add('rpg-shake-big'); }
       sfx('hurtbig'); vibe([60,40,90,40,120]);   // やられた！大きめの一撃＋強い振動
-      rpgFloat('-1 ダメージ', 'miss');
+      rpgFloat('-'+takenDmg+' ダメージ', 'miss');
     }, 340);
   }
   rpgUpdateGauges();
@@ -6975,6 +7013,31 @@ function rpgAfterAnswer(correct){
     // 残りの問題を打ち切って、次の「つぎへ」でリザルトへ
     try{ currentQuestions.length=currentIndex+1; }catch(e){}
     if(rpgBattle.enemyHp<=0 && enemy){ setTimeout(function(){ enemy.classList.add('rpg-defeated'); sfx('defeat'); vibe([25,40,25,40,60]); },300); }
+  }
+}
+// 必殺技：MPを消費して大ダメージ（敵を倒したらそのままリザルトへ）
+function rpgUseSpecial(){
+  if(!rpgBattle || rpgBattle.over) return;
+  if((rpgBattle.mp||0) < RPG_SPECIAL_COST){ try{ sfx('wrong'); }catch(e){} showToast('✨','MPが たりないよ','せいかいで MPが たまるよ（あと '+(RPG_SPECIAL_COST-(rpgBattle.mp||0))+'）'); return; }
+  rpgBattle.mp -= RPG_SPECIAL_COST;
+  var dmg=Math.max(1, Math.round(((rpgBattle.stats&&rpgBattle.stats.atk)||1)*3));   // 通常の約3倍
+  rpgBattle.enemyHp=Math.max(0, rpgBattle.enemyHp-dmg);
+  rpgBattle.xpGain += 12;
+  var hero=document.getElementById('rpg-hero-sprite'), enemy=document.getElementById('rpg-enemy-sprite'), sky=document.getElementById('rpg-stage-sky');
+  if(hero){ hero.classList.remove('rpg-attack'); void hero.offsetWidth; hero.classList.add('rpg-attack'); }
+  try{ sfx('crit'); vibe([15,30,15,30,60]); }catch(e){}
+  setTimeout(function(){
+    if(enemy){ enemy.classList.remove('rpg-hit'); void enemy.offsetWidth; enemy.classList.add('rpg-hit'); }
+    if(sky){ sky.classList.remove('rpg-flash'); void sky.offsetWidth; sky.classList.add('rpg-flash'); }
+    if(enemy) try{ sparkleBurst(enemy); }catch(e){}
+    rpgFloat('★ひっさつ★ -'+dmg, 'crit');
+    try{ sfx('fanfare'); }catch(e){}
+  }, 150);
+  rpgUpdateGauges();
+  if(rpgBattle.enemyHp<=0){
+    rpgBattle.over=true;
+    if(enemy){ setTimeout(function(){ enemy.classList.add('rpg-defeated'); try{ sfx('defeat'); }catch(e){} }, 300); }
+    setTimeout(function(){ try{ showResult(); }catch(e){} }, 1150);   // 演出のあとリザルトへ
   }
 }
 // バトル終了（showResult からフック）
@@ -7080,9 +7143,8 @@ function rpgBeginReview(pool){
   if(!qs.length){ showToast('⚠️','問題を用意できませんでした',''); return; }
   var node={ id:'review', type:'review', name:'ふくしゅうモンスター', mon:'review', count:qs.length };
   var hits=Math.max(1, Math.ceil(qs.length*0.7));
-  rpgBattle={ area:'review', chIdx:0, nodeIdx:0, node:node, ch:{id:'review',title:'復習'}, review:true,
-    enemyMax:hits, enemyHp:hits, heroMax:(qs.length-hits+1), heroHp:(qs.length-hits+1),
-    total:qs.length, correct:0, combo:0, xpGain:0, over:false };
+  rpgBattle=Object.assign({ area:'review', chIdx:0, nodeIdx:0, node:node, ch:{id:'review',title:'復習'}, review:true,
+    total:qs.length, correct:0, combo:0, xpGain:0, over:false }, rpgBattleStats(node, hits));
   rpgUseStamina();
   document.body.classList.add('rpg-battle');
   runQuestionSession(qs, '🔁 ふくしゅうダンジョン', 'まえに まちがえた問題との リベンジだ！ 正かいで こくふく！', 'penguin');
@@ -7136,9 +7198,8 @@ function rpgBeginMaou(){
   if(qs.length<5){ showToast('⚠️','問題を用意できませんでした','少し時間をおいてね'); return; }
   var node={ id:'maou', type:'maou', name:'魔王シグマ', mon:'villain', count:qs.length };
   var hits=Math.ceil(qs.length*0.8);
-  rpgBattle={ area:'maou', chIdx:0, nodeIdx:0, node:node, ch:{id:'maou',title:'決戦'}, maou:true,
-    enemyMax:hits, enemyHp:hits, heroMax:(qs.length-hits+1), heroHp:(qs.length-hits+1),
-    total:qs.length, correct:0, combo:0, xpGain:0, over:false };
+  rpgBattle=Object.assign({ area:'maou', chIdx:0, nodeIdx:0, node:node, ch:{id:'maou',title:'決戦'}, maou:true,
+    total:qs.length, correct:0, combo:0, xpGain:0, over:false }, rpgBattleStats(node, hits));
   rpgUseStamina();
   document.body.classList.add('rpg-battle');
   runQuestionSession(qs, '👑 魔王シグマ', '魔王シグマとの 決戦だ！ 5教科の力を ぶつけろ！', 'tiger');

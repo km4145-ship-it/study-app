@@ -88,6 +88,7 @@ window.FIREBASE_CONFIG = {
             owned: owned };
     if(Object.keys(equip).length) o.equip=equip;
     if(x.welcome||y.welcome) o.welcome=1;   // 初回100コインボーナスの再付与を防ぐ
+    if(x.pity!=null||y.pity!=null) o.pity=Math.max(parseInt(x.pity||0,10)||0, parseInt(y.pity||0,10)||0);  // ガチャ天井カウンタを保全
     return o;
   }
   function mergeRpg(a,b){ try{ var x=JSON.parse(a||'null'), y=JSON.parse(b||'null');

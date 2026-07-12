@@ -1386,6 +1386,38 @@
   .rpg-aura-rainbow{ background:conic-gradient(#f87171,#fbbf24,#34d399,#38bdf8,#a78bfa,#f472b6,#f87171); opacity:.5; filter:blur(5px); animation:rpgAuraSpin 4s linear infinite; }
   .rpg-aura-thunder{ background:radial-gradient(circle, rgba(250,204,21,.9), rgba(59,130,246,.3) 55%, transparent 72%); animation:rpgAuraFlicker .7s steps(2) infinite; }
   .rpg-aura-heart{ background:radial-gradient(circle, rgba(244,114,182,.8), rgba(236,72,153,.3) 55%, transparent 72%); }
+  /* 追加オーラ（新アイテム・UR用） */
+  .rpg-aura-aqua{ background:radial-gradient(circle, rgba(34,211,238,.85), rgba(59,130,246,.3) 55%, transparent 72%); }
+  .rpg-aura-sakura{ background:radial-gradient(circle, rgba(249,168,212,.85), rgba(236,72,153,.25) 55%, transparent 72%); }
+  .rpg-aura-holy{ background:radial-gradient(circle, rgba(254,240,138,.95), rgba(255,255,255,.5) 45%, transparent 72%); animation:rpgAuraPulse 1.8s ease-in-out infinite; }
+  .rpg-aura-galaxy{ background:conic-gradient(#312e81,#7c3aed,#db2777,#2563eb,#312e81); opacity:.6; filter:blur(4px); animation:rpgAuraSpin 6s linear infinite; }
+  .rpg-aura-phantom{ background:radial-gradient(circle, rgba(148,163,184,.8), rgba(30,41,59,.35) 55%, transparent 72%); animation:rpgAuraFlicker 1s steps(2) infinite; }
+  /* UR（虹）レア度 */
+  .rpg-cos-cell.cos-ur{ background:linear-gradient(135deg,#fee2e2,#fef9c3,#dcfce7,#dbeafe,#f3e8ff); background-size:220% 220%; border-color:#f472b6; box-shadow:0 0 12px rgba(236,72,153,.55); animation:rpgUrShine 3s ease infinite; }
+  .rpg-cos-cell.cos-ur .rpg-cos-em{ animation:rpgAuraPulse 1.4s ease-in-out infinite; }
+  .rpg-cos-cell.cos-ur .rpg-cos-rar{ background:linear-gradient(90deg,#f472b6,#a78bfa,#38bdf8); }
+  @keyframes rpgUrShine{ 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+  .rpg-gacha-card.cos-ur{ border-color:#f472b6; box-shadow:0 0 60px rgba(236,72,153,.9),0 0 90px rgba(56,189,248,.5); }
+  .rpg-gacha-ov.open .rpg-gacha-rar.cos-ur{ background:linear-gradient(90deg,#f472b6,#a78bfa,#38bdf8); }
+  .rpg-gacha-rays.cos-ur{ background:repeating-conic-gradient(from 0deg, rgba(244,114,182,.7) 0deg 6deg, rgba(56,189,248,.5) 6deg 12deg, transparent 12deg 20deg); }
+  .rpg-gacha-ov.hint .rpg-gacha-card.cos-ur .rpg-gacha-box{ filter:drop-shadow(0 0 26px #f472b6); }
+  /* ガチャボタン（単発＋10連） */
+  .rpg-gacha-btns{ display:flex; flex-direction:column; gap:6px; }
+  .rpg-gacha-btn.g10{ background:linear-gradient(90deg,#f59e0b,#f472b6); }
+  /* 10連リザルト */
+  .rpg-gacha-ov.g10 .rpg-gacha-card.g10card{ max-width:342px; width:94%; }
+  .rpg-g10-ttl{ font-size:1.2rem; font-weight:800; color:#f59e0b; margin-bottom:8px; }
+  .rpg-g10-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:6px 0 12px; }
+  .rpg-g10-cell{ position:relative; display:flex; flex-direction:column; align-items:center; border-radius:9px; padding:8px 2px 6px; background:#f8fafc; border:1.5px solid #e2e8f0; }
+  .rpg-g10-cell.cos-r{ background:linear-gradient(135deg,#ede9fe,#ddd6fe); border-color:#a78bfa; }
+  .rpg-g10-cell.cos-s{ background:linear-gradient(135deg,#fef9c3,#fde68a); border-color:#f59e0b; box-shadow:0 0 8px rgba(245,158,11,.5); }
+  .rpg-g10-cell.cos-ur{ background:linear-gradient(135deg,#fee2e2,#fef9c3,#dcfce7,#dbeafe,#f3e8ff); border-color:#f472b6; box-shadow:0 0 12px rgba(236,72,153,.6); }
+  .rpg-g10-em{ font-size:1.5rem; line-height:1.1; }
+  .rpg-g10-rar{ font-size:.6rem; font-weight:800; color:#fff; background:#94a3b8; border-radius:5px; padding:0 4px; }
+  .rpg-g10-cell.cos-r .rpg-g10-rar{ background:#8b5cf6; } .rpg-g10-cell.cos-s .rpg-g10-rar{ background:#f59e0b; }
+  .rpg-g10-cell.cos-ur .rpg-g10-rar{ background:linear-gradient(90deg,#f472b6,#38bdf8); }
+  .rpg-g10-nm{ font-size:.56rem; color:#475569; margin-top:2px; text-align:center; line-height:1.2; }
+  .rpg-g10-new{ font-size:.54rem; font-weight:800; color:#16a34a; } .rpg-g10-dup{ font-size:.54rem; color:#b45309; }
   @keyframes rpgAuraPulse{ 0%,100%{ transform:scale(1); opacity:.82; } 50%{ transform:scale(1.12); opacity:1; } }
   @keyframes rpgAuraSpin{ to{ transform:rotate(360deg); } }
   @keyframes rpgAuraFlicker{ 0%,100%{ opacity:.9; } 50%{ opacity:.4; } }
@@ -6058,15 +6090,15 @@ var COS_DATA={
     hat:[ {id:'h_cap',em:'🧢',name:'キャップ',price:30,r:'N',hsvg:'<path d="M30 30 Q60 4 90 30 Z" fill="#3b82f6" stroke="#2563eb" stroke-width="2"/><path d="M87 29 Q104 29 107 37 Q90 33 87 33Z" fill="#2563eb"/><circle cx="60" cy="8" r="3" fill="#f59e0b"/>'}, {id:'h_straw',em:'👒',name:'むぎわら',price:30,r:'N',hsvg:'<ellipse cx="60" cy="27" rx="40" ry="8" fill="#f0d391" stroke="#c99a45" stroke-width="1.5"/><path d="M42 27 Q44 9 60 9 Q76 9 78 27Z" fill="#f5dea6" stroke="#c99a45" stroke-width="1.5"/><path d="M43 23 Q60 27 77 23" stroke="#e2748a" stroke-width="3" fill="none"/>'}, {id:'h_party',em:'🥳',name:'パーティ',price:40,r:'N',hsvg:'<path d="M60 3 L47 30 L73 30Z" fill="#f472b6" stroke="#db2777" stroke-width="1.5"/><circle cx="60" cy="3" r="3.5" fill="#fde047"/><circle cx="56" cy="18" r="2" fill="#fff"/><circle cx="64" cy="14" r="2" fill="#a7f3d0"/><circle cx="60" cy="25" r="2" fill="#bae6fd"/>'}, {id:'h_hat',em:'🎩',name:'シルクハット',price:60,r:'R',hsvg:'<ellipse cx="60" cy="29" rx="29" ry="6" fill="#1f2937"/><rect x="45" y="6" width="30" height="23" rx="2" fill="#111827"/><rect x="45" y="23" width="30" height="5" fill="#e11d48"/>'}, {id:'h_wiz',em:'🧙',name:'まほうつかい',price:90,r:'R',hsvg:'<path d="M60 1 Q66 20 79 30 L41 30 Q54 20 60 1Z" fill="#5b21b6" stroke="#4c1d95" stroke-width="1.5"/><path d="M41 30 Q60 34 79 30" stroke="#fbbf24" stroke-width="2" fill="none"/><circle cx="60" cy="8" r="2.6" fill="#fde047"/>'}, {id:'h_king',em:'🤴',name:'おうじさま',price:100,r:'R',hsvg:'<path d="M45 29 L48 15 L54 22 L60 13 L66 22 L72 15 L75 29Z" fill="#fcd34d" stroke="#d97706" stroke-width="1.5"/><rect x="45" y="27" width="30" height="5" rx="1" fill="#f59e0b"/><circle cx="60" cy="13" r="2.4" fill="#ef4444"/>'}, {id:'h_crown',em:'👑',name:'おうかん',price:120,r:'S',hsvg:'<path d="M40 30 L45 12 L53 24 L60 8 L67 24 L75 12 L80 30Z" fill="#fcd34d" stroke="#d97706" stroke-width="2"/><rect x="39" y="27" width="42" height="7" rx="2" fill="#f59e0b"/><circle cx="60" cy="8" r="3.5" fill="#ef4444"/><circle cx="45" cy="12" r="2.5" fill="#38bdf8"/><circle cx="75" cy="12" r="2.5" fill="#38bdf8"/>'}, {id:'h_halo',em:'😇',name:'てんしのわ',price:150,r:'S',hsvg:'<ellipse cx="60" cy="9" rx="19" ry="5.5" fill="none" stroke="#fde047" stroke-width="4"/><ellipse cx="60" cy="9" rx="19" ry="5.5" fill="none" stroke="#fff7cc" stroke-width="1.4"/>'} ],
     face:[ {id:'f_nerd',em:'🤓',name:'めがね',price:30,r:'N',hsvg:'<circle cx="48" cy="60" r="9" fill="rgba(255,255,255,.15)" stroke="#111" stroke-width="2.5"/><circle cx="72" cy="60" r="9" fill="rgba(255,255,255,.15)" stroke="#111" stroke-width="2.5"/><line x1="57" y1="60" x2="63" y2="60" stroke="#111" stroke-width="2.5"/><path d="M39 60 Q34 61 33 65" stroke="#111" stroke-width="2" fill="none"/><path d="M81 60 Q86 61 87 65" stroke="#111" stroke-width="2" fill="none"/>'}, {id:'f_mask',em:'🎭',name:'マスク',price:40,r:'N',hsvg:'<path d="M36 56 Q60 50 84 56 Q84 67 71 69 Q65 64 60 66 Q55 64 49 69 Q36 67 36 56Z" fill="#1f2937"/><circle cx="48" cy="60" r="4.5" fill="#fff"/><circle cx="72" cy="60" r="4.5" fill="#fff"/>'}, {id:'f_glass',em:'😎',name:'サングラス',price:50,r:'R',hsvg:'<circle cx="48" cy="60" r="9" fill="rgba(20,20,20,.8)" stroke="#111" stroke-width="2.5"/><circle cx="72" cy="60" r="9" fill="rgba(20,20,20,.8)" stroke="#111" stroke-width="2.5"/><line x1="57" y1="59" x2="63" y2="59" stroke="#111" stroke-width="2.5"/>'}, {id:'f_star',em:'🤩',name:'キラキラ目',price:70,r:'S',hsvg:'<path d="M48 53 l2.2 5 l5.4 0.3 l-4.2 3.6 l1.5 5.2 l-4.9 -3 l-4.9 3 l1.5 -5.2 l-4.2 -3.6 l5.4 -0.3Z" fill="#fde047" stroke="#f59e0b" stroke-width="0.8"/><path d="M72 53 l2.2 5 l5.4 0.3 l-4.2 3.6 l1.5 5.2 l-4.9 -3 l-4.9 3 l1.5 -5.2 l-4.2 -3.6 l5.4 -0.3Z" fill="#fde047" stroke="#f59e0b" stroke-width="0.8"/>'} ],
     hand:[ {id:'d_star',em:'⭐',name:'スター',price:30,r:'N',hsvg:'<path d="M96 89 l2.4 5.6 l6 0.4 l-4.6 4 l1.6 5.9 l-5.4 -3.3 l-5.4 3.3 l1.6 -5.9 l-4.6 -4 l6 -0.4Z" fill="#fde047" stroke="#f59e0b" stroke-width="1"/>'}, {id:'d_shield',em:'🛡️',name:'たて',price:60,r:'R',hsvg:'<path d="M96 88 L108 92 Q108 108 96 116 Q84 108 84 92Z" fill="#60a5fa" stroke="#2563eb" stroke-width="2"/><path d="M96 94 L96 110 M89 100 L103 100" stroke="#fbbf24" stroke-width="2.5"/>'}, {id:'d_wand',em:'🪄',name:'まほうのつえ',price:70,r:'R',hsvg:'<line x1="89" y1="118" x2="102" y2="93" stroke="#a16207" stroke-width="3" stroke-linecap="round"/><path d="M102 87 l1.6 3.8 l4.1 0.3 l-3.2 2.6 l1 4 l-3.5 -2.2 l-3.5 2.2 l1 -4 l-3.2 -2.6 l4.1 -0.3Z" fill="#fde047"/>'}, {id:'d_bow',em:'🏹',name:'ゆみや',price:70,r:'R',hsvg:'<path d="M99 85 Q113 101 99 117" fill="none" stroke="#a16207" stroke-width="3"/><line x1="99" y1="85" x2="99" y2="117" stroke="#e5e7eb" stroke-width="1.5"/><line x1="99" y1="101" x2="85" y2="101" stroke="#78350f" stroke-width="2"/>'}, {id:'d_sword',em:'⚔️',name:'つるぎ',price:80,r:'R',hsvg:'<line x1="97" y1="86" x2="97" y2="116" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round"/><line x1="89" y1="110" x2="105" y2="110" stroke="#78350f" stroke-width="4"/><rect x="94" y="114" width="6" height="9" rx="2" fill="#78350f"/>'}, {id:'d_trophy',em:'🏆',name:'トロフィー',price:120,r:'S',hsvg:'<path d="M89 90 h14 v5 q0 8 -7 10 q-7 -2 -7 -10Z" fill="#fcd34d" stroke="#d97706" stroke-width="1.5"/><path d="M89 91 q-6 0 -6 5 q0 4 5 4 M103 91 q6 0 6 5 q0 4 -5 4" fill="none" stroke="#d97706" stroke-width="1.5"/><rect x="94" y="105" width="4" height="6" fill="#d97706"/><rect x="88" y="111" width="16" height="4" rx="1" fill="#b45309"/>'} ],
-    aura:[ {id:'a_heart',em:'💗',name:'ハート',price:70,r:'N',aura:'heart'}, {id:'a_star',em:'✨',name:'きらめき',price:90,r:'R',aura:'star'}, {id:'a_fire',em:'🔥',name:'ほのお',price:100,r:'R',aura:'fire'}, {id:'a_thunder',em:'⚡',name:'いなずま',price:110,r:'S',aura:'thunder'}, {id:'a_rain',em:'🌈',name:'にじ',price:140,r:'S',aura:'rainbow'} ]
+    aura:[ {id:'a_heart',em:'💗',name:'ハート',price:70,r:'N',aura:'heart'}, {id:'a_star',em:'✨',name:'きらめき',price:90,r:'R',aura:'star'}, {id:'a_fire',em:'🔥',name:'ほのお',price:100,r:'R',aura:'fire'}, {id:'a_aqua',em:'💧',name:'みずのちから',price:100,r:'R',aura:'aqua'}, {id:'a_sakura',em:'🌸',name:'さくら',price:110,r:'R',aura:'sakura'}, {id:'a_thunder',em:'⚡',name:'いなずま',price:110,r:'S',aura:'thunder'}, {id:'a_rain',em:'🌈',name:'にじ',price:140,r:'S',aura:'rainbow'}, {id:'a_holy',em:'🌟',name:'せいなるひかり',price:160,r:'S',aura:'holy'}, {id:'a_phantom',em:'👻',name:'まぼろし',price:170,r:'S',aura:'phantom'}, {id:'a_galaxy',em:'🌌',name:'ぎんが',price:300,r:'UR',aura:'galaxy'} ]
   },
   pet:{
-    hat:[ {id:'p_ribbon',em:'🎀',name:'リボン',price:30,r:'N'}, {id:'p_cap',em:'🧢',name:'キャップ',price:40,r:'N'}, {id:'p_grad',em:'🎓',name:'はかせ',price:60,r:'R'}, {id:'p_crown',em:'👑',name:'かんむり',price:120,r:'S'} ],
-    aura:[ {id:'pa_heart',em:'💗',name:'ハート',price:60,r:'N',aura:'heart'}, {id:'pa_star',em:'✨',name:'きらめき',price:80,r:'R',aura:'star'}, {id:'pa_rain',em:'🌈',name:'にじ',price:130,r:'S',aura:'rainbow'} ]
+    hat:[ {id:'p_ribbon',em:'🎀',name:'リボン',price:30,r:'N'}, {id:'p_cap',em:'🧢',name:'キャップ',price:40,r:'N'}, {id:'p_party',em:'🥳',name:'パーティ',price:40,r:'N'}, {id:'p_grad',em:'🎓',name:'はかせ',price:60,r:'R'}, {id:'p_top',em:'🎩',name:'シルクハット',price:60,r:'R'}, {id:'p_ninja',em:'🥷',name:'にんじゃ',price:70,r:'R'}, {id:'p_crown',em:'👑',name:'かんむり',price:120,r:'S'}, {id:'p_halo',em:'😇',name:'てんしのわ',price:130,r:'S'} ],
+    aura:[ {id:'pa_heart',em:'💗',name:'ハート',price:60,r:'N',aura:'heart'}, {id:'pa_star',em:'✨',name:'きらめき',price:80,r:'R',aura:'star'}, {id:'pa_fire',em:'🔥',name:'ほのお',price:90,r:'R',aura:'fire'}, {id:'pa_thunder',em:'⚡',name:'いなずま',price:130,r:'S',aura:'thunder'}, {id:'pa_rain',em:'🌈',name:'にじ',price:130,r:'S',aura:'rainbow'}, {id:'pa_galaxy',em:'🌌',name:'ぎんが',price:280,r:'UR',aura:'galaxy'} ]
   }
 };
 var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['aura','✨ オーラ']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']] };
-var COS_RARITY={ N:{name:'ノーマル',cls:'cos-n'}, R:{name:'レア',cls:'cos-r'}, S:{name:'スペシャル',cls:'cos-s'} };
+var COS_RARITY={ N:{name:'ノーマル',cls:'cos-n'}, R:{name:'レア',cls:'cos-r'}, S:{name:'スペシャル',cls:'cos-s'}, UR:{name:'ウルトラ',cls:'cos-ur'} };
 function rpgCosById(kind,id){ var g=COS_DATA[kind]; if(!g) return null; for(var sl in g){ var a=g[sl]; for(var i=0;i<a.length;i++){ if(a[i].id===id) return a[i]; } } return null; }
 function rpgCosState(s){
   if(!s.cos) s.cos={};
@@ -6431,33 +6463,61 @@ function rpgShowDex(){
 // ================= きせかえショップ =================
 // ===== 宝箱ガチャ =====
 function _gachaPool(){ var pool=[]; ['hero','pet'].forEach(function(kind){ var g=COS_DATA[kind]; for(var sl in g){ g[sl].forEach(function(it){ pool.push({kind:kind,slot:sl,it:it}); }); } }); return pool; }
-function _gachaPick(){ var pool=_gachaPool(), wr={N:60,R:30,S:10}, tot=0, weighted=[];   // レア度で重み付け抽選
-  pool.forEach(function(p){ var w=wr[p.it.r||'N']||30; weighted.push({p:p,w:w}); tot+=w; });
+var COS_RANK={N:0,R:1,S:2,UR:3};
+function _cosRank(r){ return COS_RANK[r||'N']||0; }
+function _gachaPick(){ var pool=_gachaPool(), wr={N:58,R:28,S:11,UR:3}, tot=0, weighted=[];   // レア度で重み付け抽選
+  pool.forEach(function(p){ var w=wr[p.it.r||'N']||28; weighted.push({p:p,w:w}); tot+=w; });
   var roll=Math.random()*tot, acc=0, pick=weighted[0].p;
   for(var i=0;i<weighted.length;i++){ acc+=weighted[i].w; if(roll<acc){ pick=weighted[i].p; break; } }
   return pick; }
+function _gachaPickRarity(rar){ var pool=_gachaPool().filter(function(p){ return (p.it.r||'N')===rar; }); if(!pool.length) return null; return pool[Math.floor(Math.random()*pool.length)]; }
+// ---- 天井（ピティ）：純粋関数でテストしやすく ----
+var GACHA_PITY_MAX=60;                                   // これだけURなしで引くと次で確定
+function _pityTriggered(pity, max){ return (pity||0) >= (max||GACHA_PITY_MAX); }
+function _gacha10NeedGuarantee(rarities){ return !rarities.some(function(r){ return _cosRank(r)>=2; }); }  // S+が1つも無ければtrue
+// cos に対して n 回抽選：天井・ピティ・所持登録・ダブり還元まで行い、結果配列を返す
+function _gachaDrawInto(cos, n){
+  var picks=[];
+  for(var i=0;i<n;i++){
+    var pity=(cos.pity||0), pick;
+    if(_pityTriggered(pity, GACHA_PITY_MAX)) pick=(_gachaPickRarity('UR')||_gachaPick());
+    else pick=_gachaPick();
+    if((pick.it.r||'N')==='UR') cos.pity=0; else cos.pity=pity+1;   // URで天井カウンタをリセット
+    picks.push(pick);
+  }
+  if(n>=10 && _gacha10NeedGuarantee(picks.map(function(p){ return p.it.r; }))){ var up=_gachaPickRarity('S'); if(up) picks[picks.length-1]=up; }  // 10連はS+を1つ保証
+  return picks.map(function(pick){
+    var dup=!!cos.owned[pick.it.id], refund=0;
+    if(dup){ refund=({N:15,R:25,S:45,UR:80})[pick.it.r||'N']||15; cos.coin=(cos.coin||0)+refund; } else { cos.owned[pick.it.id]=1; }
+    return {pick:pick, dup:dup, refund:refund};
+  });
+}
 // デイリー宝箱：1日1回 無料で引ける
 function rpgDailyBoxReady(){ try{ return rpgState().dailyBox!==rpgToday(); }catch(e){ return false; } }
 function rpgOpenDailyBox(){
   var s=rpgState();
   if(s.dailyBox===rpgToday()){ showToast('🎁','きょうは もう あけたよ','また あした あけよう！'); return; }
   var cos=rpgCosState(s); s.dailyBox=rpgToday();
-  var pick=_gachaPick();
-  var dup=!!cos.owned[pick.it.id], refund=0;
-  if(dup){ refund=({N:15,R:25,S:45})[pick.it.r||'N']||15; cos.coin=(cos.coin||0)+refund; } else { cos.owned[pick.it.id]=1; }
+  var out=_gachaDrawInto(cos,1)[0];
   rpgSave(s);
-  rpgGachaReveal(pick, dup, refund);
+  rpgGachaReveal(out.pick, out.dup, out.refund);
 }
 function rpgGachaDraw(){
   var s=rpgState(), cos=rpgCosState(s);
   var useTicket=(cos.tickets||0)>0;
   if(!useTicket && (cos.coin||0)<40){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','40コイン か 無料チケットが いるよ（ボスをたおすと もらえる）'); return; }
   if(useTicket) cos.tickets--; else cos.coin-=40;
-  var pick=_gachaPick();
-  var dup=!!cos.owned[pick.it.id], refund=0;
-  if(dup){ refund=({N:15,R:25,S:45})[pick.it.r||'N']||15; cos.coin+=refund; } else { cos.owned[pick.it.id]=1; }
+  var out=_gachaDrawInto(cos,1)[0];
   rpgSave(s);
-  rpgGachaReveal(pick, dup, refund);
+  rpgGachaReveal(out.pick, out.dup, out.refund);
+}
+function rpgGachaDraw10(){
+  var s=rpgState(), cos=rpgCosState(s), COST=360;
+  if((cos.coin||0)<COST){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','10れんは 🪙'+COST+' いるよ（40×10より おとくで スペシャル1つ かくてい）'); return; }
+  cos.coin-=COST;
+  var outs=_gachaDrawInto(cos,10);
+  rpgSave(s);
+  rpgGacha10Reveal(outs);
 }
 function rpgGachaReveal(pick, dup, refund){
   var it=pick.it, r=it.r||'N', rar=(COS_RARITY[r]||{}), rcls=(rar.cls||'');
@@ -6479,15 +6539,27 @@ function rpgGachaReveal(pick, dup, refund){
   setTimeout(function(){ ov.classList.add('hint'); }, 500); // レア度の色がにじむヒント
   setTimeout(function(){
     ov.classList.remove('hint'); ov.classList.add('open');  // 開封！
-    if(r==='S'){ ov.classList.add('flash'); setTimeout(function(){ ov.classList.remove('flash'); }, 420); }
+    var big=(r==='S'||r==='UR');
+    if(big){ ov.classList.add('flash'); setTimeout(function(){ ov.classList.remove('flash'); }, 420); }
     try{
-      sfx(r==='S'?'fanfare':(r==='R'?'crystal':'coin')); vibe(r==='S'?[20,40,20,40,90]:20);
+      sfx(big?'fanfare':(r==='R'?'crystal':'coin')); vibe(big?[20,40,20,40,90]:20);
       if(r!=='N'||!dup) confetti();
-      if(r==='S'){ setTimeout(confetti,300); setTimeout(confetti,600); }
+      if(big){ setTimeout(confetti,300); setTimeout(confetti,600); }
     }catch(e){}
   }, 1150);
 }
-function rpgGachaClose(){ var ov=document.getElementById('rpg-gacha-ov'); if(ov){ ov.classList.remove('open'); ov.style.display='none'; } try{ if(document.body.classList.contains('rpg-mode')) rpgShowCosmetics(); }catch(e){} }
+// 10連の結果まとめ表示
+function rpgGacha10Reveal(outs){
+  var ov=document.getElementById('rpg-gacha-ov'); if(!ov){ ov=document.createElement('div'); ov.id='rpg-gacha-ov'; document.body.appendChild(ov); }
+  var best=0; outs.forEach(function(o){ best=Math.max(best,_cosRank(o.pick.it.r)); });
+  var cells=outs.map(function(o){ var it=o.pick.it, rc=(COS_RARITY[it.r||'N']||{}).cls||'';
+    return '<div class="rpg-g10-cell '+rc+'"><span class="rpg-g10-rar '+rc+'">'+(it.r||'N')+'</span><span class="rpg-g10-em">'+it.em+'</span><span class="rpg-g10-nm">'+it.name+'</span>'+(o.dup?('<span class="rpg-g10-dup">🪙+'+o.refund+'</span>'):'<span class="rpg-g10-new">NEW</span>')+'</div>'; }).join('');
+  ov.className='rpg-gacha-ov g10 open';
+  ov.innerHTML='<div class="rpg-gacha-card g10card '+(best>=3?'cos-ur':(best>=2?'cos-s':''))+'"><div class="rpg-g10-ttl">🎁 10れんガチャ！</div><div class="rpg-g10-grid">'+cells+'</div><button class="rpg-btn" onclick="rpgGachaClose()">つぎへ</button></div>';
+  ov.style.display='flex';
+  try{ sfx(best>=2?'fanfare':'crystal'); vibe(best>=2?[20,40,20,40,90]:20); confetti(); if(best>=3){ setTimeout(confetti,300); setTimeout(confetti,600); } }catch(e){}
+}
+function rpgGachaClose(){ var ov=document.getElementById('rpg-gacha-ov'); if(ov){ ov.classList.remove('open','g10'); ov.style.display='none'; } try{ if(document.body.classList.contains('rpg-mode')) rpgShowCosmetics(); }catch(e){} }
 function rpgShowCosmetics(){
   try{ sfx('click'); }catch(e){}
   rpgBattle=null; rpgHideBattle(); hideMainScreens();
@@ -6498,8 +6570,9 @@ function rpgShowCosmetics(){
   var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
   h+='<div class="rpg-world-title">👕 きせかえショップ</div>';
   h+='<div class="rpg-coin-bar">🪙 もっているコイン：<b>'+cos.coin+'</b>　<span class="rpg-coin-hint">バトルにかつと コインがたまるよ</span></div>';
-  h+='<div class="rpg-gacha-bar"><div class="rpg-gacha-bar-l"><b>🎁 たからばこガチャ</b><br><span class="rpg-coin-hint">チケット '+(cos.tickets||0)+'まい ・ なければ 🪙40</span></div>'+
-     '<button class="rpg-gacha-btn" onclick="rpgGachaDraw()">'+((cos.tickets||0)>0?'ひく（チケット）':'ひく（🪙40）')+'</button></div>';
+  h+='<div class="rpg-gacha-bar"><div class="rpg-gacha-bar-l"><b>🎁 たからばこガチャ</b><br><span class="rpg-coin-hint">チケット '+(cos.tickets||0)+'まい ・ なければ 🪙40 ／ 10れん 🪙360（スペシャル1つ かくてい）</span></div>'+
+     '<div class="rpg-gacha-btns"><button class="rpg-gacha-btn" onclick="rpgGachaDraw()">'+((cos.tickets||0)>0?'ひく（チケット）':'ひく（🪙40）')+'</button>'+
+     '<button class="rpg-gacha-btn g10" onclick="rpgGachaDraw10()">10れん（🪙360）</button></div></div>';
   // 今のすがた プレビュー
   h+='<div class="rpg-cos-preview">'+
      '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><span>ゆうしゃ</span></div>'+

@@ -27,7 +27,7 @@ const before = (a, b) => idx(a) >= 0 && idx(b) >= 0 && idx(a) < idx(b);
   'js/rpg-assets.js', 'js/rpg-world.js', 'js/chars.js', 'js/areas.js', 'js/cos-data.js',
   'js/subjects.js', 'js/questions-bank.js', 'js/questions-extra.js', 'js/generators.js',
   'js/audio.js', 'js/furigana.js', 'js/reading-ja.js', 'js/content-data.js', 'js/scoring.js',
-  'js/ui-data.js', 'js/util.js', 'cloud-sync.js',
+  'js/ui-data.js', 'js/util.js', 'js/ranking.js', 'cloud-sync.js',
 ].forEach((f) => c.ok(f + ' を読み込んでいる', idx(f) >= 0));
 
 // 依存順の鉄則

@@ -56,7 +56,7 @@ function createHarness(opts) {
   function collRef(p) {
     return {
       doc: (id) => docRef(p + '/' + id),
-      get: () => Promise.resolve({ forEach: (f) => { Object.keys(store).filter((k) => k.indexOf(p + '/') === 0 && k.slice(p.length + 1).indexOf('/') < 0).forEach((k) => f({ ref: docRef(k), data: () => store[k] })); } }),
+      get: () => Promise.resolve({ forEach: (f) => { Object.keys(store).filter((k) => k.indexOf(p + '/') === 0 && k.slice(p.length + 1).indexOf('/') < 0).forEach((k) => f({ id: k.slice(p.length + 1), ref: docRef(k), data: () => store[k] })); } }),
     };
   }
   const db = { collection: (n) => collRef(n), enablePersistence: () => Promise.resolve() };

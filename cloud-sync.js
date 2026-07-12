@@ -322,6 +322,14 @@ window.FIREBASE_CONFIG = {
       return true;
     }).catch(function(){ try{ listenMember(uid); }catch(e){} return false; });
   };
+  // 家族ランキング用：全メンバーの学習データを取得する（localStorageには反映しない＝集計専用）。
+  //   返り値 { uid: {フィールド...}, ... }。クラウド不可時は null。
+  window.cloudFetchAllMembers = function(){
+    if(!db||!fam) return readyPromise.then(function(){ return window.cloudFetchAllMembers(); });
+    return legacyRef().collection('members').get().then(function(qs){
+      var out={}; qs.forEach(function(doc){ out[doc.id] = ((doc.data()||{}).data)||{}; }); return out;
+    }).catch(function(){ return null; });
+  };
   // ユーザー削除時：クラウド側のドキュメントも削除
   window.cloudDeleteMember = function(uid){
     if(!db||!fam) return Promise.resolve(false);

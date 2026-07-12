@@ -21,6 +21,7 @@ const TESTS = [
   ['tests/unit-content-data.js'],
   ['tests/unit-ui-data.js'],
   ['tests/unit-util.js'],
+  ['tests/unit-ranking-logic.js'],
   ['tests/unit-merge-cos.js'],
   ['tests/unit-users.js'],
   ['tests/unit-session.js'],
@@ -34,6 +35,7 @@ const TESTS = [
   ['tests/int-heal.js', 'parentfail'],
   ['tests/int-heal.js', 'noread'],
   ['tests/int-pullshared.js'],
+  ['tests/int-ranking.js'],
   ['tests/int-build.js'],
 ];
 

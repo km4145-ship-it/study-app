@@ -3186,13 +3186,20 @@ function sfx(name){
     case 'click':   _tone(ac,660,t,0.07,'triangle',0.12); break;
     case 'correct': {
       _sfxCombo++;
-      var _cv=[[523,659,784],[587,740,880],[659,784,988],[523,784,1047]];              // B:数種の正解メロディからランダム
-      _cv[Math.floor(Math.random()*_cv.length)].forEach(function(f,i){ _tone(ac,f,t+i*0.06,0.16,'triangle',0.2); });
-      if(_sfxCombo>=3) _sparkle(ac,t+0.14);                                            // C:3連続でキラキラ追加
-      if(_sfxCombo>=5){ _tone(ac,1568,t+0.2,0.26,'triangle',0.16); _tone(ac,2093,t+0.3,0.3,'sine',0.12); }  // 5連続でさらに豪華
+      // わかりやすい「ピンポン♪」＝毎回同じ 明るい上昇チャイム（正解だと一発で分かる・少し大きめ）
+      [784,1047,1319,1760].forEach(function(f,i){ _tone(ac,f,t+i*0.07,0.17,'triangle',0.28); });   // G5→C6→E6→A6
+      _tone(ac,2093,t+0.27,0.26,'sine',0.18);                                          // きらめく高音ベルで締め
+      if(_sfxCombo>=3) _sparkle(ac,t+0.22);                                            // 3連続でキラキラ追加
+      if(_sfxCombo>=5){ _tone(ac,2637,t+0.34,0.3,'sine',0.15); }                       // 5連続でさらに豪華
       break;
     }
-    case 'wrong':   _sfxCombo=0; _slide(ac,320,170,t,0.28,'sawtooth',0.14); break;
+    case 'wrong': {   // 厳しいブザー「ブブー」＝低い不協和音を2連＋ノイズ、音量大きめ（気持ちを引き締める）
+      _sfxCombo=0;
+      _tone(ac,196,t,0.17,'sawtooth',0.34); _tone(ac,208,t,0.17,'square',0.24);         // 1発目：低くにごった音
+      _tone(ac,165,t+0.19,0.36,'sawtooth',0.38); _tone(ac,175,t+0.19,0.36,'square',0.26); // 2発目：さらに低く長め
+      _noise(ac,t,0.12,0.16);                                                            // ザラつきで厳しさ
+      break;
+    }
     case 'attack':  _noise(ac,t,0.1,0.16); _slide(ac,420,120,t,0.12,'square',0.13); break;
     case 'crit':    [784,988,1319,1568].forEach(function(f,i){ _tone(ac,f,t+i*0.05,0.14,'square',0.15); }); break;
     case 'miss':    _sfxCombo=0; _slide(ac,260,150,t,0.2,'sine',0.11); break;
@@ -3224,7 +3231,7 @@ function bgmPlay(track){
   var ac=_sfxAC(); if(!ac) return; try{ if(ac.state==='suspended') ac.resume(); }catch(e){}
   if(_bgmCur===track && _bgmTimer) return;
   bgmStop(); _bgmCur=track; _bgmStep=0;
-  if(!_bgmGain){ _bgmGain=ac.createGain(); _bgmGain.gain.value=0.14; _bgmGain.connect(ac.destination); }
+  if(!_bgmGain){ _bgmGain=ac.createGain(); _bgmGain.gain.value=0.08; _bgmGain.connect(ac.destination); }   // BGMは控えめ（効果音を邪魔しない）
   var freqs=_bgmFreqs(track), noteDur=(track==='map')?0.32:0.22, wave=(track==='boss')?'sawtooth':(track==='battle'?'square':'triangle');
   function bar(){
     if(_bgmCur!==track) return;

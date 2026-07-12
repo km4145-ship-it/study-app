@@ -310,6 +310,58 @@ window.FIREBASE_CONFIG = {
   };
   window.cloudFamilyClear = function(){ rset('mu_family',''); stopSync(); if(unsubReset){ try{ unsubReset(); }catch(e){} unsubReset=null; } alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
 
+  // ---- 端末セッションロック（同じユーザーを複数端末で同時に操作させない）----
+  //   families/{fam}/sessions/{uid} = { device, name, at(serverTimestamp) }
+  //   ・使用開始時にロックを取得。別端末が使用中なら取得失敗を返す（UI側で「この端末で続ける」＝強制取得）。
+  //   ・使用中はハートビートで at を更新。90秒更新が無ければ失効（端末が閉じた/落ちた場合の保険）。
+  //   ・他端末に奪われたら onTaken を呼んでUIをロックする。
+  var SESSION_STALE_MS = 90000, _hbTimer=null, _sessUid=null, _unsubSess=null;
+  function deviceId(){ var d=rget('mu_device_id'); if(!d){ d='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); rset('mu_device_id', d); } return d; }
+  function sessionRef(uid){ return legacyRef().collection('sessions').doc(String(uid)); }
+  // 使用中かどうかの純粋判定（テストしやすいよう分離）
+  function _sessionBlocked(s, me, now, staleMs){
+    if(!s || !s.device || s.device===me) return false;           // 空き or 自分 → ブロックしない
+    var at = (s.at && s.at.toMillis) ? s.at.toMillis() : (typeof s.at==='number'? s.at : 0);
+    if(!at) return false;                                        // タイムスタンプ未確定は空きとみなす（締め出さない）
+    return (now - at) < staleMs;                                 // 生存確認が新しければ他端末が使用中
+  }
+  // ロック取得。取れれば {ok:true}、別端末が使用中なら {ok:false, by}
+  window.cloudSessionClaim = function(uid, opts){
+    opts=opts||{};
+    if(!db||!fam||!ready || !uid) return Promise.resolve({ok:true, offline:true});   // クラウド無効/未接続は素通し（オフラインで締め出さない）
+    var me=deviceId();
+    return sessionRef(uid).get().then(function(d){
+      var s = d.exists ? (d.data()||{}) : null;
+      if(!opts.force && _sessionBlocked(s, me, Date.now(), SESSION_STALE_MS)) return {ok:false, by:(s.name||'べつの たんまつ')};
+      return sessionRef(uid).set({ device:me, name:(opts.name||('たんまつ'+me.slice(-3))), at:firebase.firestore.FieldValue.serverTimestamp() }).then(function(){ return {ok:true}; });
+    }).catch(function(){ return {ok:true, offline:true}; });   // 確認できないときも素通し
+  };
+  // 自分が保有しているときだけロックを解放（他端末が奪った後は消さない）
+  window.cloudSessionRelease = function(uid){
+    if(_hbTimer){ clearInterval(_hbTimer); _hbTimer=null; }
+    if(_unsubSess){ try{ _unsubSess(); }catch(e){} _unsubSess=null; }
+    var u=uid||_sessUid; _sessUid=null;
+    if(!db||!fam||!u) return Promise.resolve();
+    var me=deviceId();
+    return sessionRef(u).get().then(function(d){ var s=d.exists?(d.data()||{}):null; if(s && s.device===me) return sessionRef(u).delete(); }).catch(function(){});
+  };
+  // 使用開始：ハートビート＋他端末が奪ったら onTaken(name) 通知
+  window.cloudSessionStart = function(uid, onTaken){
+    var me=deviceId();
+    if(_sessUid && _sessUid!==uid && db && fam){ var prev=_sessUid;   // 別ユーザーに切り替えたら前のセッションを解放
+      sessionRef(prev).get().then(function(d){ var s=d.exists?(d.data()||{}):null; if(s && s.device===me) sessionRef(prev).delete(); }).catch(function(){}); }
+    if(_hbTimer){ clearInterval(_hbTimer); _hbTimer=null; }
+    if(_unsubSess){ try{ _unsubSess(); }catch(e){} _unsubSess=null; }
+    _sessUid=uid;
+    if(!db||!fam||!ready||!uid) return;
+    _hbTimer=setInterval(function(){ sessionRef(uid).set({ device:me, at:firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){}); }, 40000);
+    _unsubSess=sessionRef(uid).onSnapshot(function(d){
+      if(d.metadata && d.metadata.hasPendingWrites) return;
+      var s=d.exists?(d.data()||{}):null;
+      if(s && s.device && s.device!==me){ if(onTaken){ try{ onTaken(s.name||'べつの たんまつ'); }catch(e){} } }
+    }, function(){});
+  };
+
   // ---- 保存フック：localStorageに書いたら該当ドキュメントだけを保存 ----
   localStorage.setItem = function(k,v){
     _rawSetItem(k,v);

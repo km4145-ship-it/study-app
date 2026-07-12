@@ -164,6 +164,7 @@ window.FIREBASE_CONFIG = {
 
   // ---- Firestore ----
   var db=null, fam=null, ready=false, unsubShared=null, unsubMember=null, unsubReset=null, memberUid=null;
+  var _parentReadOk=false;   // 親doc（ユーザー一覧バックアップ）を読めたか。読めない時は書き戻さない（取りこぼし上書き防止）
   var DEFAULT_FAMILY='0000'; // 既定で必ずクラウドDBに保存（端末ごとの設定不要）
   function famCode(){ var c=(rget('mu_family')||'').trim(); return c || DEFAULT_FAMILY; }
   function legacyRef(){ return db.collection('families').doc(fam); }
@@ -231,6 +232,7 @@ window.FIREBASE_CONFIG = {
     return kill.length; }
   function checkLegacy(){
     return legacyRef().get().then(function(d){
+      _parentReadOk = true;   // 親doc（バックアップ）を実際に読めた
       var raw = d.exists ? (d.data()||{}) : {};
       // 他の端末で「完全リセット」が実行されていたら、この端末のデータも初期化する
       var cloudReset = parseInt(raw.resetAt||0,10)||0;
@@ -400,7 +402,7 @@ window.FIREBASE_CONFIG = {
     firebase.auth().signInAnonymously().then(function(){
       db = firebase.firestore();
       try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
-      var readOk=false;   // クラウドを実際に読めたか（読めない時は書き戻さない＝上書き事故の防止）
+      var readOk=false; _parentReadOk=false;   // クラウド(shared)と親doc(バックアップ)を実際に読めたか（読めない時は書き戻さない＝上書き事故の防止）
       checkLegacy().then(function(r){
         if(r==='reset') return 'reset';
         // ① まず共有設定（ユーザー一覧＝mu_users）を取得して反映する。
@@ -420,7 +422,7 @@ window.FIREBASE_CONFIG = {
         ready = true;
         listenShared(); listenReset();
         var cur = rget('mu_current'); if(cur) listenMember(cur);
-        if(readOk) doSaveAll();   // ★クラウドを読めた時だけ書き戻す。読めない時に古い/空のローカルでクラウドを上書きしない（ユーザー一覧が縮む事故の再発防止）
+        if(readOk && _parentReadOk) doSaveAll();   // ★shared＋親doc(バックアップ)を両方読めた時だけ書き戻す。どちらか読めない時は古い/取りこぼしローカルでクラウドを上書きしない（ユーザー一覧が縮む事故の再発防止）
         readyResolve(true);
         try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){}
       });

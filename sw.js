@@ -1,7 +1,7 @@
 /* 学習アカデミー Service Worker
    ※アプリを更新したら下の VERSION を上げてください（例 v1.0.1）。
      これで全端末に「新しいバージョンがあります」が出ます。 */
-const VERSION = 'v1.10.0';
+const VERSION = 'v1.10.1';
 const CACHE = 'chisaki-' + VERSION;
 const ASSETS = [
   './', './index.html', './manifest.webmanifest',

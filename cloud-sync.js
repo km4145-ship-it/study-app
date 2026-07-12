@@ -297,9 +297,14 @@ window.FIREBASE_CONFIG = {
   // ユーザー選択画面用：共通設定（ユーザー一覧）を最新化
   window.cloudPullShared = function(){
     if(!db||!fam) return readyPromise.then(function(){ return window.cloudPullShared(); });
-    return sharedRef().get().then(function(d){
-      var changed = d.exists ? applyKeys(((d.data()||{}).data)||{}) : false;
-      if(changed){ try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){} }
+    return Promise.all([
+      sharedRef().get().then(function(d){ return d.exists ? applyKeys(((d.data()||{}).data)||{}) : false; }).catch(function(){ return false; }),
+      // ★v1親doc（通常保存では書き換わらない安定バックアップ）のユーザー一覧も必ず合算する。
+      //   これで shared が別端末に u1 だけへ縮められても、選択画面には常に家族全員が出る。
+      //   合算結果は applyKeys→markShared 経由で shared へ書き戻され、sharedも自己修復する。
+      legacyRef().get().then(function(d){ var raw=d.exists?(d.data()||{}):{}; return (raw.data && raw.data.mu_users)? applyKeys({ mu_users: raw.data.mu_users }) : false; }).catch(function(){ return false; })
+    ]).then(function(res){
+      if(res[0]||res[1]){ try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){} }
       return true;
     }).catch(function(){ return false; });
   };

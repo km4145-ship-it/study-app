@@ -13,4 +13,13 @@ const parts = [...h.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
 let allOk = true, i = 0;
 for (const p of parts) { i++; try { new Function(p); } catch (e) { allOk = false; c.ok('index.html <script>#' + i + ' 構文OK: ' + e.message, false); } }
 c.ok('index.html の<script> ' + parts.length + '件すべて構文OK', allOk);
+
+// 分離した js/*.js も全て構文チェック（モジュール分割していくため）
+const jsDir = path.join(ROOT, 'js');
+if (fs.existsSync(jsDir)) {
+  for (const f of fs.readdirSync(jsDir).filter((x) => x.endsWith('.js'))) {
+    try { new Function(fs.readFileSync(path.join(jsDir, f), 'utf8')); c.ok('js/' + f + ' 構文OK', true); }
+    catch (e) { c.ok('js/' + f + ' 構文OK: ' + e.message, false); }
+  }
+}
 c.done();

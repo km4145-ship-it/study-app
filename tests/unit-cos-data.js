@@ -1,6 +1,7 @@
 'use strict';
 // 分離した js/cos-data.js（着せ替えアイテム＋セット＋称号）を検証。
-// 追加アイテムのIIFEも評価されて142種になることを確認する。
+// 追加アイテムのIIFE（142種化＋レア装備大量追加）も評価されて275種になることを確認する。
+//   ※装備を増減したらこの数も更新する。
 const fs = require('fs');
 const path = require('path');
 const { makeChecker, ROOT } = require('./lib/assert');
@@ -11,7 +12,10 @@ const api = (new Function(code + '\nreturn { COS_DATA, COS_SETS, COS_TITLES, COS
 
 let count = 0;
 ['hero', 'pet'].forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => { count += api.COS_DATA[k][sl].length; }));
-c.ok('COS_DATA アイテム総数142（追加IIFE込み）', count === 142);
+c.ok('COS_DATA アイテム総数275（追加IIFE込み）', count === 275);
+const tiers = {};
+['hero', 'pet'].forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => api.COS_DATA[k][sl].forEach((it) => { tiers[it.r] = (tiers[it.r] || 0) + 1; })));
+c.ok('8レア度すべてに装備がある', ['N', 'HN', 'R', 'HR', 'SR', 'SSR', 'UR', 'LR'].every((t) => tiers[t] > 0));
 c.ok('COS_RARITY に UR', !!api.COS_RARITY.UR);
 c.ok('COS_SLOTS に hero/pet', api.COS_SLOTS.hero && api.COS_SLOTS.pet);
 c.ok('COS_SETS 6セット', Array.isArray(api.COS_SETS) && api.COS_SETS.length === 6);

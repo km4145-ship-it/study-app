@@ -70,6 +70,19 @@ function sfx(name){
     case 'fanfare': [523,659,784,1047,784,1047,1319].forEach(function(f,i){ _tone(ac,f,t+i*0.12,0.3,'triangle',0.2); }); _sparkle(ac,t+0.5); _sparkle(ac,t+0.78); break;
     case 'start':   [392,523,659].forEach(function(f,i){ _tone(ac,f,t+i*0.08,0.2,'triangle',0.17); }); break;
     case 'charge':  _slide(ac,280,1100,t,0.95,'sawtooth',0.09); _slide(ac,560,2200,t,0.95,'triangle',0.05); break;   // ガチャ溜め音
+    case 'powerup': _slide(ac,440,1760,t,0.7,'sawtooth',0.1); _slide(ac,660,2640,t,0.7,'triangle',0.06); _tone(ac,880,t,0.5,'sine',0.06); break;   // フェーズ昇格＝溜めを一段強く
+    case 'drumroll': {   // 開封直前のドラムロール（連打＋じわ上げ）
+      for(var _d=0;_d<14;_d++){ var _dt=t+_d*0.055; _noise(ac,_dt,0.05,0.10+_d*0.006); }
+      _slide(ac,120,300,t,0.8,'sine',0.05);
+      break;
+    }
+    case 'reveal':  _noise(ac,t,0.16,0.3); _tone(ac,90,t,0.4,'sine',0.28); _slide(ac,180,1200,t,0.18,'square',0.12); _sparkle(ac,t+0.08); break;   // 開封のドンッ！
+    case 'legendary': {   // LR＝荘厳ファンファーレ（fanfareより長く豪華）
+      [523,784,1047,1319,1047,1319,1568,2093].forEach(function(f,i){ _tone(ac,f,t+i*0.13,0.34,'triangle',0.2); });
+      _tone(ac,130.81,t,0.9,'sawtooth',0.08); _tone(ac,196,t,0.9,'sawtooth',0.06);   // 重厚な低音の芯
+      _sparkle(ac,t+0.5); _sparkle(ac,t+0.82); _sparkle(ac,t+1.1);
+      break;
+    }
     default: break;
   }
 }

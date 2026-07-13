@@ -1844,6 +1844,20 @@
   .rec-hub-btn{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:3px; border:1px solid #dcecf3; background:#fff; font-family:inherit; cursor:pointer; border-radius:14px; padding:9px 13px; font-size:11.5px; font-weight:800; color:#0e3a4d; box-shadow:0 3px 9px rgba(8,110,140,.1); white-space:nowrap; }
   .rec-hub-btn span{ font-size:21px; }
   .rec-hub-btn:active{ transform:scale(.96); }
+  /* 🗡️ 冒険：ミッションチップ＋クイックタイル */
+  .rpg-dchips{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:10px 0 4px; }
+  .rpg-dchip-l{ font-size:12px; font-weight:800; color:#fcd34d; }
+  .rpg-dchip{ font-size:12px; font-weight:800; color:#fff; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.18); border-radius:999px; padding:3px 10px; }
+  .rpg-dchip.done{ background:rgba(52,211,153,.24); border-color:rgba(52,211,153,.5); }
+  .rpg-qtiles{ display:flex; gap:8px; margin:8px 0 4px; }
+  .rpg-qtile{ flex:1; min-width:0; border:none; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.96); border-radius:15px; padding:10px 6px; display:flex; flex-direction:column; align-items:center; gap:3px; box-shadow:0 4px 12px rgba(0,0,0,.22); }
+  .rpg-qtile:active{ transform:scale(.96); }
+  .rpg-qtile.hot{ box-shadow:0 0 0 2px #f59e0b, 0 4px 12px rgba(0,0,0,.22); }
+  .rpg-qt-em{ font-size:26px; line-height:1; }
+  .rpg-qt-ic{ width:38px; height:38px; display:grid; place-items:center; }
+  .rpg-qt-ic svg{ width:38px; height:38px; }
+  .rpg-qt-l{ font-size:11.5px; font-weight:800; color:#0e3a4d; display:flex; align-items:center; gap:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .rpg-qt-b{ background:#ef4444; color:#fff; font-size:10px; font-weight:900; border-radius:999px; padding:0 6px; min-width:16px; text-align:center; }
 </style>
 
 <!-- 日本語形態素解析（漢字→正しい読み）用ライブラリ -->
@@ -4898,30 +4912,27 @@ function rpgRenderContinents(){
   var s=rpgState(), cc=rpgCrystalCount(), _st=rpgStats();
   var into=s.xp-rpgXpForLevel(s.level), need=rpgXpForLevel(s.level+1)-rpgXpForLevel(s.level);
   var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
-  var _un=(muCurrentUser()&&muCurrentUser().name)||'ユーザー';
-  var h='<div class="rpg-topbar"><button class="rpg-back" onclick="goHome()">🏠 ホーム</button>'+
-    '<button class="rpg-userchip" onclick="muShowPicker()">👤 '+escapeHtml(_un)+'<span class="rpg-userchip-sw">きりかえ</span></button></div>';
+  var h='';
   h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><div class="rpg-hero-info">'+
     '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
     '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち'+'</div>'+
     '<div class="rpg-hero-stats">⚔️'+_st.atk+'　🛡️'+_st.def+'　❤️'+_st.hp+'　✨'+_st.mp+'</div>'+
     '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+cc+' / 5</span></div></div>';
-  // 相棒ペット
-  var pet=s.pet||{stage:0,wins:0,name:''}, pst=Math.min(pet.stage||0,3), pname=pet.name||'あいぼう';
-  var nextW=PET_WINS_FOR[Math.min(pst+1,PET_WINS_FOR.length-1)], toNext=(pst<3)?Math.max(0,nextW-(pet.wins||0)):0;
-  h+='<div class="rpg-pet-card" onclick="rpgPatPet()"><div class="rpg-pet" id="rpg-pet-svg">'+PET_SVG[pst]+rpgCosBadge('pet')+'</div>'+
-     '<div class="rpg-pet-info"><div class="rpg-pet-name">🐾 '+escapeHtml(pname)+'（'+PET_STAGE_NAME[pst]+'）</div>'+
-     '<div class="rpg-pet-sub">'+(pst<3?('バトルに かつと そだつよ。しんかまで あと '+toNext+'かい'):'さいだいまで そだった！りっぱ！')+'</div>'+
-     '<div class="rpg-pet-hint">タップで なでる 🖐️</div></div></div>';
-  // 今日のミッション
+  // きょうのミッション（コンパクトなチップ1行）
   var dm=rpgDailyGet(s);
-  h+='<div class="rpg-mission"><div class="rpg-mission-ttl">📅 きょうのミッション（クリアで pt）</div>';
+  h+='<div class="rpg-dchips"><span class="rpg-dchip-l">🎯 きょう</span>';
   rpgMissions().forEach(function(m){ var cur=Math.min(m.get(dm),m.goal), done=cur>=m.goal;
-    h+='<div class="rpg-mission-row'+(done?' done':'')+'"><span class="rpg-mission-ic">'+(done?'✅':m.icon)+'</span><span class="rpg-mission-tx">'+m.text+'</span><span class="rpg-mission-pg">'+cur+'/'+m.goal+'</span></div>'; });
+    h+='<span class="rpg-dchip'+(done?' done':'')+'" title="'+m.text+'">'+(done?'✅':m.icon)+' '+cur+'/'+m.goal+'</span>'; });
   h+='</div>';
-  var _db=rpgDailyBoxReady();
-  h+='<button class="rpg-dailybox'+(_db?' ready':' done')+'" onclick="rpgOpenDailyBox()"><span class="rpg-db-icon">🎁</span><span class="rpg-db-txt"><b>デイリー宝箱</b><br><small>'+(_db?'きょうの ぶんが あるよ！ タップして あけよう':'また あした あけられるよ')+'</small></span></button>';
+  // クイックタイル（あいぼう / ふくしゅう / ずかん）
+  var pet=s.pet||{stage:0,wins:0,name:''}, pst=Math.min(pet.stage||0,3), pname=pet.name||'あいぼう';
+  var _rc=rpgReviewCount();
+  h+='<div class="rpg-qtiles">'+
+    '<button class="rpg-qtile" onclick="rpgPatPet()"><span class="rpg-qt-ic rpg-qt-pet">'+PET_SVG[pst]+'</span><span class="rpg-qt-l">🐾 '+escapeHtml(pname)+'</span></button>'+
+    '<button class="rpg-qtile'+(_rc>0?' hot':'')+'" onclick="rpgStartReview()"><span class="rpg-qt-em">📕</span><span class="rpg-qt-l">ふくしゅう'+(_rc>0?'<span class="rpg-qt-b">'+_rc+'</span>':'')+'</span></button>'+
+    '<button class="rpg-qtile" onclick="rpgShowDex()"><span class="rpg-qt-em">📖</span><span class="rpg-qt-l">ずかん</span></button>'+
+    '</div>';
   h+='<div class="rpg-world-title">🗺️ どの大陸に 行く？</div>';
   h+='<div class="rpg-continents">';
   RPG_CONTINENTS.forEach(function(area){
@@ -4941,10 +4952,6 @@ function rpgRenderContinents(){
   RPG_CONTINENTS.forEach(function(area){ var w=RPG_WORLD[area]; var got=!!s.crystals[area];
     h+='<div class="rpg-party-mem'+(got?'':' locked')+'" title="'+escapeHtml(w.teacherName)+'先生">'+(got?_charSVG(w.teacher):'<span class="rpg-party-q">？</span>')+'</div>'; });
   h+='</div></div>';
-  // ずかん（あつめたもの）
-  h+='<button class="rpg-dex-btn" onclick="rpgShowDex()">📖 ずかんを見る（モンスター '+Object.keys(s.dex).length+'/'+rpgAllMonsters().length+'・シール '+Object.keys(s.stickers).length+'/'+STICKERS.length+'）</button>';
-  var _rc=rpgReviewCount();
-  h+='<button class="rpg-dex-btn'+(_rc>0?' rpg-review-on':'')+'" onclick="rpgStartReview()">📕 ふくしゅうダンジョン'+(_rc>0?('（のこり '+_rc+'問！ にがてを こくふく）'):'（いまは なし）')+'</button>';
   // 魔王城
   var maouCleared=!!s.cleared['maou'];
   if(maouCleared){

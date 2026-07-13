@@ -1026,10 +1026,82 @@
 
   <!-- 教科選択 -->
   <div id="subject-select-screen">
-    <div id="daily-menu" class="daily-menu"></div>
-    <div class="screen-title">📚 きょうは何をする？　教科をえらぼう</div>
-    <div class="area-grid" id="area-grid"></div>
+    <div id="game-hub" class="game-hub"></div>
   </div>
+
+  <!-- ゲームハブ → 練習/模試の教科えらび -->
+  <div id="subject-pick-screen" style="display:none">
+    <button class="btn-back" onclick="showSubjectSelect()">← ホームへ</button>
+    <div class="screen-title" id="sp-title"></div>
+    <div class="hub-subj-grid" id="sp-grid"></div>
+  </div>
+  <style>
+  /* ===== ゲームホーム ===== */
+  .game-hub{ display:flex; flex-direction:column; gap:14px; }
+  /* プレイヤーストリップ */
+  .hub-player{ display:flex; align-items:center; gap:12px; background:var(--card); border-radius:20px; padding:12px 16px; box-shadow:var(--shadow); }
+  .hub-ava{ width:56px; height:56px; flex:0 0 56px; border-radius:50%; background:linear-gradient(135deg,#e0f2fe,#fce7f3); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .hub-ava svg{ width:88%; height:88%; }
+  .hub-pinfo{ flex:1; min-width:0; }
+  .hub-pname{ font-size:17px; font-weight:800; color:var(--text); }
+  .hub-grade{ font-size:12px; font-weight:700; color:#fff; background:var(--primary-light); border-radius:6px; padding:1px 7px; margin-left:4px; vertical-align:middle; }
+  .hub-chips{ display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; }
+  .hub-chip{ font-size:12px; font-weight:700; color:var(--text); background:var(--card2); border-radius:999px; padding:3px 10px; }
+  .hub-ring{ width:58px; height:58px; flex:0 0 58px; border-radius:50%; background:conic-gradient(#f59e0b calc(var(--p)*1%), #e6f4fc 0); display:flex; align-items:center; justify-content:center; }
+  .hub-ring-in{ width:44px; height:44px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; color:var(--text); }
+  .hub-ring-in small{ font-size:10px; font-weight:600; color:#94a3b8; }
+  /* リボン */
+  .hub-ribbons{ display:flex; gap:8px; flex-wrap:wrap; }
+  .hub-rib{ font-size:12px; font-weight:700; border-radius:999px; padding:5px 12px; }
+  .rib-test{ background:#fef3c7; color:#92400e; }
+  .rib-rew{ background:#fce7f3; color:#9d174d; }
+  /* ヒーローCTA */
+  .hub-hero{ display:flex; flex-direction:column; gap:8px; text-align:left; border:none; cursor:pointer; border-radius:20px; padding:16px 18px; color:#fff; background:linear-gradient(120deg,#0891b2,#6366f1 60%,#db2777); box-shadow:0 8px 22px rgba(99,102,241,.32); }
+  .hub-hero:active{ transform:scale(.985); }
+  .hub-hero-k{ font-size:19px; font-weight:900; display:block; text-shadow:0 1px 3px rgba(0,0,0,.18); }
+  .hub-hero-s{ font-size:12.5px; font-weight:600; opacity:.95; display:block; margin-top:2px; }
+  .hub-hero-bar{ display:block; height:9px; background:rgba(255,255,255,.28); border-radius:6px; overflow:hidden; }
+  .hub-hero-bar i{ display:block; height:100%; background:#fff; border-radius:6px; }
+  /* セクション見出し */
+  .hub-sec{ font-size:14px; font-weight:900; color:var(--text); letter-spacing:.02em; margin:4px 2px -4px; }
+  /* ゲームカードのグリッド */
+  .hub-grid{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+  .hub-card{ position:relative; display:flex; align-items:center; gap:11px; text-align:left; border:none; cursor:pointer; border-radius:18px; padding:14px; min-height:78px; color:#fff; box-shadow:0 5px 14px rgba(15,23,42,.16); transition:transform .12s; overflow:hidden; }
+  .hub-card:active{ transform:scale(.96); }
+  .hub-card-ic{ font-size:30px; flex:0 0 auto; width:46px; height:46px; border-radius:14px; background:rgba(255,255,255,.22); display:flex; align-items:center; justify-content:center; }
+  .hub-card-tx{ display:flex; flex-direction:column; min-width:0; }
+  .hub-card-nm{ font-size:16px; font-weight:900; text-shadow:0 1px 2px rgba(0,0,0,.16); }
+  .hub-card-ds{ font-size:11.5px; font-weight:600; opacity:.95; margin-top:1px; line-height:1.3; }
+  .hub-card.hc-big{ grid-column:1 / -1; min-height:104px; padding:18px; background:linear-gradient(125deg,#7c3aed,#db2777); }
+  .hc-big .hub-card-ic{ font-size:44px; width:64px; height:64px; border-radius:18px; }
+  .hc-big .hub-card-nm{ font-size:22px; }
+  .hc-big .hub-card-ds{ font-size:13px; }
+  .hub-badge{ position:absolute; top:8px; right:9px; min-width:22px; height:22px; padding:0 6px; border-radius:999px; background:#fff; color:#dc2626; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.2); }
+  /* カラーバリエーション */
+  .hc-prac{ background:linear-gradient(135deg,#0891b2,#22d3ee); }
+  .hc-exam{ background:linear-gradient(135deg,#f97316,#ef4444); }
+  .hc-rev{ background:linear-gradient(135deg,#059669,#34d399); }
+  .hc-weak{ background:linear-gradient(135deg,#d97706,#fbbf24); }
+  .hc-hard{ background:linear-gradient(135deg,#dc2626,#fb7185); }
+  .hc-mix{ background:linear-gradient(135deg,#4f46e5,#8b5cf6); }
+  .hc-flash{ background:linear-gradient(135deg,#0284c7,#38bdf8); }
+  .hc-write{ background:linear-gradient(135deg,#db2777,#f472b6); }
+  .hc-note{ background:linear-gradient(135deg,#0f766e,#14b8a6); }
+  /* 教科えらび（練習/模試） */
+  .hub-subj-grid{ display:flex; flex-direction:column; gap:11px; max-width:560px; margin:0 auto; }
+  .hub-subj{ display:flex; align-items:center; gap:13px; text-align:left; border:none; cursor:pointer; border-radius:16px; padding:14px 16px; background:var(--card); box-shadow:var(--shadow); transition:transform .12s; }
+  .hub-subj:active{ transform:scale(.98); }
+  .hub-subj-ic{ font-size:32px; flex:0 0 auto; width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:var(--card2); }
+  .hub-subj-tx{ flex:1; min-width:0; }
+  .hub-subj-nm{ font-size:18px; font-weight:900; color:var(--text); display:block; }
+  .hub-subj-ds{ font-size:12px; font-weight:600; color:#64748b; display:block; margin-top:1px; }
+  .hub-subj-go{ font-size:13px; font-weight:900; color:#fff; border-radius:999px; padding:6px 13px; white-space:nowrap; }
+  .hs-prac .hub-subj-go{ background:linear-gradient(135deg,#0891b2,#22d3ee); }
+  .hs-exam .hub-subj-go{ background:linear-gradient(135deg,#f97316,#ef4444); }
+  .hs-prac .hub-subj-ic{ background:#e0f7fa; }
+  .hs-exam .hub-subj-ic{ background:#fff1e6; }
+  @media (max-width:380px){ .hub-grid{ gap:9px; } .hub-card{ padding:12px; min-height:72px; } .hub-card-ic{ font-size:26px; width:42px; height:42px; } .hub-card-nm{ font-size:15px; } }
+  </style>
 
   <!-- モード選択 -->
   <div id="mode-select-screen" style="display:none">
@@ -1861,7 +1933,7 @@ function init() {
   applyTheme(); applyFontSize();
   updateScoreBar();
   // 読み変換エンジン(kuromoji)は起動後に遅延ロード（初期表示を軽くする）
-  renderAreaGrid();
+  renderGameHub();
   renderSubjects();
   renderVoiceSettings();
   try{ if('speechSynthesis' in window){ window.speechSynthesis.onvoiceschanged=function(){ try{ ttsPopulateVoices(); }catch(e){} }; } }catch(e){}
@@ -2254,7 +2326,7 @@ function muLoadUserData(){
   try{ updateScoreBar(); }catch(e){}
   try{ renderDailyRing(); }catch(e){}
   try{ updateNbBadge(); }catch(e){}
-  try{ renderAreaGrid(); }catch(e){}
+  try{ renderGameHub(); }catch(e){}
 }
 function muGreetAndEnter(){
   var u=muCurrentUser(); var nm=u?u.name:'';
@@ -3152,7 +3224,7 @@ function _rankCheckMilestone(cumTotal){
   try{ showToast(boss.emoji,'家族で魔王を討伐！', boss.name+' をたおした！（通算 '+cumTotal+'問 達成）', 6500); }catch(e){}
 }
 function hideMainScreens(){
-  ['subject-select-screen','mode-select-screen','level-select-screen','home-screen','quiz-screen','exam-result-screen','records-screen','roadmap-screen','mistakes-screen','characters-screen','flashcards-screen','study-notes-screen','write-screen','paper-screen','rpg-screen','ranking-screen'].forEach(id=>{
+  ['subject-select-screen','subject-pick-screen','mode-select-screen','level-select-screen','home-screen','quiz-screen','exam-result-screen','records-screen','roadmap-screen','mistakes-screen','characters-screen','flashcards-screen','study-notes-screen','write-screen','paper-screen','rpg-screen','ranking-screen'].forEach(id=>{
     const e=document.getElementById(id); if(e) e.style.display='none';
   });
   const r=document.getElementById('result-screen'); if(r) r.classList.remove('active');
@@ -3276,9 +3348,9 @@ function showSubjectSelect(){
   stopExamTimer(); isExam=false; rpgBattle=null; rpgHideBattle();
   hideMainScreens();
   document.getElementById('subject-select-screen').style.display='block';
-  renderDailyMenu();
+  renderGameHub();
   setCharacter('owl');
-  setLunaText('きょうは何をする？　教科をえらんでね🌺');
+  setLunaText('きょうは何して あそぶ？🎮');
 }
 // 問題の途中から最初の画面（教科えらび）へ戻る（確認つき）
 function goToStartScreen(){
@@ -3298,6 +3370,92 @@ function selectArea(key){
   setLunaText(msg); speak(msg);
 }
 function backToSubjects(){ showSubjectSelect(); }
+
+// ===== ゲームホーム（キャラ選択後のメインメニュー：すべてゲーム形式）=====
+function hubCard(cls, icon, name, desc, onclick, big, badge){
+  return '<button class="hub-card hc-'+cls+(big?' hc-big':'')+'" onclick="'+onclick+'">'+
+    (badge? '<span class="hub-badge">'+badge+'</span>':'')+
+    '<span class="hub-card-ic">'+icon+'</span>'+
+    '<span class="hub-card-tx"><span class="hub-card-nm">'+name+'</span>'+
+    '<span class="hub-card-ds">'+desc+'</span></span></button>';
+}
+function renderGameHub(){
+  var host=document.getElementById('game-hub'); if(!host) return;
+  var u=(typeof muCurrentUser==='function' && muCurrentUser())||{};
+  var name=u.name||'きみ';
+  var grade=''; try{ grade=muGradeLabel(muGradeLevel(u)); }catch(e){}
+  var lv=1; try{ lv=(rpgState().level)||1; }catch(e){}
+  var st=0; try{ st=currentStreak(); }catch(e){}
+  var pts=totalPoints||0;
+  var goal=getDailyGoal(), cnt=getDailyProg().count, pct=Math.min(100,Math.round(cnt/goal*100));
+  var due=0; try{ due=dueCount(); }catch(e){}
+  var nb=0; try{ nb=getMistakes().length; }catch(e){}
+  var td=null; try{ td=daysUntilTest(); }catch(e){}
+  var rw=lsGetJSON('reward',null);
+  var avatar=''; try{ avatar=_charSVG(u.char||currentChar||'shiba'); }catch(e){}
+  var rec = nb>0 ? ('まちがい直し '+nb+'問' ) : 'おまかせ10問';
+  var h='';
+  // プレイヤーストリップ
+  h+='<div class="hub-player">'+
+     '<div class="hub-ava">'+avatar+'</div>'+
+     '<div class="hub-pinfo"><div class="hub-pname">'+escapeHtml(name)+(grade?' <span class="hub-grade">'+grade+'</span>':'')+'</div>'+
+     '<div class="hub-chips"><span class="hub-chip">⭐ '+pts+'</span><span class="hub-chip">🔥 '+st+'日</span><span class="hub-chip">Lv '+lv+'</span></div></div>'+
+     '<div class="hub-ring" style="--p:'+pct+'"><div class="hub-ring-in">'+cnt+'<small>/'+goal+'</small></div></div>'+
+     '</div>';
+  // リボン（テスト・ごほうび）
+  var rib='';
+  if(td!==null) rib+='<span class="hub-rib rib-test">📅 テストまで '+(td<0?'おわり':'あと<b>'+td+'</b>日')+'</span>';
+  if(rw){ rib+='<span class="hub-rib rib-rew">🎁 '+escapeHtml(rw.text)+' '+pts+'/'+rw.points+'pt</span>'; }
+  if(rib) h+='<div class="hub-ribbons">'+rib+'</div>';
+  // 今日のおすすめ（ヒーローCTA）
+  h+='<button class="hub-hero" onclick="startRecommended()">'+
+     '<span class="hub-hero-tx"><span class="hub-hero-k">▶ きょうの学習をはじめる</span>'+
+     '<span class="hub-hero-s">'+escapeHtml(rec)+'　今日 '+cnt+'/'+goal+'問</span></span>'+
+     '<span class="hub-hero-bar"><i style="width:'+pct+'%"></i></span></button>';
+  // ゲームメニュー
+  h+='<div class="hub-sec">🎮 あそんで まなぶ</div>';
+  h+='<div class="hub-grid">';
+  h+= hubCard('adv','🗡️','ぼうけん','RPGで偏差値65をめざす','showRpg()', true);
+  h+= hubCard('prac','✏️','れんしゅう','教科をえらんで10問','hubPickSubject(\'practice\')');
+  h+= hubCard('exam','⏱️','模試チャレンジ','本番形式で力だめし','hubPickSubject(\'exam\')');
+  h+= hubCard('rev','🔁','ふくしゅう', due>0?('たまってる '+due+'問！'):'今日のふくしゅう','startReviewDue()', false, due>0?due:0);
+  h+= hubCard('weak','💪','にがて克服','苦手を集中とっくん','startWeaknessDrill()');
+  h+= hubCard('hard','🔥','難問チャレンジ','むずかしい問題に挑戦','startHardChallenge()');
+  h+= hubCard('mix','🔀','ミックス演習','全教科ごちゃまぜ','startMixedPractice()');
+  h+= hubCard('flash','🃏','暗記カード','サッとおぼえる','showFlashcards()');
+  h+= hubCard('write','✍️','記述問題','説明する力をつける','showWrite()');
+  h+= hubCard('note','📖','まとめ','要点・公式集を見る','showStudyNotes()');
+  h+='</div>';
+  host.innerHTML=h;
+}
+// 練習/模試の教科えらび（ゲームハブから）
+var _hubIntent='practice';
+function hubPickSubject(intent){
+  _hubIntent=intent||'practice';
+  stopExamTimer(); isExam=false;
+  hideMainScreens();
+  document.getElementById('subject-pick-screen').style.display='block';
+  renderSubjectPick();
+  setCharacter('owl');
+}
+function renderSubjectPick(){
+  var grid=document.getElementById('sp-grid'); if(!grid) return;
+  var exam=_hubIntent==='exam';
+  document.getElementById('sp-title').textContent = exam? '⏱️ 模試チャレンジ｜どの教科でためす？' : '✏️ れんしゅう｜どの教科をやる？';
+  var h='';
+  AREAS.forEach(function(a){
+    h+='<button class="hub-subj hs-'+(exam?'exam':'prac')+'" onclick="'+(exam?'hubExam':'hubPractice')+'(\''+a.key+'\')">'+
+       '<span class="hub-subj-ic">'+a.icon+'</span>'+
+       '<span class="hub-subj-tx"><span class="hub-subj-nm">'+a.name+'</span>'+
+       '<span class="hub-subj-ds">'+a.sub+'</span></span>'+
+       '<span class="hub-subj-go">'+(exam?'ためす ▶':'やる ▶')+'</span></button>';
+  });
+  grid.innerHTML=h;
+  var msg=exam? 'どの教科で 力だめしする？' : 'どの教科を れんしゅうする？';
+  setLunaText(msg);
+}
+function hubPractice(area){ currentArea=area; try{ setCharacter(areaCharOf(area)); }catch(e){} chooseMode('practice'); }
+function hubExam(area){ currentArea=area; try{ setCharacter(areaCharOf(area)); }catch(e){} chooseMode('exam'); }
 // ===== キャラクター紹介 =====
 /* CHAR_INFO は js/ui-data.js へ分離 */
 function showCharacters(){

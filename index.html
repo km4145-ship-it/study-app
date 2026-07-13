@@ -240,6 +240,11 @@
 .feedback.wrong .explain-box {
   border-left-color: #fca5a5;
 }
+/* まちがい→その場で類題リベンジ */
+.revenge-banner{ margin:6px 0 8px; padding:8px 12px; border-radius:12px; background:#fff7ed; border:2px solid #fb923c; color:#c2410c; font-size:13.5px; font-weight:800; animation:revPulse 1.4s ease infinite; }
+@keyframes revPulse{ 50%{ box-shadow:0 0 12px rgba(251,146,60,.55); } }
+.revenge-note{ margin-top:8px; padding:7px 10px; border-radius:10px; background:#fff7ed; border:1.5px dashed #fb923c; color:#c2410c; font-size:13px; font-weight:800; }
+body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(251,146,60,.15); }
 .feedback.correct { display: block; background: rgba(16,185,129,0.12); border: 1px solid var(--success); color: var(--success); }
   .feedback.wrong { display: block; background: rgba(239,68,68,0.1); border: 1px solid var(--error); color: var(--error); }
   .btn-next { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--gold), #f97316); border: none; border-radius: 12px; color: #000; font-size: 0.96rem; font-weight: 700; cursor: pointer; display: none; transition: all 0.2s; }
@@ -1188,6 +1193,7 @@
         <div class="quiz-progress" id="quiz-progress">1 / 6</div>
       </div>
       <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="revenge-banner" id="revenge-banner" style="display:none">🔥 リベンジ！ さっきと にた問題だよ。今度は とけるかな？</div>
       <div class="passage-area" id="passage-area" style="display:none"></div>
       <div class="question-text" id="question-text"></div>
       <div class="question-sub" id="question-sub"></div>
@@ -3084,11 +3090,43 @@ function startSubject(subjectId) {
 }
 
   // furigana.js へ分離
+// ===== まちがい→その場で類題リベンジ =====
+// まちがえた直後に「同じサブ単元の別問題」を1問さしこんで、すぐ解き直させる（定着の要）。
+// 調達：①ジェネレータで同subを再抽選（数値ちがいの類題） ②固定バンク(BANK/QUESTIONS)から同subの別問題
+var _revengeCount = 0;   // 1セッションの挿入回数（3回まで＝セッションが長くなりすぎない）
+function _revBaseSub(sub){ return String(sub||'').replace(/[（(][^）)]*[）)]\s*$/,''); }   // 「合成抵抗（並列・図）」→「合成抵抗」
+function findSimilarQuestion(q){
+  if(!q || !q.sub) return null;
+  var area = q.area || currentArea || 'math';
+  var base = _revBaseSub(q.sub), nearGen = null;
+  // ① ジェネレータ再抽選（1回は軽い計算なので回数で押す。基本単元だけ一致する候補も拾っておく）
+  for(var i=0;i<300;i++){
+    var c=null; try{ c=genQuestion(area); }catch(e){ break; }
+    if(!c || c.q===q.q) continue;
+    if(c.sub===q.sub) return c;
+    if(!nearGen && base && _revBaseSub(c.sub)===base) nearGen=c;
+  }
+  // ② 固定問題バンクから同じサブ単元（だめなら基本単元一致）の別問題
+  var pools=[];
+  try{ if(typeof BANK!=='undefined' && BANK[area]){ pools.push(BANK[area].practice||[]); pools.push(BANK[area].exam||[]); } }catch(e){}
+  try{ if(typeof QUESTIONS!=='undefined'){ Object.keys(QUESTIONS).forEach(function(k){ var u=QUESTIONS[k]; var arr=Array.isArray(u)?u:((u&&u.questions)||[]); pools.push(arr); }); } }catch(e){}
+  var cand=[], near=[];
+  pools.forEach(function(arr){ arr.forEach(function(it){ if(!it || it.q===q.q) return;
+    if(it.sub===q.sub) cand.push(it);
+    else if(base && _revBaseSub(it.sub)===base) near.push(it); }); });
+  if(cand.length) return Object.assign({}, cand[Math.floor(Math.random()*cand.length)]);
+  if(nearGen) return nearGen;                                        // ③ 基本単元一致（例：直列⇔並列の合成抵抗）
+  if(near.length) return Object.assign({}, near[Math.floor(Math.random()*near.length)]);
+  return null;
+}
+
 function showQuestion(skipSpeak) {
   if (currentIndex >= currentQuestions.length) { if (isExam) { finishExam(); } else if (isMistakePractice) { endMistakePractice(); } else { showResult(); } return; }
   const q = currentQuestions[currentIndex];
   try{ hideTabbar(); }catch(e){}   // 問題中は下タブを隠して集中（結果/ホームで再表示）
   answered = false;
+  if (currentIndex === 0) _revengeCount = 0;   // セッション開始でリベンジ回数をリセット
+  var _rvb=document.getElementById('revenge-banner'); if(_rvb) _rvb.style.display = q._revenge ? 'block' : 'none';
 
   document.getElementById('quiz-progress').textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
   document.getElementById('progress-fill').style.width = (currentIndex / currentQuestions.length * 100) + '%';
@@ -3195,6 +3233,10 @@ function handleAnswer(correct, correctAns) {
     feedback.className = 'feedback correct';
     const explainTextC = (currentQuestions[currentIndex] && currentQuestions[currentIndex].explain) ? currentQuestions[currentIndex].explain : '';
     feedback.innerHTML = msg + (totalStreak >= 3 ? ` 🔥${totalStreak}連続！ボーナス+${bonus}ポイント！` : ` ✨+${bonus}ポイント！`) + (explainTextC ? `<br><div class="explain-box">${explainTextC.replace(/\n/g,'<br>')}</div>` : '');
+    if (currentQuestions[currentIndex] && currentQuestions[currentIndex]._revenge) {   // リベンジ成功は特別にほめる
+      feedback.innerHTML = '<div style="font-size:1.1em">🔥 リベンジ せいこう！！ にがてを ひとつ たおしたね！</div>' + feedback.innerHTML;
+      confetti();
+    }
     if (totalStreak >= 3) confetti();
   } else {
     totalStreak = 0;
@@ -3214,6 +3256,17 @@ function handleAnswer(correct, correctAns) {
   }
   feedback.innerHTML += `<div class="q-time">⏱ ${Math.round(lastQSec)}秒でこたえたよ</div>`;
   if(!correct){ feedback.innerHTML += '<div class="careless-ask" id="careless-ask">今のミスは？ <button class="cl-b" onclick="classifyMistake(\'careless\')">うっかり</button> <button class="cl-b" onclick="classifyMistake(\'unknown\')">わからなかった</button></div>'; }
+  // まちがい→その場で類題リベンジ（練習のみ。模試/バトル/まちがい直しは除外・1問1回・1セッション3回まで）
+  if(!correct && !isExam && !rpgBattle && !isMistakePractice
+     && currentQuestions[currentIndex] && !currentQuestions[currentIndex]._revenge && _revengeCount<3){
+    var _rq=null; try{ _rq=findSimilarQuestion(currentQuestions[currentIndex]); }catch(e){}
+    if(_rq){
+      _rq=Object.assign({}, _rq, {_revenge:1});
+      currentQuestions.splice(currentIndex+1, 0, _rq);
+      _revengeCount++;
+      feedback.innerHTML += '<div class="revenge-note">🔥 つぎは にた問題で リベンジだ！ かいせつを 読んでから すすもう</div>';
+    }
+  }
   if (correct && totalStreak > bestStreak) { bestStreak = totalStreak; safeLS.setItem('c_beststreak', bestStreak); }
   updateScoreBar();
   saveStats();

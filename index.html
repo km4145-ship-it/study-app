@@ -983,15 +983,8 @@
 <div class="container">
 
   <div class="topnav" id="topnav">
-    <span class="nav-title" onclick="goHome()">📚 小中学生学習アプリ</span>
-    <button class="nav-btn" onclick="goHome()" title="学習（教科えらび・問題へ）">🏠 学習</button>
-    <button class="nav-btn" onclick="showStudyNotes()" title="要点まとめ・公式集">📖 学ぶ</button>
-    <button class="nav-btn" onclick="showRecords()" title="学習記録">📊 記録</button>
-    <button class="nav-btn" onclick="showRoadmap()" title="偏差値65ロードマップ">🗺️ 計画</button>
-    <button class="nav-btn" onclick="showMistakes()" title="まちがいノート">📕 ノート<span class="nb-badge" id="nb-badge" style="display:none">0</span></button>
-    <button class="nav-btn" onclick="showCharacters()" title="キャラクター紹介">🐾 キャラ</button>
-    <button class="nav-btn nav-rpg" onclick="showRpg()" title="冒険モード（RPGで偏差値65をめざす）">🗡️ 冒険</button>
-    <button class="nav-btn" onclick="showRanking()" title="家族ランキング（兄弟で競う・協力）">🏆 家族</button>
+    <span class="nav-title" onclick="muNav('home')">📚 小中学生学習アプリ</span>
+    <span class="nb-badge" id="nb-badge" style="display:none">0</span>
     <button class="nav-btn" onclick="muShowPicker()" title="ユーザー切替">👤 <span id="mu-current-name">ユーザー</span></button>
     <button class="nav-btn" id="nav-settings-btn" onclick="openSettings()" title="設定" aria-label="設定">⚙️</button>
   </div>
@@ -1677,8 +1670,14 @@
 
   <!-- 学習記録 -->
   <div id="records-screen" style="display:none">
-    <button class="btn-back" onclick="backToSubjects()">← もどる</button>
-    <div class="screen-title">📊 学習記録</div>
+    <div class="screen-title">📊 きろく</div>
+    <div class="rec-hub">
+      <button class="rec-hub-btn" onclick="showRanking()"><span>🏆</span>家族ランキング</button>
+      <button class="rec-hub-btn" onclick="showRoadmap()"><span>🗺️</span>計画</button>
+      <button class="rec-hub-btn" onclick="showMistakes()"><span>📕</span>まちがいノート</button>
+      <button class="rec-hub-btn" onclick="showCharacters()"><span>🐾</span>キャラ紹介</button>
+      <button class="rec-hub-btn" onclick="showStudyNotes()"><span>📖</span>まとめ・公式</button>
+    </div>
     <div class="rec-summary" id="rec-summary"></div>
     <div class="rec-sec-title">📆 今週のまとめ</div>
     <div id="rec-week"></div>
@@ -1799,6 +1798,53 @@
   </div>
 
 </div>
+
+<!-- ボトムタブ（メインメニュー：常設・親指の届く下部） -->
+<nav id="mu-tabbar" class="mu-tabbar" aria-label="メインメニュー">
+  <button class="mu-tab" data-tab="home" onclick="muNav('home')" aria-label="ホーム"><span class="mt-i">🏠</span><span class="mt-l">ホーム</span></button>
+  <button class="mu-tab mt-adv" data-tab="adv" onclick="muNav('adv')" aria-label="ぼうけん"><span class="mt-i">🗡️</span><span class="mt-l">ぼうけん</span></button>
+  <button class="mu-tab mt-gacha" data-tab="gacha" onclick="muNav('gacha')" aria-label="ガチャ"><span class="mt-i">🎁</span><span class="mt-l">ガチャ</span></button>
+  <button class="mu-tab mt-dress" data-tab="dress" onclick="muNav('dress')" aria-label="きせかえ"><span class="mt-i">👕</span><span class="mt-l">きせかえ</span></button>
+  <button class="mu-tab" data-tab="rec" onclick="muNav('rec')" aria-label="きろく"><span class="mt-i">📊</span><span class="mt-l">きろく</span></button>
+</nav>
+<style>
+  .mu-tabbar{ position:fixed; left:0; right:0; bottom:0; z-index:900; display:flex; gap:2px;
+    background:rgba(255,255,255,.97); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+    border-top:1px solid #dcecf3; padding:5px 4px calc(6px + env(safe-area-inset-bottom));
+    box-shadow:0 -5px 18px rgba(8,110,140,.12); }
+  .mu-tabbar.mu-hidden{ display:none; }
+  .mu-tab{ flex:1; border:none; background:none; font-family:inherit; cursor:pointer; display:flex;
+    flex-direction:column; align-items:center; gap:2px; padding:5px 2px; min-height:54px; color:#5a7883;
+    border-radius:13px; transition:color .15s, background .15s; }
+  .mu-tab:active{ background:#eef6fa; }
+  .mt-i{ font-size:23px; line-height:1; transition:transform .15s; }
+  .mt-l{ font-size:10.5px; font-weight:800; }
+  .mu-tab.on{ color:#0e7490; } .mu-tab.on .mt-i{ transform:translateY(-2px) scale(1.06); }
+  .mu-tab.mt-adv.on{ color:#7c3aed; } .mu-tab.mt-gacha.on{ color:#db2777; } .mu-tab.mt-dress.on{ color:#f97316; }
+  .container{ padding-bottom:80px; }
+  body.rpg-mode .mu-tabbar{ box-shadow:0 -5px 18px rgba(0,0,0,.25); }
+  /* 🎁 ガチャタブ */
+  .gc-free{ display:flex; align-items:center; gap:11px; width:100%; font-family:inherit; cursor:pointer;
+    background:linear-gradient(135deg,#fef3c7,#fff); border:2px solid #fcd34d; border-radius:16px; padding:13px 15px; margin-top:10px; box-shadow:0 4px 12px rgba(217,119,6,.18); text-align:left; }
+  .gc-free.done{ background:#f1f5f9; border-color:#e2e8f0; opacity:.9; }
+  .gc-free-ic{ font-size:32px; } .gc-free-tx{ flex:1; color:#7c4a03; font-size:12px; } .gc-free-tx b{ font-size:15px; color:#92400e; }
+  .gc-free-go{ background:#f59e0b; color:#fff; border-radius:999px; padding:8px 16px; font-weight:900; font-size:13px; white-space:nowrap; }
+  .gc-free.done .gc-free-go{ background:#94a3b8; }
+  .gc-pulls{ display:flex; gap:10px; margin-top:11px; }
+  .gc-pull{ flex:1; border:none; font-family:inherit; cursor:pointer; border-radius:16px; padding:16px 10px; color:#fff; display:flex; flex-direction:column; align-items:center; gap:3px; box-shadow:0 5px 14px rgba(15,23,42,.16); }
+  .gc-pull.one{ background:linear-gradient(135deg,#0891b2,#22d3ee); } .gc-pull.ten{ background:linear-gradient(135deg,#7c3aed,#db2777); }
+  .gc-pt{ font-size:16px; font-weight:900; text-shadow:0 1px 2px rgba(0,0,0,.15); } .gc-pp{ font-size:12px; font-weight:800; opacity:.96; }
+  .gc-pity{ margin-top:13px; background:#fff; border-radius:14px; padding:12px 15px; box-shadow:0 4px 12px rgba(8,110,140,.12); }
+  .gc-pity-l{ display:flex; justify-content:space-between; font-size:12.5px; font-weight:800; color:#0e3a4d; }
+  .gc-pity-b{ height:9px; background:#eee6fb; border-radius:5px; overflow:hidden; margin-top:6px; }
+  .gc-pity-b i{ display:block; height:100%; background:linear-gradient(90deg,#a78bfa,#7c3aed); }
+  /* 📊 きろくハブ行 */
+  .rec-hub{ display:flex; gap:8px; overflow-x:auto; padding:2px 2px 8px; margin-bottom:6px; -webkit-overflow-scrolling:touch; }
+  .rec-hub::-webkit-scrollbar{ height:0; }
+  .rec-hub-btn{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:3px; border:1px solid #dcecf3; background:#fff; font-family:inherit; cursor:pointer; border-radius:14px; padding:9px 13px; font-size:11.5px; font-weight:800; color:#0e3a4d; box-shadow:0 3px 9px rgba(8,110,140,.1); white-space:nowrap; }
+  .rec-hub-btn span{ font-size:21px; }
+  .rec-hub-btn:active{ transform:scale(.96); }
+</style>
 
 <!-- 日本語形態素解析（漢字→正しい読み）用ライブラリ -->
 <!-- kuromoji(漢字読み)は一時無効化：確実な読み込みを最優先 -->
@@ -2252,7 +2298,7 @@ async function muPickUser(id){
     muGreetAndEnter();
   } finally { _muPicking=false; }
 }
-function muShowPicker(){ renderUserSelect(); var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='flex';
+function muShowPicker(){ try{ hideTabbar(); }catch(e){} renderUserSelect(); var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='flex';
   // ユーザー一覧をクラウドの最新に更新（新しい端末でも家族全員が表示される）
   if(window.cloudPullShared){
     muPickerStatus('☁️ ユーザー一覧を更新中…');
@@ -2327,6 +2373,7 @@ function muLoadUserData(){
   try{ renderDailyRing(); }catch(e){}
   try{ updateNbBadge(); }catch(e){}
   try{ renderGameHub(); }catch(e){}
+  try{ setActiveTab('home'); }catch(e){}
 }
 function muGreetAndEnter(){
   var u=muCurrentUser(); var nm=u?u.name:'';
@@ -2774,6 +2821,7 @@ function startSubject(subjectId) {
 function showQuestion(skipSpeak) {
   if (currentIndex >= currentQuestions.length) { if (isExam) { finishExam(); } else if (isMistakePractice) { endMistakePractice(); } else { showResult(); } return; }
   const q = currentQuestions[currentIndex];
+  try{ hideTabbar(); }catch(e){}   // 問題中は下タブを隠して集中（結果/ホームで再表示）
   answered = false;
 
   document.getElementById('quiz-progress').textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
@@ -2926,6 +2974,7 @@ function showHint(){
 
 function showResult() {
   if(rpgBattle){ rpgShowResult(); return; }
+  try{ setActiveTab(); }catch(e){}   // 結果画面では下タブを再表示
   document.getElementById('quiz-screen').style.display = 'none';
   const result = document.getElementById('result-screen');
   result.classList.add('active');
@@ -3269,6 +3318,7 @@ function computeStreak(log){
 function showRecords(){
   stopExamTimer(); isExam=false;
   hideMainScreens();
+  setActiveTab('rec');
   document.getElementById('records-screen').style.display='block';
   setCharacter('owl');
   setLunaText('これまでのがんばりを見てみよう📊');
@@ -3349,6 +3399,7 @@ function showSubjectSelect(){
   hideMainScreens();
   document.getElementById('subject-select-screen').style.display='block';
   renderGameHub();
+  setActiveTab('home');
   setCharacter('owl');
   setLunaText('きょうは何して あそぶ？🎮');
 }
@@ -3370,6 +3421,24 @@ function selectArea(key){
   setLunaText(msg); speak(msg);
 }
 function backToSubjects(){ showSubjectSelect(); }
+
+// ===== ボトムタブのナビ（メインメニュー：ホーム/ぼうけん/ガチャ/きせかえ/きろく）=====
+var _navTab='home';
+function muNav(dest){
+  if(dest==='home') showSubjectSelect();
+  else if(dest==='adv') showRpg();
+  else if(dest==='gacha') showGacha();
+  else if(dest==='dress') showCosmetics();
+  else if(dest==='rec') showRecords();
+  setActiveTab(dest);
+}
+function setActiveTab(dest){
+  if(dest) _navTab=dest;
+  var bar=document.getElementById('mu-tabbar'); if(bar) bar.classList.remove('mu-hidden');
+  var tabs=document.querySelectorAll('.mu-tab');
+  for(var i=0;i<tabs.length;i++){ tabs[i].classList.toggle('on', tabs[i].getAttribute('data-tab')===_navTab); }
+}
+function hideTabbar(){ var bar=document.getElementById('mu-tabbar'); if(bar) bar.classList.add('mu-hidden'); }
 
 // ===== ゲームホーム（キャラ選択後のメインメニュー：すべてゲーム形式）=====
 function hubCard(cls, icon, name, desc, onclick, big, badge){
@@ -3968,6 +4037,7 @@ function recentHensachiStats(area, includeH){
 /* judgeOf は js/scoring.js へ分離 */
 function showExamResult(){
   hideMainScreens();
+  try{ setActiveTab(); }catch(e){}   // 結果画面では下タブを再表示
   document.getElementById('exam-result-screen').style.display='block';
   const _rmPrevH = rmHensachi(currentArea);
   const total=examQuestions.length;
@@ -4781,6 +4851,7 @@ function rpgStoryAdvance(){
 function showRpg(){
   rpgBattle=null; rpgHideBattle();
   hideMainScreens();
+  setActiveTab('adv');
   document.getElementById('rpg-screen').style.display='block';
   document.body.classList.add('rpg-mode');
   document.getElementById('rpg-result-view').style.display='none';
@@ -4872,7 +4943,6 @@ function rpgRenderContinents(){
   h+='</div></div>';
   // ずかん（あつめたもの）
   h+='<button class="rpg-dex-btn" onclick="rpgShowDex()">📖 ずかんを見る（モンスター '+Object.keys(s.dex).length+'/'+rpgAllMonsters().length+'・シール '+Object.keys(s.stickers).length+'/'+STICKERS.length+'）</button>';
-  h+='<button class="rpg-dex-btn" onclick="rpgShowCosmetics()">👕 きせかえショップ（もっている 🪙'+rpgCoin()+' コイン）</button>';
   var _rc=rpgReviewCount();
   h+='<button class="rpg-dex-btn'+(_rc>0?' rpg-review-on':'')+'" onclick="rpgStartReview()">📕 ふくしゅうダンジョン'+(_rc>0?('（のこり '+_rc+'問！ にがてを こくふく）'):'（いまは なし）')+'</button>';
   // 魔王城
@@ -5020,19 +5090,42 @@ function rpgGacha10Reveal(outs){
   try{ sfx(best>=2?'fanfare':'crystal'); vibe(best>=2?[20,40,20,40,90]:20); confetti(); if(best>=3){ setTimeout(confetti,300); setTimeout(confetti,600); } }catch(e){}
 }
 function rpgGachaClose(){ var ov=document.getElementById('rpg-gacha-ov'); if(ov){ ov.classList.remove('open','g10'); ov.style.display='none'; } try{ if(document.body.classList.contains('rpg-mode')) rpgShowCosmetics(); }catch(e){} try{ rpgAnnounceCollect(); }catch(e){} }
-function rpgShowCosmetics(){
+// 🎁 ガチャ（宝箱ガチャ専用タブ）
+function showGacha(){
   try{ sfx('click'); }catch(e){}
   rpgBattle=null; rpgHideBattle(); hideMainScreens();
   document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
   document.getElementById('rpg-result-view').style.display='none';
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
+  setActiveTab('gacha');
   var s=rpgState(), cos=rpgCosState(s);
-  var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
-  h+='<div class="rpg-world-title">👕 きせかえショップ</div>';
-  h+='<div class="rpg-coin-bar">🪙 もっているコイン：<b>'+cos.coin+'</b>　<span class="rpg-coin-hint">バトルにかつと コインがたまるよ</span></div>';
-  h+='<div class="rpg-gacha-bar"><div class="rpg-gacha-bar-l"><b>🎁 たからばこガチャ</b><br><span class="rpg-coin-hint">チケット '+(cos.tickets||0)+'まい ・ なければ 🪙40 ／ 10れん 🪙320（スペシャル1つ かくてい）</span></div>'+
-     '<div class="rpg-gacha-btns"><button class="rpg-gacha-btn" onclick="rpgGachaDraw()">'+((cos.tickets||0)>0?'ひく（チケット）':'ひく（🪙40）')+'</button>'+
-     '<button class="rpg-gacha-btn g10" onclick="rpgGachaDraw10()">10れん（🪙320）</button></div></div>';
+  var tickets=cos.tickets||0, pity=cos.pity||0, pmax=(typeof GACHA_PITY_MAX!=='undefined'?GACHA_PITY_MAX:60);
+  var ppct=Math.min(100,Math.round(pity/Math.max(1,pmax)*100));
+  var box=false; try{ box=rpgDailyBoxReady(); }catch(e){}
+  var h='<div class="rpg-world-title">🎁 たからばこガチャ</div>';
+  h+='<div class="rpg-coin-bar">🪙 コイン：<b>'+cos.coin+'</b>　🎫 チケット：<b>'+tickets+'</b>　<span class="rpg-coin-hint">バトルに かつと コインがたまる</span></div>';
+  h+='<button class="gc-free'+(box?' ready':' done')+'" onclick="rpgOpenDailyBox()"><span class="gc-free-ic">📦</span><span class="gc-free-tx"><b>きょうの 無料ガチャ</b><br><small>'+(box?'1日1回 タダで ひける！ タップして あけよう':'また あした ひけるよ')+'</small></span><span class="gc-free-go">'+(box?'ひく':'✓')+'</span></button>';
+  h+='<div class="gc-pulls">'+
+     '<button class="gc-pull one" onclick="rpgGachaDraw()"><span class="gc-pt">1回 ひく</span><span class="gc-pp">'+(tickets>0?'🎫 チケット1まい':'🪙 40')+'</span></button>'+
+     '<button class="gc-pull ten" onclick="rpgGachaDraw10()"><span class="gc-pt">10回 ひく</span><span class="gc-pp">🪙 320 ・ スペシャル確定</span></button>'+
+     '</div>';
+  h+='<div class="gc-pity"><div class="gc-pity-l"><span>💫 天井（UR確定）まで</span><span>'+pity+' / '+pmax+'</span></div><div class="gc-pity-b"><i style="width:'+ppct+'%"></i></div></div>';
+  h+='<div class="rpg-map-hint">出たアイテムは「👕 きせかえ」タブで そうびできるよ。ダブりは コインに かわる。</div>';
+  mv.innerHTML=h;
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+}
+function rpgShowCosmetics(){ showCosmetics(); }   // 旧名の互換エイリアス
+// 👕 きせかえ（着せ替え専用タブ。ガチャは「🎁ガチャ」タブへ分離）
+function showCosmetics(){
+  try{ sfx('click'); }catch(e){}
+  rpgBattle=null; rpgHideBattle(); hideMainScreens();
+  document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
+  document.getElementById('rpg-result-view').style.display='none';
+  var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
+  setActiveTab('dress');
+  var s=rpgState(), cos=rpgCosState(s);
+  var h='<div class="rpg-world-title">👕 きせかえ</div>';
+  h+='<div class="rpg-coin-bar">🪙 もっているコイン：<b>'+cos.coin+'</b>　<span class="rpg-coin-hint">あたらしい着せ替えは「🎁ガチャ」タブで あつめよう</span></div>';
   // 今のすがた プレビュー
   h+='<div class="rpg-cos-preview">'+
      '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><span>ゆうしゃ</span></div>'+
@@ -5162,6 +5255,7 @@ function rpgBeginBattle(area, ci, ni){
   rpgShowBattle();
 }
 function rpgShowBattle(){
+  try{ hideTabbar(); }catch(e){}   // バトル中は下タブを隠す
   var st=document.getElementById('rpg-stage'); if(st) st.style.display='block';
   document.getElementById('rpg-enemy-sprite').innerHTML=RPG_SVG[rpgBattle.node.mon]||'👾';
   document.getElementById('rpg-enemy-name').textContent=rpgBattle.node.name;

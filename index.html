@@ -833,6 +833,11 @@
         <button class="btn-sm" id="bgm-btn" onclick="toggleBgm()">🎵 オン</button>
         <span class="settings-hint" style="margin-left:6px">冒険モードで流れます</span>
       </div>
+      <div class="settings-row">
+        <label>ガチャの演出</label>
+        <button class="btn-sm" id="gfx-btn" onclick="toggleGachaFx()">🎬 フル</button>
+        <span class="settings-hint" style="margin-left:6px">高レアの豪華演出の長さ（フル→短め→なし）。何度も引くときは短めが便利</span>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -1715,6 +1720,25 @@
   .rpg-epic-legend{ display:none; }
   .rpg-gacha-ov.epic.legend.open .rpg-epic-legend{ display:block; position:absolute; top:-4px; left:0; right:0; text-align:center; font-weight:900; font-size:1.5rem; letter-spacing:.16em; background:linear-gradient(90deg,#f472b6,#fbbf24,#38bdf8,#f472b6); background-size:200%; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; animation:rpgLegend 1.2s linear infinite; z-index:6; }
   @keyframes rpgLegend{ 0%{background-position:0%} 100%{background-position:200%} }
+  /* 🎁 10連の一括プレビュー（宝箱が順に光る／高レア混入を示唆） */
+  .rpg-gacha-ov.g10preview .g10pcard{ text-align:center; max-width:360px; width:94%; }
+  .rpg-g10p-ttl{ font-weight:900; font-size:1.15rem; color:#fff; }
+  .rpg-g10p-sub{ font-size:.82rem; color:#cbd5e1; margin:2px 0 12px; }
+  .rpg-g10p-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:6px 0 12px; }
+  .rpg-g10p-box{ font-size:30px; line-height:1; padding:8px 0; border-radius:12px; background:rgba(255,255,255,.06);
+    opacity:0; transform:scale(.4) translateY(8px); animation:rpgG10Pop .42s cubic-bezier(.2,1.5,.4,1) forwards, rpgG10Glow 1.8s ease-in-out infinite;
+    animation-delay:calc(var(--gi) * .08s), calc(.5s + var(--gi) * .08s); }
+  @keyframes rpgG10Pop{ to{ opacity:1; transform:none; } }
+  @keyframes rpgG10Glow{ 0%,100%{ box-shadow:0 0 0 rgba(255,255,255,0);} 50%{ box-shadow:0 0 12px rgba(255,255,255,.35);} }
+  .rpg-gacha-ov.g10preview.mid .rpg-g10p-box{ background:rgba(56,189,248,.12); }
+  .rpg-gacha-ov.g10preview.hi .rpg-g10p-box{ background:rgba(244,114,182,.14);
+    animation:rpgG10Pop .42s cubic-bezier(.2,1.5,.4,1) forwards, rpgG10Rainbow 1.6s linear infinite;
+    animation-delay:calc(var(--gi) * .08s), calc(.5s + var(--gi) * .06s); }
+  @keyframes rpgG10Rainbow{ 0%{ box-shadow:0 0 10px rgba(244,114,182,.6);} 33%{ box-shadow:0 0 14px rgba(251,191,36,.7);} 66%{ box-shadow:0 0 14px rgba(56,189,248,.7);} 100%{ box-shadow:0 0 10px rgba(244,114,182,.6);} }
+  .rpg-g10p-omen{ font-weight:800; font-size:.95rem; color:#e2e8f0; min-height:1.4em; margin-bottom:12px; }
+  .rpg-gacha-ov.g10preview.hi .rpg-g10p-omen{ font-size:1.05rem; background:linear-gradient(90deg,#f472b6,#fbbf24,#38bdf8,#f472b6); background-size:200%; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; animation:rpgLegend 1.4s linear infinite; }
+  .rpg-gacha-ov.g10preview.hi.omenpulse .g10pcard{ animation:rpgG10Shake .5s ease-in-out; }
+  @keyframes rpgG10Shake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(3px)} }
   /* 復習ダンジョン（未復習があると目立つ） */
   .rpg-review-on{ background:linear-gradient(135deg,#dc2626,#f59e0b)!important; color:#fff!important; border-color:#fca5a5!important; animation:rpgReviewPulse 1.5s ease-in-out infinite; }
   @keyframes rpgReviewPulse{ 0%,100%{ box-shadow:0 0 0 rgba(220,38,38,.3); } 50%{ box-shadow:0 0 14px rgba(220,38,38,.7); } }
@@ -2909,7 +2933,11 @@ function updateScoreBar() {
 // ===== 効果音・しんどうの設定 =====
 function _sfxBtnSync(){ var b=document.getElementById('sfx-btn'); if(b) b.textContent=sfxEnabled()?'🔊 オン':'🔇 オフ';
   var v=document.getElementById('vibe-btn'); if(v) v.textContent=vibeEnabled()?'📳 オン':'🚫 オフ';
-  var g=document.getElementById('bgm-btn'); if(g) g.textContent=bgmEnabled()?'🎵 オン':'🔇 オフ'; }
+  var g=document.getElementById('bgm-btn'); if(g) g.textContent=bgmEnabled()?'🎵 オン':'🔇 オフ';
+  var f=document.getElementById('gfx-btn'); if(f){ var m=_gachaFxMode(); f.textContent=(m==='off'?'⏭ なし':(m==='short'?'⏩ 短め':'🎬 フル')); } }
+// ガチャ演出量：full（既定・約7秒の豪華演出）→ short（短縮）→ off（即開封）を循環
+function _gachaFxMode(){ try{ var m=safeLS.getItem('gacha_fx'); return (m==='short'||m==='off')?m:'full'; }catch(e){ return 'full'; } }
+function toggleGachaFx(){ var m=_gachaFxMode(), nx=(m==='full'?'short':(m==='short'?'off':'full')); try{ safeLS.setItem('gacha_fx', nx); }catch(e){} _sfxBtnSync(); try{ sfx('click'); }catch(e){} }
 function toggleBgm(){ var on=!bgmEnabled(); safeLS.setItem('bgm_on', on?'1':'0'); _sfxBtnSync();
   if(on){ try{ unlockSpeech(); if(document.body.classList.contains('rpg-mode')){ var _b=(typeof rpgBattle!=='undefined'&&rpgBattle)?rpgBattle.node.type:null; bgmPlay((_b==='boss'||_b==='maou')?'boss':(document.body.classList.contains('rpg-battle')?'battle':'map')); } }catch(e){} }
   else { try{ bgmStop(); }catch(e){} } }
@@ -5280,6 +5308,7 @@ var _gEpicSkipFn=null;
 function _gachaEpicSkip(){ if(_gEpicSkipFn) _gEpicSkipFn(); }
 function rpgGachaReveal(pick, dup, refund, opts){
   opts=opts||{};
+  var fxm=_gachaFxMode();                                    // フル/短縮/なし（演出量設定）
   var it=pick.it, r=it.r||'N', rar=(COS_RARITY[r]||{}), rcls=(rar.cls||''), rank=_cosRank(r);
   var ov=document.getElementById('rpg-gacha-ov');
   if(!ov){ ov=document.createElement('div'); ov.id='rpg-gacha-ov'; document.body.appendChild(ov); }
@@ -5304,8 +5333,6 @@ function rpgGachaReveal(pick, dup, refund, opts){
       '<button class="rpg-btn rpg-epic-skip" onclick="_gachaEpicSkip()">スキップ ⏭</button>'+
       '<button class="rpg-btn rpg-epic-nextbtn" onclick="'+(opts.action||'rpgGachaClose()')+'">'+(opts.label||'つぎへ')+'</button></div>';
     ov.style.display='flex';
-    try{ sfx('charge'); }catch(e){}
-    try{ if(window.gachaFx) gachaFx.charge(rank); }catch(e){}   // B：溜め粒子（青→金→レア色へ昇格）
     var done=false;
     var reveal=function(){ if(done) return; done=true;
       ov.classList.remove('charging','hint','phase2','phase3'); ov.classList.add('open');
@@ -5323,10 +5350,14 @@ function rpgGachaReveal(pick, dup, refund, opts){
       }catch(e){}
       setTimeout(function(){ ov.classList.remove('flash','shake'); }, 900);
     };
-    // A：予兆→昇格→ドラムロール（尺は据え置き）。フェーズごとに色と音が育つ
-    var t1=setTimeout(function(){ if(!done){ ov.classList.add('phase2','hint'); try{ sfx('powerup'); if(window.gachaFx) gachaFx.pulse(rank); }catch(e){} } }, 2600);
-    var t2=setTimeout(function(){ if(!done){ ov.classList.add('phase3'); try{ sfx('drumroll'); if(window.gachaFx) gachaFx.pulse(rank); }catch(e){} } }, 4800);
-    var t3=setTimeout(reveal, 6800);
+    if(fxm==='off'){ _gEpicSkipFn=null; reveal(); return; }   // 「なし」＝即開封
+    try{ sfx('charge'); }catch(e){}
+    try{ if(window.gachaFx) gachaFx.charge(rank); }catch(e){}   // B：溜め粒子（青→金→レア色へ昇格）
+    // A：予兆→昇格→ドラムロール。フェーズごとに色と音が育つ（短縮時は尺を圧縮）
+    var _T=(fxm==='short')?[700,1400,2100]:[2600,4800,6800];
+    var t1=setTimeout(function(){ if(!done){ ov.classList.add('phase2','hint'); try{ sfx('powerup'); if(window.gachaFx) gachaFx.pulse(rank); }catch(e){} } }, _T[0]);
+    var t2=setTimeout(function(){ if(!done){ ov.classList.add('phase3'); try{ sfx('drumroll'); if(window.gachaFx) gachaFx.pulse(rank); }catch(e){} } }, _T[1]);
+    var t3=setTimeout(reveal, _T[2]);
     _gEpicSkipFn=function(){ clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); reveal(); };
     return;
   }
@@ -5346,6 +5377,7 @@ function rpgGachaReveal(pick, dup, refund, opts){
   ov.style.display='flex';
   var _base=({N:650,HN:780,R:1000,HR:1250})[r]||800;         // レア度ほど溜めが長い＝期待感が高まる
   var build=opts.quick?Math.round(_base*0.5):_base;          // 10連の1枚ずつはテンポよく（溜め短め）
+  if(fxm==='off') build=0; else if(fxm==='short') build=Math.round(build*0.45);   // 演出量設定
   try{ sfx('charge'); }catch(e){}                            // 溜め音
   setTimeout(function(){ ov.classList.add('hint'); try{ vibe(rank>=2?[10,30,10,30,10]:8); }catch(e){} }, Math.round(build*0.45));   // 色ヒントで“何が出る？”
   setTimeout(function(){
@@ -5361,7 +5393,26 @@ function rpgGachaReveal(pick, dup, refund, opts){
 // 10連の結果まとめ表示
 // 10連：1枚ずつ順番に演出 → 最後にまとめ
 var _g10Queue=null, _g10Idx=0;
-function rpgGacha10Reveal(outs){ _g10Queue=outs||[]; _g10Idx=0; _g10ShowNext(); }
+function rpgGacha10Reveal(outs){ _g10Queue=outs||[]; _g10Idx=0; if(_gachaFxMode()==='off'){ _g10ShowNext(); return; } _g10Preview(); }
+// C：1枚ずつ開ける前の一括プレビュー（宝箱が順に光り、SR以上が混ざると虹で確定示唆）
+function _g10Preview(){
+  var outs=_g10Queue||[]; if(!outs.length){ return; }
+  var best=0; outs.forEach(function(o){ best=Math.max(best,_cosRank(o.pick.it.r)); });
+  var hi=best>=4, mid=(!hi && best>=2);
+  var ov=document.getElementById('rpg-gacha-ov'); if(!ov){ ov=document.createElement('div'); ov.id='rpg-gacha-ov'; document.body.appendChild(ov); }
+  var boxes=''; for(var i=0;i<outs.length;i++){ boxes+='<div class="rpg-g10p-box" style="--gi:'+i+'">🎁</div>'; }
+  ov.className='rpg-gacha-ov g10preview'+(hi?' hi':(mid?' mid':''));
+  ov.innerHTML='<div class="rpg-gacha-card g10pcard">'+
+    '<div class="rpg-g10p-ttl">🎁 10れんガチャ</div>'+
+    '<div class="rpg-g10p-sub">10この たからばこが あらわれた！</div>'+
+    '<div class="rpg-g10p-grid">'+boxes+'</div>'+
+    '<div class="rpg-g10p-omen">'+(hi?'✨ 高レアの きらめきを かんじる…！ ✨':(mid?'キラリ… 何か 出そう？':'どれが 出るかな？'))+'</div>'+
+    '<button class="rpg-btn rpg-g10p-go" onclick="_g10StartReveal()">1つずつ あけていく ▶</button></div>';
+  ov.style.display='flex';
+  try{ sfx('charge'); }catch(e){}
+  if(hi){ setTimeout(function(){ try{ sfx('powerup'); vibe([20,40,20,40,60]); if(window.gachaFx) gachaFx.burst(4); }catch(e){} if(ov) ov.classList.add('omenpulse'); }, 1150); }
+}
+function _g10StartReveal(){ try{ sfx('click'); if(window.gachaFx) gachaFx.reset(); }catch(e){} _g10Idx=0; _g10ShowNext(); }
 function _g10ShowNext(){
   if(!_g10Queue){ return; }
   if(_g10Idx>=_g10Queue.length){ _g10Summary(); return; }
@@ -5379,7 +5430,9 @@ function _g10Summary(){
   ov.className='rpg-gacha-ov g10 open'+(best>=3?' ultra flash':(best>=2?' flash':''));
   ov.innerHTML='<div class="rpg-gacha-card g10card '+(best>=3?'cos-ur':(best>=2?'cos-s':''))+'"><div class="rpg-g10-ttl">🎁 10れんガチャ けっか</div><div class="rpg-g10-grid">'+cells+'</div><button class="rpg-btn" onclick="rpgGachaClose()">とじる</button></div>';
   ov.style.display='flex';
-  try{ sfx(best>=2?'fanfare':'crystal'); vibe(best>=3?[30,50,30,50,30,60,120]:(best>=2?[20,40,20,40,90]:20)); confetti(); if(best>=3){ setTimeout(confetti,280); setTimeout(confetti,540); } }catch(e){}
+  try{ sfx(best>=7?'legendary':(best>=2?'fanfare':'crystal')); vibe(best>=3?[30,50,30,50,30,60,120]:(best>=2?[20,40,20,40,90]:20));
+    if(best>=2 && window.gachaFx) gachaFx.burst(best);
+    confetti(); if(best>=3){ setTimeout(confetti,280); setTimeout(confetti,540); } }catch(e){}
   setTimeout(function(){ ov.classList.remove('flash'); }, 700);
 }
 function rpgGachaClose(){ var ov=document.getElementById('rpg-gacha-ov'); if(ov){ ov.classList.remove('open','g10','flash','shake','ultra','legend'); ov.style.display='none'; } try{ if(window.gachaFx) gachaFx.reset(); }catch(e){} try{ if(document.body.classList.contains('rpg-mode')) rpgShowCosmetics(); }catch(e){} try{ rpgAnnounceCollect(); }catch(e){} }

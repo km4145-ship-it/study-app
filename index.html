@@ -5313,7 +5313,7 @@ function rpgRenderMap(area){
     '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+rpgCrystalCount()+' / 5</span></div></div>';
   h+='<div class="rpg-cont-banner">'+world.emoji+' '+escapeHtml(world.name)+'　—　'+escapeHtml(world.crystal)+'をめざせ</div>';
   var _totNodes=0; world.chapters.forEach(function(c){ _totNodes+=c.nodes.length; });
-  var _mapH=Math.max(520, _totNodes*58+130);   // ノードが多いほど縦長スクロールマップに
+  var _mapH=Math.max(560, _totNodes*72+140);   // ノード高さ(~70px)より広い間隔で重なりを防ぐ（縦長スクロール）
   h+='<div class="rpg-map map-'+area+'" style="padding-bottom:0;height:'+_mapH+'px">';
   h+='<div class="rpg-map-bg"></div>';
   h+=rpgMapPathSVG(area);

@@ -96,18 +96,26 @@ window.FIREBASE_CONFIG = {
     if(x.title||y.title) o.title = y.title||x.title;                      // 装備中の称号（クラウド優先）
     return o;
   }
-  // あいぼう（なかまモンスター）：手持ちは和集合＝同期で絶対に消えない（grow-only）。レベル/経験値/エサはmax
+  // あいぼう（なかまモンスター）：手持ちは和集合＝同期で絶対に消えない（grow-only）。レベル/経験値/エサ/おまもりはmax。
+  // 合成で消えたなかまは gone（墓標・増えるだけ）で表現＝古い端末との同期でも復活しない。ランクは合成で上がるので高い方を採用
   function mergeAibou(x,y){
     if(!x && !y) return undefined;
     x=x||{}; y=y||{};
+    var RANKS=['F','E','D','C','B','A','S','SS','SSS'];
+    function rankHi(a,b){ return (RANKS.indexOf(a)>=RANKS.indexOf(b))? a : b; }
+    var gone={}; [x.gone,y.gone].forEach(function(g){ if(g&&typeof g==='object'){ Object.keys(g).forEach(function(k){ if(g[k]) gone[k]=1; }); } });
     var roster={}, rx=x.roster||{}, ry=y.roster||{}, id;
     for(id in rx){ if(rx[id]) roster[id]=rx[id]; }
     for(id in ry){ if(!ry[id]) continue;
       if(!roster[id]) roster[id]=ry[id];
       else { var a2=roster[id], b2=ry[id];
-        roster[id]=Object.assign({}, a2, b2, { lv:Math.max(a2.lv||1,b2.lv||1), xp:Math.max(a2.xp||0,b2.xp||0), name:(b2.name||a2.name||'') }); } }
+        roster[id]=Object.assign({}, a2, b2, { lv:Math.max(a2.lv||1,b2.lv||1), xp:Math.max(a2.xp||0,b2.xp||0), name:(b2.name||a2.name||''), rank:rankHi(a2.rank||'F', b2.rank||'F') }); } }
+    Object.keys(gone).forEach(function(gid){ delete roster[gid]; });
     var party=((y.party&&y.party.length)?y.party:(x.party||[])).filter(function(pid){ return !!roster[pid]; }).slice(0,3);
-    var o={ roster:roster, party:party, food:Math.max(parseInt(x.food||0,10)||0, parseInt(y.food||0,10)||0) };
+    var o={ roster:roster, party:party,
+            food:Math.max(parseInt(x.food||0,10)||0, parseInt(y.food||0,10)||0),
+            charm:Math.max(parseInt(x.charm||0,10)||0, parseInt(y.charm||0,10)||0) };
+    if(Object.keys(gone).length) o.gone=gone;
     if(x.migrated||y.migrated) o.migrated=1;   // 旧ペット→あいぼう移行の二重実行を防ぐ
     return o;
   }

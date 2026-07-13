@@ -12,7 +12,8 @@ const aibouCode = fs.readFileSync(path.join(ROOT, 'js', 'aibou.js'), 'utf8');
 const api = (new Function(assetsCode + '\n' + aibouCode + `
 return { RPG_SVG, AIBOU_SPECIES, AIBOU_ART_SPECIES, AIBOU_RANKS, AIBOU_RANK_LVMAX,
   aibouRankWeights, aibouRollRank, aibouJoinChance, aibouRollSpecies,
-  aibouXpNeed, aibouPower, aibouLvMax, aibouFeed, aibouPartyFx };`))();
+  aibouXpNeed, aibouPower, aibouLvMax, aibouFeed, aibouPartyFx,
+  aibouNextRank, aibouCanFuse };`))();
 
 // ---- 種族マップが RPG_SVG の全モンスターを網羅（crystal は演出用で除外）----
 Object.keys(api.RPG_SVG).filter((k) => k !== 'crystal').forEach((k) => {
@@ -42,9 +43,31 @@ c.eq('ボスは50%', api.aibouJoinChance('boss'), 0.5);
 c.eq('ザコは25%', api.aibouJoinChance('zako'), 0.25);
 c.eq('villainは常に魔王種族', api.aibouRollSpecies('villain', 'zako', 0.5), 'maou');
 c.eq('ボス+低rndで魔王種に目ざめ', api.aibouRollSpecies('slime', 'boss', 0.01), 'maou');
-c.eq('ザコでは魔王に目ざめない', api.aibouRollSpecies('slime', 'zako', 0.01), 'slime');
-c.eq('rnd=0.05は英雄種', api.aibouRollSpecies('wolf', 'zako', 0.05), 'hero');
+c.ok('ザコでは魔王に目ざめない', api.aibouRollSpecies('slime', 'zako', 0.001) !== 'maou');
+c.eq('ザコ+低rndは英雄種', api.aibouRollSpecies('wolf', 'zako', 0.02), 'hero');
 c.eq('通常rndは基本種族(dragon)', api.aibouRollSpecies('dragon', 'zako', 0.5), 'dragon');
+
+// ---- 🌈にじのおまもり（復習ダンジョン限定）：加入率+20%・レア種族2倍 ----
+c.eq('おまもりでザコ加入45%', api.aibouJoinChance('zako', true), 0.45);
+c.eq('おまもりでボス加入70%', api.aibouJoinChance('boss', true), 0.7);
+c.eq('魔王シグマは上限1のまま', api.aibouJoinChance('maou', true), 1);
+c.eq('おまもりで魔王まど拡大(rnd=0.06がボスで魔王)', api.aibouRollSpecies('slime', 'boss', 0.06, true), 'maou');
+c.eq('おまもり無しなら同rndは英雄', api.aibouRollSpecies('slime', 'boss', 0.06), 'hero');
+c.eq('おまもりでザコ英雄まど拡大(rnd=0.05)', api.aibouRollSpecies('wolf', 'zako', 0.05, true), 'hero');
+c.eq('おまもり無しなら同rndは基本種族', api.aibouRollSpecies('wolf', 'zako', 0.05), 'beast');
+
+// ---- しんか合成：同ランク2ひき→ランク+1（素材はパーティ外のみ） ----
+c.eq('つぎのランク F→E', api.aibouNextRank('F'), 'E');
+c.eq('つぎのランク SS→SSS', api.aibouNextRank('SS'), 'SSS');
+c.eq('SSSは進化できない(null)', api.aibouNextRank('SSS'), null);
+{
+  const base = { id: 'b1', rank: 'B', lv: 5 };
+  c.ok('同ランク・パーティ外なら合成できる', api.aibouCanFuse(base, { id: 'm1', rank: 'B' }, []) === true);
+  c.ok('ちがうランクは合成できない', api.aibouCanFuse(base, { id: 'm1', rank: 'A' }, []) === false);
+  c.ok('パーティ中の素材は選べない（お気に入り保護）', api.aibouCanFuse(base, { id: 'm1', rank: 'B' }, ['m1']) === false);
+  c.ok('自分自身とは合成できない', api.aibouCanFuse(base, base, []) === false);
+  c.ok('SSSは合成できない', api.aibouCanFuse({ id: 'b2', rank: 'SSS' }, { id: 'm2', rank: 'SSS' }, []) === false);
+}
 
 // ---- 育成：エサ→レベルアップ、ランク上限で止まる ----
 c.ok('必要けいけんちは単調増加', api.aibouXpNeed(1) < api.aibouXpNeed(5) && api.aibouXpNeed(5) < api.aibouXpNeed(20));
@@ -113,5 +136,21 @@ const noAi = JSON.parse(mergeRpg(JSON.stringify({ v: 1, level: 2 }), JSON.string
 c.ok('aibou無しの状態を汚さない', !('aibou' in noAi));
 const r2 = JSON.parse(mergeRpg(devA, JSON.stringify({ v: 1 }))).aibou;
 c.ok('片側だけでも保全される', r2 && !!r2.roster.m1 && r2.food === 12);
+
+// ---- 合成の同期：墓標(gone)で素材が復活しない・上がったランクは維持・おまもりはmax ----
+const fusedDev = JSON.stringify({ v: 1, aibou: {
+  roster: { m1: { id: 'm1', art: 'slime', sp: 'slime', rank: 'A', lv: 5, xp: 0, name: 'スラりん' } },   // B+B→Aに進化済み
+  party: ['m1'], food: 0, charm: 4, gone: { m2: 1 }, migrated: 1 } });
+const staleDev = JSON.stringify({ v: 1, aibou: {
+  roster: { m1: { id: 'm1', art: 'slime', sp: 'slime', rank: 'B', lv: 5, xp: 0, name: 'スラりん' },     // 古い端末＝進化前
+            m2: { id: 'm2', art: 'slime', sp: 'slime', rank: 'B', lv: 2, xp: 0, name: '素材くん' } },
+  party: ['m1'], food: 2, charm: 1 } });
+[[fusedDev, staleDev, '進化端末→古い端末'], [staleDev, fusedDev, '古い端末→進化端末']].forEach(([a, b, label]) => {
+  const g = JSON.parse(mergeRpg(a, b)).aibou;
+  c.ok(label + '：素材(m2)は復活しない', !g.roster.m2);
+  c.eq(label + '：墓標が残る', g.gone && g.gone.m2, 1);
+  c.eq(label + '：上がったランク(A)を維持', g.roster.m1.rank, 'A');
+  c.eq(label + '：おまもりはmax(4)', g.charm, 4);
+});
 
 c.done();

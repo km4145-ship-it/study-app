@@ -2028,7 +2028,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   @keyframes aibouHop{ 30%{ transform:translateY(-9px) scale(1.15); } }
   /* 一覧：ステータスチップ＋どの背景でも読めるセクションラベル */
   .rpg-aibou-bar{ display:flex; gap:8px; margin:8px 0; }
-  .rpg-aibou-chip{ flex:1; background:rgba(255,255,255,.96); border-radius:12px; padding:9px 10px; font-size:13.5px; font-weight:800; color:#334155; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 10px rgba(0,0,0,.15); }
+  .rpg-aibou-chip{ flex:1; min-width:0; white-space:nowrap; background:rgba(255,255,255,.96); border-radius:12px; padding:9px 6px; font-size:13px; font-weight:800; color:#334155; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 3px 10px rgba(0,0,0,.15); }
   .rpg-aibou-sec{ display:inline-block; background:rgba(15,23,42,.62); color:#fff; font-size:12.5px; font-weight:800; padding:4px 13px; border-radius:999px; margin:10px 0 6px; }
   .rpg-aibou-party{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:4px; }
   .rpg-aibou-slot{ min-width:0; position:relative; border:2.5px solid #94a3b8; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.96); border-radius:14px; padding:8px 4px 6px; display:flex; flex-direction:column; align-items:center; gap:3px; box-shadow:0 4px 12px rgba(0,0,0,.18); }
@@ -2064,6 +2064,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-abtn-line{ border:2px solid #cbd5e1; background:#fff; color:#334155; font-family:inherit; font-weight:800; font-size:14px; border-radius:12px; padding:11px 12px; cursor:pointer; }
   .rpg-abtn-line:active{ transform:scale(.97); }
   .rpg-abtn-line.blue{ border-color:#38bdf8; color:#0369a1; background:#f0f9ff; }
+  .rpg-abtn-line.purple{ border-color:#a855f7; color:#7e22ce; background:#faf5ff; }
+  .rpg-res-offer-charm{ font-size:12.5px; font-weight:800; color:#7c3aed; margin:2px 0 4px; }
   .rpg-aibou-mini-btn{ border:none; background:transparent; cursor:pointer; font-size:15px; }
   /* スカウト（なかまにする？）カード */
   .rpg-res-offer{ margin:12px 0; padding:12px 10px; border-radius:16px; background:#fffbeb; border:3px solid #f59e0b; animation:offerPulse 1.6s ease infinite; color:#334155; }
@@ -5159,6 +5161,9 @@ function rpgAibouState(s){
   if(!ai.roster || typeof ai.roster!=='object') ai.roster={};
   if(!Array.isArray(ai.party)) ai.party=[];
   if(typeof ai.food!=='number') ai.food=parseInt(ai.food,10)||0;
+  if(typeof ai.charm!=='number') ai.charm=parseInt(ai.charm,10)||0;   // 🌈にじのおまもり（復習ダンジョン限定報酬）
+  if(!ai.gone || typeof ai.gone!=='object') ai.gone={};                // 合成で消えたなかまの墓標（同期で復活しないように）
+  Object.keys(ai.gone).forEach(function(id){ delete ai.roster[id]; });
   if(!ai.migrated){
     ai.migrated=1;
     var p=s.pet||{};
@@ -5174,10 +5179,11 @@ function rpgAibouParty(){ try{ var s=rpgState(), ai=rpgAibouState(s); return ai.
 // あいぼうの絵（旧ペットはPET_SVGの成長段階、モンスターはRPG_SVG）
 function rpgAibouArt(a){ if(!a) return '🐾'; if(a.art==='pet') return PET_SVG[Math.min(3, Math.floor(((a.lv||1)-1)/8))]; return RPG_SVG[a.art]||'👾'; }
 // なかまスカウト：勝利時に抽選して「なかまになりたそう」なモンスター（オファー）を作る（まだ登録しない）
-function rpgAibouMakeOffer(node){
-  if(Math.random()>=aibouJoinChance(node.type)) return null;
-  var rank=aibouRollRank((node.lv||1)+(node.type==='boss'?2:0));
-  var sp=aibouRollSpecies(node.mon, node.type);
+// charmed=🌈にじのおまもり（復習ダンジョン限定）：加入率+20%・ランク+3章ぶん・レア種族2倍
+function rpgAibouMakeOffer(node, charmed){
+  if(Math.random()>=aibouJoinChance(node.type, charmed)) return null;
+  var rank=aibouRollRank((node.lv||1)+(node.type==='boss'?2:0)+(charmed?3:0));
+  var sp=aibouRollSpecies(node.mon, node.type, undefined, charmed);
   return { art:node.mon, sp:sp, rank:rank, lv:1, xp:0, name:node.name||'' };
 }
 var _aibouOffer=null;   // リザルト画面に出ている「なかまになりたい」モンスター
@@ -5434,7 +5440,8 @@ function rpgShowAibou(){
   var ids=Object.keys(ai.roster);
   var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
   h+='<div class="rpg-world-title">🐾 あいぼう</div>';
-  h+='<div class="rpg-aibou-bar"><span class="rpg-aibou-chip">🍖 エサ <b>'+(ai.food||0)+'</b></span><span class="rpg-aibou-chip">🐾 なかま <b>'+ids.length+'</b><small>/'+AIBOU_ROSTER_MAX+'</small></span></div>';
+  h+='<div class="rpg-aibou-bar"><span class="rpg-aibou-chip">🍖 エサ <b>'+(ai.food||0)+'</b></span><span class="rpg-aibou-chip">🐾 なかま <b>'+ids.length+'</b><small>/'+AIBOU_ROSTER_MAX+'</small></span>'
+    +((ai.charm||0)>0?'<span class="rpg-aibou-chip" title="つぎのスカウトでレアが出やすい（ふくしゅう限定）">🌈 <b>'+ai.charm+'</b></span>':'')+'</div>';
   h+='<div class="rpg-aibou-sec">🎒 パーティ（いっしょに たたかう 3びき）</div><div class="rpg-aibou-party">';
   for(var i=0;i<3;i++){ var pid=ai.party[i], pa=pid?ai.roster[pid]:null;
     h+= pa ? '<button class="rpg-aibou-slot rpg-aibou-bd'+pa.rank+'" onclick="rpgAibouDetail(\''+pa.id+'\')"><span class="rpg-aibou-rank r'+pa.rank+'">'+pa.rank+'</span><span class="rpg-aibou-art">'+rpgAibouArt(pa)+'</span><span class="rpg-aibou-nm">'+((AIBOU_SPECIES[pa.sp]||{}).em||'')+' '+escapeHtml(pa.name||'？')+'</span><span class="rpg-aibou-lv">Lv.'+(pa.lv||1)+'</span></button>'
@@ -5490,9 +5497,52 @@ function rpgAibouDetail(id){
     +((ai.food||0)>=10?'<button class="rpg-abtn-line" onclick="rpgAibouFeed(\''+id+'\',10)">×10</button>':'')+'</div>';
   h+= inP ? '<button class="rpg-abtn-line" onclick="rpgAibouToggleParty(\''+id+'\')">🎒 パーティから はずす</button>'
           : '<button class="rpg-abtn-line blue" onclick="rpgAibouToggleParty(\''+id+'\')">🎒 パーティに いれる</button>';
+  // しんか合成：同ランクの素材（パーティ外）がいる時だけボタンを出す
+  var _mats=Object.keys(ai.roster).filter(function(mid){ return aibouCanFuse(a, ai.roster[mid], ai.party); });
+  if(_mats.length) h+='<button class="rpg-abtn-line purple" onclick="rpgAibouFusePick(\''+id+'\')">⚡ しんか合成 → <span class="rpg-aibou-rank r'+aibouNextRank(a.rank)+'">'+aibouNextRank(a.rank)+'</span>（そざい '+_mats.length+'ひき）</button>';
   h+='<button class="rpg-abtn-line" onclick="rpgAibouPat(\''+id+'\')">🐾 なでる</button>';
   h+='</div></div>';
   mv.innerHTML=h;
+}
+// しんか合成：素材えらび画面（同ランク・パーティ外のなかまから1ぴき）
+function rpgAibouFusePick(baseId){
+  var s=rpgState(), ai=rpgAibouState(s), base=ai.roster[baseId];
+  if(!base){ rpgShowAibou(); return; }
+  var next=aibouNextRank(base.rank);
+  var mats=Object.keys(ai.roster).filter(function(mid){ return aibouCanFuse(base, ai.roster[mid], ai.party); });
+  if(!next || !mats.length){ rpgAibouDetail(baseId); return; }
+  var mv=document.getElementById('rpg-map-view');
+  var h='<button class="rpg-back" onclick="rpgAibouDetail(\''+baseId+'\')">← もどる</button>';
+  h+='<div class="rpg-aibou-detail">';
+  h+='<div class="rpg-aibou-d-plate rpg-aibou-bd'+base.rank+'"><span class="rpg-aibou-art lg">'+rpgAibouArt(base)+'</span></div>';
+  h+='<div class="rpg-aibou-d-name">'+escapeHtml(base.name||'？')+'</div>';
+  h+='<div class="rpg-aibou-d-chips"><span class="rpg-aibou-rank r'+base.rank+'">'+base.rank+'</span><span class="c">→</span><span class="rpg-aibou-rank r'+next+'">'+next+'</span></div>';
+  h+='<div class="rpg-aibou-d-fx">⚡ 同じ <span class="rpg-aibou-rank r'+base.rank+'">'+base.rank+'</span> の なかまを 1ぴき えらぶと しんかできる。<b>えらんだ なかまは いなくなっちゃう</b>から よくかんがえてね（パーティ中の なかまは えらべない）</div>';
+  h+='</div>';
+  h+='<div class="rpg-aibou-sec">どの なかまと 合成する？</div>';
+  h+='<div class="rpg-aibou-grid">';
+  mats.forEach(function(mid){ var m=ai.roster[mid];
+    h+='<button class="rpg-aibou-cell rpg-aibou-bd'+m.rank+'" onclick="rpgAibouFuseDo(\''+baseId+'\',\''+mid+'\')">'
+      +'<span class="rpg-aibou-rank r'+m.rank+'">'+m.rank+'</span>'
+      +'<span class="rpg-aibou-art">'+rpgAibouArt(m)+'</span>'
+      +'<span class="rpg-aibou-nm">'+((AIBOU_SPECIES[m.sp]||{}).em||'')+' '+escapeHtml(m.name||'？')+'</span>'
+      +'<span class="rpg-aibou-lv">Lv.'+(m.lv||1)+'</span></button>'; });
+  h+='</div>';
+  mv.innerHTML=h;
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+}
+function rpgAibouFuseDo(baseId, matId){
+  var s=rpgState(), ai=rpgAibouState(s), base=ai.roster[baseId], mat=ai.roster[matId];
+  if(!aibouCanFuse(base, mat, ai.party)){ rpgAibouDetail(baseId); return; }
+  var next=aibouNextRank(base.rank);
+  if(!confirm('「'+(mat.name||'なかま')+'」は いなくなっちゃうよ。\n「'+(base.name||'なかま')+'」を '+next+' ランクに しんかさせる？')) return;
+  base.rank=next;
+  delete ai.roster[matId]; ai.gone[matId]=1;   // 墓標＝同期しても復活しない
+  var pix=ai.party.indexOf(matId); if(pix>=0) ai.party.splice(pix,1);
+  rpgSave(s);
+  try{ sfx('legendary'); vibe([30,60,30,60,120]); confetti(); }catch(e){}
+  showToast('⚡','しんか せいこう！','「'+(base.name||'なかま')+'」が '+next+' ランクに なった！');
+  rpgAibouDetail(baseId);
 }
 function rpgAibouFeed(id,n){
   var s=rpgState(), ai=rpgAibouState(s), a=ai.roster[id]; if(!a) return;
@@ -6038,10 +6088,15 @@ function rpgShowResult(){
     // 図鑑に登録＋相棒ペットのせいちょう
     if(b.node.mon){ s.dex[b.node.mon]=1; }
     s.pet.wins=(s.pet.wins||0)+1; s.pet.stage=rpgPetStageFor(s.pet.wins);
-    // あいぼうのエサ（正解数ぶん・ボスは2倍）＋なかまスカウトの抽選
+    // あいぼうのエサ（正解数ぶん・ボスは2倍）＋なかまスカウトの抽選（🌈おまもりがあれば1つ使って強化）
     var _ai=rpgAibouState(s), _fd=Math.max(1,b.correct)*(b.node.type!=='zako'?2:1);
     _ai.food+=_fd; b.foodGain=_fd;
-    if(b.node.mon){ b.aibouOffer=rpgAibouMakeOffer(b.node); _aibouOffer=b.aibouOffer; }
+    if(b.node.mon){
+      var _chm=(_ai.charm||0)>0;
+      b.aibouOffer=rpgAibouMakeOffer(b.node, _chm);
+      if(b.aibouOffer && _chm){ _ai.charm--; b.aibouOffer._charm=1; }   // オファーが出た時だけ消費
+      _aibouOffer=b.aibouOffer;
+    }
     var _cg=(b.node.type==='boss')?35:10; var _cs=rpgCosState(s); _cs.coin=(_cs.coin||0)+_cg; b.coinGain=_cg;   // 着せ替え用コインを獲得（勝利10/ボス35）
     var _dw=rpgDailyGet(s); _dw.wins++;   // 今日のミッション：バトル勝利
     // ボス撃破でごほうびシール
@@ -6075,6 +6130,7 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   if(b.aibouOffer){ var _ao=b.aibouOffer, _aosp=AIBOU_SPECIES[_ao.sp]||{};
     L+='<div class="rpg-res-offer" id="rpg-aibou-offer">'
       +'<div class="rpg-res-offer-ttl">😍 なかまに なりたそう！</div>'
+      +(_ao._charm?'<div class="rpg-res-offer-charm">🌈 にじのおまもりの 力が はたらいた！（レアが 出やすい）</div>':'')
       +'<div class="rpg-res-offer-svg">'+(RPG_SVG[_ao.art]||'👾')+'</div>'
       +'<div class="rpg-res-offer-txt">'+escapeHtml(_ao.name||'モンスター')+'　<span class="rpg-aibou-rank r'+_ao.rank+'">'+_ao.rank+'</span> '+(_aosp.em||'')+escapeHtml(_aosp.name||'')+(_aosp.rare?' <b>（レア種族！）</b>':'')+'</div>'
       +'<div class="rpg-res-offer-fx">とくせい：'+escapeHtml(_aosp.desc||'')+'</div>'
@@ -6124,7 +6180,8 @@ function rpgStartReview(){
   if(rpgStaminaLeft()<=0){ showToast('😴','きょうはここまで','また明日 いどもう'); return; }
   var lines=[
     { who:'ミミ学園長', char:'owl', text:'ここは「ふくしゅうダンジョン」。まえに まちがえた問題が モンスターに なって あらわれるの。' },
-    { who:'ミミ学園長', char:'owl', text:'もう一度 とけば その問題を こくふくできる。さあ、リベンジよ！' }
+    { who:'ミミ学園長', char:'owl', text:'もう一度 とけば こくふくできる。しかも ここでしか 手に入らない「🌈にじのおまもり」が もらえるのよ。' },
+    { who:'ミミ学園長', char:'owl', text:'おまもりが あると、レアな なかまが ぐっと 出やすくなる。エサも 大サービス！ さあ、リベンジよ！' }
   ];
   rpgStoryPlay(lines, function(){ rpgBeginReview(pool); });
 }
@@ -6144,8 +6201,13 @@ function rpgBeginReview(pool){
 function rpgResolveReview(b){
   var win=(b.enemyHp<=0 && b.heroHp>0), s=rpgState();
   var gainXp=b.xpGain+(win?20:5); var prevLv=rpgLevelForXp(s.xp); s.xp+=gainXp; s.level=rpgLevelForXp(s.xp);
-  var leveled=s.level>prevLv, coin=0;
-  if(win){ var cs=rpgCosState(s); coin=12; cs.coin=(cs.coin||0)+coin; }
+  var leveled=s.level>prevLv, coin=0, gotCharm=0, revFood=0;
+  var _rai=rpgAibouState(s);
+  if(win){ var cs=rpgCosState(s); coin=12; cs.coin=(cs.coin||0)+coin;
+    // 復習ダンジョン限定のごほうび：🌈にじのおまもり（スカウト強化）＋高レートのエサ（正解×3）
+    if((_rai.charm||0)<9){ _rai.charm=(_rai.charm||0)+1; gotCharm=1; }
+    revFood=b.correct*3; _rai.food+=revFood;
+  }
   rpgSave(s);
   hideMainScreens();
   document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
@@ -6158,6 +6220,9 @@ function rpgResolveReview(b){
   L+='<div class="rpg-res-title">ふくしゅうダンジョン</div>';
   L+='<div class="rpg-res-sub">正かい '+b.correct+' / '+b.total+'（'+acc+'%）</div>';
   L+='<div class="rpg-res-xp">＋'+gainXp+' けいけんち'+(coin?('　🪙＋'+coin+' コイン'):'')+'</div>';
+  if(revFood) L+='<div class="rpg-res-xp">🍖 エサ ＋'+revFood+'（ふくしゅうは 正解×3の 大サービス！）</div>';
+  if(gotCharm) L+='<div class="rpg-res-levelup">🌈 にじのおまもり を 1つ ゲット！（ふくしゅう限定）<br><small>つぎのスカウトで レアなかまが 出やすくなるよ（いま ×'+_rai.charm+'）</small></div>';
+  if(win && !gotCharm) L+='<div class="rpg-res-xp">🌈 おまもりは まんたん（×9）だよ。スカウトで つかおう！</div>';
   if(leveled) L+='<div class="rpg-res-levelup">🎉 レベルアップ！ Lv.'+s.level+'</div>';
   L+='<div class="rpg-res-levelup">📕 のこりの ふくしゅう：'+remain+'問</div>';
   L+='<div class="rpg-res-btns">';
@@ -6552,7 +6617,7 @@ function initKeyboard(){
 
 init();
 </script>
-<script src="cloud-sync.js?v=1103" defer></script>
+<script src="cloud-sync.js?v=1104" defer></script>
 <script>
 /* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
 (function(){ try{

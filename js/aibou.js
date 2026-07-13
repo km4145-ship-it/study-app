@@ -40,16 +40,32 @@ function aibouRollRank(lv, rnd){
   for(i=0;i<AIBOU_RANKS.length;i++){ acc+=w[AIBOU_RANKS[i]]; if(r<acc) return AIBOU_RANKS[i]; }
   return 'F';
 }
-// 勝利後に なかまになりたがる確率
-function aibouJoinChance(nodeType){ return nodeType==='maou' ? 1 : (nodeType==='boss' ? 0.5 : 0.25); }
-// 種族の決定：基本はアート由来。まれにレア種族（魔王/英雄）に目ざめる。魔王シグマ(villain)は常に魔王
-function aibouRollSpecies(art, nodeType, rnd){
+// 勝利後に なかまになりたがる確率（charm=🌈にじのおまもり＝復習ダンジョン限定の報酬で加入しやすく）
+function aibouJoinChance(nodeType, charm){
+  if(nodeType==='maou') return 1;
+  var base=(nodeType==='boss' ? 0.5 : 0.25);
+  return Math.min(1, base + (charm ? 0.2 : 0));
+}
+// 種族の決定：基本はアート由来。まれにレア種族（魔王/英雄）に目ざめる。魔王シグマ(villain)は常に魔王。
+// charm でレア種族の確率が2倍になる
+function aibouRollSpecies(art, nodeType, rnd, charm){
   var base=AIBOU_ART_SPECIES[art]||'beast';
   if(base==='maou') return 'maou';
   var r=(rnd===undefined?Math.random():rnd);
-  if(nodeType==='boss' && r<0.04) return 'maou';   // ボスからは4%で魔王種
-  if(r>=0.04 && r<0.07) return 'hero';             // どこでも3%で英雄種
+  var mw=(nodeType==='boss') ? (charm?0.08:0.04) : 0;   // 魔王種のまど（ボス限定・4%/おまもり8%）
+  var hw=charm?0.06:0.03;                                // 英雄種のまど（3%/おまもり6%）
+  if(r<mw) return 'maou';
+  if(r<mw+hw) return 'hero';                             // 魔王まどの すぐ後ろに英雄まど（重なり無し）
   return base;
+}
+// ===== しんか合成：同じランクの2ひき→ベースのランクが1つ上がる（素材は いなくなる） =====
+function aibouNextRank(rank){ var i=AIBOU_RANKS.indexOf(rank); return (i>=0 && i<AIBOU_RANKS.length-1) ? AIBOU_RANKS[i+1] : null; }
+function aibouCanFuse(base, mat, partyIds){
+  if(!base || !mat || base.id===mat.id) return false;
+  if(base.rank!==mat.rank) return false;              // 同じランクどうしだけ
+  if(!aibouNextRank(base.rank)) return false;         // SSSは これ以上 進化できない
+  if((partyIds||[]).indexOf(mat.id)>=0) return false; // 素材はパーティ外のみ（お気に入りを まちがって消さない）
+  return true;
 }
 
 // ===== 育成（エサ＝正解でたまる） =====

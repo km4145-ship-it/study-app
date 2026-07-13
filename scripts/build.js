@@ -72,6 +72,8 @@ if (fs.existsSync(path.join(ROOT, 'icons'))) {
   fs.mkdirSync(path.join(DIST, 'icons'), { recursive: true });
   for (const f of fs.readdirSync(path.join(ROOT, 'icons'))) fs.copyFileSync(path.join(ROOT, 'icons', f), path.join(DIST, 'icons', f));
 }
+// assets/（BGM音源など、実行時にパス参照される静的ファイル）を丸ごとコピー
+if (fs.existsSync(path.join(ROOT, 'assets'))) fs.cpSync(path.join(ROOT, 'assets'), path.join(DIST, 'assets'), { recursive: true });
 
 const kb = (n) => (n / 1024).toFixed(0) + 'KB';
 console.log('✅ ビルド完了 dist/');

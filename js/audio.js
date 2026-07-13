@@ -87,9 +87,22 @@ function sfx(name){
   }
 }
 function vibe(p){ if(!vibeEnabled()) return; try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
-// ===== BGM（Web Audioで合成するループ音楽・オフライン可）=====
+// ===== BGM（音楽ファイル(m4a)をループ再生。読めない環境ではWeb Audio合成にフォールバック）=====
 function bgmEnabled(){ try{ return safeLS.getItem('bgm_on')!=='0'; }catch(e){ return true; } }   // 既定オン（設定でオフにできる）
+var BGM_FILES={ map:'assets/bgm/map.m4a', battle:'assets/bgm/battle.m4a', boss:'assets/bgm/boss.m4a' };   // トラック名→音源（AAC 96kbps・軽量化済み）
 var _bgmGain=null, _bgmTimer=null, _bgmCur=null, _bgmStep=0;
+var _bgmAudio=null, _bgmFileBad={};   // 読み込みに失敗したトラックは以後合成で鳴らす
+function _bgmFilePlay(track){
+  if(typeof Audio==='undefined' || !BGM_FILES[track] || _bgmFileBad[track]) return false;
+  try{
+    if(!_bgmAudio){ _bgmAudio=new Audio(); _bgmAudio.loop=true; _bgmAudio.volume=0.35; }   // BGMは控えめ（効果音を邪魔しない）
+    _bgmAudio.onerror=function(){ _bgmFileBad[track]=true; if(_bgmCur===track) _bgmSynthPlay(track); };   // 404/オフライン→合成へ
+    _bgmAudio.src=BGM_FILES[track];
+    var p=_bgmAudio.play();
+    if(p && p.catch) p.catch(function(){});   // 自動再生ブロックは無視（次のユーザー操作の bgmPlay で鳴る）
+    return true;
+  }catch(e){ return false; }
+}
 function _bgmFreqs(track){
   var F3=174.61,G3=196,A3=220,B3=246.94,C=261.63,D=293.66,E=329.63,F=349.23,G=392,A=440,B=493.88,C2=523.25,D2=587.33,E2=659.25,F2=698.46,G2=783.99;
   // ゆったり明るい冒険テーマ／弾む戦闘／重厚なボス（以前より長く反復感を減らした新メロディ）
@@ -100,9 +113,14 @@ function _bgmFreqs(track){
 }
 function bgmPlay(track){
   if(!bgmEnabled()){ bgmStop(); return; }
+  if(_bgmCur===track && (_bgmTimer || (_bgmAudio && !_bgmAudio.paused))) return;   // 同じ曲を再生中なら何もしない
+  bgmStop(); _bgmCur=track;
+  if(_bgmFilePlay(track)) return;   // まず音源ファイル。ダメなら下の合成へ
+  _bgmSynthPlay(track);
+}
+function _bgmSynthPlay(track){
   var ac=_sfxAC(); if(!ac) return; try{ if(ac.state==='suspended') ac.resume(); }catch(e){}
-  if(_bgmCur===track && _bgmTimer) return;
-  bgmStop(); _bgmCur=track; _bgmStep=0;
+  _bgmStep=0;
   if(!_bgmGain){ _bgmGain=ac.createGain(); _bgmGain.gain.value=0.08; _bgmGain.connect(ac.destination); }   // BGMは控えめ（効果音を邪魔しない）
   var freqs=_bgmFreqs(track), noteDur=(track==='map')?0.32:0.22, wave=(track==='boss')?'sawtooth':(track==='battle'?'square':'triangle');
   function bar(){
@@ -118,7 +136,7 @@ function bgmPlay(track){
   }
   bar();
 }
-function bgmStop(){ _bgmCur=null; if(_bgmTimer){ clearTimeout(_bgmTimer); _bgmTimer=null; } }
+function bgmStop(){ _bgmCur=null; if(_bgmTimer){ clearTimeout(_bgmTimer); _bgmTimer=null; } if(_bgmAudio){ try{ _bgmAudio.pause(); }catch(e){} } }
 // 正解のキラッと演出（要素の近くに星が弾ける）
 function sparkleBurst(target){
   try{

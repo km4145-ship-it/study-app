@@ -120,3 +120,93 @@
   ];
   HARD_MATH.forEach(function (g) { mathGens.push(g); });
 })();
+
+/* 他教科の難問（★★★/★★★★）。答えは
+   ・計算で求める（理科の一部）＝必ず正しい
+   ・検証済みの事実テーブルから引く（知識系）＝テーブルが正しければ必ず正しい
+   のどちらか。LLM生成の文章は使わない。 */
+(function () {
+  if (typeof rint !== 'function' || typeof pick !== 'function' || typeof shuffleArr !== 'function') return;
+  // 事実テーブルから4択を作る（正解＋他項目3つ）
+  function tchoice(correct, all, key) {
+    var others = shuffleArr(all.filter(function (x) { return x[key] !== correct; })).slice(0, 3).map(function (x) { return x[key]; });
+    return shuffleArr([correct].concat(others));
+  }
+
+  // ===== 理科 =====
+  if (typeof sciGens !== 'undefined') {
+    var SCI_FORM = [['水', 'H₂O'], ['二酸化炭素', 'CO₂'], ['酸素', 'O₂'], ['水素', 'H₂'], ['塩化ナトリウム', 'NaCl'], ['アンモニア', 'NH₃'], ['窒素', 'N₂']];
+    var HARD_SCI = [
+      // オームの法則 V=IR（計算）
+      function () { var R = rint(2, 20), I = rint(1, 6), V = R * I, ch = numChoices(V, { spread: 12, positive: true, unit: '' });
+        return { q: '抵抗 ' + R + 'Ω に ' + I + 'A の電流を流した。電圧は何V？', sub: '電流（オームの法則）', level: '★★★★', hint: '電圧＝電流×抵抗（V=IR）', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】オームの法則 V=I×R。\n【手順】' + I + '×' + R + '=' + V + 'V\n【ポイント】V=IR、I=V/R、R=V/I。' }; },
+      // 密度（計算・割り切れる）
+      function () { var d = rint(2, 9), v = pick([2, 4, 5, 10]), m = d * v, ch = numChoices(d, { spread: 4, positive: true });
+        return { q: '体積 ' + v + 'cm³、質量 ' + m + 'g の金属の密度は 何g/cm³？', sub: '密度', level: '★★★', hint: '密度＝質量÷体積', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】密度＝質量÷体積。\n【手順】' + m + '÷' + v + '=' + d + 'g/cm³\n【ポイント】水の密度は約1.0g/cm³。' }; },
+      // 圧力 P=F/A（計算・割り切れる）
+      function () { var A = pick([2, 4, 5, 10]), P = rint(2, 40), F = P * A, ch = numChoices(P, { spread: 15, positive: true });
+        return { q: '面積 ' + A + 'm² に ' + F + 'N の力がはたらく。圧力は何Pa？', sub: '圧力', level: '★★★★', hint: '圧力＝力÷面積（Pa）', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】圧力＝力÷面積。\n【手順】' + F + '÷' + A + '=' + P + 'Pa\n【ポイント】1Pa＝1N/m²。' }; },
+      // 化学式（事実テーブル）
+      function () { var w = pick(SCI_FORM);
+        return { q: '「' + w[0] + '」の化学式は？', sub: '化学式', level: '★★★★', hint: '原子の記号と数', type: 'choice', choices: tchoice(w[1], SCI_FORM, 1), ans: w[1], explain: '【考え方】物質を原子の記号で表す。\n【手順】' + w[0] + '＝' + w[1] + '\n【ポイント】数字は右下に小さく書く。' }; }
+    ];
+    HARD_SCI.forEach(function (g) { sciGens.push(g); });
+  }
+
+  // ===== 社会 =====
+  if (typeof socGens !== 'undefined') {
+    var SOC_YEAR = [['大化の改新', '645'], ['関ヶ原の戦い', '1600'], ['江戸幕府が開かれた', '1603'], ['ペリーが来航した', '1853'], ['明治維新（明治に改元）', '1868'], ['大日本帝国憲法の発布', '1889'], ['日清戦争が始まった', '1894'], ['日露戦争が始まった', '1904'], ['第一次世界大戦が始まった', '1914'], ['第二次世界大戦が終わった', '1945']];
+    var SOC_CAPITAL = [['フランス', 'パリ'], ['ドイツ', 'ベルリン'], ['イタリア', 'ローマ'], ['イギリス', 'ロンドン'], ['アメリカ', 'ワシントンD.C.'], ['中国', 'ペキン'], ['カナダ', 'オタワ'], ['オーストラリア', 'キャンベラ'], ['ブラジル', 'ブラジリア'], ['エジプト', 'カイロ'], ['韓国', 'ソウル'], ['ロシア', 'モスクワ']];
+    var SOC_CURR = [['アメリカ', 'ドル'], ['イギリス', 'ポンド'], ['中国', '元'], ['韓国', 'ウォン'], ['インド', 'ルピー'], ['ロシア', 'ルーブル'], ['フランス', 'ユーロ'], ['タイ', 'バーツ']];
+    var HARD_SOC = [
+      // 歴史年号（事実テーブル・記述）
+      function () { var e = pick(SOC_YEAR);
+        return { q: '「' + e[0] + '」は 何年？（西暦・数字で）', sub: '歴史の年号', level: '★★★★', hint: 'できごとと年をセットで覚える', type: 'free', ans: e[1], altAns: [e[1] + '年'], explain: '【考え方】重要なできごとの年号。\n【手順】' + e[0] + '＝' + e[1] + '年\n【ポイント】前後のできごとと順番でも覚える。' }; },
+      // 世界の首都（事実テーブル）
+      function () { var w = pick(SOC_CAPITAL);
+        return { q: '「' + w[0] + '」の首都は？', sub: '世界の首都', level: '★★★', hint: '地図で位置も確認', type: 'choice', choices: tchoice(w[1], SOC_CAPITAL, 1), ans: w[1], explain: '【考え方】国と首都をセットで。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】最大都市と首都がちがう国に注意（例：アメリカ・オーストラリア）。' }; },
+      // 世界の通貨（事実テーブル）
+      function () { var w = pick(SOC_CURR);
+        return { q: '「' + w[0] + '」で使われている通貨は？', sub: '世界の通貨', level: '★★★', hint: '国と通貨をセットで', type: 'choice', choices: tchoice(w[1], SOC_CURR, 1), ans: w[1], explain: '【考え方】主要国の通貨。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】ユーロは多くのヨーロッパの国で共通。' }; }
+    ];
+    HARD_SOC.forEach(function (g) { socGens.push(g); });
+  }
+
+  // ===== 英語 =====
+  if (typeof engGens !== 'undefined') {
+    var ENG_PAST = [['go', 'went'], ['come', 'came'], ['see', 'saw'], ['eat', 'ate'], ['get', 'got'], ['take', 'took'], ['make', 'made'], ['run', 'ran'], ['write', 'wrote'], ['buy', 'bought'], ['have', 'had'], ['give', 'gave'], ['find', 'found'], ['know', 'knew']];
+    var ENG_COMP = [['big', 'bigger'], ['good', 'better'], ['many', 'more'], ['hot', 'hotter'], ['easy', 'easier'], ['happy', 'happier'], ['large', 'larger'], ['busy', 'busier'], ['fast', 'faster'], ['bad', 'worse']];
+    var ENG_PLURAL = [['child', 'children'], ['man', 'men'], ['woman', 'women'], ['foot', 'feet'], ['tooth', 'teeth'], ['mouse', 'mice'], ['leaf', 'leaves'], ['knife', 'knives'], ['city', 'cities'], ['box', 'boxes']];
+    var HARD_ENG = [
+      // 不規則動詞の過去形（記述）
+      function () { var w = pick(ENG_PAST);
+        return { q: '「' + w[0] + '」の過去形は？（英語で）', sub: '不規則動詞の過去形', level: '★★★★', hint: '不規則変化はそのまま覚える', type: 'free', ans: w[1], altAns: [w[1], w[1].charAt(0).toUpperCase() + w[1].slice(1)], explain: '【考え方】不規則動詞は形が変わる。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】規則動詞は+ed。不規則は暗記。' }; },
+      // 比較級（記述）
+      function () { var w = pick(ENG_COMP);
+        return { q: '「' + w[0] + '」の比較級は？（英語で）', sub: '比較級', level: '★★★★', hint: '-er／不規則／yはier', type: 'free', ans: w[1], altAns: [w[1]], explain: '【考え方】比較級の作り方。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】good→better, many→more は不規則。' }; },
+      // 複数形（記述）
+      function () { var w = pick(ENG_PLURAL);
+        return { q: '「' + w[0 ] + '」の複数形は？（英語で）', sub: '名詞の複数形', level: '★★★', hint: '不規則な複数形に注意', type: 'free', ans: w[1], altAns: [w[1]], explain: '【考え方】複数形の作り方。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】child→children など不規則は暗記。' }; }
+    ];
+    HARD_ENG.forEach(function (g) { engGens.push(g); });
+  }
+
+  // ===== 国語 =====
+  if (typeof jpGens !== 'undefined') {
+    var JP_YOJI = [['一石二鳥', '一つのことで二つの利益を得る'], ['十人十色', '人それぞれ好みや考えがちがう'], ['温故知新', '昔のことを学んで新しい知識を得る'], ['臨機応変', 'その場に応じてうまく対応する'], ['一期一会', '一生に一度の出会いを大切にする'], ['自業自得', '自分の行いの結果を自分が受ける'], ['弱肉強食', '強い者が弱い者を支配する'], ['以心伝心', '言葉にしなくても心が通じ合う']];
+    var JP_YOMI = [['紅葉', 'もみじ'], ['海苔', 'のり'], ['七夕', 'たなばた'], ['小豆', 'あずき'], ['田舎', 'いなか'], ['果物', 'くだもの'], ['眼鏡', 'めがね'], ['大人', 'おとな'], ['迷子', 'まいご'], ['土産', 'みやげ']];
+    var JP_ANT = [['需要', '供給'], ['原因', '結果'], ['理想', '現実'], ['積極', '消極'], ['客観', '主観'], ['義務', '権利'], ['具体', '抽象'], ['創造', '模倣']];
+    var HARD_JP = [
+      // 四字熟語の意味（事実テーブル）
+      function () { var w = pick(JP_YOJI);
+        return { q: '「' + w[0] + '」の意味は？', sub: '四字熟語', level: '★★★★', hint: '漢字の意味から考える', type: 'choice', choices: tchoice(w[1], JP_YOJI, 1), ans: w[1], explain: '【考え方】四字熟語は意味ごと覚える。\n【手順】' + w[0] + '＝' + w[1] + '\n【ポイント】使う場面もセットで覚える。' }; },
+      // 難読漢字の読み（記述）
+      function () { var w = pick(JP_YOMI);
+        return { q: '「' + w[0] + '」の読みは？（ひらがなで）', sub: '難読漢字', level: '★★★', hint: '特別な読み方', type: 'free', ans: w[1], altAns: [w[1]], explain: '【考え方】熟字訓など特別な読み。\n【手順】' + w[0] + '＝' + w[1] + '\n【ポイント】一字ずつでは読めない語もある。' }; },
+      // 対義語（事実テーブル）
+      function () { var w = pick(JP_ANT);
+        return { q: '「' + w[0] + '」の対義語は？', sub: '対義語', level: '★★★★', hint: '反対の意味の熟語', type: 'choice', choices: tchoice(w[1], JP_ANT, 1), ans: w[1], explain: '【考え方】対になる語を覚える。\n【手順】' + w[0] + '⇔' + w[1] + '\n【ポイント】需要⇔供給などはセットで頻出。' }; }
+    ];
+    HARD_JP.forEach(function (g) { jpGens.push(g); });
+  }
+})();

@@ -10,6 +10,7 @@ const TESTS = [
   ['tests/unit-rpg-world.js'],
   ['tests/unit-aibou.js'],
   ['tests/unit-chars.js'],
+  ['tests/unit-char3d.js'],
   ['tests/unit-areas.js'],
   ['tests/unit-cos-data.js'],
   ['tests/unit-subjects.js'],

@@ -119,6 +119,12 @@
   .char-svg.kai { filter: drop-shadow(0 0 16px rgba(239,68,68,0.6)); }
   .char-svg { animation: float 3s ease-in-out infinite; }
   .char-svg.kai { animation: shake-idle 4s ease-in-out infinite; }
+  /* 3Dキャラ（char3d.js）：スロットは親の器に合わせる。ふわふわは3D側で行うのでCSS floatは付けない */
+  .c3d-slot { width: 115px; height: 144px; position: relative; z-index: 1; }
+  .c3d-slot canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+  .rpg-hero-avatar .c3d-slot { width: 52px; height: 66px; }
+  .rpg-cos-pv-char .c3d-slot { width: 70px; height: 80px; }
+  #rpg-hero-sprite .c3d-slot { width: 74px; height: 90px; }
   @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
   @keyframes shake-idle {
     0%,100% { transform: translateY(0) rotate(0deg); }
@@ -842,6 +848,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
         <label>ガチャの演出</label>
         <button class="btn-sm" id="gfx-btn" onclick="toggleGachaFx()">🎬 フル</button>
         <span class="settings-hint" style="margin-left:6px">高レアの豪華演出の長さ（フル→短め→なし）。何度も引くときは短めが便利</span>
+      </div>
+      <div class="settings-row">
+        <label>3Dキャラ</label>
+        <button class="btn-sm" id="c3d-btn" onclick="toggleChar3d()">🧊 オン</button>
+        <span class="settings-hint" style="margin-left:6px">キャラクターを3D表示します。動きが重い端末はオフにしてください</span>
       </div>
     </div>
 
@@ -2137,6 +2148,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/ui-data.js?v=1"></script>
 <script src="js/util.js?v=1"></script>
 <script src="js/ranking.js?v=1"></script>
+<script src="js/three.min.js?v=1"></script>
+<script src="js/char3d.js?v=1"></script>
 <script>
 // =================== CHARACTER SVGs ===================
   // chars.js へ分離
@@ -2207,9 +2220,14 @@ Object.keys(CHARS).forEach(function(k){ voiceIds[k]=getVoiceDefault('voice_'+k, 
 let currentAudio    = null;
 
 // =================== CHARACTER SYSTEM ===================
+// 3Dが使えるときは canvas プレースホルダ、だめなら従来SVG
+function _charArt(ch){ try{ if(typeof char3dActive==='function' && char3dActive()) return char3dTag(ch); }catch(e){} return _charSVG(ch); }
+function _char3dHydrateSafe(el){ try{ if(typeof char3dHydrate==='function') char3dHydrate(el); }catch(e){} }
 function setCharacter(charKey, animate = true) {
   const wrap = document.getElementById('char-display');
-  if (currentChar === charKey && !animate && wrap && wrap.innerHTML.indexOf('<svg') >= 0) return;
+  // 同じキャラの3Dが生きていれば差し替えない（WebGLの作り直しを避ける）
+  const live3d = wrap && wrap.querySelector && wrap.querySelector('.c3d-slot[data-c3d="' + charKey + '"][data-c3d-live="1"]');
+  if (currentChar === charKey && wrap && (live3d || (!animate && wrap.innerHTML.indexOf('<svg') >= 0))) return;
   currentChar = charKey;
   const char = CHARS[charKey];
   const bubble = document.getElementById('speech-bubble');
@@ -2219,12 +2237,14 @@ function setCharacter(charKey, animate = true) {
   if (animate) {
     wrap.style.opacity = '0';
     setTimeout(() => {
-      wrap.innerHTML = char.svg;
+      wrap.innerHTML = _charArt(charKey);
+      _char3dHydrateSafe(wrap);
       wrap.style.opacity = '1';
       wrap.style.transition = 'opacity 0.3s';
     }, 200);
   } else {
-    wrap.innerHTML = char.svg;
+    wrap.innerHTML = _charArt(charKey);
+    _char3dHydrateSafe(wrap);
   }
 
   nameTag.textContent = char.name;
@@ -2250,6 +2270,7 @@ function areaCharOf(key) {
 function init() {
   applyTheme(); applyFontSize();
   updateScoreBar();
+  try{ if(typeof char3dObserve==='function') char3dObserve(); }catch(e){}  // 3Dキャラの自動マウント監視
   // 読み変換エンジン(kuromoji)は起動後に遅延ロード（初期表示を軽くする）
   renderGameHub();
   renderSubjects();
@@ -3016,7 +3037,16 @@ function updateScoreBar() {
 function _sfxBtnSync(){ var b=document.getElementById('sfx-btn'); if(b) b.textContent=sfxEnabled()?'🔊 オン':'🔇 オフ';
   var v=document.getElementById('vibe-btn'); if(v) v.textContent=vibeEnabled()?'📳 オン':'🚫 オフ';
   var g=document.getElementById('bgm-btn'); if(g) g.textContent=bgmEnabled()?'🎵 オン':'🔇 オフ';
-  var f=document.getElementById('gfx-btn'); if(f){ var m=_gachaFxMode(); f.textContent=(m==='off'?'⏭ なし':(m==='short'?'⏩ 短め':'🎬 フル')); } }
+  var f=document.getElementById('gfx-btn'); if(f){ var m=_gachaFxMode(); f.textContent=(m==='off'?'⏭ なし':(m==='short'?'⏩ 短め':'🎬 フル')); }
+  var c3=document.getElementById('c3d-btn'); if(c3){ try{ c3.textContent=char3dEnabled()?'🧊 オン':'⬜ オフ'; }catch(e){} } }
+// 3Dキャラ表示の切替（char3d_on。オフ→従来SVGに即時復帰）
+function toggleChar3d(){
+  var next = char3dEnabled() ? '0' : '1';
+  try{ safeLS.setItem('char3d_on', next); }catch(e){}
+  _sfxBtnSync();
+  try{ var w=document.getElementById('char-display'); if(w) w.innerHTML=''; setCharacter(currentChar||'owl', false); }catch(e){}
+  try{ sfx('click'); }catch(e){}
+}
 // ガチャ演出量：full（既定・約7秒の豪華演出）→ short（短縮）→ off（即開封）を循環
 function _gachaFxMode(){ try{ var m=safeLS.getItem('gacha_fx'); return (m==='short'||m==='off')?m:'full'; }catch(e){ return 'full'; } }
 function toggleGachaFx(){ var m=_gachaFxMode(), nx=(m==='full'?'short':(m==='short'?'off':'full')); try{ safeLS.setItem('gacha_fx', nx); }catch(e){} _sfxBtnSync(); try{ sfx('click'); }catch(e){} }
@@ -5105,6 +5135,18 @@ function rpgCosBadge(kind){
   if(svg) html+='<svg class="rpg-cos-svg" viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg">'+svg+'</svg>';
   return html;
 }
+// オーラだけ（3D表示時：アクセは3D側スプライトで重ねるが、オーラはCSSのまま使う）
+function rpgCosAura(kind){
+  var c=rpgCosState(rpgState()), eq=c.equip[kind]||{};
+  if(!eq.aura) return '';
+  var au=rpgCosById(kind,eq.aura);
+  return (au&&au.aura)?'<span class="rpg-aura rpg-aura-'+au.aura+'"></span>':'';
+}
+// 勇者の見た目：3Dが使えるとき canvas＋オーラ、だめなら従来SVG＋2Dアクセ
+function _heroArt(){
+  try{ if(typeof char3dActive==='function' && char3dActive()) return rpgCosAura('hero')+char3dTag(rpgHeroChar(),{cos:'hero'}); }catch(e){}
+  return _charSVG(rpgHeroChar())+rpgCosBadge('hero');
+}
 
 // ---- 世界とモンスター配置（P1：数の大陸／2章8ノード。posはマップ上の%座標）----
 var RPG_STAMINA_MAX = 8;
@@ -5348,7 +5390,7 @@ function rpgRenderContinents(){
   var into=s.xp-rpgXpForLevel(s.level), need=rpgXpForLevel(s.level+1)-rpgXpForLevel(s.level);
   var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
   var h='';
-  h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><div class="rpg-hero-info">'+
+  h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_heroArt()+'</div><div class="rpg-hero-info">'+
     '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
     '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち'+'</div>'+
@@ -5809,7 +5851,7 @@ function showCosmetics(){
   h+='<div class="rpg-coin-bar">🪙 もっているコイン：<b>'+cos.coin+'</b>　<span class="rpg-coin-hint">あたらしい着せ替えは「🎁ガチャ」タブで あつめよう</span></div>';
   // 今のすがた プレビュー
   h+='<div class="rpg-cos-preview">'+
-     '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><span>ゆうしゃ</span></div>'+
+     '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+_heroArt()+'</div><span>ゆうしゃ</span></div>'+
      '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+PET_SVG[Math.min((s.pet&&s.pet.stage)||0,3)]+rpgCosBadge('pet')+'</div><span>あいぼう</span></div></div>';
   var _et=rpgEquippedTitle(); if(_et) h+='<div class="rpg-cos-title-now">いまの称号：'+_et.em+' '+_et.name+'</div>';
   var _sts=rpgStats(); h+='<div class="rpg-cos-stats">ステータス　⚔️こうげき '+_sts.atk+'（+'+_sts.eq.atk+'）　🛡️ぼうぎょ '+_sts.def+'（+'+_sts.eq.def+'）　❤️HP '+_sts.hp+'（+'+_sts.eq.hp+'）　✨MP '+_sts.mp+'（+'+_sts.eq.mp+'）</div>';
@@ -5870,7 +5912,7 @@ function rpgRenderMap(area){
   var pct=Math.max(0,Math.min(100,Math.round(into/Math.max(1,need)*100)));
   var got=!!s.crystals[area];
   var h='<button class="rpg-back" onclick="showRpg()">← 大陸をえらぶ</button>';
-  h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_charSVG(rpgHeroChar())+rpgCosBadge('hero')+'</div><div class="rpg-hero-info">'+
+  h+='<div class="rpg-hero-card"><div class="rpg-hero-avatar">'+_heroArt()+'</div><div class="rpg-hero-info">'+
     '<div class="rpg-hero-lv">Lv.'+s.level+' '+escapeHtml(rpgHeroName())+'</div>'+
     '<div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>'+
     '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち'+'</div>'+
@@ -5946,7 +5988,7 @@ function rpgShowBattle(){
   var st=document.getElementById('rpg-stage'); if(st) st.style.display='block';
   document.getElementById('rpg-enemy-sprite').innerHTML=RPG_SVG[rpgBattle.node.mon]||'👾';
   document.getElementById('rpg-enemy-name').textContent=rpgBattle.node.name;
-  document.getElementById('rpg-hero-sprite').innerHTML=_charSVG(rpgHeroChar())+rpgCosBadge('hero');
+  document.getElementById('rpg-hero-sprite').innerHTML=_heroArt();
   document.getElementById('rpg-hero-name').textContent=escapeHtml(rpgHeroName());
   // あいぼうパーティ（3匹まで）を勇者のそばに表示（白い丸プレート＋ランク色リング）
   try{ var _ar=document.getElementById('rpg-aibou-row'); if(_ar){ _ar.innerHTML=rpgAibouParty().map(function(a){

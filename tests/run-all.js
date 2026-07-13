@@ -25,6 +25,7 @@ const TESTS = [
   ['tests/unit-content-data.js'],
   ['tests/unit-ui-data.js'],
   ['tests/unit-util.js'],
+  ['tests/unit-miss-types.js'],
   ['tests/unit-ranking-logic.js'],
   ['tests/unit-merge-cos.js'],
   ['tests/unit-users.js'],

@@ -605,6 +605,9 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .imp-label { display:inline-block; }
   .q-time { font-size:0.72rem; color:var(--primary-light); margin-top:6px; }
   .careless-ask { font-size:0.78rem; color:var(--text); margin-top:8px; }
+  /* ミスの型分析（自動推定タグ＋コツ） */
+  .miss-tag { display:inline-block; margin-top:7px; background:#fef3c7; color:#92400e; border-radius:9px; padding:3px 11px; font-size:.8rem; font-weight:800; }
+  .miss-tip { margin-top:7px; background:#ecfeff; color:#155e75; border-radius:10px; padding:9px 12px; font-size:.86rem; font-weight:700; line-height:1.65; text-align:left; }
   .cl-b { font-size:0.74rem; font-weight:700; padding:4px 10px; border-radius:8px; border:1px solid var(--primary-light); background:var(--card2); color:var(--primary-light); cursor:pointer; margin:0 2px; }
   @media (hover:hover) and (pointer:fine){ .cl-b:hover { background:var(--primary); color:#fff; } }
   .mas-area { font-weight:700; color:var(--gold); font-size:0.85rem; margin:8px 2px 4px; }
@@ -2157,6 +2160,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/scoring.js?v=1"></script>
 <script src="js/ui-data.js?v=1"></script>
 <script src="js/util.js?v=1"></script>
+<script src="js/miss-types.js?v=1"></script>
 <script src="js/ranking.js?v=1"></script>
 <script src="js/three.min.js?v=1"></script>
 <script src="js/char3d.js?v=1"></script>
@@ -2187,7 +2191,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1};
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1};
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -3175,6 +3179,7 @@ function findSimilarQuestion(q){
 }
 
 function showQuestion(skipSpeak) {
+  if (currentIndex === 0) _missSess = {};   // 新しいセッション開始でミス型カウントをリセット
   if (currentIndex >= currentQuestions.length) { if (isExam) { finishExam(); } else if (isMistakePractice) { endMistakePractice(); } else { showResult(); } return; }
   const q = currentQuestions[currentIndex];
   try{ hideTabbar(); }catch(e){}   // 問題中は下タブを隠して集中（結果/ホームで再表示）
@@ -3239,6 +3244,7 @@ function checkChoice(selected, btn) {
   if (answered) return;
   answered = true;
   const q = currentQuestions[currentIndex];
+  lastChosen = selected;   // ミスの型分析用に「選んだ答え」を残す
   const correct = selected === q.ans;
   if (isExam) { recordExam(q, selected, correct); return; }
   document.querySelectorAll('.option-btn').forEach(b => {
@@ -3263,12 +3269,15 @@ function checkFreeAnswer() {
     .replace(/[．]/g,'.').replace(/[（]/g,'(').replace(/[）]/g,')').replace(/[＝]/g,'=')
     .replace(/[，、]/g,',').toLowerCase();
   const ua = norm(userAns);
+  lastChosen = userAns;   // ミスの型分析用
   const correct = ua === norm(q.ans) || (q.altAns || []).map(norm).includes(ua);
   inp.disabled = true;
   if (isExam) { recordExam(q, userAns, correct); return; }
   handleAnswer(correct, q.ans);
 }
 
+var lastChosen=null;      // 直前に選んだ/入力した答え（ミスの型分析用）
+var _missSess={};         // このセッション内のミス型カウント（2回目からコツ表示）
 function handleAnswer(correct, correctAns) {
   onAnswered(currentQuestions[currentIndex], correct);
   const _qsec=(Date.now()-qStartTime)/1000; lastQSec=_qsec; addStudySeconds(_qsec);
@@ -3309,7 +3318,20 @@ function handleAnswer(correct, correctAns) {
     feedback.innerHTML = `惜しい！正解は「${correctAns}」だよ。次頑張ろう！💢` + (explainText ? `<br><div class="explain-box">${explainText.replace(/\n/g,'<br>')}</div>` : '');
   }
   feedback.innerHTML += `<div class="q-time">⏱ ${Math.round(lastQSec)}秒でこたえたよ</div>`;
-  if(!correct){ feedback.innerHTML += '<div class="careless-ask" id="careless-ask">今のミスは？ <button class="cl-b" onclick="classifyMistake(\'careless\')">うっかり</button> <button class="cl-b" onclick="classifyMistake(\'unknown\')">わからなかった</button></div>'; }
+  if(!correct){ feedback.innerHTML += '<div class="careless-ask" id="careless-ask">今のミスは？ <button class="cl-b" onclick="classifyMistake(\'careless\')">うっかり</button> <button class="cl-b" onclick="classifyMistake(\'unknown\')">わからなかった</button></div>';
+    // 🤖 ミスの型を自動推定（選んだ答え×正解の関係。ジェネレータ側の変更なしで全問題に効く）
+    try{
+      const _mq=currentQuestions[currentIndex];
+      const _mt=(typeof missClassify==='function')?missClassify(_mq,lastChosen,lastQSec):null;
+      if(_mt){
+        missBump(_mt, _mq && _mq.sub);
+        _missSess[_mt]=(_missSess[_mt]||0)+1;
+        const _mi=MISS_TYPES[_mt];
+        feedback.innerHTML += '<div class="miss-tag">'+_mi.em+' '+_mi.name+'かも</div>';
+        if(_missSess[_mt]>=2) feedback.innerHTML += '<div class="miss-tip">💡 '+_mi.tip+'</div>';   // 同じ型が2回目からコツを表示
+      }
+    }catch(e){}
+  }
   // まちがい→その場で類題リベンジ（練習のみ。模試/バトル/まちがい直しは除外・1問1回・1セッション3回まで）
   if(!correct && !isExam && !rpgBattle && !isMistakePractice
      && currentQuestions[currentIndex] && !currentQuestions[currentIndex]._revenge && _revengeCount<3){
@@ -4971,7 +4993,9 @@ var totalSeconds = parseInt(safeLS.getItem('c_seconds')||'0')||0;
 function addStudySeconds(sec){ if(!(sec>0)) return; sec=Math.min(sec,180); const r=Math.round(sec); const h=lsGetJSON('study_seconds',{}); const k=todayKey(); h[k]=(h[k]||0)+r; lsSetJSON('study_seconds',h); totalSeconds+=r; safeLS.setItem('c_seconds',totalSeconds); }
 function todaySeconds(){ return (lsGetJSON('study_seconds',{})[todayKey()])||0; }
 /* fmtTime は js/util.js へ分離 */
-function classifyMistake(t){ const c=lsGetJSON('careless_log',{careless:0,unknown:0}); c[t]=(c[t]||0)+1; lsSetJSON('careless_log',c); const el=document.getElementById('careless-ask'); if(el) el.innerHTML = (t==='careless'?'→ 次は見直しでふせげるね！':'→ 「📖 学ぶ」で要点をチェックしよう。'); }
+function classifyMistake(t){ const c=lsGetJSON('careless_log',{careless:0,unknown:0}); c[t]=(c[t]||0)+1; lsSetJSON('careless_log',c);
+  try{ missBump(t, currentQuestions[currentIndex] && currentQuestions[currentIndex].sub); }catch(e){}   // 自己申告もミスの型に集計
+  const el=document.getElementById('careless-ask'); if(el) el.innerHTML = (t==='careless'?'→ 次は見直しでふせげるね！':'→ 「📖 学ぶ」で要点をチェックしよう。'); }
 /* _toDate は js/util.js へ分離 */
 function getStudyDates(){
   const h=getDailyHist(); const set=new Set(Object.keys(h).filter(k=>h[k]>0));
@@ -6569,7 +6593,16 @@ function renderWeek(){
   const days=wk.filter(function(d){return (hist[d]||0)>0;}).length;
   var wk3=weakTopics(3);
   var weakLine = wk3.length? '<div class="week-weak">📉 今の苦手トップ3：'+wk3.map(function(r){return escapeHtml(r.sub)+'（'+r.rate+'%）';}).join('　')+'</div>' : '';
-  el.innerHTML='<div class="rec-summary">'+card(q,'今週の問題')+card(rate+'%','今週の正答率')+card(fmtTime(t),'今週の学習時間')+card(days+'/7日','学習した日')+'</div>'+weakLine;
+  // 🎯 今週のミスのくせ（自動分類＋自己申告の集計。1位の型にはコツも表示）
+  var missLine='';
+  try{
+    var ms=missWeekSummary((missLoad().days)||{}, wk);
+    if(ms.length){
+      missLine='<div class="week-weak">🎯 今週のミスのくせ：'+ms.slice(0,3).map(function(r){ var mi=MISS_TYPES[r.t]||{}; return (mi.em||'')+(mi.name||r.t)+'×'+r.n; }).join('　')+'</div>';
+      var top=MISS_TYPES[ms[0].t]; if(top) missLine+='<div class="week-weak miss-tip">💡 '+top.tip+'</div>';
+    }
+  }catch(e){}
+  el.innerHTML='<div class="rec-summary">'+card(q,'今週の問題')+card(rate+'%','今週の正答率')+card(fmtTime(t),'今週の学習時間')+card(days+'/7日','学習した日')+'</div>'+weakLine+missLine;
 }
 function renderParent(){
   const el=document.getElementById('rec-parent'); if(!el) return;

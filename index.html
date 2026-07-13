@@ -988,7 +988,7 @@
 <div class="container">
 
   <div class="resbar" id="topnav">
-    <button class="rb-user" onclick="muShowPicker()" title="ユーザー切替">
+    <button class="rb-user" onclick="muSwitchUser()" title="ユーザー切替">
       <span class="rb-ava" id="rb-ava">🐾</span><span class="rb-name" id="mu-current-name">ユーザー</span>
     </button>
     <div class="rb-res" id="rb-res">
@@ -2424,18 +2424,15 @@ function muPickerStatus(msg){ var el=document.getElementById('us-status'); if(el
 function muPickerLock(on){ try{ document.querySelectorAll('#user-select-list .us-card').forEach(function(b){ b.disabled=!!on; }); }catch(e){} }
 // ----- 端末セッションロック（同じユーザーを複数端末で同時に操作させない）-----
 function muDeviceLabel(){ var ua=navigator.userAgent||''; if(/iPad/.test(ua)) return 'iPad'; if(/iPhone/.test(ua)) return 'iPhone'; if(/Android/.test(ua)) return 'Android'; if(/Macintosh/.test(ua)) return 'Mac'; if(/Windows/.test(ua)) return 'Windows'; return 'べつの たんまつ'; }
-function muConfirmTakeover(by){ return Promise.resolve(confirm('⛔ いま「'+by+'」で つかっています。\n\nこの たんまつで つづけますか？\n（つづけると、まえの たんまつは ロックされます）')); }
+function muAlertInUse(by){ try{ alert('⛔ この キャラクターは いま「'+by+'」で つかっています。\n\nそのたんまつで「ユーザーを かえる」か、とじると つかえます。\n（とじたばあいは 90びょうほどで つかえるように なります）'); }catch(e){} return Promise.resolve(); }
 async function muBeginSession(id){
   if(!window.cloudSessionClaim) return true;   // クラウド無効時は素通し（端末内保存のみ）
   muPickerStatus('☁️ たんまつを かくにん中…');
   var lock = await Promise.race([ window.cloudSessionClaim(id, {name: muDeviceLabel()}), sleep(6000).then(function(){ return {ok:true, offline:true}; }) ]);
   muPickerStatus('');
   if(lock && lock.ok===false){
-    var forced = await muConfirmTakeover(lock.by);
-    if(!forced) return false;                  // 「もどる」を選んだ＝入室しない
-    muPickerStatus('☁️ ひきつぎ中…');
-    await Promise.race([ window.cloudSessionClaim(id, {force:true, name: muDeviceLabel()}), sleep(6000) ]);
-    muPickerStatus('');
+    await muAlertInUse(lock.by);               // 完全禁止：奪わず、先に使っている端末を優先して入室しない
+    return false;
   }
   if(window.cloudSessionStart) window.cloudSessionStart(id, muOnSessionTaken);
   return true;
@@ -2447,12 +2444,10 @@ function muOnSessionTaken(by){
   ov.innerHTML='<div style="font-size:52px">🔒</div>'+
     '<div style="font-size:20px;font-weight:800;margin:14px 0 6px">べつの たんまつで つかいはじめました</div>'+
     '<div style="opacity:.85;max-width:22em;line-height:1.7;margin-bottom:22px">「'+escapeHtml(by)+'」で ひらかれたため、この たんまつは ロックされました。おなじ アカウントを 2だいで どうじに つかうと、きろくが まざるのを ふせぐためです。</div>'+
-    '<button id="mu-lock-take" style="background:#f59e0b;color:#fff;border:0;border-radius:999px;padding:13px 24px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.35)">この たんまつで つづける</button>';
+    '<button id="mu-lock-take" style="background:#f59e0b;color:#fff;border:0;border-radius:999px;padding:13px 24px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.35)">キャラを えらぶ</button>';
   document.body.appendChild(ov);
   document.getElementById('mu-lock-take').addEventListener('click', function(){
-    var id=muCurrentId(); if(!id){ try{ location.reload(); }catch(e){} return; }
-    ov.remove();
-    if(window.cloudSessionClaim){ window.cloudSessionClaim(id, {force:true, name: muDeviceLabel()}).then(function(){ if(window.cloudSessionStart) window.cloudSessionStart(id, muOnSessionTaken); }); }
+    try{ location.reload(); }catch(e){}   // 完全禁止：奪い返さず、キャラ選択へ戻る
   });
 }
 var _muPicking=false;
@@ -2486,6 +2481,8 @@ async function muPickUser(id){
     muGreetAndEnter();
   } finally { _muPicking=false; }
 }
+function muSwitchUser(){ try{ if(window.cloudSessionRelease && muCurrentId()) window.cloudSessionRelease(muCurrentId()); }catch(e){}   // 明示的なユーザー切替＝今の子は終了→ロック解放（別端末がすぐ使える）
+  muShowPicker(); }
 function muShowPicker(){ try{ hideTabbar(); }catch(e){} renderUserSelect(); var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='flex';
   // ユーザー一覧をクラウドの最新に更新（新しい端末でも家族全員が表示される）
   if(window.cloudPullShared){

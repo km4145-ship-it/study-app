@@ -31,6 +31,18 @@ const srcTags = (html.match(/<script\b[^>]*\bsrc=/g) || []).length;
 if (srcTags !== 1) fail('dist/index.html の <script src> が ' + srcTags + ' 個（期待は1）。ビルドの結合が壊れている可能性。');
 if (!/<script\b[^>]*src="app\.min\.js/.test(html)) fail('dist/index.html が app.min.js を読み込んでいない。');
 
+// 2b) キャッシュ破棄の ?v がバンドル内容ハッシュと一致すること。
+//     SW無効環境では ?v が唯一のキャッシュ制御。ここが固定化すると「配信したのに古い版が
+//     ブラウザに残り続ける」＝修正が永久に届かない最悪事故になる（過去に発生）。内容ハッシュを強制する。
+const crypto = require('crypto');
+const expectHash = 'h' + crypto.createHash('sha1').update(js).digest('hex').slice(0, 12);
+const verM = html.match(/app\.min\.js\?([A-Za-z0-9]+)/);
+if (!verM) fail('dist/index.html に app.min.js?<version> が無い。');
+if (verM[1] !== expectHash) {
+  fail('キャッシュ破棄バージョンがバンドル内容ハッシュと一致しない（実際=' + verM[1] + ' / 期待=' + expectHash +
+    '）。build.js のバージョン付与が内容ハッシュでない可能性＝キャッシュが効かず古い版が配信され続ける。');
+}
+
 // 3) インラインイベントハンドラから呼ばれる識別子を機械的に収集
 //    ※ ハンドラは静的HTMLだけでなく、JSのテンプレートリテラル内で動的生成される
 //      もの（例：`<button onclick="rpgGachaDraw()">`）も多い。それらは dist/index.html には

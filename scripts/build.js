@@ -57,8 +57,12 @@ fs.writeFileSync(path.join(DIST, 'app.min.js'), minJs);
 html = html.replace(STYLE_RE, (full, attrs, css) => '<style' + attrs + '>' + minifyCss(css) + '</style>');
 
 // 3) 全<script>を除去し、末尾に単一バンドルを1つだけ挿入
+//    ★キャッシュ破棄の ?v は「バンドルの内容ハッシュ」にする。
+//      SWは無効なので ?v が唯一のキャッシュ制御。内容が1バイトでも変われば必ず新URLになり、
+//      端末は確実に新版を読む（＝「配信したのに古いまま」を根絶）。内容不変なら同一URLで無駄DLなし。
 html = html.replace(SCRIPT_RE, '');
-const ver = (fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').match(/v[\d.]+/) || ['v0'])[0].replace(/\./g, '');
+const crypto = require('crypto');
+const ver = 'h' + crypto.createHash('sha1').update(minJs).digest('hex').slice(0, 12);
 html = html.replace('</body>', '  <script src="app.min.js?' + ver + '"></script>\n</body>');
 fs.writeFileSync(path.join(DIST, 'index.html'), html);
 

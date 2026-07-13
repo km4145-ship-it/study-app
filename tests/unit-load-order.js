@@ -25,7 +25,7 @@ const before = (a, b) => idx(a) >= 0 && idx(b) >= 0 && idx(a) < idx(b);
 // 期待するモジュールが読み込まれていること
 [
   'js/rpg-assets.js', 'js/rpg-world.js', 'js/chars.js', 'js/areas.js', 'js/cos-data.js',
-  'js/subjects.js', 'js/questions-bank.js', 'js/questions-extra.js', 'js/generators.js',
+  'js/subjects.js', 'js/questions-bank.js', 'js/questions-extra.js', 'js/generators.js', 'js/generators-hard.js',
   'js/audio.js', 'js/furigana.js', 'js/reading-ja.js', 'js/content-data.js', 'js/scoring.js',
   'js/ui-data.js', 'js/util.js', 'js/ranking.js', 'cloud-sync.js',
 ].forEach((f) => c.ok(f + ' を読み込んでいる', idx(f) >= 0));
@@ -35,6 +35,8 @@ c.ok('generators.js は questions-extra.js より後（load時に BANK を使う
   before('js/questions-extra.js', 'js/generators.js'));
 c.ok('questions-extra.js は questions-bank.js より後',
   before('js/questions-bank.js', 'js/questions-extra.js'));
+c.ok('generators-hard.js は generators.js より後（mathGens へ push する）',
+  before('js/generators.js', 'js/generators-hard.js'));
 
 // メインの inline <script>（大きい方）は全 js/ モジュールより後
 const firstInline = scripts.findIndex((s) => s.inline && s.body.length > 2000);

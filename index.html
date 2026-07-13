@@ -1099,6 +1099,10 @@
   .hs-exam .hub-subj-go{ background:linear-gradient(135deg,#f97316,#ef4444); }
   .hs-prac .hub-subj-ic{ background:#e0f7fa; }
   .hs-exam .hub-subj-ic{ background:#fff1e6; }
+  .hs-diff .hub-subj-go{ background:linear-gradient(135deg,#0891b2,#22d3ee); }
+  .hs-basic .hub-subj-ic{ background:#dcfce7; } .hs-std .hub-subj-ic{ background:#dbeafe; }
+  .hs-adv .hub-subj-ic{ background:#fee2e2; } .hs-hard .hub-subj-ic{ background:linear-gradient(135deg,#fde68a,#fca5a5); }
+  .hs-all .hub-subj-ic{ background:#f3e8ff; }
   @media (max-width:380px){ .hub-grid{ gap:9px; } .hub-card{ padding:12px; min-height:72px; } .hub-card-ic{ font-size:26px; width:42px; height:42px; } .hub-card-nm{ font-size:15px; } }
   </style>
 
@@ -1906,6 +1910,7 @@
 <script src="js/questions-bank.js?v=1"></script>
 <script src="js/questions-extra.js?v=1"></script>
 <script src="js/generators.js?v=1"></script>
+<script src="js/generators-hard.js?v=1"></script>
 <script src="js/audio.js?v=1"></script>
 <script src="js/furigana.js?v=1"></script>
 <script src="js/reading-ja.js?v=1"></script>
@@ -3583,8 +3588,57 @@ function renderSubjectPick(){
   var msg=exam? 'どの教科で 力だめしする？' : 'どの教科を れんしゅうする？';
   setLunaText(msg);
 }
-function hubPractice(area){ currentArea=area; try{ setCharacter(areaCharOf(area)); }catch(e){} chooseMode('practice'); }
+// 練習：教科を選んだら「難易度」をえらぶ（難易度別コンテンツ）
+function hubPractice(area){
+  currentArea=area; try{ setCharacter(areaCharOf(area)); }catch(e){}
+  hideMainScreens();
+  document.getElementById('subject-pick-screen').style.display='block';
+  setActiveTab('home');
+  var a=AREAS.find(function(x){return x.key===area;})||{name:'',icon:'✏️'};
+  document.getElementById('sp-title').textContent=a.icon+' '+a.name+'｜難易度をえらぼう';
+  var tiers=[['basic','🌱','基礎','かんたん・じっくり'],['std','📗','標準','ふつうのレベル'],['adv','🔥','応用','むずかしい問題'],['hard','👑','難関','入試レベル！'],['all','🎲','おまかせ','いろいろ混ぜて10問']];
+  var h='';
+  tiers.forEach(function(t){
+    h+='<button class="hub-subj hs-diff hs-'+t[0]+'" onclick="startDifficulty(\''+area+'\',\''+t[0]+'\')">'+
+       '<span class="hub-subj-ic">'+t[1]+'</span>'+
+       '<span class="hub-subj-tx"><span class="hub-subj-nm">'+t[2]+'</span><span class="hub-subj-ds">'+t[3]+'</span></span>'+
+       '<span class="hub-subj-go">やる ▶</span></button>';
+  });
+  document.getElementById('sp-grid').innerHTML=h;
+  setLunaText(a.name+'、どのレベルにする？');
+}
 function hubExam(area){ currentArea=area; try{ setCharacter(areaCharOf(area)); }catch(e){} chooseMode('exam'); }
+// 難易度tier → 目標の★レベル集合（hardは★★★★優先、無ければ★★★）
+function _tierLevels(tier){
+  if(tier==='basic') return {'★☆☆':1};
+  if(tier==='std') return {'★★☆':1};
+  if(tier==='adv') return {'★★★':1};
+  if(tier==='hard') return {'★★★★':1,'★★★':1};
+  return null;   // おまかせ
+}
+// 選んだ難易度で10問（genQuestion を level で絞る）。教科は正しく記録される。
+function startDifficulty(area, tier){
+  var want=_tierLevels(tier);
+  if(!want){ startPractice(area, 'mid8'); return; }   // おまかせは通常練習
+  currentArea=area; currentMode='practice'; isExam=false; isGenPractice=true; stopExamTimer();
+  currentSubject=area; currentPracticeLevel='mid8';
+  var qs=[], seen={}, guard=0;
+  while(qs.length<10 && guard<1000){ guard++;
+    var q=genQuestion(area); if(!q||!q.q||q.ans===undefined||seen[q.q]) continue;
+    if(guard<700 && q.level && !want[q.level]) continue;   // 目標難易度に寄せる（無ければ後半で許可）
+    seen[q.q]=1; qs.push(q);
+  }
+  currentQuestions=shuffleArr(qs).slice(0,10); currentIndex=0; score=0;
+  hideMainScreens();
+  document.getElementById('quiz-screen').style.display='block';
+  document.getElementById('exam-timer').style.display='none';
+  var a=AREAS.find(function(x){return x.key===area;})||{name:'',icon:'✏️'};
+  var tl={basic:'🌱 基礎',std:'📗 標準',adv:'🔥 応用',hard:'👑 難関'}[tier]||'';
+  document.getElementById('quiz-title').textContent=a.icon+' '+a.name+' ・'+tl;
+  setCharacter(areaCharOf(area));
+  var intro=tl+'の'+a.name+'だよ。1問ずつ いこう！';
+  setLunaText(intro); showQuestion(true); introThenQuestion(intro);
+}
 // ===== キャラクター紹介 =====
 /* CHAR_INFO は js/ui-data.js へ分離 */
 function showCharacters(){

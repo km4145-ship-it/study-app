@@ -210,3 +210,111 @@
     HARD_JP.forEach(function (g) { jpGens.push(g); });
   }
 })();
+
+/* 難問 第2弾（さらに増量）。方針は同じ：計算算出 or 検証済み事実テーブル＝必ず正しい。 */
+(function () {
+  if (typeof rint !== 'function' || typeof pick !== 'function' || typeof shuffleArr !== 'function' || typeof numChoices !== 'function') return;
+  function tchoice(correct, all, key) {
+    var others = shuffleArr(all.filter(function (x) { return x[key] !== correct; })).slice(0, 3).map(function (x) { return x[key]; });
+    return shuffleArr([correct].concat(others));
+  }
+
+  // ===== 数学（計算＝必ず正しい）=====
+  if (typeof mathGens !== 'undefined') {
+    mathGens.push(
+      // 三角形の内角
+      function () { var a = rint(30, 90), b = rint(30, 120 - Math.min(89, a)); if (a + b >= 179) b = 179 - a; var ans = 180 - a - b, ch = numChoices(ans, { spread: 20, positive: true });
+        return { q: '三角形の2つの内角が ' + a + '°と' + b + '°のとき、残りの角は何度？', sub: '三角形の内角', level: '★★★', hint: '内角の和は180°', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】三角形の内角の和は180°。\n【手順】180−' + a + '−' + b + '=' + ans + '°\n【ポイント】外角＝離れた2つの内角の和。' }; },
+      // 反比例
+      function () { var x = rint(2, 6), y = rint(2, 9), a = x * y, x2 = pick([1, 2, 3, 6].filter(function (n) { return a % n === 0 && n !== x; })) || 1, ans = a / x2, ch = numChoices(ans, { spread: 6, positive: true });
+        return { q: 'y は x に反比例し、x=' + x + ' のとき y=' + y + '。x=' + x2 + ' のときの y は？', sub: '反比例', level: '★★★★', hint: 'xy＝一定（比例定数）', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】反比例は xy=一定。\n【手順】a=' + x + '×' + y + '=' + a + '、y=' + a + '÷' + x2 + '=' + ans + '\n【ポイント】比例は y/x 一定、反比例は xy 一定。' }; },
+      // 平方根の加減（同じ√をまとめる）
+      function () { var n = pick([2, 3, 5, 6, 7]), k1 = rint(2, 6), k2 = rint(1, 5), ans = k1 + k2, ch = numChoices(ans, { spread: 4, positive: true });
+        return { q: '' + k1 + '√' + n + ' ＋ ' + k2 + '√' + n + ' ＝ □√' + n + '　□に入る数は？', sub: '平方根の加減', level: '★★★★', hint: '同じ√どうしは係数をたす', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】√の中が同じなら係数をたす。\n【手順】' + k1 + '＋' + k2 + '＝' + ans + ' → ' + ans + '√' + n + '\n【ポイント】√の中がちがうとまとめられない。' }; },
+      // 円の面積（π の係数）
+      function () { var r = rint(2, 12), ans = r * r, ch = numChoices(ans, { spread: 20, positive: true });
+        return { q: '半径 ' + r + 'cm の円の面積は □π cm²。□に入る数は？', sub: '円の面積', level: '★★★', hint: '円の面積＝π×半径×半径', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】円の面積＝πr²。\n【手順】' + r + '×' + r + '＝' + ans + ' → ' + ans + 'π cm²\n【ポイント】直径ではなく半径を2回かける。' }; },
+      // 中央値（奇数個）
+      function () { var arr = []; for (var i = 0; i < 5; i++) arr.push(rint(1, 20)); var sorted = arr.slice().sort(function (p, q) { return p - q; }); var ans = sorted[2], ch = numChoices(ans, { spread: 6, positive: true });
+        return { q: 'データ ' + arr.join(', ') + ' の中央値は？', sub: '資料の活用（中央値）', level: '★★★★', hint: '小さい順に並べて真ん中', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】中央値＝並べたときの真ん中の値。\n【手順】並べると ' + sorted.join(',') + ' → 真ん中は ' + ans + '\n【ポイント】偶数個なら中央2つの平均。' }; },
+      // 比例式 a:b=c:x
+      function () { var a = rint(2, 6), c = a * rint(2, 4), b = rint(2, 9), x = b * c / a, ch = numChoices(x, { spread: 8, positive: true });
+        return { q: '比例式  ' + a + ' : ' + b + ' ＝ ' + c + ' : x  の x は？', sub: '比例式', level: '★★★', hint: '外項の積＝内項の積', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】a:b=c:x のとき a×x＝b×c（外項の積＝内項の積）。\n【手順】' + a + '×x=' + b + '×' + c + '=' + (b * c) + ' → x=' + (b * c) + '÷' + a + '=' + x + '\n【ポイント】たすきにかけて等しい。' }; },
+      // 割引（定価の○割引）
+      function () { var base = rint(3, 20) * 100, d = rint(1, 4), ans = base * (10 - d) / 10, ch = numChoices(ans, { spread: 200, positive: true });
+        return { q: '定価 ' + base + '円の品物を ' + d + '割引きで買うと 何円？', sub: '割合（割引）', level: '★★★', hint: '○割引き＝(10−○)/10をかける', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】' + d + '割引き＝定価の' + (10 - d) + '割。\n【手順】' + base + '×' + (10 - d) + '/10＝' + ans + '円\n【ポイント】○割引き後は(10−○)割。' }; },
+      // 一次方程式 ax+b=c
+      function () { var a = rint(2, 6), x = rint(-6, 8), b = rint(-9, 9), cc = a * x + b, ch = numChoices(x, { spread: 6 });
+        return { q: '方程式  ' + a + 'x' + (b < 0 ? '−' + (-b) : '+' + b) + ' = ' + cc + '  を解くと x は？', sub: '一次方程式', level: '★★★', hint: '移項してxだけにする', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】移項して ax=… にし、両辺をaで割る。\n【手順】' + a + 'x=' + cc + (b < 0 ? '+' + (-b) : '−' + b) + '=' + (cc - b) + ' → x=' + x + '\n【ポイント】移項すると符号が変わる。' }; }
+    );
+  }
+
+  // ===== 理科（計算＋事実表）=====
+  if (typeof sciGens !== 'undefined') {
+    var SCI_GAS = [['ものを燃やすはたらきがある気体', '酸素'], ['石灰水を白くにごらせる気体', '二酸化炭素'], ['最も軽い気体', '水素'], ['空気中に最も多くふくまれる気体', '窒素'], ['鼻をさすにおいがあり水にとけるとアルカリ性', 'アンモニア']];
+    sciGens.push(
+      // 電力 P=VI
+      function () { var V = rint(2, 20), I = rint(1, 5), P = V * I, ch = numChoices(P, { spread: 15, positive: true });
+        return { q: ' ' + V + 'V の電圧で ' + I + 'A の電流が流れた。電力は何W？', sub: '電力', level: '★★★★', hint: '電力＝電圧×電流（P=VI）', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】電力P＝電圧V×電流I。\n【手順】' + V + '×' + I + '=' + P + 'W\n【ポイント】1W＝1V×1A。' }; },
+      // 仕事 W=Fd
+      function () { var F = rint(2, 20), d = rint(2, 8), W = F * d, ch = numChoices(W, { spread: 20, positive: true });
+        return { q: ' ' + F + 'N の力で 物体を ' + d + 'm 動かした。仕事は何J？', sub: '仕事', level: '★★★★', hint: '仕事＝力×動いた距離', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】仕事J＝力N×距離m。\n【手順】' + F + '×' + d + '=' + W + 'J\n【ポイント】力の向きに動いた距離をかける。' }; },
+      // フックの法則（ばね）
+      function () { var k = rint(2, 6), x = rint(2, 8), F = k * x, ch = numChoices(F, { spread: 12, positive: true });
+        return { q: '1cmのばすのに ' + k + 'N 必要なばねを ' + x + 'cm のばすには 何N？', sub: 'フックの法則', level: '★★★', hint: 'のび に比例する', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】ばねののびは力に比例（フックの法則）。\n【手順】' + k + '×' + x + '=' + F + 'N\n【ポイント】比例定数（ばね定数）×のび。' }; },
+      // 気体の性質（事実表）
+      function () { var w = pick(SCI_GAS);
+        return { q: '「' + w[0] + '」は？', sub: '気体の性質', level: '★★★', hint: '性質から気体を特定', type: 'choice', choices: tchoice(w[1], SCI_GAS, 1), ans: w[1], explain: '【考え方】気体の性質と名前を結びつける。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】酸素・二酸化炭素・水素・窒素・アンモニアの性質を整理。' }; }
+    );
+  }
+
+  // ===== 社会（事実表）=====
+  if (typeof socGens !== 'undefined') {
+    var SOC_SANKEN = [['国会', '立法'], ['内閣', '行政'], ['裁判所', '司法']];
+    var SOC_YEAR2 = [['聖徳太子が十七条の憲法を定めた', '604'], ['奈良に平城京がつくられた', '710'], ['京都に平安京がつくられた', '794'], ['鎌倉幕府が滅びた', '1333'], ['応仁の乱が始まった', '1467'], ['鉄砲が種子島に伝わった', '1543'], ['日本国憲法が施行された', '1947']];
+    socGens.push(
+      // 三権分立（事実表・固定4択）
+      function () { var w = pick(SOC_SANKEN);
+        return { q: '三権分立で「' + w[0] + '」が受けもつのは？', sub: '三権分立', level: '★★★★', hint: '立法・行政・司法', type: 'choice', choices: shuffleArr(['立法', '行政', '司法', '地方自治']), ans: w[1], explain: '【考え方】国会＝立法、内閣＝行政、裁判所＝司法。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】たがいに抑制し合う（三権分立）。' }; },
+      // 歴史年号（第2弾・事実表）
+      function () { var e = pick(SOC_YEAR2);
+        return { q: '「' + e[0] + '」は 何年？（西暦・数字で）', sub: '歴史の年号', level: '★★★★', hint: '時代の流れで覚える', type: 'free', ans: e[1], altAns: [e[1] + '年'], explain: '【考え方】重要なできごとの年号。\n【手順】' + e[0] + '＝' + e[1] + '年\n【ポイント】前後のできごととセットで。' }; }
+    );
+  }
+
+  // ===== 英語（事実表）=====
+  if (typeof engGens !== 'undefined') {
+    var ENG_PP = [['go', 'gone'], ['see', 'seen'], ['eat', 'eaten'], ['write', 'written'], ['take', 'taken'], ['give', 'given'], ['do', 'done'], ['break', 'broken'], ['speak', 'spoken'], ['know', 'known']];
+    var ENG_ORD = [['1', 'first'], ['2', 'second'], ['3', 'third'], ['5', 'fifth'], ['8', 'eighth'], ['9', 'ninth'], ['12', 'twelfth'], ['20', 'twentieth']];
+    var ENG_OPP = [['big', 'small'], ['long', 'short'], ['old', 'new'], ['fast', 'slow'], ['happy', 'sad'], ['hot', 'cold'], ['high', 'low'], ['open', 'close']];
+    engGens.push(
+      // 過去分詞（記述）
+      function () { var w = pick(ENG_PP);
+        return { q: '「' + w[0] + '」の過去分詞は？（英語で）', sub: '過去分詞', level: '★★★★', hint: '現在完了で使う形', type: 'free', ans: w[1], altAns: [w[1]], explain: '【考え方】不規則動詞の過去分詞。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】have＋過去分詞で現在完了。' }; },
+      // 序数（記述）
+      function () { var w = pick(ENG_ORD);
+        return { q: '数字の「' + w[0] + '」を 序数（○番目）で 英語にすると？', sub: '序数', level: '★★★', hint: 'first, second, third…', type: 'free', ans: w[1], altAns: [w[1]], explain: '【考え方】順番を表す序数。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】日付や順位で使う。' }; },
+      // 反対語（事実表）
+      function () { var w = pick(ENG_OPP);
+        return { q: '「' + w[0] + '」の反対の意味の語は？（英語で）', sub: '英単語（反対語）', level: '★★★', hint: '意味の逆', type: 'choice', choices: tchoice(w[1], ENG_OPP, 1), ans: w[1], explain: '【考え方】反対の意味の単語をペアで覚える。\n【手順】' + w[0] + '⇔' + w[1] + '\n【ポイント】セットで暗記すると効率的。' }; }
+    );
+  }
+
+  // ===== 国語（事実表）=====
+  if (typeof jpGens !== 'undefined') {
+    var JP_KANYO = [['さばを読む', '数をごまかす'], ['油を売る', 'むだ話をして仕事をなまける'], ['ねこの手も借りたい', 'とてもいそがしい'], ['手を焼く', 'あつかいに困る'], ['心を打つ', '強く感動させる'], ['首を長くする', '今か今かと待ち望む'], ['水に流す', '過去のことをなかったことにする']];
+    var JP_KEIGO = [['言う（尊敬語）', 'おっしゃる'], ['行く・来る（謙譲語）', 'うかがう'], ['食べる（尊敬語）', 'めしあがる'], ['見る（謙譲語）', '拝見する'], ['する（尊敬語）', 'なさる'], ['もらう（謙譲語）', 'いただく']];
+    var JP_YOMI2 = [['師走', 'しわす'], ['五月雨', 'さみだれ'], ['吹雪', 'ふぶき'], ['名残', 'なごり'], ['行方', 'ゆくえ'], ['雪崩', 'なだれ'], ['意気地', 'いくじ'], ['波止場', 'はとば']];
+    jpGens.push(
+      // 慣用句の意味（事実表）
+      function () { var w = pick(JP_KANYO);
+        return { q: '慣用句「' + w[0] + '」の意味は？', sub: '慣用句', level: '★★★★', hint: '体の一部を使う慣用句が多い', type: 'choice', choices: tchoice(w[1], JP_KANYO, 1), ans: w[1], explain: '【考え方】慣用句は決まった意味をもつ。\n【手順】' + w[0] + '＝' + w[1] + '\n【ポイント】言葉どおりではない意味に注意。' }; },
+      // 敬語（事実表）
+      function () { var w = pick(JP_KEIGO);
+        return { q: '「' + w[0] + '」の言い方は？', sub: '敬語', level: '★★★★', hint: '尊敬語・謙譲語', type: 'choice', choices: tchoice(w[1], JP_KEIGO, 1), ans: w[1], explain: '【考え方】尊敬語は相手を高める、謙譲語は自分を低める。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】主語がだれかで使い分ける。' }; },
+      // 難読漢字（第2弾・記述）
+      function () { var w = pick(JP_YOMI2);
+        return { q: '「' + w[0] + '」の読みは？（ひらがなで）', sub: '難読漢字', level: '★★★★', hint: '特別な読み方', type: 'free', ans: w[1], altAns: [w[1]], explain: '【考え方】特別な読み（熟字訓）。\n【手順】' + w[0] + '＝' + w[1] + '\n【ポイント】声に出して覚える。' }; }
+    );
+  }
+})();

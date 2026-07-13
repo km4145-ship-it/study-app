@@ -982,11 +982,17 @@
 
 <div class="container">
 
-  <div class="topnav" id="topnav">
-    <span class="nav-title" onclick="muNav('home')">📚 小中学生学習アプリ</span>
+  <div class="resbar" id="topnav">
+    <button class="rb-user" onclick="muShowPicker()" title="ユーザー切替">
+      <span class="rb-ava" id="rb-ava">🐾</span><span class="rb-name" id="mu-current-name">ユーザー</span>
+    </button>
+    <div class="rb-res" id="rb-res">
+      <span class="rb-chip">🪙<b id="rb-coin">0</b></span>
+      <span class="rb-chip">⭐<b id="rb-pt">0</b></span>
+      <span class="rb-chip">🔥<b id="rb-streak">0</b></span>
+    </div>
+    <button class="rb-gear" id="nav-settings-btn" onclick="openSettings()" title="設定" aria-label="設定">⚙️</button>
     <span class="nb-badge" id="nb-badge" style="display:none">0</span>
-    <button class="nav-btn" onclick="muShowPicker()" title="ユーザー切替">👤 <span id="mu-current-name">ユーザー</span></button>
-    <button class="nav-btn" id="nav-settings-btn" onclick="openSettings()" title="設定" aria-label="設定">⚙️</button>
   </div>
 
   <div class="header">
@@ -1858,6 +1864,35 @@
   .rpg-qt-ic svg{ width:38px; height:38px; }
   .rpg-qt-l{ font-size:11.5px; font-weight:800; color:#0e3a4d; display:flex; align-items:center; gap:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
   .rpg-qt-b{ background:#ef4444; color:#fff; font-size:10px; font-weight:900; border-radius:999px; padding:0 6px; min-width:16px; text-align:center; }
+  /* 上部リソースバー（常設・スクロールしても上に固定） */
+  .resbar{ position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:8px;
+    padding:8px 12px; margin:-16px -16px 12px; background:rgba(240,250,255,.92);
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); box-shadow:0 3px 14px rgba(8,145,178,.13); }
+  body.rpg-mode .resbar{ background:rgba(24,18,52,.86); }
+  /* 冗長な大見出し・装飾は非表示（上部はリソースバーに集約） */
+  .header, .wave-deco{ display:none; }
+  .rb-user{ display:flex; align-items:center; gap:6px; border:none; background:#fff; font-family:inherit; cursor:pointer; border-radius:999px; padding:4px 13px 4px 5px; box-shadow:0 3px 10px rgba(8,110,140,.14); font-weight:800; font-size:13px; color:#0e3a4d; max-width:44%; }
+  .rb-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rb-ava{ width:28px; height:28px; flex:0 0 28px; border-radius:50%; background:linear-gradient(135deg,#e0f2fe,#fce7f3); display:grid; place-items:center; overflow:hidden; font-size:15px; }
+  .rb-ava svg{ width:24px; height:24px; }
+  .rb-res{ margin-left:auto; display:flex; gap:5px; }
+  .rb-chip{ display:inline-flex; align-items:center; gap:2px; background:#fff; border-radius:999px; padding:4px 9px; font-size:12px; font-weight:800; color:#0e3a4d; box-shadow:0 3px 10px rgba(8,110,140,.14); font-variant-numeric:tabular-nums; }
+  .rb-chip b{ font-weight:900; }
+  .rb-gear{ width:34px; height:34px; flex:0 0 34px; border-radius:50%; border:none; background:#fff; cursor:pointer; box-shadow:0 3px 10px rgba(8,110,140,.14); font-size:16px; }
+  .resbar .nb-badge{ position:absolute; }
+  /* タブレット・大画面の最適化 */
+  @media (min-width:700px){
+    .mu-tabbar{ justify-content:center; gap:10px; padding-left:0; padding-right:0; }
+    .mu-tab{ max-width:128px; }
+    .hub-grid{ grid-template-columns:1fr 1fr 1fr; }
+    .rb-chip{ font-size:13px; padding:5px 11px; }
+  }
+  @media (min-width:960px){ .hub-grid{ grid-template-columns:repeat(4,1fr); } }
+  /* タッチ端末はタップ標的を大きく（子ども・タブレット前提） */
+  @media (pointer:coarse){
+    .mu-tab{ min-height:60px; } .mt-i{ font-size:25px; } .mt-l{ font-size:11px; }
+    .hub-card{ min-height:84px; } .rec-hub-btn{ padding:11px 15px; }
+  }
 </style>
 
 <!-- 日本語形態素解析（漢字→正しい読み）用ライブラリ -->
@@ -2755,6 +2790,7 @@ function updateScoreBar() {
   if(_lastPointsShown!==null && totalPoints>_lastPointsShown){ try{ pe.classList.remove('score-pop'); void pe.offsetWidth; pe.classList.add('score-pop'); }catch(e){} }
   _lastPointsShown = totalPoints;
   renderDailyRing();
+  try{ updateResBar(); }catch(e){}
 }
 // ===== 効果音・しんどうの設定 =====
 function _sfxBtnSync(){ var b=document.getElementById('sfx-btn'); if(b) b.textContent=sfxEnabled()?'🔊 オン':'🔇 オフ';
@@ -3451,8 +3487,18 @@ function setActiveTab(dest){
   var bar=document.getElementById('mu-tabbar'); if(bar) bar.classList.remove('mu-hidden');
   var tabs=document.querySelectorAll('.mu-tab');
   for(var i=0;i<tabs.length;i++){ tabs[i].classList.toggle('on', tabs[i].getAttribute('data-tab')===_navTab); }
+  try{ updateResBar(); }catch(e){}
 }
 function hideTabbar(){ var bar=document.getElementById('mu-tabbar'); if(bar) bar.classList.add('mu-hidden'); }
+// 上部リソースバー（👤 / 🪙⭐🔥 / ⚙️）を最新化
+function updateResBar(){
+  var u=(typeof muCurrentUser==='function' && muCurrentUser())||{};
+  var av=document.getElementById('rb-ava'); if(av){ try{ av.innerHTML=_charSVG(u.char||currentChar||'shiba'); }catch(e){} }
+  var nm=document.getElementById('mu-current-name'); if(nm) nm.textContent=u.name||'ユーザー';
+  var c=document.getElementById('rb-coin'); if(c){ try{ c.textContent=rpgCoin(); }catch(e){} }
+  var p=document.getElementById('rb-pt'); if(p) p.textContent=totalPoints||0;
+  var st=document.getElementById('rb-streak'); if(st){ try{ st.textContent=currentStreak(); }catch(e){} }
+}
 
 // ===== ゲームホーム（キャラ選択後のメインメニュー：すべてゲーム形式）=====
 function hubCard(cls, icon, name, desc, onclick, big, badge){

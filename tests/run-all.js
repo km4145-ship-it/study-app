@@ -8,6 +8,7 @@ const TESTS = [
   ['tests/unit-load-order.js'],
   ['tests/unit-rpg-assets.js'],
   ['tests/unit-rpg-world.js'],
+  ['tests/unit-aibou.js'],
   ['tests/unit-chars.js'],
   ['tests/unit-areas.js'],
   ['tests/unit-cos-data.js'],

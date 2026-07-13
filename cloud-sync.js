@@ -96,6 +96,21 @@ window.FIREBASE_CONFIG = {
     if(x.title||y.title) o.title = y.title||x.title;                      // 装備中の称号（クラウド優先）
     return o;
   }
+  // あいぼう（なかまモンスター）：手持ちは和集合＝同期で絶対に消えない（grow-only）。レベル/経験値/エサはmax
+  function mergeAibou(x,y){
+    if(!x && !y) return undefined;
+    x=x||{}; y=y||{};
+    var roster={}, rx=x.roster||{}, ry=y.roster||{}, id;
+    for(id in rx){ if(rx[id]) roster[id]=rx[id]; }
+    for(id in ry){ if(!ry[id]) continue;
+      if(!roster[id]) roster[id]=ry[id];
+      else { var a2=roster[id], b2=ry[id];
+        roster[id]=Object.assign({}, a2, b2, { lv:Math.max(a2.lv||1,b2.lv||1), xp:Math.max(a2.xp||0,b2.xp||0), name:(b2.name||a2.name||'') }); } }
+    var party=((y.party&&y.party.length)?y.party:(x.party||[])).filter(function(pid){ return !!roster[pid]; }).slice(0,3);
+    var o={ roster:roster, party:party, food:Math.max(parseInt(x.food||0,10)||0, parseInt(y.food||0,10)||0) };
+    if(x.migrated||y.migrated) o.migrated=1;   // 旧ペット→あいぼう移行の二重実行を防ぐ
+    return o;
+  }
   function mergeRpg(a,b){ try{ var x=JSON.parse(a||'null'), y=JSON.parse(b||'null');
     if(!x) return b; if(!y) return a;
     var stam;
@@ -121,6 +136,8 @@ window.FIREBASE_CONFIG = {
     o.stamina=stam;
     o.cos=mergeCos(x.cos, y.cos);   // ★そうび・コイン・チケット・所持アイテムを保全（旧コードは丸ごと捨てていた＝データ消失の原因）
     if(o.cos===undefined) delete o.cos;
+    o.aibou=mergeAibou(x.aibou, y.aibou);   // ★あいぼう（なかまモンスター）も同様に保全
+    if(o.aibou===undefined) delete o.aibou;
     return JSON.stringify(o); }catch(e){ return b||a; } }
   function mergeKey(k,cur,inc){
     if(k==='mu_users') return mergeUsers(cur,inc);

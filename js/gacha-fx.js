@@ -14,13 +14,14 @@
   function reduced(){ try{ return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } }
 
   function ensure(){
-    if(cv) return;
-    cv=document.createElement('canvas'); cv.id='gacha-fx-canvas';
-    cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:10000;display:none;';
-    document.body.appendChild(cv);
-    ctx=cv.getContext('2d');
+    if(!cv){
+      cv=document.createElement('canvas'); cv.id='gacha-fx-canvas';
+      cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:10000;';
+      ctx=cv.getContext('2d');
+      try{ window.addEventListener('resize', resize); }catch(e){}
+    }
+    if(!cv.parentNode) document.body.appendChild(cv);   // 演出中だけDOMに置く（終了後は除去し、最前面canvasを残さない）
     resize();
-    try{ window.addEventListener('resize', resize); }catch(e){}
   }
   function resize(){
     if(!cv||!ctx) return;
@@ -29,8 +30,8 @@
     cv.width=Math.floor(W*dpr); cv.height=Math.floor(H*dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
-  function show(){ if(cv){ cv.style.display='block'; visible=true; } }
-  function hide(){ if(cv){ cv.style.display='none'; visible=false; if(ctx) ctx.clearRect(0,0,W,H); } }
+  function show(){ ensure(); visible=true; }
+  function hide(){ visible=false; if(ctx&&cv){ try{ ctx.clearRect(0,0,W,H); }catch(e){} } if(cv&&cv.parentNode) cv.parentNode.removeChild(cv); }   // DOMから外す＝残留ゼロ
 
   // レア度→色。null＝虹（hueで生成）。rank: 4=SR(桃) 5=SSR(金) 6=UR(虹) 7=LR(虹+白)
   function tone(rank, seed){

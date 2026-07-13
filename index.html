@@ -1579,7 +1579,7 @@
   .rpg-gacha-bar-l{ font-size:.9rem; line-height:1.3; }
   .rpg-gacha-btn{ flex:0 0 auto; background:#fde047; color:#7c2d12; border:none; border-radius:12px; padding:10px 16px; font-weight:900; font-size:.9rem; font-family:inherit; cursor:pointer; box-shadow:0 3px 0 #ca8a04; }
   .rpg-gacha-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #ca8a04; }
-  .rpg-gacha-ov{ position:fixed; inset:0; background:rgba(15,23,42,.86); z-index:9999; display:none; align-items:center; justify-content:center; }
+  .rpg-gacha-ov{ position:fixed; inset:0; background:rgba(15,23,42,.86); z-index:9999; display:none; align-items:center; justify-content:center; overflow-y:auto; padding:12px 0; box-sizing:border-box; }
   .rpg-gacha-card{ position:relative; background:linear-gradient(160deg,#1e293b,#0f172a); border:3px solid #475569; border-radius:20px; padding:26px 30px; text-align:center; color:#fff; min-width:230px; }
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
@@ -3617,6 +3617,7 @@ function backToSubjects(){ showSubjectSelect(); }
 // ===== ボトムタブのナビ（メインメニュー：ホーム/ぼうけん/ガチャ/きせかえ/きろく）=====
 var _navTab='home';
 function muNav(dest){
+  try{ var _ov=document.getElementById('rpg-gacha-ov'); if(_ov){ _ov.style.display='none'; _ov.className='rpg-gacha-ov'; } if(window.gachaFx) gachaFx.reset(); }catch(e){}   // 画面遷移で前回のガチャ演出を確実に閉じる（残留で操作不能になるのを防ぐ）
   if(dest==='home') showSubjectSelect();
   else if(dest==='adv') showRpg();
   else if(dest==='gacha') showGacha();
@@ -5410,7 +5411,7 @@ function _g10Preview(){
     '<button class="rpg-btn rpg-g10p-go" onclick="_g10StartReveal()">1つずつ あけていく ▶</button></div>';
   ov.style.display='flex';
   try{ sfx('charge'); }catch(e){}
-  if(hi){ setTimeout(function(){ try{ sfx('powerup'); vibe([20,40,20,40,60]); if(window.gachaFx) gachaFx.burst(4); }catch(e){} if(ov) ov.classList.add('omenpulse'); }, 1150); }
+  if(hi){ setTimeout(function(){ try{ sfx('powerup'); vibe([20,40,20,40,60]); }catch(e){} if(ov) ov.classList.add('omenpulse'); }, 1150); }   // 演出はCSSのみ（canvasはボタンに重ねない）
 }
 function _g10StartReveal(){ try{ sfx('click'); if(window.gachaFx) gachaFx.reset(); }catch(e){} _g10Idx=0; _g10ShowNext(); }
 function _g10ShowNext(){

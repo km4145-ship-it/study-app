@@ -1997,49 +1997,79 @@
   .rpg-qtile{ flex:1; min-width:0; border:none; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.96); border-radius:15px; padding:10px 6px; display:flex; flex-direction:column; align-items:center; gap:3px; box-shadow:0 4px 12px rgba(0,0,0,.22); }
   .rpg-qtile:active{ transform:scale(.96); }
   .rpg-qtile.hot{ box-shadow:0 0 0 2px #f59e0b, 0 4px 12px rgba(0,0,0,.22); }
-  /* あいぼう（なかまモンスター育成） */
-  .rpg-aibou-row{ display:flex; gap:2px; margin-top:2px; }
-  .rpg-aibou-mini{ position:relative; width:34px; height:34px; }
-  .rpg-aibou-mini-svg svg{ width:100%; height:100%; }
-  .rpg-aibou-mini-sp{ position:absolute; right:-3px; bottom:-3px; font-size:11px; }
-  .rpg-aibou-cheer .rpg-aibou-mini{ animation:aibouHop .5s ease; }
-  @keyframes aibouHop{ 30%{ transform:translateY(-9px) scale(1.15); } }
-  .rpg-aibou-rank{ display:inline-block; min-width:26px; text-align:center; padding:1px 5px; border-radius:8px; font-size:11px; font-weight:900; color:#fff; background:#94a3b8; vertical-align:middle; }
+  /* あいぼう（なかまモンスター育成）：ランクの色がカード枠・リング・バッジに一貫して現れる */
+  .rpg-aibou-rank{ display:inline-block; min-width:28px; text-align:center; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:900; letter-spacing:.5px; color:#fff; background:#94a3b8; vertical-align:middle; }
   .rpg-aibou-rank.rE{ background:#84cc16; } .rpg-aibou-rank.rD{ background:#22c55e; }
   .rpg-aibou-rank.rC{ background:#14b8a6; } .rpg-aibou-rank.rB{ background:#3b82f6; }
   .rpg-aibou-rank.rA{ background:#6366f1; } .rpg-aibou-rank.rS{ background:#a855f7; }
   .rpg-aibou-rank.rSS{ background:#f59e0b; }
   .rpg-aibou-rank.rSSS{ background:linear-gradient(90deg,#f43f5e,#f59e0b,#a855f7); box-shadow:0 0 8px rgba(244,63,94,.6); }
-  .rpg-res-offer{ margin:10px 0; padding:10px; border-radius:14px; background:#fef9c3; border:2px solid #f59e0b; animation:offerPulse 1.6s ease infinite; }
-  @keyframes offerPulse{ 50%{ box-shadow:0 0 14px rgba(245,158,11,.55); } }
-  .rpg-res-offer-svg{ width:64px; height:64px; margin:0 auto; }
-  .rpg-res-offer-svg svg{ width:100%; height:100%; }
-  .rpg-res-offer-txt{ font-size:13px; font-weight:700; margin:6px 0; color:#334155; }
-  .rpg-res-offer-btns{ display:flex; gap:8px; justify-content:center; }
-  .rpg-aibou-food{ background:rgba(255,255,255,.95); border-radius:12px; padding:8px 12px; margin:8px 0; font-size:14px; }
-  .rpg-aibou-party-ttl{ color:#fff; font-weight:800; font-size:13px; margin:10px 0 4px; text-shadow:0 1px 4px rgba(0,0,0,.4); }
-  .rpg-aibou-party{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
-  .rpg-aibou-slot{ border:none; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.96); border-radius:14px; padding:8px 4px; display:flex; flex-direction:column; align-items:center; gap:2px; box-shadow:0 4px 12px rgba(0,0,0,.22); }
-  .rpg-aibou-slot.empty{ background:rgba(255,255,255,.35); color:#fff; justify-content:center; min-height:92px; font-size:20px; text-align:center; }
-  .rpg-aibou-slot-svg svg,.rpg-aibou-cell-svg svg{ width:52px; height:52px; }
-  .rpg-aibou-slot-svg,.rpg-aibou-cell-svg{ font-size:40px; line-height:1; }
-  .rpg-aibou-slot-name,.rpg-aibou-cell-name{ font-size:11px; font-weight:800; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .rpg-aibou-slot-lv,.rpg-aibou-cell-lv{ font-size:10px; color:#64748b; }
-  .rpg-aibou-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; margin:8px 0; }
-  .rpg-aibou-cell{ position:relative; border:none; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.96); border-radius:12px; padding:8px 4px 6px; display:flex; flex-direction:column; align-items:center; gap:2px; }
-  .rpg-aibou-cell.inparty{ box-shadow:0 0 0 2px #38bdf8; }
-  .rpg-aibou-cell .rpg-aibou-rank{ position:absolute; left:4px; top:4px; }
-  .rpg-aibou-inp{ position:absolute; right:4px; top:4px; font-size:12px; }
-  .rpg-aibou-detail{ background:rgba(255,255,255,.96); border-radius:16px; padding:14px; text-align:center; }
-  .rpg-aibou-d-svg{ width:110px; height:110px; margin:0 auto; font-size:80px; line-height:110px; }
-  .rpg-aibou-d-svg svg{ width:100%; height:100%; }
-  .rpg-aibou-d-name{ font-size:18px; font-weight:900; margin-top:4px; }
-  .rpg-aibou-d-meta{ margin:4px 0; font-size:14px; }
-  .rpg-aibou-d-desc{ font-size:12px; color:#475569; }
-  .rpg-aibou-d-lv{ font-size:13px; margin:6px 0 2px; font-weight:700; }
-  .rpg-aibou-detail .rpg-xpbar{ margin:4px auto 8px; max-width:260px; }
-  .rpg-aibou-d-btns{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
-  .rpg-aibou-mini-btn{ border:none; background:transparent; cursor:pointer; font-size:14px; }
+  /* ランク色の枠（カード/リング共通） */
+  .rpg-aibou-bdF{ border-color:#94a3b8 !important; } .rpg-aibou-bdE{ border-color:#84cc16 !important; }
+  .rpg-aibou-bdD{ border-color:#22c55e !important; } .rpg-aibou-bdC{ border-color:#14b8a6 !important; }
+  .rpg-aibou-bdB{ border-color:#3b82f6 !important; } .rpg-aibou-bdA{ border-color:#6366f1 !important; }
+  .rpg-aibou-bdS{ border-color:#a855f7 !important; } .rpg-aibou-bdSS{ border-color:#f59e0b !important; }
+  .rpg-aibou-bdSSS{ border-color:#f43f5e !important; box-shadow:0 0 10px rgba(244,63,94,.45); }
+  /* モンスターの絵は必ず枠内に収める（SVG固有サイズでレイアウトが崩れないように） */
+  .rpg-aibou-art{ width:48px; height:48px; display:flex; align-items:center; justify-content:center; font-size:38px; line-height:1; }
+  .rpg-aibou-art svg{ width:100% !important; height:100% !important; display:block; }
+  .rpg-aibou-art.lg{ width:88px; height:88px; font-size:64px; }
+  /* バトル中のパーティ（白い丸プレート＋ランク色リングで見やすく） */
+  .rpg-aibou-row{ display:flex; gap:6px; margin-top:4px; }
+  .rpg-aibou-mini{ position:relative; width:40px; height:40px; background:rgba(255,255,255,.94); border-radius:50%; border:2.5px solid #94a3b8; box-shadow:0 2px 8px rgba(0,0,0,.3); display:flex; align-items:center; justify-content:center; }
+  .rpg-aibou-mini .rpg-aibou-art{ width:30px; height:30px; font-size:24px; }
+  .rpg-aibou-cheer .rpg-aibou-mini{ animation:aibouHop .5s ease; }
+  @keyframes aibouHop{ 30%{ transform:translateY(-9px) scale(1.15); } }
+  /* 一覧：ステータスチップ＋どの背景でも読めるセクションラベル */
+  .rpg-aibou-bar{ display:flex; gap:8px; margin:8px 0; }
+  .rpg-aibou-chip{ flex:1; background:rgba(255,255,255,.96); border-radius:12px; padding:9px 10px; font-size:13.5px; font-weight:800; color:#334155; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 10px rgba(0,0,0,.15); }
+  .rpg-aibou-sec{ display:inline-block; background:rgba(15,23,42,.62); color:#fff; font-size:12.5px; font-weight:800; padding:4px 13px; border-radius:999px; margin:10px 0 6px; }
+  .rpg-aibou-party{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:4px; }
+  .rpg-aibou-slot{ min-width:0; position:relative; border:2.5px solid #94a3b8; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.96); border-radius:14px; padding:8px 4px 6px; display:flex; flex-direction:column; align-items:center; gap:3px; box-shadow:0 4px 12px rgba(0,0,0,.18); }
+  .rpg-aibou-slot.empty{ border-style:dashed; border-color:rgba(255,255,255,.85); background:rgba(255,255,255,.45); color:#334155; justify-content:center; min-height:106px; font-size:15px; font-weight:800; }
+  .rpg-aibou-slot.empty small{ font-size:10.5px; font-weight:700; color:#475569; }
+  .rpg-aibou-slot .rpg-aibou-rank{ position:absolute; left:5px; top:5px; }
+  /* パーティ効果の見える化チップ */
+  .rpg-aibou-fx{ display:flex; flex-wrap:wrap; gap:5px; margin:6px 0 2px; }
+  .rpg-aibou-fx span{ background:rgba(255,255,255,.92); color:#334155; border-radius:999px; padding:3px 10px; font-size:11.5px; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.12); }
+  /* 一覧グリッド */
+  .rpg-aibou-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:8px; margin:8px 0; }
+  .rpg-aibou-cell{ min-width:0; position:relative; border:2.5px solid #94a3b8; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.96); border-radius:14px; padding:20px 4px 6px; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .rpg-aibou-cell:active,.rpg-aibou-slot:active{ transform:scale(.96); }
+  .rpg-aibou-cell.inparty{ box-shadow:0 0 0 3px #38bdf8, 0 4px 12px rgba(0,0,0,.18); }
+  .rpg-aibou-cell .rpg-aibou-rank{ position:absolute; left:5px; top:5px; }
+  .rpg-aibou-inp{ position:absolute; right:5px; top:5px; font-size:13px; }
+  .rpg-aibou-nm{ font-size:11px; font-weight:800; color:#334155; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rpg-aibou-lv{ font-size:10.5px; color:#64748b; font-weight:700; }
+  /* 詳細 */
+  .rpg-aibou-detail{ background:rgba(255,255,255,.97); border-radius:18px; padding:16px 14px; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,.18); }
+  .rpg-aibou-d-plate{ width:116px; height:116px; margin:0 auto; border-radius:50%; border:4px solid #94a3b8; background:#f1f5f9; display:flex; align-items:center; justify-content:center; }
+  .rpg-aibou-d-name{ font-size:19px; font-weight:900; color:#1e293b; margin-top:8px; }
+  .rpg-aibou-d-chips{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:7px 0 2px; }
+  .rpg-aibou-d-chips .c{ background:#f1f5f9; border-radius:999px; padding:4px 11px; font-size:12.5px; font-weight:800; color:#334155; }
+  .rpg-aibou-d-fx{ background:#fefce8; border:1.5px solid #fde68a; color:#854d0e; border-radius:12px; padding:8px 10px; font-size:13px; font-weight:700; margin:9px 0 4px; }
+  .rpg-aibou-d-lv{ font-size:13px; margin:8px 0 3px; font-weight:800; color:#334155; }
+  .rpg-aibou-detail .rpg-xpbar{ margin:4px auto 6px; max-width:260px; }
+  .rpg-aibou-d-btns{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .rpg-aibou-d-btns .row{ display:flex; gap:8px; }
+  .rpg-aibou-d-btns .row .rpg-btn{ flex:2; margin:0; }
+  .rpg-aibou-d-btns .row .rpg-abtn-line{ flex:1; }
+  /* 白地でも必ず見えるアウトラインボタン（ghostの代わり） */
+  .rpg-abtn-line{ border:2px solid #cbd5e1; background:#fff; color:#334155; font-family:inherit; font-weight:800; font-size:14px; border-radius:12px; padding:11px 12px; cursor:pointer; }
+  .rpg-abtn-line:active{ transform:scale(.97); }
+  .rpg-abtn-line.blue{ border-color:#38bdf8; color:#0369a1; background:#f0f9ff; }
+  .rpg-aibou-mini-btn{ border:none; background:transparent; cursor:pointer; font-size:15px; }
+  /* スカウト（なかまにする？）カード */
+  .rpg-res-offer{ margin:12px 0; padding:12px 10px; border-radius:16px; background:#fffbeb; border:3px solid #f59e0b; animation:offerPulse 1.6s ease infinite; color:#334155; }
+  @keyframes offerPulse{ 50%{ box-shadow:0 0 16px rgba(245,158,11,.6); } }
+  .rpg-res-offer-ttl{ font-size:15px; font-weight:900; color:#b45309; }
+  .rpg-res-offer-svg{ width:76px; height:76px; margin:6px auto 2px; }
+  .rpg-res-offer-svg svg{ width:100% !important; height:100% !important; display:block; }
+  .rpg-res-offer-txt{ font-size:14px; font-weight:800; margin:4px 0 2px; color:#334155; }
+  .rpg-res-offer-fx{ font-size:12.5px; font-weight:700; color:#854d0e; margin:2px 0 10px; }
+  .rpg-res-offer-btns{ display:flex; gap:8px; }
+  .rpg-res-offer-btns .rpg-btn{ flex:3; margin:0; }
+  .rpg-res-offer-btns .rpg-abtn-line{ flex:2; white-space:nowrap; padding:11px 6px; }
   .rpg-res-join{ font-size:15px; }
   .rpg-qt-em{ font-size:26px; line-height:1; }
   .rpg-qt-ic{ width:38px; height:38px; display:grid; place-items:center; }
@@ -5350,29 +5380,43 @@ function rpgShowAibou(){
   var s=rpgState(), ai=rpgAibouState(s); rpgSave(s);   // 正規化＋旧ペット移行をここで確定保存
   var ids=Object.keys(ai.roster);
   var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
-  h+='<div class="rpg-world-title">🐾 あいぼう（'+ids.length+'ひき）</div>';
-  h+='<div class="rpg-aibou-food">🍖 エサ <b>'+(ai.food||0)+'</b>　<small>バトルで 正解すると たまるよ</small></div>';
-  h+='<div class="rpg-aibou-party-ttl">🎒 いっしょに ぼうけんする 3びき</div><div class="rpg-aibou-party">';
+  h+='<div class="rpg-world-title">🐾 あいぼう</div>';
+  h+='<div class="rpg-aibou-bar"><span class="rpg-aibou-chip">🍖 エサ <b>'+(ai.food||0)+'</b></span><span class="rpg-aibou-chip">🐾 なかま <b>'+ids.length+'</b><small>/'+AIBOU_ROSTER_MAX+'</small></span></div>';
+  h+='<div class="rpg-aibou-sec">🎒 パーティ（いっしょに たたかう 3びき）</div><div class="rpg-aibou-party">';
   for(var i=0;i<3;i++){ var pid=ai.party[i], pa=pid?ai.roster[pid]:null;
-    h+= pa ? '<button class="rpg-aibou-slot" onclick="rpgAibouDetail(\''+pa.id+'\')"><span class="rpg-aibou-slot-svg">'+rpgAibouArt(pa)+'</span><span class="rpg-aibou-rank r'+pa.rank+'">'+pa.rank+'</span><span class="rpg-aibou-slot-name">'+escapeHtml(pa.name||'？')+'</span><span class="rpg-aibou-slot-lv">Lv.'+(pa.lv||1)+'</span></button>'
-           : '<div class="rpg-aibou-slot empty">＋<br><small>したから えらぼう</small></div>'; }
+    h+= pa ? '<button class="rpg-aibou-slot rpg-aibou-bd'+pa.rank+'" onclick="rpgAibouDetail(\''+pa.id+'\')"><span class="rpg-aibou-rank r'+pa.rank+'">'+pa.rank+'</span><span class="rpg-aibou-art">'+rpgAibouArt(pa)+'</span><span class="rpg-aibou-nm">'+((AIBOU_SPECIES[pa.sp]||{}).em||'')+' '+escapeHtml(pa.name||'？')+'</span><span class="rpg-aibou-lv">Lv.'+(pa.lv||1)+'</span></button>'
+           : '<button class="rpg-aibou-slot empty" onclick="showToast(\'🎒\',\'パーティに いれよう\',\'下の なかまを タップして「パーティに いれる」を おすと えらべるよ\')">＋<small>なかまを えらぶ</small></button>'; }
   h+='</div>';
-  if(!ids.length){ h+='<div class="rpg-map-hint">まだ なかまが いないよ。バトルに かつと モンスターが なかまに なることが あるよ！</div>'; }
+  // パーティの効果を見える化（なぜ3びき えらぶのかが 分かる）
+  var _fxc=rpgAibouFxChips(aibouPartyFx(ai.party.map(function(id){ return ai.roster[id]; })));
+  if(_fxc.length){ h+='<div class="rpg-aibou-fx">'+_fxc.map(function(t){ return '<span>'+t+'</span>'; }).join('')+'</div>'; }
+  if(!ids.length){ h+='<div class="rpg-map-hint">まだ なかまが いないよ。バトルに かつと モンスターが「なかまに なりたい！」って 来ることが あるよ！</div>'; }
   else {
     ids.sort(function(p,q){ var A=ai.roster[p],B=ai.roster[q]; var d=AIBOU_RANKS.indexOf(B.rank)-AIBOU_RANKS.indexOf(A.rank); return d||((B.lv||1)-(A.lv||1)); });   // 強い順
+    h+='<div class="rpg-aibou-sec">🐾 なかま いちらん（つよい じゅん）</div>';
     h+='<div class="rpg-aibou-grid">';
     ids.forEach(function(id){ var a=ai.roster[id], inP=ai.party.indexOf(id)>=0;
-      h+='<button class="rpg-aibou-cell'+(inP?' inparty':'')+'" onclick="rpgAibouDetail(\''+id+'\')">'
+      h+='<button class="rpg-aibou-cell rpg-aibou-bd'+a.rank+(inP?' inparty':'')+'" onclick="rpgAibouDetail(\''+id+'\')">'
         +'<span class="rpg-aibou-rank r'+a.rank+'">'+a.rank+'</span>'
         +(inP?'<span class="rpg-aibou-inp">🎒</span>':'')
-        +'<div class="rpg-aibou-cell-svg">'+rpgAibouArt(a)+'</div>'
-        +'<span class="rpg-aibou-cell-name">'+((AIBOU_SPECIES[a.sp]||{}).em||'')+' '+escapeHtml(a.name||'？')+'</span>'
-        +'<span class="rpg-aibou-cell-lv">Lv.'+(a.lv||1)+'</span></button>'; });
+        +'<span class="rpg-aibou-art">'+rpgAibouArt(a)+'</span>'
+        +'<span class="rpg-aibou-nm">'+((AIBOU_SPECIES[a.sp]||{}).em||'')+' '+escapeHtml(a.name||'？')+'</span>'
+        +'<span class="rpg-aibou-lv">Lv.'+(a.lv||1)+'</span></button>'; });
     h+='</div>';
   }
-  h+='<div class="rpg-map-hint">たかい章ほど 強いランクが 出やすい（さいこうは SSS）。ボスは なかまに なりやすいよ！</div>';
+  h+='<div class="rpg-map-hint">わくの色＝ランクの色（F→SSS で つよくなる）。たかい章の バトルほど 強いランクが 出やすい。ボスは なかまに なりやすいよ！</div>';
   mv.innerHTML=h;
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+}
+// パーティの応援効果 → 子どもに分かる ことばのチップ
+function rpgAibouFxChips(fx){
+  var c=[];
+  if(fx.support>0) c.push('💪 おうえん攻撃 +'+fx.support);
+  if(fx.critAt<3) c.push('🐺 かいしんが 出やすい');
+  if(fx.guard>0) c.push('🟢 みがわり ×'+fx.guard);
+  if(fx.healPer3>0) c.push('🌿 かいふく +'+fx.healPer3);
+  if(fx.xpMult>1) c.push('🦸 けいけんち ×'+fx.xpMult);
+  return c;
 }
 function rpgAibouDetail(id){
   var s=rpgState(), ai=rpgAibouState(s), a=ai.roster[id];
@@ -5382,18 +5426,18 @@ function rpgAibouDetail(id){
   var mv=document.getElementById('rpg-map-view');
   var h='<button class="rpg-back" onclick="rpgShowAibou()">← あいぼう一覧</button>';
   h+='<div class="rpg-aibou-detail">';
-  h+='<div class="rpg-aibou-d-svg" id="rpg-aibou-d-svg">'+rpgAibouArt(a)+'</div>';
-  h+='<div class="rpg-aibou-d-name">'+escapeHtml(a.name||'？')+' <button class="rpg-aibou-mini-btn" onclick="rpgAibouRename(\''+id+'\')">✏️</button></div>';
-  h+='<div class="rpg-aibou-d-meta"><span class="rpg-aibou-rank r'+a.rank+'">'+a.rank+'</span> '+(sp.em||'')+escapeHtml(sp.name||'')+(sp.rare?'（レア種族！）':'')+'　💪ちから '+aibouPower(a)+'</div>';
-  h+='<div class="rpg-aibou-d-desc">'+escapeHtml(sp.desc||'')+'</div>';
-  h+=((a.lv||1)>=max) ? '<div class="rpg-aibou-d-lv">Lv.'+a.lv+'（さいだいまで そだった！）</div>'
-    : '<div class="rpg-aibou-d-lv">Lv.'+(a.lv||1)+' / '+max+'　つぎまで あと '+Math.max(0,need-(a.xp||0))+'</div><div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>';
+  h+='<div class="rpg-aibou-d-plate rpg-aibou-bd'+a.rank+'" id="rpg-aibou-d-svg"><span class="rpg-aibou-art lg">'+rpgAibouArt(a)+'</span></div>';
+  h+='<div class="rpg-aibou-d-name">'+escapeHtml(a.name||'？')+' <button class="rpg-aibou-mini-btn" onclick="rpgAibouRename(\''+id+'\')" title="なまえを かえる">✏️</button></div>';
+  h+='<div class="rpg-aibou-d-chips"><span class="rpg-aibou-rank r'+a.rank+'">'+a.rank+'</span><span class="c">'+(sp.em||'')+' '+escapeHtml(sp.name||'')+(sp.rare?'（レア！）':'')+'</span><span class="c">💪 ちから '+aibouPower(a)+'</span>'+(inP?'<span class="c">🎒 パーティ中</span>':'')+'</div>';
+  h+='<div class="rpg-aibou-d-fx">とくせい：'+escapeHtml(sp.desc||'')+'</div>';
+  h+=((a.lv||1)>=max) ? '<div class="rpg-aibou-d-lv">Lv.'+a.lv+'（さいだいまで そだった！🎉）</div>'
+    : '<div class="rpg-aibou-d-lv">Lv.'+(a.lv||1)+' <small style="color:#94a3b8">/ '+max+'</small>　つぎまで あと '+Math.max(0,need-(a.xp||0))+'</div><div class="rpg-xpbar"><div class="rpg-xpfill" style="width:'+pct+'%"></div></div>';
   h+='<div class="rpg-aibou-d-btns">';
-  h+='<button class="rpg-btn" onclick="rpgAibouFeed(\''+id+'\',1)">🍖 エサをあげる（のこり '+(ai.food||0)+'）</button>';
-  if((ai.food||0)>=10) h+='<button class="rpg-btn" onclick="rpgAibouFeed(\''+id+'\',10)">🍖×10 まとめて あげる</button>';
-  h+= inP ? '<button class="rpg-btn ghost" onclick="rpgAibouToggleParty(\''+id+'\')">🎒 パーティから はずす</button>'
-          : '<button class="rpg-btn" onclick="rpgAibouToggleParty(\''+id+'\')">🎒 パーティに いれる</button>';
-  h+='<button class="rpg-btn ghost" onclick="rpgAibouPat(\''+id+'\')">🐾 なでる</button>';
+  h+='<div class="row"><button class="rpg-btn" onclick="rpgAibouFeed(\''+id+'\',1)">🍖 エサをあげる（'+(ai.food||0)+'）</button>'
+    +((ai.food||0)>=10?'<button class="rpg-abtn-line" onclick="rpgAibouFeed(\''+id+'\',10)">×10</button>':'')+'</div>';
+  h+= inP ? '<button class="rpg-abtn-line" onclick="rpgAibouToggleParty(\''+id+'\')">🎒 パーティから はずす</button>'
+          : '<button class="rpg-abtn-line blue" onclick="rpgAibouToggleParty(\''+id+'\')">🎒 パーティに いれる</button>';
+  h+='<button class="rpg-abtn-line" onclick="rpgAibouPat(\''+id+'\')">🐾 なでる</button>';
   h+='</div></div>';
   mv.innerHTML=h;
 }
@@ -5801,9 +5845,9 @@ function rpgShowBattle(){
   document.getElementById('rpg-enemy-name').textContent=rpgBattle.node.name;
   document.getElementById('rpg-hero-sprite').innerHTML=_charSVG(rpgHeroChar())+rpgCosBadge('hero');
   document.getElementById('rpg-hero-name').textContent=escapeHtml(rpgHeroName());
-  // あいぼうパーティ（3匹まで）を勇者のそばに表示
+  // あいぼうパーティ（3匹まで）を勇者のそばに表示（白い丸プレート＋ランク色リング）
   try{ var _ar=document.getElementById('rpg-aibou-row'); if(_ar){ _ar.innerHTML=rpgAibouParty().map(function(a){
-    return '<span class="rpg-aibou-mini" title="'+escapeHtml(a.name||'')+'"><span class="rpg-aibou-mini-svg">'+rpgAibouArt(a)+'</span><span class="rpg-aibou-mini-sp">'+((AIBOU_SPECIES[a.sp]||{}).em||'')+'</span></span>'; }).join(''); } }catch(e){}
+    return '<span class="rpg-aibou-mini rpg-aibou-bd'+a.rank+'" title="'+escapeHtml(a.name||'')+'"><span class="rpg-aibou-art">'+rpgAibouArt(a)+'</span></span>'; }).join(''); } }catch(e){}
   var sky=document.getElementById('rpg-stage-sky'); if(sky){ sky.className='rpg-stage-sky '+rpgSkyClass(rpgBattle)+(rpgBattle.node.type!=='zako'?' boss':''); }
   var _sb=document.getElementById('rpg-special-btn'); if(_sb) _sb.style.display='block';   // 必殺技ボタンを表示
   rpgUpdateGauges();
@@ -5977,10 +6021,11 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   if(b.foodGain) L+='<div class="rpg-res-xp">🍖 エサ ＋'+b.foodGain+'（あいぼうに あげて そだてよう）</div>';
   if(b.aibouOffer){ var _ao=b.aibouOffer, _aosp=AIBOU_SPECIES[_ao.sp]||{};
     L+='<div class="rpg-res-offer" id="rpg-aibou-offer">'
+      +'<div class="rpg-res-offer-ttl">😍 なかまに なりたそう！</div>'
       +'<div class="rpg-res-offer-svg">'+(RPG_SVG[_ao.art]||'👾')+'</div>'
-      +'<div class="rpg-res-offer-txt">😍 '+escapeHtml(_ao.name||'モンスター')+' が なかまに なりたそうに こちらを 見ている！<br>'
-      +'<span class="rpg-aibou-rank r'+_ao.rank+'">'+_ao.rank+'</span> '+(_aosp.em||'')+escapeHtml(_aosp.name||'')+(_aosp.rare?' <b>（レア種族！）</b>':'')+'</div>'
-      +'<div class="rpg-res-offer-btns"><button class="rpg-btn" onclick="rpgAibouAccept()">🤝 なかまにする！</button><button class="rpg-btn ghost" onclick="rpgAibouDecline()">👋 ことわる</button></div></div>'; }
+      +'<div class="rpg-res-offer-txt">'+escapeHtml(_ao.name||'モンスター')+'　<span class="rpg-aibou-rank r'+_ao.rank+'">'+_ao.rank+'</span> '+(_aosp.em||'')+escapeHtml(_aosp.name||'')+(_aosp.rare?' <b>（レア種族！）</b>':'')+'</div>'
+      +'<div class="rpg-res-offer-fx">とくせい：'+escapeHtml(_aosp.desc||'')+'</div>'
+      +'<div class="rpg-res-offer-btns"><button class="rpg-btn" onclick="rpgAibouAccept()">🤝 なかまにする！</button><button class="rpg-abtn-line" onclick="rpgAibouDecline()">👋 ことわる</button></div></div>'; }
   if(leveled) L+='<div class="rpg-res-levelup">🎉 レベルアップ！ Lv.'+s.level+'</div>';
   if(firstClear && b.node.type==='boss') L+='<div class="rpg-res-levelup">🏆「'+escapeHtml(b.ch.title)+'」クリア！ つぎの道が ひらけた</div>';
   if(b.sticker) L+='<div class="rpg-res-levelup">🎁 ごほうびシール「'+b.sticker+'」をゲット！</div>';

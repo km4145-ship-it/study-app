@@ -175,9 +175,22 @@ window.FIREBASE_CONFIG = {
   function markShared(){ dirtyShared=true; scheduleSave(); }
   function markMember(uid){ dirtyMembers[uid]=true; scheduleSave(); }
   function scheduleSave(){ if(!ready) return; clearTimeout(saveT); saveT=setTimeout(doSaveDirty,1200); }
+  // 共有設定の保存：名簿(mu_users)と墓標(mu_deleted)は「クラウドの現在値との和集合」にしてから書く。
+  //   ＝どの端末が縮小した名簿を持っていても、書き込みでクラウドの名簿が縮むことは原理的に起きない(grow-only)。
+  //   ユーザーの削除は mu_deleted（墓標・増えるだけ）で表し、muGetUsers が表示から除外する。
+  //   これで「あやか/ちさき が消える」系のクロバーを根本から封じる。読めない時は書かない（縮小事故の芽を断つ）。
+  function saveSharedGrowOnly(){
+    var snap=sharedSnapshot();
+    sharedRef().get().then(function(d){
+      var cloud = (d && d.exists) ? (((d.data()||{}).data)||{}) : {};
+      snap.mu_users = mergeUsers(cloud.mu_users, snap.mu_users);                       // 名簿＝和集合（クラウドより縮まない）
+      var md = mergeObjMax(cloud.mu_deleted || '{}', snap.mu_deleted || '{}');          // 墓標＝和集合（削除フラグは消さない）
+      if(md && md !== '{}') snap.mu_deleted = md;
+      return sharedRef().set({ data: snap, updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+    }).catch(function(){ dirtyShared=true; });
+  }
   function doSaveDirty(){ if(!db||!fam||!ready) return;
-    if(dirtyShared){ dirtyShared=false;
-      sharedRef().set({ data: sharedSnapshot(), updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){ dirtyShared=true; }); }
+    if(dirtyShared){ dirtyShared=false; saveSharedGrowOnly(); }
     Object.keys(dirtyMembers).forEach(function(uid){ delete dirtyMembers[uid];
       var snap=memberSnapshot(uid);
       if(!snap || Object.keys(snap).length===0) return;   // 空データではクラウドを上書きしない（キャッシュ削除直後などの消失を防ぐ）

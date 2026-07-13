@@ -36,6 +36,7 @@ const TESTS = [
   ['tests/int-heal.js', 'noread'],
   ['tests/int-pullshared.js'],
   ['tests/int-ranking.js'],
+  ['tests/int-growonly.js'],
   ['tests/int-build.js'],
 ];
 

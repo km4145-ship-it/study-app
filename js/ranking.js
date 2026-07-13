@@ -132,6 +132,29 @@ function rankBuildRowsPeriod(allMembers, users, todayStr, period) {
 // 家族の通算合計問題数（共同目標バー用）
 function rankFamilyTotalCum(rows) { return rows.reduce(function (s, r) { return s + (r.cumAnswered != null ? r.cumAnswered : r.answered || 0); }, 0); }
 
+// ===== 家族の共同目標＝魔王討伐（RPG連動）=====
+// RANK_GOALS の各マイルストーンに「家族で討伐する魔王」を対応させる（stageは1始まり）。
+var RANK_BOSSES = [
+  { emoji: '👺', name: 'ゴブリン将軍' },   // 500
+  { emoji: '🧟', name: 'アンデッド軍団' }, // 1000
+  { emoji: '🐺', name: '魔狼フェンリル' }, // 2000
+  { emoji: '🐉', name: '魔竜バハムート' }, // 4000
+  { emoji: '👹', name: '魔王シグマ' },     // 8000
+  { emoji: '💀', name: '冥王タナトス' },   // 16000
+  { emoji: '🌑', name: '虚無の王' },       // 32000
+];
+// 通算合計問題数から、これまでに討伐した魔王の数（超えたマイルストーン数）
+function rankClearedCount(total) {
+  var n = 0; for (var i = 0; i < RANK_GOALS.length; i++) { if (total >= RANK_GOALS[i]) n++; else break; } return n;
+}
+// stage(1始まり) の魔王情報（超過時は最後の魔王を返す。範囲外の0以下はnull）
+function rankBossFor(stage) {
+  if (!stage || stage < 1) return null;
+  var idx = Math.min(stage, RANK_BOSSES.length) - 1;
+  var b = RANK_BOSSES[idx];
+  return { emoji: b.emoji, name: b.name, goal: RANK_GOALS[Math.min(stage, RANK_GOALS.length) - 1], stage: stage };
+}
+
 // 合計問題数 → 次の共同目標マイルストーンの進捗
 function rankFamilyGoal(total) {
   var target = RANK_GOALS[RANK_GOALS.length - 1] * 2, prev = RANK_GOALS[RANK_GOALS.length - 1], stage = RANK_GOALS.length + 1;

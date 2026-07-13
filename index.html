@@ -1645,6 +1645,9 @@
   .rk-goal{ background:linear-gradient(135deg,#1e293b,#4c1d95); color:#fff; border-radius:18px; padding:15px 17px; margin:10px 0 16px; box-shadow:0 6px 18px rgba(76,29,149,.28); }
   .rk-goal-top{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; }
   .rk-goal-sub{ font-size:12px; opacity:.9; margin:5px 0 9px; }
+  .rk-slain-count{ float:right; background:rgba(255,255,255,.16); border-radius:999px; padding:1px 9px; font-size:12px; font-weight:800; }
+  .rk-slain-row{ margin-top:8px; font-size:12px; opacity:.9; }
+  .rk-slain-boss{ font-size:17px; margin-left:2px; }
   .rk-bar-wrap{ height:15px; background:rgba(255,255,255,.16); border-radius:9px; overflow:hidden; }
   .rk-bar{ height:100%; background:linear-gradient(90deg,#f59e0b,#ec4899,#a78bfa); border-radius:9px; transition:width .6s ease; }
   .rk-tabs{ display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; justify-content:center; }
@@ -3098,11 +3101,19 @@ function _rankRender(){
   var curId=muCurrentId();
   var cumTotal=rankFamilyTotalCum(rows);
   var goal=rankFamilyGoal(cumTotal);
+  var cleared=rankClearedCount(cumTotal);
+  var nextBoss=rankBossFor(cleared+1);
+  var slain=''; for(var _i=1;_i<=cleared;_i++){ var _b=rankBossFor(_i); if(_b) slain+='<span class="rk-slain-boss" title="'+_b.name+'">'+_b.emoji+'</span>'; }
   var h='';
-  // 家族の共同目標バー（通算の合計問題数→魔王シグマ討伐）
-  h+='<div class="rk-goal"><div class="rk-goal-top">🐉 家族みんなで魔王シグマ討伐！</div>'+
-     '<div class="rk-goal-sub">通算 '+cumTotal+' 問 ／ つぎの目標 '+goal.target+' 問（あと '+goal.remaining+' 問！）</div>'+
-     '<div class="rk-bar-wrap"><div class="rk-bar" style="width:'+goal.pct+'%"></div></div></div>';
+  // 家族の共同目標バー（通算の合計問題数→魔王討伐・RPG連動）
+  h+='<div class="rk-goal">'+
+     '<div class="rk-goal-top">🐉 家族みんなで魔王討伐！<span class="rk-slain-count">⚔️ '+cleared+'体</span></div>'+
+     (nextBoss
+       ? '<div class="rk-goal-sub">つぎの敵 '+nextBoss.emoji+' <b>'+nextBoss.name+'</b>（通算 '+cumTotal+'／'+nextBoss.goal+'問・あと '+goal.remaining+'問！）</div>'
+       : '<div class="rk-goal-sub">🎉 すべての魔王を討伐！ 通算 '+cumTotal+'問！</div>')+
+     '<div class="rk-bar-wrap"><div class="rk-bar" style="width:'+goal.pct+'%"></div></div>'+
+     (slain? '<div class="rk-slain-row">討伐ずみ：'+slain+'</div>':'')+
+     '</div>';
   // 期間タブ
   var periods=[['all','🏅 通算'],['week','📅 今週'],['month','🗓️ 今月']];
   h+='<div class="rk-tabs rk-periods">'+periods.map(function(p){ return '<button class="rk-tab'+(_rankPeriod===p[0]?' on':'')+'" onclick="_rankSetPeriod(\''+p[0]+'\')">'+p[1]+'</button>'; }).join('')+'</div>';
@@ -3125,6 +3136,20 @@ function _rankRender(){
   if(!_rankData.cloud) h+='<div class="rk-note">☁️ いまはこの端末のぶんだけ表示中。ほかの家族のきろくは、クラウド接続後に自動でならびます。</div>';
   else h+='<div class="rk-note">📊 「'+plabel+'」の記録で ならんでいます。期間・指標のタブで切りかえられます。</div>';
   host.innerHTML=h;
+  // 家族の合計が新しいマイルストーンを超えたら「魔王討伐」を祝う（クラウドの正しい合計のときだけ）
+  if(_rankData.cloud) _rankCheckMilestone(cumTotal);
+}
+// 通算合計が新しい魔王を討伐したら演出（家族共有 rank_family_goal で重複祝いを防ぐ）
+function _rankCheckMilestone(cumTotal){
+  var cleared=rankClearedCount(cumTotal);
+  var prev=parseInt(safeLS.getItem('rank_family_goal')||'0',10)||0;
+  if(cleared<=prev) return;
+  safeLS.setItem('rank_family_goal', String(cleared));   // 共有キー→家族全員に同期
+  var boss=rankBossFor(cleared);
+  if(!boss) return;
+  try{ confetti(); }catch(e){}
+  try{ sfx('fanfare'); }catch(e){}
+  try{ showToast(boss.emoji,'家族で魔王を討伐！', boss.name+' をたおした！（通算 '+cumTotal+'問 達成）', 6500); }catch(e){}
 }
 function hideMainScreens(){
   ['subject-select-screen','mode-select-screen','level-select-screen','home-screen','quiz-screen','exam-result-screen','records-screen','roadmap-screen','mistakes-screen','characters-screen','flashcards-screen','study-notes-screen','write-screen','paper-screen','rpg-screen','ranking-screen'].forEach(id=>{

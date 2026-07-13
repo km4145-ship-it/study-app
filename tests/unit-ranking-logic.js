@@ -101,6 +101,22 @@ c.eq('家族の通算合計(cum)=750', api2.rankFamilyTotalCum(wrows), 750);
 const arows = api2.rankBuildRowsPeriod(pMembers, users, WED, 'all');
 c.eq('通算: u1 の問題数=c_answered(320)', arows.find((r) => r.id === 'u1').answered, 320);
 
+// --- 魔王討伐（RPG連動）---
+const api3 = (new Function(code + '\nreturn { rankClearedCount, rankBossFor, rankFamilyGoal };'))();
+c.eq('合計0は討伐0体', api3.rankClearedCount(0), 0);
+c.eq('合計499は0体', api3.rankClearedCount(499), 0);
+c.eq('合計500で1体', api3.rankClearedCount(500), 1);
+c.eq('合計1200で2体(500,1000)', api3.rankClearedCount(1200), 2);
+c.eq('合計8000で5体', api3.rankClearedCount(8000), 5);
+c.eq('合計99万で全7体', api3.rankClearedCount(990000), 7);
+c.eq('stage1の魔王名', api3.rankBossFor(1).name, 'ゴブリン将軍');
+c.eq('stage1の目標', api3.rankBossFor(1).goal, 500);
+c.eq('stage5=魔王シグマ', api3.rankBossFor(5).name, '魔王シグマ');
+c.eq('stage0以下はnull', api3.rankBossFor(0), null);
+c.ok('範囲超のstageは最後の魔王を返す', api3.rankBossFor(99).name === '虚無の王');
+// 次の魔王の目標は rankFamilyGoal.target と一致する（UIの整合）
+c.eq('合計750の次の魔王(stage2)目標=次マイルストーン', api3.rankBossFor(api3.rankClearedCount(750) + 1).goal, api3.rankFamilyGoal(750).target);
+
 // index.html/モジュール整合
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は js/ranking.js を読み込む', html.indexOf('<script src="js/ranking.js') >= 0);

@@ -29,6 +29,12 @@ h.load(path.join(ROOT, 'cloud-sync.js'));
   c.eq('u2 の c_answered', all.u2.c_answered, '280');
   c.eq('u3 の c_points', all.u3.c_points, '900');
 
+  // 家族の魔王討伐状態(rank_family_goal)は共有キーとして shared/settings に同期される
+  //   （保存は1200msデバウンスなので、それを超えて待つ）
+  global.localStorage.setItem('rank_family_goal', '3');
+  await h.settle(40, 40);
+  c.eq('rank_family_goal が shared/settings に同期', (store['families/0000/shared/settings'].data || {}).rank_family_goal, '3');
+
   // メンバーdocが1件も無い家族では空オブジェクトを返す（UIは0件表示にできる）
   const store2 = { 'families/0000': { v2done: true },
     'families/0000/shared/settings': { data: { mu_users: '[]' } } };

@@ -35,6 +35,10 @@ subjects.forEach((sub) => {
       } else { // free
         if (typeof q.ans !== 'string' && typeof q.ans !== 'number') { ok = false; why = 'gen#' + gi + ' 記述の答え不正'; break; }
       }
+      // 図(figure)があるなら正しいSVG文字列
+      if (q.figure !== undefined && q.figure !== null) {
+        if (typeof q.figure !== 'string' || q.figure.indexOf('<svg') !== 0 || q.figure.indexOf('</svg>') < 0) { ok = false; why = 'gen#' + gi + ' 図が不正SVG'; break; }
+      }
     }
   });
   c.ok(sub + ' の難問がすべて有効（答えの形式・★★★以上）' + (ok ? '' : '：' + why), ok);

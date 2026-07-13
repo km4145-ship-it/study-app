@@ -417,3 +417,72 @@
     );
   }
 })();
+
+/* 難問 第4弾：図形・グラフに「図(SVG)」をつける。図は問題の数値に合わせて生成し、答えは計算＝必ず正しい。
+   配色は既存 figure に合わせる（cyan系・ラベルはamber）。 */
+(function () {
+  if (typeof mathGens === 'undefined' || typeof rint !== 'function' || typeof numChoices !== 'function') return;
+  var CY = '#67e8f9', FILL = 'rgba(8,145,178,0.18)', LB = '#f59e0b', TX = '#e0f2fe', RD = '#ef4444';
+  // 三角形（2角ラベル）
+  function svgTri(a, b) {
+    return '<svg width="185" height="120" viewBox="0 0 185 120"><polygon points="18,102 167,102 96,20" fill="' + FILL + '" stroke="' + CY + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<text x="40" y="96" fill="' + LB + '" font-size="13" font-weight="bold">' + a + '°</text>' +
+      '<text x="132" y="96" fill="' + LB + '" font-size="13" font-weight="bold">' + b + '°</text>' +
+      '<text x="90" y="42" fill="' + TX + '" font-size="15" font-weight="bold">?</text></svg>';
+  }
+  // 長方形（たて・よこラベル）
+  function svgRect(w, h) {
+    return '<svg width="180" height="120" viewBox="0 0 180 120"><rect x="24" y="14" width="120" height="82" fill="' + FILL + '" stroke="' + CY + '" stroke-width="2" rx="1"/>' +
+      '<text x="84" y="112" fill="' + LB + '" font-size="12" text-anchor="middle">' + w + 'cm</text>' +
+      '<text x="12" y="56" fill="' + LB + '" font-size="12" text-anchor="middle" transform="rotate(-90,12,56)">' + h + 'cm</text></svg>';
+  }
+  // 底辺・高さ付き三角形
+  function svgTriBH(b, h) {
+    return '<svg width="180" height="120" viewBox="0 0 180 120"><polygon points="20,100 150,100 70,22" fill="' + FILL + '" stroke="' + CY + '" stroke-width="2"/>' +
+      '<line x1="70" y1="22" x2="70" y2="100" stroke="' + RD + '" stroke-width="1.5" stroke-dasharray="4"/>' +
+      '<text x="85" y="114" fill="' + LB + '" font-size="12" text-anchor="middle">底辺 ' + b + 'cm</text>' +
+      '<text x="76" y="64" fill="' + RD + '" font-size="11">高さ' + h + 'cm</text></svg>';
+  }
+  // 平行線と角
+  function svgParallel(ang) {
+    return '<svg width="185" height="120" viewBox="0 0 185 120"><line x1="10" y1="38" x2="175" y2="38" stroke="' + CY + '" stroke-width="2"/><line x1="10" y1="86" x2="175" y2="86" stroke="' + CY + '" stroke-width="2"/>' +
+      '<line x1="55" y1="18" x2="130" y2="108" stroke="' + LB + '" stroke-width="2"/>' +
+      '<text x="72" y="33" fill="' + LB + '" font-size="12" font-weight="bold">' + ang + '°</text>' +
+      '<text x="108" y="102" fill="' + TX + '" font-size="14" font-weight="bold">?</text></svg>';
+  }
+  // 座標グラフ（直線 y=ax+b）
+  function svgGraph(a, b) {
+    var ox = 95, oy = 95, u = 15, s = '<svg width="190" height="190" viewBox="0 0 190 190">';
+    for (var i = -6; i <= 6; i++) { var gx = ox + i * u, gy = oy + i * u;
+      s += '<line x1="' + gx + '" y1="5" x2="' + gx + '" y2="185" stroke="rgba(103,232,249,0.12)" stroke-width="1"/>';
+      s += '<line x1="5" y1="' + gy + '" x2="185" y2="' + gy + '" stroke="rgba(103,232,249,0.12)" stroke-width="1"/>'; }
+    s += '<line x1="5" y1="' + oy + '" x2="185" y2="' + oy + '" stroke="' + CY + '" stroke-width="1.5"/>';
+    s += '<line x1="' + ox + '" y1="5" x2="' + ox + '" y2="185" stroke="' + CY + '" stroke-width="1.5"/>';
+    var x1 = -6, x2 = 6, sx1 = ox + x1 * u, sy1 = oy - (a * x1 + b) * u, sx2 = ox + x2 * u, sy2 = oy - (a * x2 + b) * u;
+    s += '<line x1="' + sx1 + '" y1="' + sy1 + '" x2="' + sx2 + '" y2="' + sy2 + '" stroke="' + LB + '" stroke-width="2.5"/>';
+    s += '<circle cx="' + ox + '" cy="' + (oy - b * u) + '" r="3.5" fill="' + RD + '"/>';   // y切片
+    s += '<text x="176" y="' + (oy + 12) + '" fill="' + TX + '" font-size="10">x</text><text x="' + (ox + 4) + '" y="14" fill="' + TX + '" font-size="10">y</text></svg>';
+    return s;
+  }
+
+  mathGens.push(
+    // 三角形の残りの角（図つき）
+    function () { var a = rint(35, 80), b = rint(35, 80), ans = 180 - a - b; if (ans < 15) { a = 60; b = 60; ans = 60; } var ch = numChoices(ans, { spread: 18, positive: true });
+      return { q: '図の三角形で、? の角は何度？', sub: '三角形の内角（図）', level: '★★★', hint: '内角の和は180°', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgTri(a, b), explain: '【考え方】三角形の内角の和は180°。\n【手順】180−' + a + '−' + b + '=' + ans + '°\n【ポイント】図の2角を180からひく。' }; },
+    // 長方形の面積（図つき）
+    function () { var w = rint(3, 12), h = rint(3, 9), ans = w * h, ch = numChoices(ans, { spread: 20, positive: true });
+      return { q: '図の長方形の面積は 何cm²？', sub: '長方形の面積（図）', level: '★★★', hint: 'たて×よこ', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgRect(w, h), explain: '【考え方】長方形の面積＝たて×よこ。\n【手順】' + h + '×' + w + '=' + ans + 'cm²\n【ポイント】単位はcm²。' }; },
+    // 三角形の面積（図つき）
+    function () { var b = rint(4, 12) * 2, h = rint(3, 9), ans = b * h / 2, ch = numChoices(ans, { spread: 18, positive: true });
+      return { q: '図の三角形の面積は 何cm²？', sub: '三角形の面積（図）', level: '★★★', hint: '底辺×高さ÷2', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgTriBH(b, h), explain: '【考え方】三角形の面積＝底辺×高さ÷2。\n【手順】' + b + '×' + h + '÷2=' + ans + 'cm²\n【ポイント】高さは底辺に垂直な長さ。' }; },
+    // 平行線と錯角（図つき）
+    function () { var ang = rint(40, 130), ans = ang, ch = numChoices(ans, { spread: 20, positive: true });
+      return { q: '図で2本の直線は平行。? の角（錯角）は何度？', sub: '平行線と角（図）', level: '★★★★', hint: '平行線の錯角は等しい', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgParallel(ang), explain: '【考え方】平行線の錯角は等しい。\n【手順】錯角なので ' + ang + '°と同じ → ' + ans + '°\n【ポイント】同位角・錯角は等しい、同側内角は和が180°。' }; },
+    // グラフの傾き（図つき）
+    function () { var a = rint(-3, 3) || 2, b = rint(-3, 3), ans = a, ch = numChoices(ans, { spread: 3 });
+      return { q: '図の直線（オレンジ）の傾きは？', sub: '一次関数のグラフ（図）', level: '★★★★', hint: '右に1進むと y はいくつ変わる？', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgGraph(a, b), explain: '【考え方】傾き＝xが1増えたときのyの変化。\n【手順】この直線は y=' + a + 'x' + (b < 0 ? b : '+' + b) + ' → 傾きは ' + a + '\n【ポイント】右上がりは正、右下がりは負。' }; },
+    // グラフのy切片（図つき）
+    function () { var a = rint(-3, 3) || 1, b = rint(-4, 4), ans = b, ch = numChoices(ans, { spread: 4 });
+      return { q: '図の直線が y軸と交わる値（切片）は？（赤い点）', sub: '一次関数のグラフ（図）', level: '★★★', hint: 'x=0 のときの y', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgGraph(a, b), explain: '【考え方】切片＝x=0のときのy＝y軸との交点。\n【手順】赤い点の高さ → ' + b + '\n【ポイント】y=ax+b の b が切片。' }; }
+  );
+})();

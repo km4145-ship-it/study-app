@@ -4859,12 +4859,22 @@ function rpgNodeUnlocked(area, chIdx, nodeIdx){
   return rpgIsCleared(area, ch.id, ch.nodes[nodeIdx-1].id);
 }
 function rpgHitsNeeded(node){ return node.type==='boss' ? Math.ceil(node.count*0.8) : Math.ceil(node.count*0.6); }
-function rpgBuildQuestions(area, count){
+// 章のlv → 目標難易度（★）。冒険が進むほど難しい問題が出る。
+function _rpgLvLevels(lv){
+  lv=lv||1;
+  if(lv<=2) return {'★☆☆':1};
+  if(lv<=5) return {'★☆☆':1,'★★☆':1};
+  if(lv<=7) return {'★★☆':1,'★★★':1};
+  return {'★★★':1,'★★★★':1};   // 難関
+}
+function rpgBuildQuestions(area, count, node){
   var qs=[], seen={}, guard=0;
   var weak={}; try{ weakTopics(40).forEach(function(w){ if(w.area===area && w.rate<70) weak[w.sub]=1; }); }catch(e){}   // 苦手サブ単元（正答率<70%）
   var hasWeak=false; for(var _k in weak){ hasWeak=true; break; }
+  var want=_rpgLvLevels(node&&node.lv), soft=count*40;   // 目標難易度に寄せる（足りなければ後半で何でも許可）
   while(qs.length<count && guard<count*60){ guard++;
     var q=genQuestion(area); if(!q||!q.q||q.ans===undefined||seen[q.q]) continue;
+    if(guard<soft && q.level && !want[q.level]) continue;   // ★難易度フィルタ：章のlvに合う難しさを優先
     if(hasWeak && q.sub && !weak[q.sub] && qs.length<count-1 && Math.random()<0.5) continue;   // 苦手以外は一部スキップ→苦手を優先出題
     seen[q.q]=1; qs.push(q);
   }
@@ -5248,7 +5258,9 @@ function rpgRenderMap(area){
     '<div class="rpg-hero-xp">つぎのLvまで あと '+Math.max(0,need-into)+' けいけんち'+'</div>'+
     '</div><div class="rpg-crystals">'+RPG_SVG.crystal+'<span>'+rpgCrystalCount()+' / 5</span></div></div>';
   h+='<div class="rpg-cont-banner">'+world.emoji+' '+escapeHtml(world.name)+'　—　'+escapeHtml(world.crystal)+'をめざせ</div>';
-  h+='<div class="rpg-map map-'+area+'">';
+  var _totNodes=0; world.chapters.forEach(function(c){ _totNodes+=c.nodes.length; });
+  var _mapH=Math.max(520, _totNodes*58+130);   // ノードが多いほど縦長スクロールマップに
+  h+='<div class="rpg-map map-'+area+'" style="padding-bottom:0;height:'+_mapH+'px">';
   h+='<div class="rpg-map-bg"></div>';
   h+=rpgMapPathSVG(area);
   // ゴール＝この大陸のクリスタル
@@ -5269,6 +5281,9 @@ function rpgRenderMap(area){
   h+='</div>';
   h+='<div class="rpg-map-hint">🗺️ ひかっているマスを タップして バトル！ ボスを たおすと 先生が助かり クリスタルが もらえるよ</div>';
   document.getElementById('rpg-map-view').innerHTML=h;
+  // いま挑戦できるマス（現在地）へスクロール
+  try{ var cur=document.querySelector('#rpg-map-view .rpg-node.open:not(.cleared)')||document.querySelector('#rpg-map-view .rpg-node.open');
+    if(cur) cur.scrollIntoView({block:'center',behavior:'auto'}); }catch(e){}
 }
 function rpgMapPathSVG(area){
   var world=RPG_WORLD[area], pts=[];
@@ -5295,7 +5310,7 @@ function rpgEnterNode(area, ci, ni){
 // ================= バトル =================
 function rpgBeginBattle(area, ci, ni){
   var ch=RPG_WORLD[area].chapters[ci], node=ch.nodes[ni];
-  var qs=rpgBuildQuestions(area, node.count);
+  var qs=rpgBuildQuestions(area, node.count, node);
   if(qs.length<3){ showToast('⚠️','問題を用意できませんでした','少し時間をおいてね'); return; }
   var hits=rpgHitsNeeded(node);
   rpgBattle=Object.assign({ area:area, chIdx:ci, nodeIdx:ni, node:node, ch:ch,

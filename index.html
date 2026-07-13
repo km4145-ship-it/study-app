@@ -1647,6 +1647,74 @@
   .rpg-gacha-ov.g10.open .rpg-g10-cell{ animation:rpgCellPop .42s cubic-bezier(.2,1.5,.4,1) both; animation-delay:calc(var(--gi,0)*.06s); }
   @keyframes rpgCellPop{ 0%{ transform:scale(.3); opacity:0;} 70%{ transform:scale(1.08); opacity:1;} 100%{ transform:scale(1);} }
   @media (prefers-reduced-motion:reduce){ .rpg-gacha-ov *{ animation-duration:.01s!important; } .rpg-gacha-ov.ultra::before{ animation:rpgUltraFade .4s forwards!important; } }
+  /* ===== 8段階レア度の配色 ===== */
+  .rpg-cos-cell.cos-hn{ background:linear-gradient(135deg,#d1fae5,#a7f3d0); border-color:#34d399; }
+  .rpg-cos-cell.cos-hr{ background:linear-gradient(135deg,#ede9fe,#c4b5fd); border-color:#8b5cf6; box-shadow:0 0 8px rgba(139,92,246,.4); }
+  .rpg-cos-cell.cos-sr{ background:linear-gradient(135deg,#fce7f3,#fbcfe8); border-color:#ec4899; box-shadow:0 0 10px rgba(236,72,153,.5); }
+  .rpg-cos-cell.cos-ssr{ background:linear-gradient(135deg,#fef9c3,#fde68a); border-color:#f59e0b; box-shadow:0 0 12px rgba(245,158,11,.6); }
+  .rpg-cos-cell.cos-lr{ background:linear-gradient(135deg,#fee2e2,#fef9c3,#dcfce7,#dbeafe,#f3e8ff,#fce7f3); background-size:260% 260%; border-color:#f472b6; box-shadow:0 0 16px rgba(236,72,153,.7); animation:rpgUrShine 2.4s ease infinite; }
+  .rpg-cos-cell.cos-sr .rpg-cos-em,.rpg-cos-cell.cos-ssr .rpg-cos-em,.rpg-cos-cell.cos-lr .rpg-cos-em{ animation:rpgAuraPulse 1.5s ease-in-out infinite; }
+  .rpg-cos-cell.cos-hn .rpg-cos-rar{ background:#10b981; } .rpg-cos-cell.cos-hr .rpg-cos-rar{ background:#8b5cf6; }
+  .rpg-cos-cell.cos-sr .rpg-cos-rar{ background:#ec4899; } .rpg-cos-cell.cos-ssr .rpg-cos-rar{ background:#f59e0b; }
+  .rpg-cos-cell.cos-lr .rpg-cos-rar{ background:linear-gradient(90deg,#f472b6,#fbbf24,#38bdf8); }
+  .rpg-g10-cell.cos-hn{ background:linear-gradient(135deg,#d1fae5,#a7f3d0); border-color:#34d399; }
+  .rpg-g10-cell.cos-hr{ background:linear-gradient(135deg,#ede9fe,#c4b5fd); border-color:#8b5cf6; }
+  .rpg-g10-cell.cos-sr{ background:linear-gradient(135deg,#fce7f3,#fbcfe8); border-color:#ec4899; box-shadow:0 0 8px rgba(236,72,153,.5); }
+  .rpg-g10-cell.cos-ssr{ background:linear-gradient(135deg,#fef9c3,#fde68a); border-color:#f59e0b; box-shadow:0 0 8px rgba(245,158,11,.5); }
+  .rpg-g10-cell.cos-lr{ background:linear-gradient(135deg,#fee2e2,#fef9c3,#dbeafe,#f3e8ff); border-color:#f472b6; box-shadow:0 0 12px rgba(236,72,153,.6); }
+  .rpg-g10-cell.cos-hn .rpg-g10-rar{ background:#10b981; } .rpg-g10-cell.cos-hr .rpg-g10-rar{ background:#8b5cf6; }
+  .rpg-g10-cell.cos-sr .rpg-g10-rar{ background:#ec4899; } .rpg-g10-cell.cos-ssr .rpg-g10-rar{ background:#f59e0b; }
+  .rpg-g10-cell.cos-lr .rpg-g10-rar{ background:linear-gradient(90deg,#f472b6,#fbbf24,#38bdf8); }
+  .rpg-gacha-card.cos-hn{ border-color:#34d399; box-shadow:0 0 24px rgba(52,211,153,.5); }
+  .rpg-gacha-card.cos-hr{ border-color:#8b5cf6; box-shadow:0 0 32px rgba(139,92,246,.65); }
+  .rpg-gacha-card.cos-sr{ border-color:#ec4899; box-shadow:0 0 42px rgba(236,72,153,.75); }
+  .rpg-gacha-card.cos-ssr{ border-color:#f59e0b; box-shadow:0 0 50px rgba(245,158,11,.8); }
+  .rpg-gacha-card.cos-lr{ border-color:#f472b6; box-shadow:0 0 70px rgba(236,72,153,.95),0 0 110px rgba(251,191,36,.6); }
+  .rpg-gacha-ov.open .rpg-gacha-rar.cos-hn{ background:#10b981; } .rpg-gacha-ov.open .rpg-gacha-rar.cos-hr{ background:#8b5cf6; }
+  .rpg-gacha-ov.open .rpg-gacha-rar.cos-sr{ background:#ec4899; } .rpg-gacha-ov.open .rpg-gacha-rar.cos-ssr{ background:#f59e0b; }
+  .rpg-gacha-ov.open .rpg-gacha-rar.cos-lr{ background:linear-gradient(90deg,#f472b6,#fbbf24,#38bdf8); }
+  .rpg-gacha-rays.cos-hn{ background:repeating-conic-gradient(from 0deg, rgba(52,211,153,.6) 0 7deg, transparent 7deg 18deg); }
+  .rpg-gacha-rays.cos-hr{ background:repeating-conic-gradient(from 0deg, rgba(139,92,246,.6) 0 7deg, transparent 7deg 18deg); }
+  .rpg-gacha-rays.cos-sr{ background:repeating-conic-gradient(from 0deg, rgba(236,72,153,.65) 0 6deg, transparent 6deg 16deg); }
+  .rpg-gacha-rays.cos-ssr{ background:repeating-conic-gradient(from 0deg, rgba(245,158,11,.75) 0 6deg, transparent 6deg 15deg); }
+  .rpg-gacha-rays.cos-lr{ background:repeating-conic-gradient(from 0deg, rgba(244,114,182,.7) 0 5deg, rgba(251,191,36,.6) 5deg 10deg, rgba(56,189,248,.6) 10deg 15deg, transparent 15deg 22deg); }
+  .rpg-gacha-card.cos-hn .rpg-gacha-pillar{ background:linear-gradient(#6ee7b7,transparent); }
+  .rpg-gacha-card.cos-hr .rpg-gacha-pillar{ background:linear-gradient(#c4b5fd,transparent); }
+  .rpg-gacha-card.cos-sr .rpg-gacha-pillar{ background:linear-gradient(#f9a8d4,transparent); }
+  .rpg-gacha-card.cos-ssr .rpg-gacha-pillar{ background:linear-gradient(#fde047,transparent); }
+  .rpg-gacha-card.cos-lr .rpg-gacha-pillar{ width:26px; background:linear-gradient(#f472b6,#fbbf24 40%,#38bdf8 75%,transparent); }
+  .rpg-gacha-ov.charging.hint .rpg-gacha-card.cos-hn{ box-shadow:0 0 40px rgba(52,211,153,.8); }
+  .rpg-gacha-ov.charging.hint .rpg-gacha-card.cos-hr{ box-shadow:0 0 44px rgba(139,92,246,.85); }
+  .rpg-gacha-ov.charging.hint .rpg-gacha-card.cos-sr{ box-shadow:0 0 48px rgba(236,72,153,.9); }
+  .rpg-gacha-ov.charging.hint .rpg-gacha-card.cos-ssr{ box-shadow:0 0 52px rgba(245,158,11,.9); }
+  .rpg-gacha-ov.charging.hint .rpg-gacha-card.cos-lr{ box-shadow:0 0 66px rgba(244,114,182,.95),0 0 100px rgba(251,191,36,.7); }
+  /* ===== SR以上の約10秒エピック演出（レア度ほど豪華）===== */
+  .rpg-gacha-ov.epic{ background:rgba(4,7,18,.95); }
+  .rpg-gacha-ov.epic .rpg-gacha-card{ min-width:262px; padding:36px 30px; }
+  .rpg-gacha-ov.epic.charging .rpg-gacha-box{ font-size:74px; animation:rpgEpicBox 1.2s ease-in-out infinite; }
+  @keyframes rpgEpicBox{ 0%,100%{ transform:scale(1) rotate(-5deg);} 50%{ transform:scale(1.14) rotate(5deg);} }
+  .rpg-gacha-ov.epic.phase2.charging .rpg-gacha-box{ animation-duration:.7s; }
+  .rpg-gacha-ov.epic.phase3.charging .rpg-gacha-box{ animation-duration:.28s; }
+  .rpg-gacha-ov.epic.charging .rpg-gacha-rays{ opacity:.35!important; animation:rpgRaysSpin 9s linear infinite!important; }
+  .rpg-gacha-ov.epic.phase2.charging .rpg-gacha-rays{ opacity:.6!important; animation-duration:5s!important; }
+  .rpg-gacha-ov.epic.phase3.charging .rpg-gacha-rays{ opacity:.85!important; animation-duration:2.4s!important; }
+  .rpg-epic-rings{ position:absolute; inset:0; margin:auto; z-index:0; pointer-events:none; }
+  .rpg-epic-ring{ position:absolute; left:50%; top:44%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; border:2px solid rgba(255,255,255,.5); opacity:0; }
+  .rpg-gacha-ov.epic.charging .rpg-epic-ring{ animation:rpgEpicRing 1.8s ease-out infinite; animation-delay:var(--rd); }
+  @keyframes rpgEpicRing{ 0%{ transform:scale(.3); opacity:.7;} 100%{ transform:scale(4.2); opacity:0;} }
+  .rpg-gacha-card.cos-sr .rpg-epic-ring{ border-color:rgba(236,72,153,.6); } .rpg-gacha-card.cos-ssr .rpg-epic-ring{ border-color:rgba(245,158,11,.6); }
+  .rpg-gacha-card.cos-ur .rpg-epic-ring,.rpg-gacha-card.cos-lr .rpg-epic-ring{ border-color:rgba(244,114,182,.65); }
+  .rpg-epic-cutin{ position:absolute; left:0; right:0; top:8px; text-align:center; z-index:5; }
+  .rpg-epic-cutin-tx{ display:inline-block; font-weight:900; font-size:.92rem; color:#fde047; text-shadow:0 0 10px rgba(253,224,71,.8); animation:rpgCutin 1.4s ease-in-out infinite; }
+  @keyframes rpgCutin{ 0%,100%{ opacity:.5; transform:scale(.95);} 50%{ opacity:1; transform:scale(1.06);} }
+  .rpg-gacha-ov.epic.open .rpg-epic-cutin,.rpg-gacha-ov.epic.open .rpg-epic-rings{ display:none; }
+  .rpg-epic-skip{ display:inline-block!important; position:absolute; top:8px; right:8px; padding:4px 11px!important; font-size:.7rem!important; margin:0!important; opacity:.7; }
+  .rpg-gacha-ov.epic.open .rpg-epic-skip{ display:none!important; }
+  .rpg-gacha-ov.epic .rpg-epic-nextbtn{ display:none!important; }
+  .rpg-gacha-ov.epic.open .rpg-epic-nextbtn{ display:inline-block!important; }
+  .rpg-epic-legend{ display:none; }
+  .rpg-gacha-ov.epic.legend.open .rpg-epic-legend{ display:block; position:absolute; top:-4px; left:0; right:0; text-align:center; font-weight:900; font-size:1.5rem; letter-spacing:.16em; background:linear-gradient(90deg,#f472b6,#fbbf24,#38bdf8,#f472b6); background-size:200%; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; animation:rpgLegend 1.2s linear infinite; z-index:6; }
+  @keyframes rpgLegend{ 0%{background-position:0%} 100%{background-position:200%} }
   /* 復習ダンジョン（未復習があると目立つ） */
   .rpg-review-on{ background:linear-gradient(135deg,#dc2626,#f59e0b)!important; color:#fff!important; border-color:#fca5a5!important; animation:rpgReviewPulse 1.5s ease-in-out infinite; }
   @keyframes rpgReviewPulse{ 0%,100%{ box-shadow:0 0 0 rgba(220,38,38,.3); } 50%{ box-shadow:0 0 14px rgba(220,38,38,.7); } }
@@ -5147,10 +5215,11 @@ function rpgShowDex(){
 // ================= きせかえショップ =================
 // ===== 宝箱ガチャ =====
 function _gachaPool(){ var pool=[]; ['hero','pet'].forEach(function(kind){ var g=COS_DATA[kind]; for(var sl in g){ g[sl].forEach(function(it){ pool.push({kind:kind,slot:sl,it:it}); }); } }); return pool; }
-var COS_RANK={N:0,R:1,S:2,UR:3};
+var COS_RANK={N:0,HN:1,R:2,HR:3,SR:4,SSR:5,UR:6,LR:7};
 function _cosRank(r){ return COS_RANK[r||'N']||0; }
-function _gachaPick(){ var pool=_gachaPool(), wr={N:58,R:28,S:11,UR:3}, tot=0, weighted=[];   // レア度で重み付け抽選
-  pool.forEach(function(p){ var w=wr[p.it.r||'N']||28; weighted.push({p:p,w:w}); tot+=w; });
+// 排出率（重み・合計1000）：N40% HN25% R16% HR9% SR5.5% SSR2.8% UR1.2% LR0.5%
+function _gachaPick(){ var pool=_gachaPool(), wr={N:400,HN:250,R:160,HR:90,SR:55,SSR:28,UR:12,LR:5}, tot=0, weighted=[];
+  pool.forEach(function(p){ var w=wr[p.it.r||'N']||160; weighted.push({p:p,w:w}); tot+=w; });
   var roll=Math.random()*tot, acc=0, pick=weighted[0].p;
   for(var i=0;i<weighted.length;i++){ acc+=weighted[i].w; if(roll<acc){ pick=weighted[i].p; break; } }
   return pick; }
@@ -5158,21 +5227,21 @@ function _gachaPickRarity(rar){ var pool=_gachaPool().filter(function(p){ return
 // ---- 天井（ピティ）：純粋関数でテストしやすく ----
 var GACHA_PITY_MAX=50;                                   // これだけURなしで引くと次で確定
 function _pityTriggered(pity, max){ return (pity||0) >= (max||GACHA_PITY_MAX); }
-function _gacha10NeedGuarantee(rarities){ return !rarities.some(function(r){ return _cosRank(r)>=2; }); }  // S+が1つも無ければtrue
+function _gacha10NeedGuarantee(rarities){ return !rarities.some(function(r){ return _cosRank(r)>=4; }); }  // SR+が1つも無ければtrue
 // cos に対して n 回抽選：天井・ピティ・所持登録・ダブり還元まで行い、結果配列を返す
 function _gachaDrawInto(cos, n){
   var picks=[];
   for(var i=0;i<n;i++){
     var pity=(cos.pity||0), pick;
-    if(_pityTriggered(pity, GACHA_PITY_MAX)) pick=(_gachaPickRarity('UR')||_gachaPick());
+    if(_pityTriggered(pity, GACHA_PITY_MAX)) pick=(_gachaPickRarity('UR')||_gachaPickRarity('LR')||_gachaPick());
     else pick=_gachaPick();
-    if((pick.it.r||'N')==='UR') cos.pity=0; else cos.pity=pity+1;   // URで天井カウンタをリセット
+    if(_cosRank(pick.it.r)>=6) cos.pity=0; else cos.pity=pity+1;   // UR/LRで天井カウンタをリセット
     picks.push(pick);
   }
-  if(n>=10 && _gacha10NeedGuarantee(picks.map(function(p){ return p.it.r; }))){ var up=_gachaPickRarity('S'); if(up) picks[picks.length-1]=up; }  // 10連はS+を1つ保証
+  if(n>=10 && _gacha10NeedGuarantee(picks.map(function(p){ return p.it.r; }))){ var up=(_gachaPickRarity('SR')||_gachaPickRarity('SSR')); if(up) picks[picks.length-1]=up; }  // 10連はSR+を1つ保証
   return picks.map(function(pick){
     var dup=!!cos.owned[pick.it.id], refund=0;
-    if(dup){ refund=({N:20,R:30,S:60,UR:100})[pick.it.r||'N']||20; cos.coin=(cos.coin||0)+refund; } else { cos.owned[pick.it.id]=1; }
+    if(dup){ refund=({N:20,HN:25,R:30,HR:45,SR:60,SSR:80,UR:100,LR:150})[pick.it.r||'N']||20; cos.coin=(cos.coin||0)+refund; } else { cos.owned[pick.it.id]=1; }
     return {pick:pick, dup:dup, refund:refund};
   });
 }
@@ -5206,11 +5275,55 @@ function rpgGachaDraw10(){
   rpgSave(s);
   rpgGacha10Reveal(outs);
 }
+var _gEpicSkipFn=null;
+function _gachaEpicSkip(){ if(_gEpicSkipFn) _gEpicSkipFn(); }
 function rpgGachaReveal(pick, dup, refund, opts){
   opts=opts||{};
-  var it=pick.it, r=it.r||'N', rar=(COS_RARITY[r]||{}), rcls=(rar.cls||'');
+  var it=pick.it, r=it.r||'N', rar=(COS_RARITY[r]||{}), rcls=(rar.cls||''), rank=_cosRank(r);
   var ov=document.getElementById('rpg-gacha-ov');
   if(!ov){ ov=document.createElement('div'); ov.id='rpg-gacha-ov'; document.body.appendChild(ov); }
+  // ===== SR以上（rank>=4）は約10秒のエピック演出（レア度ほど豪華）=====
+  if(rank>=4){
+    var sp=''; for(var _i=0;_i<16;_i++){ sp+='<span class="rpg-gacha-spark" style="--a:'+(_i*23)+'deg;--d:'+(0.02+(_i%4)*0.05)+'s"></span>'; }
+    var rings=''; for(var _k=0;_k<3;_k++){ rings+='<span class="rpg-epic-ring" style="--rd:'+(_k*0.55)+'s"></span>'; }
+    ov.className='rpg-gacha-ov epic charging '+rcls;
+    ov.innerHTML='<div class="rpg-gacha-card '+rcls+'">'+
+      '<div class="rpg-gacha-pillar"></div>'+
+      '<div class="rpg-epic-rings">'+rings+'</div>'+
+      '<div class="rpg-gacha-rays '+rcls+'"></div>'+
+      (rank>=7?'<div class="rpg-epic-legend">LEGEND</div>':'')+
+      '<div class="rpg-epic-cutin"><span class="rpg-epic-cutin-tx">✨ 高レア 確定！？ ✨</span></div>'+
+      '<div class="rpg-gacha-box">🎁</div>'+
+      '<div class="rpg-gacha-sparks">'+sp+'</div>'+
+      '<div class="rpg-gacha-item">'+it.em+'</div>'+
+      '<div class="rpg-gacha-rar '+rcls+'">'+rar.name+'</div>'+
+      '<div class="rpg-gacha-name">'+it.name+'</div>'+
+      (dup?('<div class="rpg-gacha-dup">ダブり！ 🪙＋'+refund+' コインにかえたよ</div>'):'<div class="rpg-gacha-new">✨ ゲット！ ✨</div>')+
+      (opts.progress?('<div class="rpg-gacha-prog">'+opts.progress+'</div>'):'')+
+      '<button class="rpg-btn rpg-epic-skip" onclick="_gachaEpicSkip()">スキップ ⏭</button>'+
+      '<button class="rpg-btn rpg-epic-nextbtn" onclick="'+(opts.action||'rpgGachaClose()')+'">'+(opts.label||'つぎへ')+'</button></div>';
+    ov.style.display='flex';
+    try{ sfx('charge'); }catch(e){}
+    var done=false;
+    var reveal=function(){ if(done) return; done=true;
+      ov.classList.remove('charging','hint','phase2','phase3'); ov.classList.add('open');
+      if(rank>=7) ov.classList.add('flash','shake','ultra','legend');       // LR
+      else if(rank>=6) ov.classList.add('flash','shake','ultra');           // UR
+      else ov.classList.add('flash','shake');                               // SR/SSR
+      try{
+        sfx('fanfare'); vibe([30,50,30,50,30,60,140]);
+        confetti(); setTimeout(confetti,220); setTimeout(confetti,470);
+        if(rank>=6){ setTimeout(confetti,720); setTimeout(function(){ try{ sfx('fanfare'); }catch(e){} }, 260); }
+        if(rank>=7){ setTimeout(confetti,960); setTimeout(confetti,1200); setTimeout(function(){ try{ sfx('fanfare'); }catch(e){} }, 560); }
+      }catch(e){}
+      setTimeout(function(){ ov.classList.remove('flash','shake'); }, 900);
+    };
+    var t1=setTimeout(function(){ if(!done){ ov.classList.add('phase2','hint'); try{ sfx('charge'); }catch(e){} } }, 2600);
+    var t2=setTimeout(function(){ if(!done){ ov.classList.add('phase3'); try{ sfx('charge'); }catch(e){} } }, 4800);
+    var t3=setTimeout(reveal, 6800);
+    _gEpicSkipFn=function(){ clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); reveal(); };
+    return;
+  }
   ov.className='rpg-gacha-ov charging '+rcls;                 // 溜めフェーズから開始
   var parts=''; for(var i=0;i<14;i++){ parts+='<span class="rpg-gacha-spark" style="--a:'+(i*26)+'deg;--d:'+(0.02+(i%4)*0.05)+'s"></span>'; }
   ov.innerHTML='<div class="rpg-gacha-card '+rcls+'">'+

@@ -72,8 +72,31 @@ var COS_DATA={
     ADD[kind][slot].forEach(function(it){ COS_DATA[kind][slot].push(it); });
   }); });
 })();
+// 旧4段階(N/R/S/UR)のアイテムを新8段階(N/HN/R/HR/SR/SSR/UR/LR)へ再割当。
+//   id由来のハッシュで安定（毎回同じ）＆上位ほど少なくなるよう分割する。
+(function(){
+  function h(s){ var n=0; s=String(s); for(var i=0;i<s.length;i++) n=(n*31+s.charCodeAt(i))>>>0; return n; }
+  var split={
+    N:function(k){ return k%5<3?'N':'HN'; },     // 旧N → N / HN
+    R:function(k){ return k%20<11?'R':'HR'; },    // 旧R → R / HR
+    S:function(k){ return k%5<3?'SR':'SSR'; },    // 旧S → SR / SSR
+    UR:function(k){ return k%3<2?'UR':'LR'; }     // 旧UR → UR / LR
+  };
+  Object.keys(COS_DATA).forEach(function(kind){ Object.keys(COS_DATA[kind]).forEach(function(slot){
+    (COS_DATA[kind][slot]||[]).forEach(function(it){ var o=it.r||'N'; if(split[o]) it.r=split[o](h(it.id||it.name)); });
+  }); });
+})();
 var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['aura','✨ オーラ']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']] };
-var COS_RARITY={ N:{name:'ノーマル',cls:'cos-n'}, R:{name:'レア',cls:'cos-r'}, S:{name:'スペシャル',cls:'cos-s'}, UR:{name:'ウルトラ',cls:'cos-ur'} };
+var COS_RARITY={
+  N:{name:'ノーマル',cls:'cos-n'},
+  HN:{name:'ハイノーマル',cls:'cos-hn'},
+  R:{name:'レア',cls:'cos-r'},
+  HR:{name:'ハイパーレア',cls:'cos-hr'},
+  SR:{name:'スーパーレア',cls:'cos-sr'},
+  SSR:{name:'ダブルスーパーレア',cls:'cos-ssr'},
+  UR:{name:'アルティメットレア',cls:'cos-ur'},
+  LR:{name:'レジェンドレア',cls:'cos-lr'}
+};
 // ===== コレクション（セット）＆ 称号 =====
 var COS_SETS=[
   { id:'set_wizard', name:'まほうつかい', em:'🧙', items:['h_wiz','d_wand','a_star'],       coin:80,  title:'t_wizard' },

@@ -486,3 +486,94 @@
       return { q: '図の直線が y軸と交わる値（切片）は？（赤い点）', sub: '一次関数のグラフ（図）', level: '★★★', hint: 'x=0 のときの y', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgGraph(a, b), explain: '【考え方】切片＝x=0のときのy＝y軸との交点。\n【手順】赤い点の高さ → ' + b + '\n【ポイント】y=ax+b の b が切片。' }; }
   );
 })();
+
+/* 難問 第5弾：図の種類を追加（円・おうぎ形・空間図形・理科の回路/光）。図は数値連動、答えは計算＝必ず正しい。 */
+(function () {
+  if (typeof mathGens === 'undefined' || typeof rint !== 'function' || typeof numChoices !== 'function') return;
+  var CY = '#67e8f9', FILL = 'rgba(8,145,178,0.18)', LB = '#f59e0b', TX = '#e0f2fe', RD = '#ef4444';
+
+  // 円（半径ラベル）
+  function svgCircle(r) {
+    return '<svg width="150" height="140" viewBox="0 0 150 140"><circle cx="70" cy="70" r="55" fill="' + FILL + '" stroke="' + CY + '" stroke-width="2"/>' +
+      '<line x1="70" y1="70" x2="125" y2="70" stroke="' + RD + '" stroke-width="1.5"/><circle cx="70" cy="70" r="3" fill="' + RD + '"/>' +
+      '<text x="80" y="63" fill="' + LB + '" font-size="12">r=' + r + 'cm</text></svg>';
+  }
+  // おうぎ形（半径・中心角）
+  function svgSector(r, deg) {
+    var cx = 68, cy = 95, R = 62, rad = deg * Math.PI / 180;
+    var x1 = (cx + R * Math.cos(rad)).toFixed(1), y1 = (cy - R * Math.sin(rad)).toFixed(1), large = deg > 180 ? 1 : 0;
+    return '<svg width="160" height="130" viewBox="0 0 160 130"><path d="M ' + cx + ' ' + cy + ' L ' + (cx + R) + ' ' + cy + ' A ' + R + ' ' + R + ' 0 ' + large + ' 0 ' + x1 + ' ' + y1 + ' Z" fill="' + FILL + '" stroke="' + CY + '" stroke-width="2"/>' +
+      '<text x="' + (cx + 14) + '" y="' + (cy - 8) + '" fill="' + LB + '" font-size="12" font-weight="bold">' + deg + '°</text>' +
+      '<text x="' + (cx + 20) + '" y="' + (cy + 15) + '" fill="' + LB + '" font-size="10">r=' + r + '</text></svg>';
+  }
+  // 直方体（見取り図）
+  function svgBox(w, d, h) {
+    return '<svg width="180" height="150" viewBox="0 0 180 150"><polygon points="30,50 100,50 130,25 60,25" fill="rgba(8,145,178,0.28)" stroke="' + CY + '" stroke-width="1.8"/>' +
+      '<polygon points="100,50 130,25 130,95 100,120" fill="rgba(8,145,178,0.12)" stroke="' + CY + '" stroke-width="1.8"/>' +
+      '<rect x="30" y="50" width="70" height="70" fill="' + FILL + '" stroke="' + CY + '" stroke-width="1.8"/>' +
+      '<text x="65" y="138" fill="' + LB + '" font-size="11" text-anchor="middle">よこ' + w + 'cm</text>' +
+      '<text x="20" y="88" fill="' + LB + '" font-size="11" text-anchor="middle" transform="rotate(-90,20,88)">高さ' + h + 'cm</text>' +
+      '<text x="122" y="20" fill="' + LB + '" font-size="11">おく' + d + 'cm</text></svg>';
+  }
+  // 円柱
+  function svgCyl(r, h) {
+    return '<svg width="150" height="150" viewBox="0 0 150 150"><ellipse cx="70" cy="30" rx="45" ry="13" fill="rgba(8,145,178,0.28)" stroke="' + CY + '" stroke-width="1.8"/>' +
+      '<path d="M25 30 V110 A45 13 0 0 0 115 110 V30" fill="' + FILL + '" stroke="' + CY + '" stroke-width="1.8"/>' +
+      '<ellipse cx="70" cy="30" rx="45" ry="13" fill="none" stroke="' + CY + '" stroke-width="1.8"/>' +
+      '<line x1="70" y1="30" x2="115" y2="30" stroke="' + RD + '" stroke-width="1.3"/><text x="82" y="26" fill="' + LB + '" font-size="10">r=' + r + '</text>' +
+      '<text x="124" y="75" fill="' + LB + '" font-size="11">高さ' + h + '</text></svg>';
+  }
+  // 直列回路（抵抗2つ）
+  function svgCircuit(r1, r2) {
+    return '<svg width="190" height="120" viewBox="0 0 190 120"><rect x="20" y="20" width="150" height="80" fill="none" stroke="' + CY + '" stroke-width="2"/>' +
+      '<rect x="55" y="12" width="34" height="16" fill="rgba(8,145,178,0.3)" stroke="' + CY + '" stroke-width="1.5"/><text x="72" y="9" fill="' + LB + '" font-size="10" text-anchor="middle">' + r1 + 'Ω</text>' +
+      '<rect x="105" y="12" width="34" height="16" fill="rgba(8,145,178,0.3)" stroke="' + CY + '" stroke-width="1.5"/><text x="122" y="9" fill="' + LB + '" font-size="10" text-anchor="middle">' + r2 + 'Ω</text>' +
+      '<line x1="20" y1="55" x2="14" y2="55" stroke="' + RD + '" stroke-width="3"/><line x1="20" y1="65" x2="26" y2="65" stroke="' + RD + '" stroke-width="6"/>' +
+      '<text x="30" y="112" fill="' + TX + '" font-size="10">電池（直列つなぎ）</text></svg>';
+  }
+  // 光の反射（鏡・法線・入射角）
+  function svgMirror(ang) {
+    var cx = 95, cy = 92, L = 70, rad = ang * Math.PI / 180;
+    var ix = (cx - L * Math.sin(rad)).toFixed(1), iy = (cy - L * Math.cos(rad)).toFixed(1);
+    var rx = (cx + L * Math.sin(rad)).toFixed(1), ry = (cy - L * Math.cos(rad)).toFixed(1);
+    return '<svg width="190" height="115" viewBox="0 0 190 115"><line x1="15" y1="92" x2="175" y2="92" stroke="' + CY + '" stroke-width="3"/>' +
+      '<line x1="' + cx + '" y1="92" x2="' + cx + '" y2="14" stroke="' + TX + '" stroke-width="1" stroke-dasharray="4"/>' +
+      '<line x1="' + ix + '" y1="' + iy + '" x2="' + cx + '" y2="' + cy + '" stroke="' + LB + '" stroke-width="2"/>' +
+      '<line x1="' + cx + '" y1="' + cy + '" x2="' + rx + '" y2="' + ry + '" stroke="' + RD + '" stroke-width="2" stroke-dasharray="3"/>' +
+      '<text x="' + (cx - 34) + '" y="60" fill="' + LB + '" font-size="11">' + ang + '°</text>' +
+      '<text x="' + (cx + 16) + '" y="60" fill="' + RD + '" font-size="13" font-weight="bold">?</text>' +
+      '<text x="120" y="108" fill="' + TX + '" font-size="9">鏡</text></svg>';
+  }
+
+  mathGens.push(
+    // 円の面積（図・□π）
+    function () { var r = rint(2, 12), ans = r * r, ch = numChoices(ans, { spread: 20, positive: true });
+      return { q: '図の円の面積は □π cm²。□に入る数は？', sub: '円の面積（図）', level: '★★★', hint: '面積＝π×半径×半径', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgCircle(r), explain: '【考え方】円の面積＝πr²。\n【手順】' + r + '×' + r + '=' + ans + ' → ' + ans + 'π cm²\n【ポイント】半径を2回かける。' }; },
+    // 円周（図・□π）
+    function () { var r = rint(2, 15), ans = 2 * r, ch = numChoices(ans, { spread: 12, positive: true });
+      return { q: '図の円の円周は □π cm。□に入る数は？', sub: '円周（図）', level: '★★★', hint: '円周＝2×π×半径', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgCircle(r), explain: '【考え方】円周＝2πr。\n【手順】2×' + r + '=' + ans + ' → ' + ans + 'π cm\n【ポイント】直径×πでも同じ。' }; },
+    // おうぎ形の弧の長さ（図・□π）
+    function () { var combo = pick([[6, 180, 6], [4, 90, 2], [6, 120, 4], [8, 90, 4], [9, 120, 6], [6, 90, 3], [10, 180, 10]]); var ch = numChoices(combo[2], { spread: 6, positive: true });
+      return { q: '図のおうぎ形の弧の長さは □π cm。□に入る数は？', sub: 'おうぎ形の弧（図）', level: '★★★★', hint: '2πr × 中心角/360', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgSector(combo[0], combo[1]), explain: '【考え方】弧＝2πr×(中心角/360)。\n【手順】2×' + combo[0] + '×' + combo[1] + '/360=' + combo[2] + ' → ' + combo[2] + 'π cm\n【ポイント】円周の(中心角/360)倍。' }; },
+    // おうぎ形の面積（図・□π）
+    function () { var combo = pick([[6, 90, 9], [6, 180, 18], [4, 90, 4], [12, 90, 36], [6, 120, 12], [10, 90, 25], [8, 90, 16]]); var ch = numChoices(combo[2], { spread: 12, positive: true });
+      return { q: '図のおうぎ形の面積は □π cm²。□に入る数は？', sub: 'おうぎ形の面積（図）', level: '★★★★', hint: 'πr² × 中心角/360', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgSector(combo[0], combo[1]), explain: '【考え方】面積＝πr²×(中心角/360)。\n【手順】' + combo[0] + '²×' + combo[1] + '/360=' + combo[2] + ' → ' + combo[2] + 'π cm²\n【ポイント】円の面積の(中心角/360)倍。' }; },
+    // 直方体の体積（図）
+    function () { var w = rint(2, 9), d = rint(2, 7), h = rint(2, 9), ans = w * d * h, ch = numChoices(ans, { spread: 50, positive: true });
+      return { q: '図の直方体の体積は 何cm³？', sub: '直方体の体積（図）', level: '★★★', hint: 'たて×よこ×高さ', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgBox(w, d, h), explain: '【考え方】直方体の体積＝よこ×おく×高さ。\n【手順】' + w + '×' + d + '×' + h + '=' + ans + 'cm³\n【ポイント】3辺をかける。' }; },
+    // 円柱の体積（図・□π）
+    function () { var r = rint(2, 8), h = rint(2, 10), ans = r * r * h, ch = numChoices(ans, { spread: 40, positive: true });
+      return { q: '図の円柱の体積は □π cm³。□に入る数は？', sub: '円柱の体積（図）', level: '★★★★', hint: '底面積(πr²)×高さ', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgCyl(r, h), explain: '【考え方】円柱の体積＝πr²×高さ。\n【手順】' + r + '²×' + h + '=' + ans + ' → ' + ans + 'π cm³\n【ポイント】底面の円の面積×高さ。' }; }
+  );
+
+  if (typeof sciGens !== 'undefined') {
+    sciGens.push(
+      // 直列回路の合成抵抗（図）
+      function () { var r1 = rint(2, 15), r2 = rint(2, 15), ans = r1 + r2, ch = numChoices(ans, { spread: 10, positive: true });
+        return { q: '図の回路（直列）の合成抵抗は何Ω？', sub: '合成抵抗（図）', level: '★★★★', hint: '直列はそのままたす', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgCircuit(r1, r2), explain: '【考え方】直列の合成抵抗＝各抵抗の和。\n【手順】' + r1 + '+' + r2 + '=' + ans + 'Ω\n【ポイント】並列は 1/R=1/R₁+1/R₂。' }; },
+      // 光の反射（図）
+      function () { var ang = rint(20, 60), ans = ang, ch = numChoices(ans, { spread: 15, positive: true });
+        return { q: '図で光が鏡に当たった。反射角（? ）は何度？', sub: '光の反射（図）', level: '★★★', hint: '入射角＝反射角', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgMirror(ang), explain: '【考え方】反射の法則：入射角＝反射角。\n【手順】入射角が' + ang + '°なので反射角も' + ans + '°\n【ポイント】角は鏡の面ではなく“法線”からはかる。' }; }
+    );
+  }
+})();

@@ -437,7 +437,14 @@ window.FIREBASE_CONFIG = {
     _unsubSess=sessionRef(uid).onSnapshot(function(d){
       if(d.metadata && d.metadata.hasPendingWrites) return;
       var s=d.exists?(d.data()||{}):null;
-      if(s && s.device && s.device!==me){ if(onTaken){ try{ onTaken(s.name||'べつの たんまつ'); }catch(e){} } }
+      if(s && s.device && s.device!==me){
+        // 他端末に引き継がれた：自分のハートビートを止める（40秒ごとの merge:true 書込が
+        // 相手からセッションを奪い返す「ピンポン」を防ぐ）。監視も止めてロック画面へ。
+        if(_hbTimer){ clearInterval(_hbTimer); _hbTimer=null; }
+        if(_unsubSess){ try{ _unsubSess(); }catch(e){} _unsubSess=null; }
+        _sessUid=null;
+        if(onTaken){ try{ onTaken(s.name||'べつの たんまつ'); }catch(e){} }
+      }
     }, function(){});
   };
 

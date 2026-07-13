@@ -202,10 +202,18 @@ window.FIREBASE_CONFIG = {
   function showSyncToast(){
     try{
       if(document.getElementById('cs-sync-toast')) return;
+      // ボトムタブ（bottom:0・約80px）に重ならないよう、その上に浮かせる。×で手動で閉じられる。
       var t=document.createElement('div'); t.id='cs-sync-toast';
-      t.textContent='🔄 新しい記録が届きました（タップで更新）';
-      t.setAttribute('style','position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#0891b2;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;max-width:90%;text-align:center;');
-      t.addEventListener('click',function(){ location.reload(); });
+      t.setAttribute('style','position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:850;background:#0891b2;color:#fff;padding:9px 8px 9px 15px;border-radius:999px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.22);max-width:92%;display:flex;align-items:center;gap:6px;');
+      var msg=document.createElement('span');
+      msg.textContent='🔄 新しい記録があります（タップで更新）';
+      msg.setAttribute('style','cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;');
+      msg.addEventListener('click',function(){ location.reload(); });
+      var x=document.createElement('button');
+      x.textContent='✕'; x.setAttribute('aria-label','とじる');
+      x.setAttribute('style','flex:0 0 auto;border:none;background:rgba(255,255,255,.22);color:#fff;width:24px;height:24px;line-height:1;border-radius:999px;font-size:12px;cursor:pointer;padding:0;');
+      x.addEventListener('click',function(ev){ ev.stopPropagation(); if(t.parentNode) t.parentNode.removeChild(t); });
+      t.appendChild(msg); t.appendChild(x);
       document.body.appendChild(t);
       setTimeout(function(){ if(t&&t.parentNode){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },500); } },8000);
     }catch(e){}

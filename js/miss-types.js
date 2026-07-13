@@ -92,6 +92,19 @@ function missClassify(q, chosen, sec){
   return fast ? 'misread' : 'recall';
 }
 
+// ===== リベンジ用：候補問題が「同じ型のミスをもう一度ためせる」問題か（純関数） =====
+// 例：ふごうミスをした子には、マイナスを含む類題を優先して出す
+function missQMatches(cand, t){
+  if (!cand) return false;
+  if (!t) return true;
+  var qt = String(cand.q || ''), ans = String(cand.ans || '');
+  if (t === 'sign')  return /[−ー–-]\s*\d/.test(qt) || /^\s*[−ー–-]/.test(ans);               // マイナスを含む
+  if (t === 'place') return /\d[.．]\d/.test(qt + ' ' + ans) || /(^|[^0-9])(10|100|1000)([^0-9]|$)/.test(qt);  // 小数・10の倍数
+  if (t === 'op')    return missNumsInText(qt).length >= 2;                                    // 演算を選ぶ必要がある
+  if (t === 'unit')  return /(cm|mm|km|kg|mg|mL|dL|㎝|㎞|㎏|個|こ|人|円|分|秒|時間|Ｌ)/.test(qt); // 単位が出てくる
+  return true;                                                                                 // その他の型は同サブ単元ならOK
+}
+
 // ===== 集計（直近days から週まとめ・純関数） =====
 // days:{'2026-7-14':{sign:2,...}} weekKeys:['2026-7-8',...] → [{t,n}] 多い順
 function missWeekSummary(days, weekKeys){

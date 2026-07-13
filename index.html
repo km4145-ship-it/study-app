@@ -3153,16 +3153,20 @@ function startSubject(subjectId) {
 // 調達：①ジェネレータで同subを再抽選（数値ちがいの類題） ②固定バンク(BANK/QUESTIONS)から同subの別問題
 var _revengeCount = 0;   // 1セッションの挿入回数（3回まで＝セッションが長くなりすぎない）
 function _revBaseSub(sub){ return String(sub||'').replace(/[（(][^）)]*[）)]\s*$/,''); }   // 「合成抵抗（並列・図）」→「合成抵抗」
-function findSimilarQuestion(q){
+function findSimilarQuestion(q, missType){
   if(!q || !q.sub) return null;
   var area = q.area || currentArea || 'math';
-  var base = _revBaseSub(q.sub), nearGen = null;
+  var base = _revBaseSub(q.sub), nearGen = null, subGen = null;
+  // ミスの型が分かっているときは「同じ型をためせる」類題を優先（missQMatches は js/miss-types.js）
+  var typed = (missType && typeof missQMatches==='function')
+    ? function(c){ try{ return missQMatches(c, missType); }catch(e){ return true; } }
+    : function(){ return true; };
   // ① ジェネレータ再抽選（1回は軽い計算なので回数で押す。基本単元だけ一致する候補も拾っておく）
   for(var i=0;i<300;i++){
     var c=null; try{ c=genQuestion(area); }catch(e){ break; }
     if(!c || c.q===q.q) continue;
-    if(c.sub===q.sub) return c;
-    if(!nearGen && base && _revBaseSub(c.sub)===base) nearGen=c;
+    if(c.sub===q.sub){ if(typed(c)) return c; if(!subGen) subGen=c; }
+    else if(!nearGen && base && _revBaseSub(c.sub)===base) nearGen=c;
   }
   // ② 固定問題バンクから同じサブ単元（だめなら基本単元一致）の別問題
   var pools=[];
@@ -3172,6 +3176,9 @@ function findSimilarQuestion(q){
   pools.forEach(function(arr){ arr.forEach(function(it){ if(!it || it.q===q.q) return;
     if(it.sub===q.sub) cand.push(it);
     else if(base && _revBaseSub(it.sub)===base) near.push(it); }); });
+  var candT=cand.filter(typed);
+  if(candT.length) return Object.assign({}, candT[Math.floor(Math.random()*candT.length)]);   // 同sub＋型一致
+  if(subGen) return subGen;                                          // 同sub（型は合わないが数値ちがい）
   if(cand.length) return Object.assign({}, cand[Math.floor(Math.random()*cand.length)]);
   if(nearGen) return nearGen;                                        // ③ 基本単元一致（例：直列⇔並列の合成抵抗）
   if(near.length) return Object.assign({}, near[Math.floor(Math.random()*near.length)]);
@@ -3185,7 +3192,15 @@ function showQuestion(skipSpeak) {
   try{ hideTabbar(); }catch(e){}   // 問題中は下タブを隠して集中（結果/ホームで再表示）
   answered = false;
   if (currentIndex === 0) _revengeCount = 0;   // セッション開始でリベンジ回数をリセット
-  var _rvb=document.getElementById('revenge-banner'); if(_rvb) _rvb.style.display = q._revenge ? 'block' : 'none';
+  var _rvb=document.getElementById('revenge-banner');
+  if(_rvb){
+    _rvb.style.display = q._revenge ? 'block' : 'none';
+    if(q._revenge){   // 型別リベンジ：何に気をつけるかをバナーに出す
+      var _rvbt='🔥 リベンジ！ さっきと にた問題だよ。今度は とけるかな？';
+      try{ if(q._revType && MISS_TYPES[q._revType]) _rvbt='🔥 リベンジ！ '+MISS_TYPES[q._revType].em+' '+MISS_TYPES[q._revType].name+'に 気をつけて とこう！'; }catch(e){}
+      _rvb.textContent=_rvbt;
+    }
+  }
 
   document.getElementById('quiz-progress').textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
   document.getElementById('progress-fill').style.width = (currentIndex / currentQuestions.length * 100) + '%';
@@ -3320,27 +3335,31 @@ function handleAnswer(correct, correctAns) {
   feedback.innerHTML += `<div class="q-time">⏱ ${Math.round(lastQSec)}秒でこたえたよ</div>`;
   if(!correct){ feedback.innerHTML += '<div class="careless-ask" id="careless-ask">今のミスは？ <button class="cl-b" onclick="classifyMistake(\'careless\')">うっかり</button> <button class="cl-b" onclick="classifyMistake(\'unknown\')">わからなかった</button></div>';
     // 🤖 ミスの型を自動推定（選んだ答え×正解の関係。ジェネレータ側の変更なしで全問題に効く）
+    var _mtNow=null;   // このミスの型（下のリベンジ選題にも使う）
     try{
       const _mq=currentQuestions[currentIndex];
-      const _mt=(typeof missClassify==='function')?missClassify(_mq,lastChosen,lastQSec):null;
-      if(_mt){
-        missBump(_mt, _mq && _mq.sub);
-        _missSess[_mt]=(_missSess[_mt]||0)+1;
-        const _mi=MISS_TYPES[_mt];
+      _mtNow=(typeof missClassify==='function')?missClassify(_mq,lastChosen,lastQSec):null;
+      if(_mtNow){
+        missBump(_mtNow, _mq && _mq.sub);
+        _missSess[_mtNow]=(_missSess[_mtNow]||0)+1;
+        const _mi=MISS_TYPES[_mtNow];
         feedback.innerHTML += '<div class="miss-tag">'+_mi.em+' '+_mi.name+'かも</div>';
-        if(_missSess[_mt]>=2) feedback.innerHTML += '<div class="miss-tip">💡 '+_mi.tip+'</div>';   // 同じ型が2回目からコツを表示
+        if(_missSess[_mtNow]>=2) feedback.innerHTML += '<div class="miss-tip">💡 '+_mi.tip+'</div>';   // 同じ型が2回目からコツを表示
       }
     }catch(e){}
   }
   // まちがい→その場で類題リベンジ（練習のみ。模試/バトル/まちがい直しは除外・1問1回・1セッション3回まで）
+  // ミスの型が分かっていれば「同じ型をためせる類題」を優先して出す（型別リベンジ）
   if(!correct && !isExam && !rpgBattle && !isMistakePractice
      && currentQuestions[currentIndex] && !currentQuestions[currentIndex]._revenge && _revengeCount<3){
-    var _rq=null; try{ _rq=findSimilarQuestion(currentQuestions[currentIndex]); }catch(e){}
+    var _rq=null; try{ _rq=findSimilarQuestion(currentQuestions[currentIndex], _mtNow); }catch(e){}
     if(_rq){
-      _rq=Object.assign({}, _rq, {_revenge:1});
+      _rq=Object.assign({}, _rq, {_revenge:1, _revType:(_mtNow||'')});
       currentQuestions.splice(currentIndex+1, 0, _rq);
       _revengeCount++;
-      feedback.innerHTML += '<div class="revenge-note">🔥 つぎは にた問題で リベンジだ！ かいせつを 読んでから すすもう</div>';
+      var _rvTxt='🔥 つぎは にた問題で リベンジだ！ かいせつを 読んでから すすもう';
+      try{ if(_mtNow && MISS_TYPES[_mtNow]) _rvTxt='🔥 つぎは にた問題で リベンジだ！ '+MISS_TYPES[_mtNow].em+' '+MISS_TYPES[_mtNow].name+'に 気をつけよう'; }catch(e){}
+      feedback.innerHTML += '<div class="revenge-note">'+_rvTxt+'</div>';
     }
   }
   if (correct && totalStreak > bestStreak) { bestStreak = totalStreak; safeLS.setItem('c_beststreak', bestStreak); }

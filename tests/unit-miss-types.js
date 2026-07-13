@@ -13,7 +13,7 @@ try { new Function(code)(); c.ok('miss-types.js 単体loadで例外なし', true
 catch (e) { c.ok('miss-types.js 単体loadで例外なし: ' + e.message, false); }
 
 const api = (new Function(code +
-  '\nreturn { MISS_TYPES, missParseNum, missNumsInText, missClassify, missWeekSummary, missLoad, missBump };'))();
+  '\nreturn { MISS_TYPES, missParseNum, missNumsInText, missClassify, missWeekSummary, missLoad, missBump, missQMatches };'))();
 
 // ---- MISS_TYPES の整合 ----
 const REQ = ['sign','place','op','near','unit','misread','recall','careless','unknown'];
@@ -68,6 +68,21 @@ const wk = ['2026-7-8','2026-7-9','2026-7-10','2026-7-11','2026-7-12','2026-7-13
 const sum = api.missWeekSummary(days, wk);
 c.eq('週集計は週内のみ・多い順', JSON.stringify(sum), JSON.stringify([{ t:'sign', n:3 }, { t:'recall', n:3 }, { t:'op', n:1 }].sort((a,b)=>b.n-a.n)));
 c.ok('missBump は不明な型を無視', api.missBump('nazo') === null);
+
+// ---- missQMatches（型別リベンジの候補判定）----
+const M = api.missQMatches;
+c.ok('sign×マイナスを含む問題', M({ q:'(−3) + 5 は？', ans:'2' }, 'sign') === true);
+c.ok('sign×マイナスなし問題', M({ q:'3 + 5 は？', ans:'8' }, 'sign') === false);
+c.ok('sign×答えがマイナス', M({ q:'x は？', ans:'−5' }, 'sign') === true);
+c.ok('place×小数の問題', M({ q:'2.5 × 4 は？', ans:'10' }, 'place') === true);
+c.ok('place×10のかけ算', M({ q:'3 × 10 は？', ans:'30' }, 'place') === true);
+c.ok('place×該当なし', M({ q:'3 + 5 は？', ans:'8' }, 'place') === false);
+c.ok('op×2数あり', M({ q:'12こを 4人で わけると？', ans:'3' }, 'op') === true);
+c.ok('op×1数のみ', M({ q:'8 の 半分は？', ans:'4' }, 'op') === false);
+c.ok('unit×cmを含む', M({ q:'12cm の テープ…', ans:'12' }, 'unit') === true);
+c.ok('その他の型は常にtrue', M({ q:'x', ans:'y' }, 'recall') === true);
+c.ok('型なしはtrue', M({ q:'x' }, null) === true);
+c.ok('候補なしはfalse', M(null, 'sign') === false);
 
 // ---- index.html 統合 ----
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

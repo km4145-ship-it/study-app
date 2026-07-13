@@ -63,10 +63,52 @@ function build(genStub, bank, questions) {
   c.eq('基本単元の正規化：（図）を除く', api.baseSub('合成抵抗（並列・図）'), '合成抵抗');
 }
 
+// ---- ③ 型別リベンジ（ミスの型に合う類題を優先） ----
+{
+  const missCode = fs.readFileSync(path.join(ROOT, 'js', 'miss-types.js'), 'utf8');
+  const missQMatches = (new Function(missCode + '\nreturn missQMatches;'))();
+  const buildT = (genStub, bank) => (new Function('genQuestion', 'BANK', 'QUESTIONS', 'currentArea', 'missQMatches',
+    block + '\nreturn findSimilarQuestion;'))(genStub, bank, undefined, 'math', missQMatches);
+  const wrong = { sub: '正負の数', q: '(−2) + 6 は？', ans: '4', area: 'math' };
+
+  // sign ミス → マイナスを含む同subの類題を優先（マイナス無しの同subが先に出ても飛ばす）
+  {
+    let calls = 0;
+    const gen = () => { calls++;
+      if (calls === 1) return { sub: '正負の数', q: '3 + 5 は？', ans: '8' };
+      if (calls === 2) return { sub: '正負の数', q: '(−3) + 5 は？', ans: '2' };
+      return { sub: '正負の数', q: '4 + 4 は？', ans: '8' }; };
+    const r = buildT(gen)(wrong, 'sign');
+    c.ok('型別：signはマイナスを含む類題を優先', r && r.q === '(−3) + 5 は？');
+  }
+  // 型なしは従来どおり最初の同sub
+  {
+    let calls = 0;
+    const gen = () => { calls++; return calls === 1 ? { sub: '正負の数', q: '3 + 5 は？', ans: '8' } : { sub: '正負の数', q: '(−3) + 5 は？', ans: '2' }; };
+    const r = buildT(gen)(wrong);
+    c.ok('型なしは従来どおり最初の同sub', r && r.q === '3 + 5 は？');
+  }
+  // 型一致が見つからなければ同subへフォールバック（リベンジ自体は必ず出る）
+  {
+    const gen = () => ({ sub: '正負の数', q: '3 + 5 は？', ans: '8' });
+    const r = buildT(gen)(wrong, 'sign');
+    c.ok('型一致なし→同subフォールバック', r && r.q === '3 + 5 は？');
+  }
+  // バンク経路でも型一致を優先
+  {
+    const gen = () => ({ sub: 'nomatch', q: 'x', ans: 1 });
+    const bank = { math: { practice: [ { sub: '正負の数', q: '3 + 5 は？', ans: '8' }, { sub: '正負の数', q: '(−7) + 2 は？', ans: '−5' } ], exam: [] } };
+    const r = buildT(gen, bank)(wrong, 'sign');
+    c.ok('バンク経路でも型一致を優先', r && r.q === '(−7) + 2 は？');
+  }
+}
+
 // ---- 組み込みの静的検証（ガード条件が正しく入っているか） ----
 c.ok('handleAnswer に挿入ロジックがある', html.indexOf("currentQuestions.splice(currentIndex+1, 0, _rq)") >= 0);
 c.ok('模試・バトル・まちがい直しでは発動しない', /!correct && !isExam && !rpgBattle && !isMistakePractice/.test(html));
 c.ok('リベンジ問題自身からは再リベンジしない', html.indexOf("!currentQuestions[currentIndex]._revenge && _revengeCount<3") >= 0);
 c.ok('リベンジバナー要素がある', html.indexOf('id="revenge-banner"') >= 0);
+c.ok('リベンジ選題にミスの型を渡す', html.indexOf('findSimilarQuestion(currentQuestions[currentIndex], _mtNow)') >= 0);
+c.ok('リベンジ問題に型を記録する', html.indexOf('_revType:(_mtNow') >= 0);
 
 c.done();

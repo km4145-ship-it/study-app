@@ -577,3 +577,98 @@
     );
   }
 })();
+
+/* 難問 第6弾：図をさらに増やす（平行四辺形/台形/三角柱/展開図/比例グラフ/2直線＋並列回路/地層/ばね）。 */
+(function () {
+  if (typeof mathGens === 'undefined' || typeof rint !== 'function' || typeof numChoices !== 'function') return;
+  var CY = '#67e8f9', FILL = 'rgba(8,145,178,0.18)', LB = '#f59e0b', TX = '#e0f2fe', RD = '#ef4444';
+
+  function svgParagram(b, h) {
+    return '<svg width="185" height="115" viewBox="0 0 185 115"><polygon points="30,90 130,90 155,30 55,30" fill="' + FILL + '" stroke="' + CY + '" stroke-width="2"/>' +
+      '<line x1="55" y1="30" x2="55" y2="90" stroke="' + RD + '" stroke-width="1.4" stroke-dasharray="4"/>' +
+      '<text x="88" y="104" fill="' + LB + '" font-size="11" text-anchor="middle">底辺 ' + b + 'cm</text>' +
+      '<text x="45" y="62" fill="' + RD + '" font-size="10">高さ' + h + '</text></svg>';
+  }
+  function svgTrapezoid(a, b, h) {
+    return '<svg width="185" height="115" viewBox="0 0 185 115"><polygon points="55,30 130,30 160,90 25,90" fill="' + FILL + '" stroke="' + CY + '" stroke-width="2"/>' +
+      '<line x1="55" y1="30" x2="55" y2="90" stroke="' + RD + '" stroke-width="1.3" stroke-dasharray="4"/>' +
+      '<text x="92" y="24" fill="' + LB + '" font-size="10" text-anchor="middle">上底 ' + a + '</text>' +
+      '<text x="92" y="104" fill="' + LB + '" font-size="10" text-anchor="middle">下底 ' + b + '</text>' +
+      '<text x="46" y="64" fill="' + RD + '" font-size="10">高' + h + '</text></svg>';
+  }
+  function svgPrism(b, h, L) {
+    return '<svg width="185" height="125" viewBox="0 0 185 125"><polygon points="35,95 95,95 55,45" fill="' + FILL + '" stroke="' + CY + '" stroke-width="1.8"/>' +
+      '<polygon points="95,95 155,80 115,30 55,45" fill="rgba(8,145,178,0.1)" stroke="' + CY + '" stroke-width="1.5"/>' +
+      '<line x1="35" y1="95" x2="95" y2="80" stroke="' + CY + '" stroke-width="1.5"/>' +
+      '<text x="63" y="112" fill="' + LB + '" font-size="10" text-anchor="middle">底辺' + b + '</text>' +
+      '<text x="26" y="70" fill="' + RD + '" font-size="10">高' + h + '</text>' +
+      '<text x="118" y="66" fill="' + LB + '" font-size="10">長さ' + L + '</text></svg>';
+  }
+  function svgCubeNet(a) {
+    var s = 30, x0 = 40, y0 = 12, g = '<svg width="185" height="135" viewBox="0 0 185 135">';
+    var cells = [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2], [1, 3]];
+    cells.forEach(function (c) { g += '<rect x="' + (x0 + c[0] * s) + '" y="' + (y0 + c[1] * s) + '" width="' + s + '" height="' + s + '" fill="' + FILL + '" stroke="' + CY + '" stroke-width="1.6"/>'; });
+    g += '<text x="' + (x0 + s + 6) + '" y="' + (y0 + s + 20) + '" fill="' + LB + '" font-size="11">1辺' + a + 'cm</text></svg>';
+    return g;
+  }
+  function svgGrid(lines) { var ox = 92, oy = 92, u = 15, s = '<svg width="185" height="185" viewBox="0 0 185 185">';
+    for (var i = -6; i <= 6; i++) { s += '<line x1="' + (ox + i * u) + '" y1="5" x2="' + (ox + i * u) + '" y2="180" stroke="rgba(103,232,249,0.1)" stroke-width="1"/><line x1="5" y1="' + (oy + i * u) + '" x2="180" y2="' + (oy + i * u) + '" stroke="rgba(103,232,249,0.1)" stroke-width="1"/>'; }
+    s += '<line x1="5" y1="' + oy + '" x2="180" y2="' + oy + '" stroke="' + CY + '" stroke-width="1.5"/><line x1="' + ox + '" y1="5" x2="' + ox + '" y2="180" stroke="' + CY + '" stroke-width="1.5"/>';
+    lines.forEach(function (l) { var sx1 = ox + (-6) * u, sy1 = oy - (l.a * -6 + l.b) * u, sx2 = ox + 6 * u, sy2 = oy - (l.a * 6 + l.b) * u; s += '<line x1="' + sx1 + '" y1="' + sy1.toFixed(1) + '" x2="' + sx2 + '" y2="' + sy2.toFixed(1) + '" stroke="' + l.c + '" stroke-width="2.5"/>'; });
+    return { head: s, ox: ox, oy: oy, u: u };
+  }
+  function svgProp(a) { var g = svgGrid([{ a: a, b: 0, c: LB }]); return g.head + '<circle cx="' + g.ox + '" cy="' + g.oy + '" r="3" fill="' + RD + '"/></svg>'; }
+  function svgTwo(a1, b1, a2, b2, ix, iy) { var g = svgGrid([{ a: a1, b: b1, c: LB }, { a: a2, b: b2, c: '#a78bfa' }]); return g.head + '<circle cx="' + (g.ox + ix * g.u) + '" cy="' + (g.oy - iy * g.u) + '" r="4" fill="' + RD + '"/></svg>'; }
+  function svgParaCirc(r1, r2) {
+    return '<svg width="190" height="120" viewBox="0 0 190 120"><rect x="20" y="20" width="150" height="80" fill="none" stroke="' + CY + '" stroke-width="2"/>' +
+      '<line x1="95" y1="20" x2="95" y2="35" stroke="' + CY + '" stroke-width="2"/><line x1="95" y1="85" x2="95" y2="100" stroke="' + CY + '" stroke-width="2"/>' +
+      '<rect x="70" y="34" width="50" height="16" fill="rgba(8,145,178,0.3)" stroke="' + CY + '" stroke-width="1.5"/><text x="95" y="46" fill="' + LB + '" font-size="10" text-anchor="middle">' + r1 + 'Ω</text>' +
+      '<rect x="70" y="70" width="50" height="16" fill="rgba(8,145,178,0.3)" stroke="' + CY + '" stroke-width="1.5"/><text x="95" y="82" fill="' + LB + '" font-size="10" text-anchor="middle">' + r2 + 'Ω</text>' +
+      '<line x1="20" y1="55" x2="14" y2="55" stroke="' + RD + '" stroke-width="3"/><text x="26" y="112" fill="' + TX + '" font-size="9">並列つなぎ</text></svg>';
+  }
+  function svgStrata() {
+    var cols = ['rgba(180,120,60,.5)', 'rgba(120,160,90,.5)', 'rgba(140,140,160,.5)', 'rgba(90,70,50,.6)'], lbl = ['ア', 'イ', 'ウ', 'エ'], g = '<svg width="185" height="120" viewBox="0 0 185 120">';
+    for (var i = 0; i < 4; i++) { g += '<rect x="15" y="' + (12 + i * 24) + '" width="155" height="24" fill="' + cols[i] + '" stroke="' + CY + '" stroke-width="1"/><text x="24" y="' + (29 + i * 24) + '" fill="' + TX + '" font-size="12" font-weight="bold">' + lbl[i] + '</text>'; }
+    return g + '</svg>';
+  }
+  function svgSpring(k) {
+    var g = '<svg width="150" height="150" viewBox="0 0 150 150"><line x1="30" y1="12" x2="120" y2="12" stroke="' + CY + '" stroke-width="3"/><path d="M75 12 L60 24 L90 36 L60 48 L90 60 L60 72 L90 84 L75 96" fill="none" stroke="' + CY + '" stroke-width="2"/>' +
+      '<rect x="55" y="96" width="40" height="30" fill="' + FILL + '" stroke="' + CY + '" stroke-width="1.8"/><text x="16" y="60" fill="' + LB + '" font-size="9">1cmに' + k + 'N</text></svg>';
+    return g;
+  }
+
+  mathGens.push(
+    // 平行四辺形の面積
+    function () { var b = rint(4, 12), h = rint(3, 9), ans = b * h, ch = numChoices(ans, { spread: 20, positive: true });
+      return { q: '図の平行四辺形の面積は 何cm²？', sub: '平行四辺形の面積（図）', level: '★★★', hint: '底辺×高さ', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgParagram(b, h), explain: '【考え方】平行四辺形の面積＝底辺×高さ。\n【手順】' + b + '×' + h + '=' + ans + 'cm²\n【ポイント】ななめの辺ではなく“高さ”を使う。' }; },
+    // 台形の面積
+    function () { var a = rint(2, 8), b = a + rint(2, 8), h = rint(1, 4) * 2, ans = (a + b) * h / 2, ch = numChoices(ans, { spread: 20, positive: true });
+      return { q: '図の台形の面積は 何cm²？', sub: '台形の面積（図）', level: '★★★★', hint: '(上底＋下底)×高さ÷2', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgTrapezoid(a, b, h), explain: '【考え方】台形＝(上底＋下底)×高さ÷2。\n【手順】(' + a + '＋' + b + ')×' + h + '÷2=' + ans + 'cm²\n【ポイント】上底と下底をたして高さをかけ、2でわる。' }; },
+    // 三角柱の体積
+    function () { var b = rint(3, 10) * 2, h = rint(3, 8), L = rint(3, 10), ans = (b * h / 2) * L, ch = numChoices(ans, { spread: 40, positive: true });
+      return { q: '図の三角柱の体積は 何cm³？（底面の三角形は底辺' + b + 'cm・高さ' + h + 'cm）', sub: '三角柱の体積（図）', level: '★★★★', hint: '底面積×高さ（柱の長さ）', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgPrism(b, h, L), explain: '【考え方】角柱の体積＝底面積×高さ。\n【手順】底面積=' + b + '×' + h + '÷2=' + (b * h / 2) + '、×' + L + '=' + ans + 'cm³\n【ポイント】底面は三角形。' }; },
+    // 立方体の展開図→表面積
+    function () { var a = rint(2, 10), ans = 6 * a * a, ch = numChoices(ans, { spread: 40, positive: true });
+      return { q: '図は立方体の展開図。組み立てた立方体の表面積は 何cm²？', sub: '展開図と表面積（図）', level: '★★★', hint: '正方形6面ぶん', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgCubeNet(a), explain: '【考え方】展開図の正方形は6面。\n【手順】6×(' + a + '×' + a + ')=' + ans + 'cm²\n【ポイント】表面積＝1面×6。' }; },
+    // 比例のグラフ→比例定数
+    function () { var a = rint(-3, 3) || 2, ans = a, ch = numChoices(ans, { spread: 3 });
+      return { q: '図の直線は原点を通る比例のグラフ。y＝ax の a（比例定数）は？', sub: '比例のグラフ（図）', level: '★★★', hint: '原点から右に1で y はいくつ？', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgProp(a), explain: '【考え方】比例 y=ax は原点を通る直線。\n【手順】傾き＝比例定数 a=' + a + '\n【ポイント】x=1のときのyが比例定数。' }; },
+    // 2直線の交点のx座標
+    function () { var ix = rint(-4, 4), iy = rint(-4, 4), a1 = rint(-3, 3) || 1, a2 = rint(-3, 3) || -2; if (a1 === a2) a2 = a1 + 1; var b1 = iy - a1 * ix, b2 = iy - a2 * ix, ch = numChoices(ix, { spread: 5 });
+      return { q: '図の2直線（オレンジと紫）の交点の x座標は？（赤い点）', sub: '2直線の交点（図）', level: '★★★★', hint: '交わっている点を読む', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgTwo(a1, b1, a2, b2, ix, iy), explain: '【考え方】交点は2直線が交わる点。\n【手順】赤い点の x座標 → ' + ix + '\n【ポイント】式で解くなら2式を連立。' }; }
+  );
+
+  if (typeof sciGens !== 'undefined') {
+    sciGens.push(
+      // 並列回路の合成抵抗
+      function () { var combo = pick([[6, 3, 2], [6, 6, 3], [12, 4, 3], [10, 10, 5], [6, 12, 4], [8, 8, 4], [20, 5, 4]]); var ch = numChoices(combo[2], { spread: 4, positive: true });
+        return { q: '図の回路（並列）の合成抵抗は何Ω？', sub: '合成抵抗（並列・図）', level: '★★★★', hint: '1/R = 1/R₁ + 1/R₂', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgParaCirc(combo[0], combo[1]), explain: '【考え方】並列は 1/R=1/R₁+1/R₂。\n【手順】1/R=1/' + combo[0] + '+1/' + combo[1] + ' → R=' + combo[2] + 'Ω\n【ポイント】並列の合成抵抗は各抵抗より小さくなる。' }; },
+      // 地層（いちばん古い層）
+      function () {
+        return { q: '図の地層で、ふつう いちばん古い層は？（ア〜エ）', sub: '地層のでき方（図）', level: '★★★', hint: '下にある層ほど古い', type: 'choice', choices: shuffleArr(['ア', 'イ', 'ウ', 'エ']), ans: 'エ', figure: svgStrata(), explain: '【考え方】地層は下から順に積もる（地層累重の法則）。\n【手順】いちばん下の エ が最も古い\n【ポイント】上にある層ほど新しい。' }; },
+      // ばね（フックの法則・図）
+      function () { var k = rint(2, 6), x = rint(2, 8), F = k * x, ch = numChoices(F, { spread: 12, positive: true });
+        return { q: '図のばね（1cmのばすのに ' + k + 'N 必要）を ' + x + 'cm のばすには 何N？', sub: 'フックの法則（図）', level: '★★★', hint: 'のびに比例', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgSpring(k), explain: '【考え方】ばねののびは力に比例（フックの法則）。\n【手順】' + k + '×' + x + '=' + F + 'N\n【ポイント】ばね定数×のび＝力。' }; }
+    );
+  }
+})();

@@ -672,3 +672,96 @@
     );
   }
 })();
+
+/* 難問 第7弾：確率の樹形図・食塩水図・円錐/角錐・数直線・座標の三角形＋てこ。 */
+(function () {
+  if (typeof mathGens === 'undefined' || typeof rint !== 'function' || typeof numChoices !== 'function') return;
+  var CY = '#67e8f9', FILL = 'rgba(8,145,178,0.18)', LB = '#f59e0b', TX = '#e0f2fe', RD = '#ef4444';
+
+  function svgCoinTree() {
+    return '<svg width="185" height="130" viewBox="0 0 185 130">' +
+      '<circle cx="22" cy="65" r="7" fill="' + FILL + '" stroke="' + CY + '" stroke-width="1.5"/>' +
+      '<line x1="30" y1="62" x2="70" y2="32" stroke="' + CY + '" stroke-width="1.4"/><line x1="30" y1="68" x2="70" y2="98" stroke="' + CY + '" stroke-width="1.4"/>' +
+      '<text x="72" y="30" fill="' + LB + '" font-size="11">表</text><text x="72" y="104" fill="' + LB + '" font-size="11">裏</text>' +
+      '<line x1="92" y1="30" x2="130" y2="16" stroke="' + CY + '" stroke-width="1.2"/><line x1="92" y1="34" x2="130" y2="48" stroke="' + CY + '" stroke-width="1.2"/>' +
+      '<line x1="92" y1="98" x2="130" y2="82" stroke="' + CY + '" stroke-width="1.2"/><line x1="92" y1="102" x2="130" y2="116" stroke="' + CY + '" stroke-width="1.2"/>' +
+      '<text x="134" y="20" fill="' + TX + '" font-size="10">表表</text><text x="134" y="52" fill="' + TX + '" font-size="10">表裏</text>' +
+      '<text x="134" y="86" fill="' + TX + '" font-size="10">裏表</text><text x="134" y="120" fill="' + TX + '" font-size="10">裏裏</text></svg>';
+  }
+  function svgBeaker(salt, water) {
+    return '<svg width="130" height="140" viewBox="0 0 130 140"><path d="M35 15 L35 120 Q35 128 45 128 L85 128 Q95 128 95 120 L95 15" fill="none" stroke="' + CY + '" stroke-width="2"/>' +
+      '<path d="M37 60 L37 120 Q37 126 45 126 L85 126 Q93 126 93 120 L93 60 Z" fill="' + FILL + '"/>' +
+      '<text x="65" y="95" fill="' + TX + '" font-size="10" text-anchor="middle">食塩水</text>' +
+      '<text x="65" y="12" fill="' + LB + '" font-size="10" text-anchor="middle">食塩' + salt + 'g・水' + water + 'g</text></svg>';
+  }
+  function svgCone(r, h) {
+    return '<svg width="150" height="150" viewBox="0 0 150 150"><ellipse cx="70" cy="115" rx="45" ry="13" fill="' + FILL + '" stroke="' + CY + '" stroke-width="1.8"/>' +
+      '<path d="M25 115 L70 20 L115 115" fill="rgba(8,145,178,0.1)" stroke="' + CY + '" stroke-width="1.8"/>' +
+      '<line x1="70" y1="115" x2="70" y2="20" stroke="' + RD + '" stroke-width="1" stroke-dasharray="3"/>' +
+      '<line x1="70" y1="115" x2="115" y2="115" stroke="' + RD + '" stroke-width="1.3"/><text x="82" y="112" fill="' + LB + '" font-size="10">r=' + r + '</text>' +
+      '<text x="74" y="70" fill="' + RD + '" font-size="10">高' + h + '</text></svg>';
+  }
+  function svgPyramid(a, h) {
+    return '<svg width="160" height="150" viewBox="0 0 160 150"><polygon points="30,120 100,120 130,100 60,100" fill="' + FILL + '" stroke="' + CY + '" stroke-width="1.6"/>' +
+      '<polygon points="30,120 100,120 80,25" fill="rgba(8,145,178,0.12)" stroke="' + CY + '" stroke-width="1.6"/>' +
+      '<line x1="130" y1="100" x2="80" y2="25" stroke="' + CY + '" stroke-width="1.6"/><line x1="80" y1="25" x2="80" y2="110" stroke="' + RD + '" stroke-width="1" stroke-dasharray="3"/>' +
+      '<text x="60" y="135" fill="' + LB + '" font-size="10">底面1辺' + a + '</text><text x="84" y="75" fill="' + RD + '" font-size="10">高' + h + '</text></svg>';
+  }
+  function svgNumLine(p, q) {
+    var lo = Math.min(p, q) - 1, hi = Math.max(p, q) + 1, W = 175, ox = 12, span = hi - lo, u = (W - ox) / span;
+    var s = '<svg width="185" height="60" viewBox="0 0 185 60"><line x1="' + ox + '" y1="35" x2="' + (ox + W - ox) + '" y2="35" stroke="' + CY + '" stroke-width="2"/>';
+    for (var v = lo; v <= hi; v++) { var x = ox + (v - lo) * u; s += '<line x1="' + x.toFixed(1) + '" y1="30" x2="' + x.toFixed(1) + '" y2="40" stroke="' + CY + '" stroke-width="1"/><text x="' + x.toFixed(1) + '" y="55" fill="' + TX + '" font-size="9" text-anchor="middle">' + v + '</text>'; }
+    [p, q].forEach(function (pt) { var x = ox + (pt - lo) * u; s += '<circle cx="' + x.toFixed(1) + '" cy="35" r="4" fill="' + RD + '"/>'; });
+    return s + '</svg>';
+  }
+  function svgTriGrid(x1, x2, y0, x3, y3) {
+    var ox = 92, oy = 92, u = 14, P = function (x, y) { return (ox + x * u).toFixed(1) + ',' + (oy - y * u).toFixed(1); };
+    var s = '<svg width="185" height="185" viewBox="0 0 185 185">';
+    for (var i = -6; i <= 6; i++) s += '<line x1="' + (ox + i * u) + '" y1="8" x2="' + (ox + i * u) + '" y2="177" stroke="rgba(103,232,249,0.1)"/><line x1="8" y1="' + (oy + i * u) + '" x2="177" y2="' + (oy + i * u) + '" stroke="rgba(103,232,249,0.1)"/>';
+    s += '<line x1="8" y1="' + oy + '" x2="177" y2="' + oy + '" stroke="' + CY + '" stroke-width="1.3"/><line x1="' + ox + '" y1="8" x2="' + ox + '" y2="177" stroke="' + CY + '" stroke-width="1.3"/>';
+    s += '<polygon points="' + P(x1, y0) + ' ' + P(x2, y0) + ' ' + P(x3, y3) + '" fill="rgba(245,158,11,0.25)" stroke="' + LB + '" stroke-width="2"/>';
+    return s + '</svg>';
+  }
+  function svgLever(dL, wL, dR, wR) {
+    var cx = 92, by = 60, u = 11;
+    var lx = cx - dL * u, rx = cx + dR * u;
+    return '<svg width="185" height="110" viewBox="0 0 185 110"><line x1="15" y1="' + by + '" x2="170" y2="' + by + '" stroke="' + CY + '" stroke-width="3"/>' +
+      '<polygon points="' + cx + ',' + (by + 4) + ' ' + (cx - 12) + ',' + (by + 34) + ' ' + (cx + 12) + ',' + (by + 34) + '" fill="' + FILL + '" stroke="' + CY + '" stroke-width="1.5"/>' +
+      '<rect x="' + (lx - 9) + '" y="' + (by + 2) + '" width="18" height="18" fill="rgba(8,145,178,0.3)" stroke="' + CY + '" stroke-width="1.3"/><text x="' + lx + '" y="' + (by + 15) + '" fill="' + LB + '" font-size="9" text-anchor="middle">' + wL + '</text>' +
+      '<rect x="' + (rx - 9) + '" y="' + (by + 2) + '" width="18" height="18" fill="rgba(239,68,68,0.25)" stroke="' + RD + '" stroke-width="1.3"/><text x="' + rx + '" y="' + (by + 15) + '" fill="' + RD + '" font-size="9" text-anchor="middle">?</text>' +
+      '<text x="' + lx + '" y="' + (by - 6) + '" fill="' + TX + '" font-size="9" text-anchor="middle">' + dL + '</text><text x="' + rx + '" y="' + (by - 6) + '" fill="' + TX + '" font-size="9" text-anchor="middle">' + dR + '</text>' +
+      '<text x="18" y="20" fill="' + TX + '" font-size="9">左:重さ' + wL + '・距離' + dL + '　右:距離' + dR + '</text></svg>';
+  }
+
+  mathGens.push(
+    // 確率：樹形図（コイン2枚の全通り）
+    function () { var ch = numChoices(4, { spread: 3, positive: true });
+      return { q: 'コインを2枚投げるとき、表・裏の出方は 全部で何通り？（図は樹形図）', sub: '確率（樹形図）', level: '★★★', hint: '樹形図の枝先を数える', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgCoinTree(), explain: '【考え方】樹形図で場合をもれなく数える。\n【手順】表表・表裏・裏表・裏裏 → 4通り\n【ポイント】2枚なら2×2＝4通り。' }; },
+    // 確率：ちょうど1枚が表
+    function () { var ch = numChoices(2, { spread: 2, positive: true });
+      return { q: 'コインを2枚投げるとき、ちょうど1枚が表になるのは 何通り？（図は樹形図）', sub: '確率（樹形図）', level: '★★★★', hint: '表裏・裏表', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgCoinTree(), explain: '【考え方】条件に合う枝先を数える。\n【手順】表裏・裏表 の2通り（確率は2/4=1/2）\n【ポイント】全4通りのうち条件に合うものを数える。' }; },
+    // 食塩水の濃度（図）
+    function () { var combo = pick([[5, 45, 10], [10, 40, 20], [3, 17, 15], [6, 24, 20], [2, 8, 20], [5, 95, 5], [10, 90, 10], [9, 41, 18]]); var ch = numChoices(combo[2], { spread: 8, positive: true });
+      return { q: '図のビーカーの食塩水の濃度は 何％？', sub: '濃度（図）', level: '★★★', hint: '食塩÷食塩水×100', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgBeaker(combo[0], combo[1]), explain: '【考え方】濃度＝食塩÷(食塩＋水)×100。\n【手順】' + combo[0] + '÷' + (combo[0] + combo[1]) + '×100=' + combo[2] + '％\n【ポイント】食塩水＝食塩＋水。' }; },
+    // 円錐の体積（図・□π）
+    function () { var combo = pick([[3, 3, 9], [2, 3, 4], [3, 6, 18], [4, 3, 16], [2, 6, 8], [3, 9, 27], [5, 3, 25]]); var ch = numChoices(combo[2], { spread: 14, positive: true });
+      return { q: '図の円錐の体積は □π cm³。□に入る数は？', sub: '円錐の体積（図）', level: '★★★★', hint: '底面積(πr²)×高さ×1/3', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgCone(combo[0], combo[1]), explain: '【考え方】円錐＝πr²×高さ×1/3。\n【手順】' + combo[0] + '²×' + combo[1] + '÷3=' + combo[2] + ' → ' + combo[2] + 'π cm³\n【ポイント】円柱の1/3。' }; },
+    // 角錐の体積（図）
+    function () { var combo = pick([[3, 3, 9], [4, 3, 16], [2, 6, 8], [5, 3, 25], [3, 6, 18], [6, 3, 36]]); var ch = numChoices(combo[2], { spread: 16, positive: true });
+      return { q: '図の四角錐（底面は1辺' + combo[0] + 'cmの正方形・高さ' + combo[1] + 'cm）の体積は 何cm³？', sub: '角錐の体積（図）', level: '★★★★', hint: '底面積×高さ×1/3', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgPyramid(combo[0], combo[1]), explain: '【考え方】角錐＝底面積×高さ×1/3。\n【手順】' + combo[0] + '²×' + combo[1] + '÷3=' + combo[2] + 'cm³\n【ポイント】角柱の1/3。' }; },
+    // 数直線：2点間の距離
+    function () { var p = rint(-6, 6), q = rint(-6, 6); if (p === q) q = p + 3; var ans = Math.abs(p - q), ch = numChoices(ans, { spread: 6, positive: true });
+      return { q: '数直線上の2点（赤い点） ' + p + ' と ' + q + ' の間の距離は？', sub: '数直線と距離（図）', level: '★★★', hint: '大きい方−小さい方', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgNumLine(p, q), explain: '【考え方】距離＝2数の差の絶対値。\n【手順】|' + p + '−(' + q + ')|=' + ans + '\n【ポイント】数直線でマスを数えても同じ。' }; },
+    // 座標上の三角形の面積（水平な底辺）
+    function () { var x1 = rint(-5, 0), x2 = x1 + rint(2, 6), y0 = rint(-4, 2), x3 = rint(-4, 4), y3 = y0 + rint(2, 6) * (Math.random() < 0.5 ? 1 : -1); var base = Math.abs(x2 - x1), hgt = Math.abs(y3 - y0), ans = base * hgt / 2; if (!Number.isInteger(ans)) { y3 = y0 + 4; ans = base * 4 / 2; } var ch = numChoices(ans, { spread: 10, positive: true });
+      return { q: '図の三角形の面積は 何cm²（1マス1cm）？', sub: '座標平面の三角形（図）', level: '★★★★', hint: '底辺×高さ÷2', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgTriGrid(x1, x2, y0, x3, y3), explain: '【考え方】水平な底辺と高さを読む。\n【手順】底辺' + base + '×高さ' + Math.abs(y3 - y0) + '÷2=' + ans + '\n【ポイント】方眼のマスを数えて底辺・高さを求める。' }; }
+  );
+
+  if (typeof sciGens !== 'undefined') {
+    sciGens.push(
+      // てこのつり合い（図）
+      function () { var wL = rint(2, 6), dL = rint(2, 6), P = wL * dL, cand = [1, 2, 3, 4, 6].filter(function (d) { return P % d === 0 && P / d <= 12 && P / d >= 1; }); var dR = pick(cand) || 1, wR = P / dR, ch = numChoices(wR, { spread: 6, positive: true });
+        return { q: '図のてこ。左に 重さ' + wL + '・支点から距離' + dL + '。右は 距離' + dR + '。つり合う右の重さ（?）は？', sub: 'てこのつり合い（図）', level: '★★★★', hint: '重さ×距離が左右で等しい', type: 'choice', choices: ch.choices, ans: ch.ans, figure: svgLever(dL, wL, dR, wR), explain: '【考え方】てこ：重さ×支点からの距離 が左右で等しい。\n【手順】左=' + wL + '×' + dL + '=' + P + '、右=?×' + dR + '=' + P + ' → ?=' + wR + '\n【ポイント】(おもり)×(距離)のつり合い。' }; }
+    );
+  }
+})();

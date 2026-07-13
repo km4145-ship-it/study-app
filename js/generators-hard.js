@@ -318,3 +318,102 @@
     );
   }
 })();
+
+/* 難問 第3弾（別の題材）。方針は同じ：計算算出 or 検証済み事実テーブル＝必ず正しい。 */
+(function () {
+  if (typeof rint !== 'function' || typeof pick !== 'function' || typeof shuffleArr !== 'function' || typeof numChoices !== 'function') return;
+  function tchoice(correct, all, key) {
+    var others = shuffleArr(all.filter(function (x) { return x[key] !== correct; })).slice(0, 3).map(function (x) { return x[key]; });
+    return shuffleArr([correct].concat(others));
+  }
+
+  // ===== 数学（計算）=====
+  if (typeof mathGens !== 'undefined') {
+    mathGens.push(
+      // 二次方程式 x²=a（正の解）
+      function () { var r = rint(2, 12), a = r * r, ch = numChoices(r, { spread: 4, positive: true });
+        return { q: 'x² = ' + a + ' の正の解 x は？', sub: '二次方程式（平方根）', level: '★★★★', hint: 'x=±√a、正の方', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】x²=aなら x=±√a。\n【手順】√' + a + '=' + r + '（' + r + '²=' + a + '）\n【ポイント】解は正負2つ、ここでは正の方。' }; },
+      // 三角形の外角
+      function () { var a = rint(30, 80), b = rint(30, 80), ans = a + b, ch = numChoices(ans, { spread: 20, positive: true });
+        return { q: '三角形の2つの内角が ' + a + '°と' + b + '°。この2角から最も遠い頂点の外角は何度？', sub: '三角形の外角', level: '★★★', hint: '外角＝離れた2つの内角の和', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】三角形の外角は、離れた2つの内角の和。\n【手順】' + a + '+' + b + '=' + ans + '°\n【ポイント】内角の和180°からも確かめられる。' }; },
+      // 最頻値
+      function () { var m = rint(1, 9), r1 = rint(10, 19), r2 = rint(20, 29), r3 = rint(30, 39); var arr = shuffleArr([m, m, m, r1, r2, r3]); var ch = numChoices(m, { spread: 6, positive: true });
+        return { q: 'データ ' + arr.join(', ') + ' の最頻値（いちばん多く出る値）は？', sub: '資料の活用（最頻値）', level: '★★★', hint: '同じ値がいくつあるか数える', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】最頻値＝最も多く現れる値。\n【手順】' + m + ' が3回で最多 → ' + m + '\n【ポイント】平均・中央値・最頻値のちがいを整理。' }; },
+      // 素因数分解（最小の素因数）
+      function () { var primes = [2, 3, 5, 7]; var p = pick(primes), q2 = pick(primes.filter(function (x) { return x >= p; })), n = p * q2 * pick([1, p, q2]); if (n < 6) n = p * q2; var sm = 2; while (n % sm !== 0) sm++; var ch = numChoices(sm, { spread: 4, positive: true });
+        return { q: '' + n + ' を素因数分解したとき、最も小さい素因数は？', sub: '素因数分解', level: '★★★', hint: '2から順に割れるか調べる', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】小さい素数から割っていく。\n【手順】' + n + ' は ' + sm + ' で割り切れる → 最小の素因数は ' + sm + '\n【ポイント】素数は 2,3,5,7,11…。' }; },
+      // 和差算（連立の文章題）
+      function () { var big = rint(10, 40), small = rint(1, big - 1), s = big + small, d = big - small, ch = numChoices(big, { spread: 10, positive: true });
+        return { q: '2つの数の 和が ' + s + '、差が ' + d + ' です。大きい方の数は？', sub: '和差算', level: '★★★★', hint: '(和＋差)÷2', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】大＝(和＋差)÷2。\n【手順】(' + s + '＋' + d + ')÷2=' + (s + d) + '÷2=' + big + '\n【ポイント】小さい方は (和−差)÷2。' }; },
+      // 立方体の表面積
+      function () { var a = rint(2, 12), ans = 6 * a * a, ch = numChoices(ans, { spread: 60, positive: true });
+        return { q: '1辺 ' + a + 'cm の立方体の表面積は 何cm²？', sub: '表面積（立方体）', level: '★★★', hint: '正方形の面が6つ', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】立方体は合同な正方形6面。\n【手順】6×(' + a + '×' + a + ')=6×' + (a * a) + '=' + ans + 'cm²\n【ポイント】表面積＝1面の面積×6。' }; }
+    );
+  }
+
+  // ===== 理科（計算＋事実表）=====
+  if (typeof sciGens !== 'undefined') {
+    var SCI_EKISEI = [['BTB液が 酸性 で示す色', '黄色'], ['BTB液が アルカリ性 で示す色', '青色'], ['BTB液が 中性 で示す色', '緑色'], ['赤色リトマス紙を 青色 に変えるのは', 'アルカリ性'], ['青色リトマス紙を 赤色 に変えるのは', '酸性']];
+    var SCI_TENTAI = [['地球のまわりを回っている天体', '月'], ['太陽系でいちばん大きい惑星', '木星'], ['自ら光を出している天体', '恒星'], ['月が地球のかげに入る現象', '月食'], ['太陽が月にかくされる現象', '日食']];
+    sciGens.push(
+      // 直列の合成抵抗（計算）
+      function () { var r1 = rint(2, 15), r2 = rint(2, 15), ans = r1 + r2, ch = numChoices(ans, { spread: 10, positive: true });
+        return { q: ' ' + r1 + 'Ω と ' + r2 + 'Ω の抵抗を 直列 につないだ。合成抵抗は何Ω？', sub: '合成抵抗（直列）', level: '★★★★', hint: '直列は そのまま たす', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】直列の合成抵抗＝各抵抗の和。\n【手順】' + r1 + '+' + r2 + '=' + ans + 'Ω\n【ポイント】並列は 1/R=1/R₁+1/R₂。' }; },
+      // 液性・指示薬（事実表）
+      function () { var w = pick(SCI_EKISEI);
+        return { q: '「' + w[0] + '」は？', sub: '酸・アルカリ（指示薬）', level: '★★★', hint: 'BTB・リトマス', type: 'choice', choices: tchoice(w[1], SCI_EKISEI, 1), ans: w[1], explain: '【考え方】指示薬の色の変化を覚える。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】BTB：酸性=黄・中性=緑・アルカリ性=青。' }; },
+      // 天体（事実表）
+      function () { var w = pick(SCI_TENTAI);
+        return { q: '「' + w[0] + '」は？', sub: '天体', level: '★★★★', hint: '太陽・月・惑星・恒星', type: 'choice', choices: tchoice(w[1], SCI_TENTAI, 1), ans: w[1], explain: '【考え方】天体の名前と現象。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】恒星（自ら光る）と惑星（反射）のちがい。' }; }
+    );
+  }
+
+  // ===== 社会（計算＋事実表）=====
+  if (typeof socGens !== 'undefined') {
+    var SOC_RELIGION = [['イスラム教の聖地', 'メッカ'], ['キリスト教の聖典（教典）', '聖書'], ['イスラム教の聖典（教典）', 'コーラン'], ['仏教を開いた人物', 'シャカ（釈迦）']];
+    socGens.push(
+      // 人口密度（計算）
+      function () { var dens = rint(50, 500), area = pick([2, 4, 5, 10, 20]), pop = dens * area, ch = numChoices(dens, { spread: 120, positive: true });
+        return { q: '面積 ' + area + 'km²、人口 ' + pop + '人の地域の 人口密度は 何人/km²？', sub: '人口密度', level: '★★★★', hint: '人口密度＝人口÷面積', type: 'choice', choices: ch.choices, ans: ch.ans, explain: '【考え方】人口密度＝人口÷面積。\n【手順】' + pop + '÷' + area + '=' + dens + '人/km²\n【ポイント】1km²あたりの人数。' }; },
+      // 世界の宗教（事実表）
+      function () { var w = pick(SOC_RELIGION);
+        return { q: '「' + w[0] + '」は？', sub: '世界の宗教', level: '★★★', hint: '三大宗教と関わり', type: 'choice', choices: tchoice(w[1], SOC_RELIGION, 1), ans: w[1], explain: '【考え方】宗教と聖地・聖典を結ぶ。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】三大宗教：キリスト教・イスラム教・仏教。' }; }
+    );
+  }
+
+  // ===== 英語（事実表）=====
+  if (typeof engGens !== 'undefined') {
+    var ENG_BE = [['I', 'am'], ['You', 'are'], ['He', 'is'], ['She', 'is'], ['It', 'is'], ['We', 'are'], ['They', 'are']];
+    var ENG_WH = [['「何」をたずねる', 'what'], ['「だれ」をたずねる', 'who'], ['「どこ」をたずねる', 'where'], ['「いつ」をたずねる', 'when'], ['「なぜ」をたずねる', 'why'], ['「どうやって」をたずねる', 'how']];
+    var ENG_MONTH = [['1月', 'January'], ['2月', 'February'], ['4月', 'April'], ['7月', 'July'], ['8月', 'August'], ['9月', 'September'], ['10月', 'October'], ['12月', 'December']];
+    engGens.push(
+      // be動詞の使い分け（事実表）
+      function () { var w = pick(ENG_BE);
+        return { q: '「' + w[0] + '」に合う be動詞は？（am / is / are）', sub: 'be動詞', level: '★★★', hint: '主語で変わる', type: 'choice', choices: shuffleArr(['am', 'is', 'are', "aren't"]), ans: w[1], explain: '【考え方】I→am、he/she/it→is、you/we/they→are。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】主語が3人称単数なら is。' }; },
+      // 疑問詞（事実表・記述）
+      function () { var w = pick(ENG_WH);
+        return { q: w[0] + ' 疑問詞は？（英語で）', sub: '疑問詞', level: '★★★', hint: 'what, who, where…', type: 'free', ans: w[1], altAns: [w[1]], explain: '【考え方】たずねる内容で疑問詞を選ぶ。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】文の最初に置く。' }; },
+      // 月（事実表・記述）
+      function () { var w = pick(ENG_MONTH);
+        return { q: '「' + w[0] + '」を英語で書くと？', sub: '月の名前', level: '★★★★', hint: '大文字ではじめる', type: 'free', ans: w[1], altAns: [w[1], w[1].toLowerCase()], explain: '【考え方】月の名前はつづりに注意。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】月・曜日は必ず大文字ではじめる。' }; }
+    );
+  }
+
+  // ===== 国語（事実表）=====
+  if (typeof jpGens !== 'undefined') {
+    var JP_BUSHU = [['花', 'くさかんむり'], ['池', 'さんずい'], ['休', 'にんべん'], ['道', 'しんにょう'], ['国', 'くにがまえ'], ['開', 'もんがまえ'], ['病', 'やまいだれ']];
+    var JP_RUIGI = [['進歩', '向上'], ['方法', '手段'], ['永遠', '永久'], ['我慢', '忍耐'], ['長所', '美点'], ['賛成', '同意'], ['有名', '著名']];
+    var JP_BUNGAKU = [['枕草子の作者', '清少納言'], ['源氏物語の作者', '紫式部'], ['奥の細道の作者', '松尾芭蕉'], ['徒然草の作者', '兼好法師'], ['土佐日記の作者', '紀貫之']];
+    jpGens.push(
+      // 部首（事実表）
+      function () { var w = pick(JP_BUSHU);
+        return { q: '漢字「' + w[0] + '」の部首は？', sub: '部首', level: '★★★', hint: '漢字の意味を表す部分', type: 'choice', choices: tchoice(w[1], JP_BUSHU, 1), ans: w[1], explain: '【考え方】部首は漢字を分類する部分。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】さんずいは水、にんべんは人に関係。' }; },
+      // 類義語（事実表）
+      function () { var w = pick(JP_RUIGI);
+        return { q: '「' + w[0] + '」に意味が近い語（類義語）は？', sub: '類義語', level: '★★★★', hint: '似た意味の熟語', type: 'choice', choices: tchoice(w[1], JP_RUIGI, 1), ans: w[1], explain: '【考え方】似た意味の語をペアで覚える。\n【手順】' + w[0] + '≒' + w[1] + '\n【ポイント】対義語とセットで整理。' }; },
+      // 文学史（事実表）
+      function () { var w = pick(JP_BUNGAKU);
+        return { q: '「' + w[0] + '」は？', sub: '文学史', level: '★★★★', hint: '古典の代表作', type: 'choice', choices: tchoice(w[1], JP_BUNGAKU, 1), ans: w[1], explain: '【考え方】有名な古典作品と作者。\n【手順】' + w[0] + '→' + w[1] + '\n【ポイント】枕草子＝随筆、源氏物語＝物語。' }; }
+    );
+  }
+})();

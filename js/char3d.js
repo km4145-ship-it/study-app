@@ -1,14 +1,17 @@
-/* char3d.js：本格3Dキャラクター（Three.js）。クラシックスクリプト・グローバル定義。
+/* char3d.js v2：本格3Dキャラクター/モンスター/装備（Three.js）。クラシックスクリプト・グローバル定義。
    読み込み順：js/three.min.js の直後、メイン <script> より前。
-   方針：
-   - CHAR3D_SPECS は純データ（Node テスト可能・THREE/document に load 時は触らない）
-   - char3dBuild(spec) は THREE のジオメトリ/マテリアルのみ使用（WebGL 不要＝Node でも組める）
-   - 表示は char3dTag() のプレースホルダを innerHTML に差し、char3dHydrate()/MutationObserver が
-     canvas をマウントする。WebGL 不可・THREE 未読込のときは SVG にフォールバック。
-   - 着せ替え（hero）は装備絵文字をスプライト化して頭上/顔/手アンカーに重ねる（142種すべて em を持つ）。 */
+
+   ■ 設計（v2＝共有レンダラ方式）
+   - WebGL コンテキストは**アプリ全体で1個だけ**（画面外の共有レンダラ）。各表示枠は
+     「ライブ」＝2D canvas に毎フレーム転写、「スチル」＝1回描いて dataURL 画像（キャッシュ）。
+     → v1 の「枠ごとに WebGL」で起きるコンテキスト上限・喪失で真っ白、を根本回避。
+   - webglcontextlost や生成失敗時は**全表示を SVG に自動フォールバック**。
+   - 装備（帽子/かお/どうぐ）は**アンカー式で3Dフィット**：各キャラのビルダーが頭/顔/手の
+     アンカー座標を登録し、装備は 3Dメッシュ（代表アイテム）または絵文字プレートを
+     頭グループの子として装着（首かしげ・ジャンプに追従）。
+   - CHAR3D_SPECS / MON3D_SPECS は純データ、char3dBuild/mon3dBuild は WebGL 不要（Node テスト可）。 */
 
 // =============== 純データ：12キャラの3D仕様 ===============
-// 色は js/chars.js の SVG パレットから採取。kind: human / owl / animal / dolphin / penguin
 var CHAR3D_SPECS = {
   girl:    { kind:'human',  skin:'#ffe4c9', hair:'#a9764f', eye:'#8b5cf6', outfit:'#eef2f7', outfit2:'#3b4a6b', shoes:'#e23b4e', accent:'#e23b4e', blush:'#fca5a5', mouth:'#e2748a', hairStyle:'ribbons' },
   boy:     { kind:'human',  skin:'#ffe4c9', hair:'#5b4636', eye:'#2563eb', outfit:'#34d399', outfit2:'#1e3a5f', shoes:'#ffffff', blush:'#fca5a5', mouth:'#e2748a', hairStyle:'short' },
@@ -26,6 +29,66 @@ var CHAR3D_SPECS = {
 
 function char3dSpecOf(key){ return CHAR3D_SPECS[key] || CHAR3D_SPECS.owl; }
 
+// =============== 純データ：モンスター（RPG_SVG 全キー）の3D仕様 ===============
+// plan: blob / imp / flyer / beast / tree / ghost / dragon / bird / cube / golem / robe / crystal
+var MON3D_SPECS = {
+  slime:     { plan:'blob',    main:'#2dd4bf', hi:'#7fffe6', eye:'#0f172a' },
+  inkblob:   { plan:'blob',    main:'#312e4d', hi:'#c4b5fd', eye:'#0f172a', drip:true },
+  microbe:   { plan:'blob',    main:'#84cc16', hi:'#d9f99d', eye:'#0f172a', spots:'#4d7c0f' },
+  flaskun:   { plan:'blob',    main:'#10b981', hi:'#a7f3d0', eye:'#0f172a', bubbles:true },
+  slugking:  { plan:'blob',    main:'#14b8a6', hi:'#5eead4', eye:'#0f172a', crown:'#fcd34d', big:1.18 },
+  goblin:    { plan:'imp',     main:'#8b5cf6', belly:'#c4b5fd', eye:'#ede9fe', pupil:'#0f172a', horns:1 },
+  kanjioni:  { plan:'imp',     main:'#fcd34d', belly:'#fef3c7', eye:'#fff', pupil:'#7c2d12', horns:2, club:'#92400e' },
+  bat:       { plan:'flyer',   main:'#6366f1', wing:'#4338ca', eye:'#c7d2fe', pupil:'#0f172a', fangs:true },
+  mapmoth:   { plan:'flyer',   main:'#d6b98c', wing:'#a16207', eye:'#0f172a', antennae:true },
+  wolf:      { plan:'beast',   main:'#64748b', belly:'#cbd5e1', eye:'#fef08a', fierce:true },
+  trent:     { plan:'tree',    trunk:'#78350f', leaf:'#22c55e', leaf2:'#15803d', eye:'#fff', pupil:'#0f172a' },
+  ghost:     { plan:'ghost',   main:'#e0f2fe', eye:'#0369a1' },
+  dragon:    { plan:'dragon',  main:'#16a34a', belly:'#bbf7d0', horn:'#fde047', wing:'#166534', eye:'#fde047', pupil:'#7f1d1d' },
+  voltdrake: { plan:'dragon',  main:'#7c3aed', belly:'#c4b5fd', horn:'#fde047', wing:'#6d28d9', eye:'#fde047', pupil:'#0f172a', spark:'#fde047' },
+  fudebird:  { plan:'bird',    main:'#7c2d12', belly:'#f5f5f4', beak:'#1c1917', eye:'#fff', pupil:'#0f172a', brushTail:'#1c1917' },
+  qbird:     { plan:'bird',    main:'#38bdf8', belly:'#ffffff', beak:'#f59e0b', eye:'#fff', pupil:'#075985' },
+  abcube:    { plan:'cube',    main:'#f59e0b', face:'#fbbf24', dark:'#7c2d12', eye:'#fff', pupil:'#0f172a' },
+  grammaro:  { plan:'cube',    main:'#2563eb', face:'#dbeafe', dark:'#1e3a8a', eye:'#fff', pupil:'#0f172a', book:true },
+  haniwa:    { plan:'golem',   main:'#c2724a', hole:'#3f1f12' },
+  tokiou:    { plan:'robe',    main:'#1e3a8a', inner:'#eff6ff', trim:'#fcd34d', eye:'#fff', pupil:'#0f172a', crown:'#fcd34d' },
+  villain:   { plan:'robe',    main:'#3b0764', inner:'#0b0219', trim:'#a78bfa', eye:'#f43f5e', pupil:'#0b0219', horns:'#a78bfa', demon:true },
+  crystal:   { plan:'crystal', main:'#38f0e0', hi:'#7cf9ec' }
+};
+function mon3dSpecOf(key){ return MON3D_SPECS[key] || MON3D_SPECS.slime; }
+
+// =============== 純データ：装備アイテム（絵文字→3Dアーケタイプ）対応表 ===============
+// t: メッシュで作る型 / c: 主色。表に無い絵文字は「フィット絵文字プレート」で装着する。
+var C3D_GEAR = {
+  '🧢': { t:'cap',      c:'#e11d48' },
+  '👒': { t:'sunhat',   c:'#fde68a' },
+  '🎩': { t:'tophat',   c:'#1f2937' },
+  '🧙': { t:'wizard',   c:'#6d28d9' },
+  '🤴': { t:'crown',    c:'#f2c94c' },
+  '👑': { t:'crown',    c:'#f2c94c' },
+  '😇': { t:'halo',     c:'#fde047' },
+  '🎀': { t:'ribbon',   c:'#f472b6' },
+  '🎓': { t:'grad',     c:'#26334d' },
+  '🪖': { t:'helmet',   c:'#4d7c0f' },
+  '⛑️': { t:'helmet',   c:'#dc2626' },
+  '🤓': { t:'glasses',  c:'#1f2937' },
+  '🧐': { t:'monocle',  c:'#b45309' },
+  '😎': { t:'sunglass', c:'#111827' },
+  '🕶️': { t:'sunglass', c:'#111827' },
+  '😷': { t:'mask',     c:'#f8fafc' },
+  '🤿': { t:'goggle',   c:'#0ea5e9' },
+  '⚔️': { t:'sword',    c:'#cbd5e1' },
+  '🗡️': { t:'sword',    c:'#cbd5e1' },
+  '🛡️': { t:'shield',   c:'#b45309' },
+  '🪄': { t:'wand',     c:'#f8fafc' },
+  '🔮': { t:'orbstaff', c:'#a855f7' },
+  '📖': { t:'book',     c:'#2563eb' },
+  '🔨': { t:'hammer',   c:'#92400e' },
+  '🪓': { t:'axe',      c:'#94a3b8' },
+  '🏹': { t:'bow',      c:'#92400e' },
+  '🔱': { t:'trident',  c:'#f2c94c' }
+};
+
 // =============== 設定・対応判定 ===============
 function char3dEnabled(){
   try { return (typeof safeLS!=='undefined' ? safeLS.getItem('char3d_on') : localStorage.getItem('char3d_on')) !== '0'; } catch(e){ return true; }
@@ -39,12 +102,16 @@ function char3dSupported(){
   } catch(e){ _c3dSupportCache = false; }
   return _c3dSupportCache;
 }
-function char3dActive(){ return typeof THREE !== 'undefined' && char3dEnabled() && (typeof document !== 'undefined') && char3dSupported(); }
+var _c3dDead = false; // コンテキスト喪失などで3Dを停止した印
+function char3dActive(){ return !_c3dDead && typeof THREE !== 'undefined' && char3dEnabled() && (typeof document !== 'undefined') && char3dSupported(); }
 
 // =============== プレースホルダ ===============
 function char3dTag(key, opts){
   var cos = (opts && opts.cos) ? String(opts.cos) : '';
   return '<div class="c3d-slot" data-c3d="' + key + '"' + (cos ? ' data-c3d-cos="' + cos + '"' : '') + '></div>';
+}
+function mon3dTag(key){
+  return '<div class="c3d-slot" data-c3d-mon="' + key + '"></div>';
 }
 
 // =============== マテリアル・共通部品 ===============
@@ -71,8 +138,6 @@ function _c3dAdd(parent, mesh, x, y, z, sx, sy, sz, rx, ry, rz){
   if (rx) mesh.rotation.x = rx; if (ry) mesh.rotation.y = ry; if (rz) mesh.rotation.z = rz;
   parent.add(mesh); return mesh;
 }
-
-// 目（白目＋虹彩＋瞳＋ハイライト）。blink 用に group を返す
 function _c3dEye(spec, x, y, z){
   var g = new THREE.Group(); g.position.set(x, y, z);
   var iris = spec.eye || '#333333';
@@ -84,7 +149,6 @@ function _c3dEye(spec, x, y, z){
   g.userData.isEye = true;
   return g;
 }
-// 動物用まる目（白目なし・大きな黒目＋ハイライト）
 function _c3dAnimalEye(spec, x, y, z){
   var g = new THREE.Group(); g.position.set(x, y, z);
   _c3dAdd(g, _c3dSphere(.085, spec.eye || '#3a2412'), 0, 0, 0, 1, 1.15, .5);
@@ -102,11 +166,16 @@ function _c3dBlushPair(parent, spec, y, z, x){
 }
 function _c3dSmile(parent, hex, y, z){
   var m = new THREE.Mesh(new THREE.TorusGeometry(.055, .016, 8, 16, Math.PI), _c3dMat(hex || '#7a4a3a'));
-  m.rotation.z = Math.PI; // 弧を下向き＝にっこり
+  m.rotation.z = Math.PI;
   _c3dAdd(parent, m, 0, y, z, 1, .8, .5);
 }
+// アンカー登録（head グループのローカル座標 hatL/faceL、ルート座標 hand）
+function _c3dSetAnchors(g, head, hatL, faceL, hand){
+  g.userData.headGroup = head;
+  g.userData.anchors = { hatL: hatL, faceL: faceL, hand: hand };
+}
 
-// =============== キャラ組み立て（THREE.Group を返す。WebGL 不要） ===============
+// =============== キャラ組み立て ===============
 function char3dBuild(spec){
   var g = new THREE.Group();
   var kind = spec.kind || 'animal';
@@ -120,75 +189,62 @@ function char3dBuild(spec){
 
 function _c3dBuildHuman(g, spec){
   var skin = spec.skin, hair = spec.hair;
-  // 脚・くつ
   var legC = (spec.hairStyle === 'ribbons') ? skin : spec.outfit2;
   [-1,1].forEach(function(s){
     _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.2,12), _c3dMat(legC)), s*.15, .12, 0);
     _c3dAdd(g, _c3dSphere(.105, spec.shoes || '#ffffff'), s*.16, .05, .05, 1, .7, 1.25);
   });
-  // 体（服）
   var body = _c3dAdd(g, _c3dSphere(.40, spec.outfit), 0, .52, 0, 1, .95, .88);
   body.userData.isBody = true;
-  if (spec.outfit2) _c3dAdd(g, _c3dSphere(.40, spec.outfit2), 0, .74, .06, .45, .3, .85); // えり
-  // 腕・手（肌）
+  if (spec.outfit2) _c3dAdd(g, _c3dSphere(.40, spec.outfit2), 0, .74, .06, .45, .3, .85);
   [-1,1].forEach(function(s){
     _c3dAdd(g, _c3dSphere(.1, skin), s*.40, .55, .04, 1, 2.0, 1, 0, 0, s*-.5);
     _c3dAdd(g, _c3dSphere(.1, skin), s*.48, .36, .06);
   });
-  // 頭
   var head = new THREE.Group(); head.position.set(0, 1.18, 0); g.add(head);
   head.userData.isHead = true;
   _c3dAdd(head, _c3dSphere(.5, skin), 0, 0, 0, 1, .92, .95);
-  // 髪：後頭部キャップ＋前髪ブロブ
   _c3dAdd(head, _c3dSphere(.53, hair), 0, .06, -.09, 1.0, .95, .98);
   [[-.27,.37,.28],[0,.43,.3],[.27,.37,.28]].forEach(function(p){
     _c3dAdd(head, _c3dSphere(.15, hair), p[0], p[1], p[2], 1.15, .55, .65);
   });
   if (spec.hairStyle === 'ribbons'){
-    // サイドの髪＋赤リボン（ひなた）
     [-1,1].forEach(function(s){
       _c3dAdd(head, _c3dSphere(.14, hair), s*.45, -.18, .02, 1, 2.1, .9);
       _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.09,.2,4), _c3dMat(spec.accent)), s*.52, .18, .12, 1, 1, .6, 0, 0, s*1.9);
       _c3dAdd(head, _c3dSphere(.05, spec.accent), s*.47, .14, .16);
     });
   }
-  // 顔
-  var eyes = [ _c3dEye(spec, -.19, .04, .43), _c3dEye(spec, .19, .04, .43) ];
-  eyes.forEach(function(e){ head.add(e); });
+  [_c3dEye(spec, -.19, .04, .43), _c3dEye(spec, .19, .04, .43)].forEach(function(e){ head.add(e); });
   _c3dBlushPair(head, spec, -.1, .40);
   _c3dSmile(head, spec.mouth, -.14, .45);
+  _c3dSetAnchors(g, head, [0,.58,.02], [0,-.02,.5], [.55,.38,.16]);
 }
 
 function _c3dBuildAnimal(g, spec){
   var fur = spec.fur, limb = spec.limb || fur;
-  // 足
   [-1,1].forEach(function(s){
     _c3dAdd(g, _c3dSphere(.13, limb), s*.17, .1, .08, 1, .8, 1.2);
   });
-  // 体
   var body = _c3dAdd(g, _c3dSphere(.40, fur), 0, .5, 0, 1, .95, .9);
   body.userData.isBody = true;
   if (spec.belly) _c3dAdd(g, _c3dSphere(.3, spec.belly), 0, .46, .18, .85, .85, .55);
-  // 腕
   [-1,1].forEach(function(s){
     _c3dAdd(g, _c3dSphere(.1, limb), s*.38, .52, .06, 1, 1.6, 1, 0, 0, s*-.45);
   });
-  // 頭
   var head = new THREE.Group(); head.position.set(0, 1.16, 0); g.add(head);
   head.userData.isHead = true;
   _c3dAdd(head, _c3dSphere(.5, fur), 0, 0, 0, 1.02, .92, .95);
-  // 模様（ネコ：頭のぶち／トラ：しま／パンダ：目のまわり）
   if (spec.patch)  _c3dAdd(head, _c3dSphere(.2, spec.patch), -.3, .3, .12, 1.2, .8, .9);
   if (spec.patch2) _c3dAdd(head, _c3dSphere(.16, spec.patch2), .33, .27, .1, 1.1, .75, .9);
   if (spec.stripes){
     _c3dAdd(head, _c3dSphere(.09, spec.stripes), 0, .4, .25, .5, 1.6, .35, -.5);
     [-1,1].forEach(function(s){ _c3dAdd(head, _c3dSphere(.09, spec.stripes), s*.3, .34, .2, 1.6, .5, .35, 0, 0, s*.5); });
   }
-  if (spec.band){ // トラ教官のはちまき（目にかからない高さで）
+  if (spec.band){
     var band = new THREE.Mesh(new THREE.TorusGeometry(.44, .05, 8, 24), _c3dMat(spec.band));
     _c3dAdd(head, band, 0, .33, 0, 1, 1, .95, Math.PI/2);
   }
-  // 耳
   var earKind = spec.ear || 'cone';
   [-1,1].forEach(function(s){
     if (earKind === 'cone'){
@@ -197,23 +253,19 @@ function _c3dBuildAnimal(g, spec){
     } else if (earKind === 'long'){
       _c3dAdd(head, _c3dSphere(.13, spec.earOut || fur), s*.2, .72, -.02, 1, 3.0, .55, 0, 0, s*-.18);
       _c3dAdd(head, _c3dSphere(.07, spec.earIn || '#f7c4d2'), s*.2, .72, .07, 1, 2.4, .4, 0, 0, s*-.18);
-    } else { // round
+    } else {
       _c3dAdd(head, _c3dSphere(.16, spec.earOut || fur), s*.34, .42, 0, 1, 1, .5);
       _c3dAdd(head, _c3dSphere(.09, spec.earIn || '#c8a784'), s*.34, .42, .07, 1, 1, .4);
     }
   });
-  // パンダの目のまわり
   if (spec.eyepatch){
     [-1,1].forEach(function(s){ _c3dAdd(head, _c3dSphere(.13, spec.eyepatch), s*.19, .05, .38, 1.1, 1.45, .35, 0, 0, s*.35); });
   }
-  // 目・マズル・鼻・口・ほっぺ
-  var eyes = [ _c3dAnimalEye(spec, -.19, .06, .44), _c3dAnimalEye(spec, .19, .06, .44) ];
-  eyes.forEach(function(e){ head.add(e); });
+  [_c3dAnimalEye(spec, -.19, .06, .44), _c3dAnimalEye(spec, .19, .06, .44)].forEach(function(e){ head.add(e); });
   if (spec.muzzle) _c3dAdd(head, _c3dSphere(.16, spec.muzzle), 0, -.14, .38, 1.25, .8, .6);
   if (spec.nose)   _c3dAdd(head, _c3dSphere(.05, spec.nose), 0, -.07, .5, 1.2, .8, .7);
   _c3dSmile(head, spec.nose || '#5a3a2a', -.2, .47);
   _c3dBlushPair(head, spec, -.08, .40, .33);
-  // ひげ（ネコ）
   if (spec.whisker){
     [-1,1].forEach(function(s){
       for (var i=0;i<2;i++){
@@ -222,7 +274,6 @@ function _c3dBuildAnimal(g, spec){
       }
     });
   }
-  // しっぽ
   if (spec.tail === 'curl'){
     var t = new THREE.Mesh(new THREE.TorusGeometry(.12, .06, 8, 16, Math.PI*1.5), _c3dMat(fur));
     _c3dAdd(g, t, 0, .62, -.36, 1, 1, 1, .4);
@@ -232,27 +283,23 @@ function _c3dBuildAnimal(g, spec){
   } else if (spec.tail === 'curve'){
     _c3dAdd(g, _c3dSphere(.07, spec.patch2 || fur), .26, .5, -.4, 1, 2.2, 1, .35, 0, -.5);
   }
+  _c3dSetAnchors(g, head, [0,.52,.02], [0,-.05,.5], [.52,.5,.18]);
 }
 
 function _c3dBuildOwl(g, spec){
   var fur = spec.fur;
-  // 体＋おなか
   var body = _c3dAdd(g, _c3dSphere(.42, fur), 0, .48, 0, 1, 1.0, .9);
   body.userData.isBody = true;
   _c3dAdd(g, _c3dSphere(.3, spec.belly), 0, .42, .17, .8, .9, .55);
-  // 羽
   [-1,1].forEach(function(s){
     _c3dAdd(g, _c3dSphere(.13, spec.wing), s*.4, .48, -.02, .8, 1.9, .7, 0, 0, s*-.35);
   });
-  // 頭（大きめ・体と一体感）
   var head = new THREE.Group(); head.position.set(0, 1.12, 0); g.add(head);
   head.userData.isHead = true;
   _c3dAdd(head, _c3dSphere(.52, fur), 0, 0, 0, 1.05, .9, .95);
-  // 耳の羽（ツノ状のふさ）
   [-1,1].forEach(function(s){
     _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.11,.26,4), _c3dMat(spec.wing)), s*.34, .46, 0, 1, 1, .6, 0, 0, s*-.5);
   });
-  // フクロウの目（白ふち大きめ）
   [-1,1].forEach(function(s){
     var eg = new THREE.Group(); eg.position.set(s*.21, .04, .42); head.add(eg);
     _c3dAdd(eg, _c3dSphere(.17, spec.belly), 0, 0, 0, 1, 1, .35);
@@ -263,116 +310,512 @@ function _c3dBuildOwl(g, spec){
     _c3dAdd(eg, hi, .03, .04, .11);
     eg.userData.isEye = true;
   });
-  // くちばし
   var beak = new THREE.Mesh(new THREE.ConeGeometry(.08,.18,4), _c3dMat(spec.beak));
   _c3dAdd(head, beak, 0, -.14, .48, 1, 1, .8, Math.PI/2 * .9);
   _c3dBlushPair(head, { blush:'#e8b48a' }, -.16, .36, .36);
-  // 学園長の角帽＋ふさ
   var cap = new THREE.Group(); cap.position.set(0, .52, 0); head.add(cap);
   _c3dAdd(cap, new THREE.Mesh(new THREE.CylinderGeometry(.3,.32,.12,16), _c3dMat(spec.hat)), 0, 0, 0);
   _c3dAdd(cap, new THREE.Mesh(new THREE.BoxGeometry(.85,.05,.85), _c3dMat(spec.hat)), 0, .08, 0);
   var tas = new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.3,6), _c3dMat(spec.tassel));
   _c3dAdd(cap, tas, .4, -.05, .4, 1, 1, 1, 0, 0, .15);
   _c3dAdd(cap, _c3dSphere(.045, spec.tassel), .43, -.2, .42);
+  _c3dSetAnchors(g, head, [0,.8,0], [0,-.1,.5], [.52,.46,.12]);
 }
 
 function _c3dBuildDolphin(g, spec){
-  var fur = spec.fur;
-  // しっぽ（尾びれ）
   [-1,1].forEach(function(s){
     _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.14,.3,4), _c3dMat(spec.fin)), s*.16, .08, 0, 1, 1, .45, 0, 0, s*1.9);
   });
-  // 体（たてに長いしずく型）
-  var body = _c3dAdd(g, _c3dSphere(.48, fur), 0, .82, 0, .88, 1.45, .82);
+  var body = _c3dAdd(g, _c3dSphere(.48, spec.fur), 0, .82, 0, .88, 1.45, .82);
   body.userData.isBody = true;
   _c3dAdd(g, _c3dSphere(.34, spec.belly), 0, .68, .2, .7, 1.1, .5);
-  // 背びれ・胸びれ
   _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.13,.32,4), _c3dMat(spec.fin)), 0, 1.32, -.3, 1, 1, .5, -.7);
   [-1,1].forEach(function(s){
     _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.11,.3,4), _c3dMat(spec.fin)), s*.44, .72, .08, 1, 1, .45, 0, 0, s*2.2);
   });
-  // 顔（頭は体と一体）：口先
   var head = new THREE.Group(); head.position.set(0, 1.18, 0); g.add(head);
   head.userData.isHead = true;
   _c3dAdd(head, _c3dSphere(.12, spec.belly), 0, -.18, .38, 1.3, .6, 1.1);
-  var eyes = [ _c3dAnimalEye(spec, -.17, .05, .34), _c3dAnimalEye(spec, .17, .05, .34) ];
-  eyes.forEach(function(e){ head.add(e); });
+  [_c3dAnimalEye(spec, -.17, .05, .34), _c3dAnimalEye(spec, .17, .05, .34)].forEach(function(e){ head.add(e); });
   _c3dSmile(head, spec.mouth, -.14, .4);
   _c3dBlushPair(head, spec, -.06, .3, .3);
+  _c3dSetAnchors(g, head, [0,.42,0], [0,-.03,.42], [.56,.74,.16]);
 }
 
 function _c3dBuildPenguin(g, spec){
   var fur = spec.fur;
-  // 足
   [-1,1].forEach(function(s){
     _c3dAdd(g, _c3dSphere(.11, spec.feet), s*.16, .06, .12, 1, .5, 1.5);
   });
-  // 体（たまご型）＋白おなか（卵の曲面より前に出す＝埋まらない）
   var body = _c3dAdd(g, _c3dSphere(.48, fur), 0, .72, 0, .92, 1.3, .85);
   body.userData.isBody = true;
   _c3dAdd(g, _c3dSphere(.36, spec.belly), 0, .62, .28, .8, 1.05, .42);
-  // フリッパー
   [-1,1].forEach(function(s){
     _c3dAdd(g, _c3dSphere(.11, spec.wing || fur), s*.44, .72, .02, .55, 1.8, .7, 0, 0, s*-.25);
   });
-  // 顔（頭は体と一体。卵の上部曲面に沿わせる＝目が浮かない）
   var head = new THREE.Group(); head.position.set(0, 1.06, 0); g.add(head);
   head.userData.isHead = true;
-  var eyes = [ _c3dEye(spec, -.15, .04, .3), _c3dEye(spec, .15, .04, .3) ];
-  eyes.forEach(function(e){ head.add(e); });
+  [_c3dEye(spec, -.15, .04, .3), _c3dEye(spec, .15, .04, .3)].forEach(function(e){ head.add(e); });
   var beak = new THREE.Mesh(new THREE.ConeGeometry(.07,.17,4), _c3dMat(spec.beak));
   _c3dAdd(head, beak, 0, -.1, .37, 1, 1, .7, Math.PI/2 * .92);
   _c3dBlushPair(head, spec, -.16, .26, .28);
+  _c3dSetAnchors(g, head, [0,.36,0], [0,-.02,.38], [.52,.72,.14]);
 }
 
-// =============== ビューア（マウント・アニメ・破棄） ===============
-var _c3dViewers = [];
-var _c3dRafOn = false;
-var _c3dPointer = { x: 0, y: 0 };
-var _c3dPointerBound = false;
-
-function _c3dCollectParts(root){
-  var parts = { head: null, body: null, eyes: [] };
-  root.traverse(function(o){
-    if (o.userData){
-      if (o.userData.isHead) parts.head = o;
-      if (o.userData.isBody) parts.body = o;
-      if (o.userData.isEye) parts.eyes.push(o);
+// =============== モンスター組み立て（汎用プラン） ===============
+function mon3dBuild(spec){
+  var g = new THREE.Group();
+  var fn = {
+    blob:_c3dMonBlob, imp:_c3dMonImp, flyer:_c3dMonFlyer, beast:_c3dMonBeast, tree:_c3dMonTree,
+    ghost:_c3dMonGhost, dragon:_c3dMonDragon, bird:_c3dMonBird, cube:_c3dMonCube,
+    golem:_c3dMonGolem, robe:_c3dMonRobe, crystal:_c3dMonCrystal
+  }[spec.plan] || _c3dMonBlob;
+  fn(g, spec);
+  if (spec.big) g.scale.setScalar(spec.big);
+  return g;
+}
+function _c3dMonFace(head, spec, y, z, fierce){
+  [-1,1].forEach(function(s){
+    var eg = new THREE.Group(); eg.position.set(s*.2, y, z); head.add(eg);
+    _c3dAdd(eg, _c3dSphere(.1, spec.eye || '#ffffff'), 0, 0, 0, 1, fierce ? .8 : 1.1, .4);
+    _c3dAdd(eg, _c3dSphere(.05, spec.pupil || '#0f172a'), 0, -.01, .04, 1, fierce ? .9 : 1.2, .5);
+    if (fierce) _c3dAdd(eg, _c3dSphere(.09, spec.main || '#333'), 0, .09, .03, 1.2, .5, .5, 0, 0, s*-.5);
+    eg.userData.isEye = true;
+  });
+}
+function _c3dMonBlob(g, spec){
+  var body = _c3dAdd(g, _c3dSphere(.55, spec.main), 0, .55, 0, 1.05, .92, .95);
+  body.userData.isBody = true;
+  _c3dAdd(g, _c3dSphere(.2, spec.hi || '#ffffff', { opacity:.6 }), -.22, .82, .3, 1, .7, .5);
+  _c3dAdd(g, _c3dSphere(.4, spec.main), 0, .18, 0, 1.25, .45, 1.1);
+  var head = new THREE.Group(); head.position.set(0, .62, 0); g.add(head); head.userData.isHead = true;
+  _c3dMonFace(head, spec, .06, .48);
+  _c3dSmile(head, spec.eye || '#0f172a', -.14, .5);
+  if (spec.spots){ [[-.3,.35,.35],[.32,.5,.28],[.05,.2,.5]].forEach(function(p){ _c3dAdd(head, _c3dSphere(.07, spec.spots), p[0], p[1]-.62+.55, p[2], 1, 1, .4); }); }
+  if (spec.bubbles){ [[-.4,1.15,.1],[.42,1.25,.05],[.15,1.4,0]].forEach(function(p,i){ _c3dAdd(g, _c3dSphere(.05+i*.015, spec.hi || '#fff', { opacity:.5 }), p[0], p[1], p[2]); }); }
+  if (spec.drip){ [[-.35,.1],[.3,.06]].forEach(function(p){ _c3dAdd(g, _c3dSphere(.09, spec.main), p[0], p[1], .3, 1, 1.4, 1); }); }
+  if (spec.crown) _c3dGearCrown(head, spec.crown, .52);
+  _c3dSetAnchors(g, head, [0,.5,0], [0,-.02,.5], [.6,.5,.2]);
+}
+function _c3dMonImp(g, spec){
+  [-1,1].forEach(function(s){ _c3dAdd(g, _c3dSphere(.12, spec.main), s*.18, .1, .06, 1, .8, 1.2); });
+  var body = _c3dAdd(g, _c3dSphere(.38, spec.main), 0, .48, 0, 1, .95, .9);
+  body.userData.isBody = true;
+  if (spec.belly) _c3dAdd(g, _c3dSphere(.27, spec.belly), 0, .44, .17, .85, .85, .55);
+  [-1,1].forEach(function(s){ _c3dAdd(g, _c3dSphere(.09, spec.main), s*.36, .5, .06, 1, 1.6, 1, 0, 0, s*-.45); });
+  var head = new THREE.Group(); head.position.set(0, 1.1, 0); g.add(head); head.userData.isHead = true;
+  _c3dAdd(head, _c3dSphere(.46, spec.main), 0, 0, 0, 1.05, .9, .95);
+  var hornN = spec.horns || 1;
+  var hornPos = hornN === 1 ? [[0,.42]] : [[-.24,.36],[.24,.36]];
+  hornPos.forEach(function(p){
+    _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.09,.28,8), _c3dMat('#fef3c7')), p[0], p[1], .05, 1, 1, 1, -.15, 0, p[0]*-.8);
+  });
+  [-1,1].forEach(function(s){
+    _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.13,.3,4), _c3dMat(spec.main)), s*.42, .18, 0, 1, 1, .5, 0, 0, s*-1.2);
+  });
+  _c3dMonFace(head, spec, .05, .42, true);
+  _c3dAdd(head, _c3dSphere(.05, spec.pupil || '#0f172a'), 0, -.12, .46, 1.6, .5, .4); // ニヤリ口
+  [-1,1].forEach(function(s){ _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.035,.09,4), _c3dMat('#ffffff')), s*.1, -.16, .44, 1, 1, .6, Math.PI); });
+  if (spec.club){
+    var club = new THREE.Group(); club.position.set(.5, .5, .18); club.rotation.z = -.5; g.add(club);
+    _c3dAdd(club, new THREE.Mesh(new THREE.CylinderGeometry(.05,.09,.55,8), _c3dMat(spec.club)), 0, .2, 0);
+    [[0,.42,.08],[-.07,.34,0],[.07,.34,0]].forEach(function(p){ _c3dAdd(club, new THREE.Mesh(new THREE.ConeGeometry(.03,.08,4), _c3dMat('#fef3c7')), p[0], p[1], p[2], 1, 1, 1, 0, 0, p[0]*2); });
+  }
+  _c3dSetAnchors(g, head, [0,.5,0], [0,-.04,.46], [-.5,.5,.18]);
+}
+function _c3dMonFlyer(g, spec){
+  var body = _c3dAdd(g, _c3dSphere(.4, spec.main), 0, .85, 0, 1, .95, .9);
+  body.userData.isBody = true;
+  [-1,1].forEach(function(s){
+    var wing = new THREE.Group(); wing.position.set(s*.36, .9, -.05); wing.rotation.z = s*.35; g.add(wing);
+    wing.userData.isWing = true; wing.userData.side = s;
+    if (spec.antennae){
+      _c3dAdd(wing, _c3dSphere(.3, spec.wing), s*.28, 0, 0, 1.5, .9, .25);
+      _c3dAdd(wing, _c3dSphere(.2, spec.wing), s*.2, -.3, 0, 1.3, .7, .25);
+    } else {
+      _c3dAdd(wing, new THREE.Mesh(new THREE.ConeGeometry(.3,.7,4), _c3dMat(spec.wing)), s*.32, .05, 0, 1, 1, .3, 0, 0, s*1.9);
     }
   });
-  return parts;
+  var head = new THREE.Group(); head.position.set(0, .95, 0); g.add(head); head.userData.isHead = true;
+  [-1,1].forEach(function(s){
+    _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.1,.22,4), _c3dMat(spec.main)), s*.24, .34, 0, 1, 1, .55, 0, 0, s*-.5);
+  });
+  if (spec.antennae){
+    [-1,1].forEach(function(s){
+      _c3dAdd(head, new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.3,4), _c3dMat(spec.wing)), s*.12, .42, .05, 1, 1, 1, 0, 0, s*.5);
+      _c3dAdd(head, _c3dSphere(.04, spec.wing), s*.2, .56, .05);
+    });
+  }
+  _c3dMonFace(head, spec, .05, .36);
+  if (spec.fangs){ [-1,1].forEach(function(s){ _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.04,.1,4), _c3dMat('#ffffff')), s*.1, -.12, .38, 1, 1, .6, Math.PI); }); }
+  _c3dSetAnchors(g, head, [0,.42,0], [0,-.02,.4], [.5,.85,.15]);
+}
+function _c3dMonBeast(g, spec){
+  _c3dBuildAnimal(g, { fur:spec.main, belly:spec.belly, ear:'cone', earIn:spec.belly, eye:spec.eye, nose:'#1c1917', muzzle:spec.belly, tail:'fluffy', tailTip:spec.belly });
+  if (spec.fierce){
+    var head = g.userData.headGroup;
+    [-1,1].forEach(function(s){
+      _c3dAdd(head, _c3dSphere(.1, spec.main), s*.19, .17, .42, 1.3, .4, .4, 0, 0, s*-.45); // つり眉
+      _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.035,.09,4), _c3dMat('#ffffff')), s*.09, -.24, .44, 1, 1, .6, Math.PI); // 牙
+    });
+  }
+}
+function _c3dMonTree(g, spec){
+  var trunk = _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.22,.3,.8,10), _c3dMat(spec.trunk)), 0, .4, 0);
+  trunk.userData.isBody = true;
+  [-1,1].forEach(function(s){
+    _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,.5,8), _c3dMat(spec.trunk)), s*.4, .55, 0, 1, 1, 1, 0, 0, s*-.9);
+  });
+  var head = new THREE.Group(); head.position.set(0, 1.1, 0); g.add(head); head.userData.isHead = true;
+  _c3dAdd(head, _c3dSphere(.42, spec.leaf), 0, .1, 0, 1.15, .9, 1);
+  _c3dAdd(head, _c3dSphere(.3, spec.leaf2), -.35, .25, .05);
+  _c3dAdd(head, _c3dSphere(.3, spec.leaf2), .35, .28, -.02);
+  _c3dAdd(head, _c3dSphere(.24, spec.leaf), 0, .45, 0);
+  _c3dMonFace(head, spec, -.28, .38);
+  _c3dSmile(head, '#3f1f12', -.48, .34);
+  _c3dSetAnchors(g, head, [0,.62,0], [0,-.3,.42], [.5,.6,.15]);
+}
+function _c3dMonGhost(g, spec){
+  var body = _c3dAdd(g, _c3dSphere(.45, spec.main), 0, .95, 0, 1, 1.1, .95);
+  body.userData.isBody = true;
+  for (var i = 0; i < 4; i++){
+    _c3dAdd(g, _c3dSphere(.14, spec.main), -.33 + i*.22, .48, .05, 1, 1.2, .9);
+  }
+  [-1,1].forEach(function(s){
+    _c3dAdd(g, _c3dSphere(.11, spec.main), s*.5, .95, .02, 1, 1.7, .7, 0, 0, s*-.9);
+  });
+  var head = new THREE.Group(); head.position.set(0, 1.05, 0); g.add(head); head.userData.isHead = true;
+  [-1,1].forEach(function(s){
+    _c3dAdd(head, _c3dSphere(.075, spec.eye), s*.17, .05, .38, 1, 1.4, .5);
+  });
+  _c3dAdd(head, _c3dSphere(.06, spec.eye), 0, -.14, .4, 1.3, .9, .4); // まる口
+  g.userData.float = true; // ふわふわ強め・足なし
+  _c3dSetAnchors(g, head, [0,.42,0], [0,0,.42], [.55,.95,.12]);
+}
+function _c3dMonDragon(g, spec){
+  [-1,1].forEach(function(s){ _c3dAdd(g, _c3dSphere(.14, spec.main), s*.2, .1, .06, 1, .8, 1.3); });
+  var body = _c3dAdd(g, _c3dSphere(.42, spec.main), 0, .55, 0, 1, 1.05, .9);
+  body.userData.isBody = true;
+  _c3dAdd(g, _c3dSphere(.3, spec.belly), 0, .48, .2, .8, .95, .5);
+  [-1,1].forEach(function(s){
+    var wing = new THREE.Group(); wing.position.set(s*.34, .78, -.18); wing.rotation.z = s*.5; g.add(wing);
+    wing.userData.isWing = true; wing.userData.side = s;
+    _c3dAdd(wing, new THREE.Mesh(new THREE.ConeGeometry(.32,.72,4), _c3dMat(spec.wing)), s*.3, .1, 0, 1, 1, .25, 0, 0, s*1.9);
+  });
+  var tail = new THREE.Mesh(new THREE.ConeGeometry(.13,.6,8), _c3dMat(spec.main));
+  _c3dAdd(g, tail, .3, .3, -.35, 1, 1, 1, 1.2, 0, -.9);
+  var head = new THREE.Group(); head.position.set(0, 1.25, .05); g.add(head); head.userData.isHead = true;
+  _c3dAdd(head, _c3dSphere(.4, spec.main), 0, 0, 0, 1.05, .9, .95);
+  _c3dAdd(head, _c3dSphere(.16, spec.belly), 0, -.12, .3, 1.2, .7, .7); // マズル
+  _c3dAdd(head, _c3dSphere(.05, spec.main), 0, -.04, .52, 1.4, .6, .5);
+  [-1,1].forEach(function(s){
+    _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.07,.24,8), _c3dMat(spec.horn)), s*.2, .38, -.05, 1, 1, 1, -.2, 0, s*-.5);
+    _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.05,.14,4), _c3dMat(spec.horn)), s*.02, .1, -.42, 1, 1, 1, .9, 0, 0); // 背びれ的トゲ
+  });
+  _c3dMonFace(head, spec, .08, .36, true);
+  if (spec.spark){
+    [[-.5,1.05,.2],[.55,1.2,.1]].forEach(function(p){
+      _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.05,.16,4), new THREE.MeshBasicMaterial({ color: spec.spark })), p[0], p[1], p[2], 1, 1, .5, 0, 0, .6);
+    });
+  }
+  _c3dSetAnchors(g, head, [0,.46,0], [0,-.02,.4], [.55,.6,.2]);
+}
+function _c3dMonBird(g, spec){
+  [-1,1].forEach(function(s){ _c3dAdd(g, _c3dSphere(.07, spec.beak), s*.13, .06, .08, 1, .5, 1.4); });
+  var body = _c3dAdd(g, _c3dSphere(.4, spec.main), 0, .6, 0, .95, 1.05, .9);
+  body.userData.isBody = true;
+  _c3dAdd(g, _c3dSphere(.28, spec.belly), 0, .52, .18, .8, .9, .5);
+  [-1,1].forEach(function(s){
+    var wing = new THREE.Group(); wing.position.set(s*.36, .68, 0); g.add(wing);
+    wing.userData.isWing = true; wing.userData.side = s;
+    _c3dAdd(wing, _c3dSphere(.12, spec.main), s*.08, -.05, 0, .6, 1.7, .8, 0, 0, s*-.4);
+  });
+  if (spec.brushTail){
+    _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.05,.08,.4,8), _c3dMat(spec.brushTail)), 0, .45, -.4, 1, 1, 1, 1.1);
+    _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.07,.2,8), _c3dMat('#0f172a')), 0, .32, -.58, 1, 1, 1, 1.4);
+  } else {
+    _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.12,.35,4), _c3dMat(spec.main)), 0, .5, -.42, 1, 1, .4, 1.3);
+  }
+  var head = new THREE.Group(); head.position.set(0, 1.05, .02); g.add(head); head.userData.isHead = true;
+  _c3dAdd(head, _c3dSphere(.34, spec.main), 0, 0, 0, 1.05, .95, .95);
+  var beak = new THREE.Mesh(new THREE.ConeGeometry(.07,.2,4), _c3dMat(spec.beak));
+  _c3dAdd(head, beak, 0, -.04, .38, 1, 1, .7, Math.PI/2 * .92);
+  _c3dMonFace(head, spec, .07, .3);
+  _c3dSetAnchors(g, head, [0,.38,0], [0,0,.34], [.48,.65,.14]);
+}
+function _c3dMonCube(g, spec){
+  var body = _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.85,.85,.7), _c3dMat(spec.main)), 0, .75, 0);
+  body.userData.isBody = true;
+  _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.06), _c3dMat(spec.face)), 0, .75, .34);
+  [-1,1].forEach(function(s){
+    _c3dAdd(g, _c3dSphere(.1, spec.dark), s*.5, .6, .05, 1, 1.4, 1, 0, 0, s*-.4);
+    _c3dAdd(g, _c3dSphere(.11, spec.dark), s*.22, .18, .1, 1, .7, 1.3);
+  });
+  if (spec.book){
+    _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.5,.36,.08), _c3dMat('#ffffff')), .55, .62, .22, 1, 1, 1, 0, .4, -.3);
+  }
+  var head = new THREE.Group(); head.position.set(0, .9, .3); g.add(head); head.userData.isHead = true;
+  _c3dMonFace(head, spec, 0, .08);
+  _c3dSmile(head, spec.dark, -.22, .1);
+  _c3dSetAnchors(g, head, [0,.32,-.28], [0,-.05,.12], [-.58,.6,.2]);
+}
+function _c3dMonGolem(g, spec){
+  var body = _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.34,.42,1.0,14), _c3dMat(spec.main)), 0, .62, 0);
+  body.userData.isBody = true;
+  [-1,1].forEach(function(s){
+    _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.5,8), _c3dMat(spec.main)), s*.46, .62, 0, 1, 1, 1, 0, 0, s*-.35);
+  });
+  var head = new THREE.Group(); head.position.set(0, 1.28, 0); g.add(head); head.userData.isHead = true;
+  _c3dAdd(head, new THREE.Mesh(new THREE.CylinderGeometry(.3,.32,.4,14), _c3dMat(spec.main)), 0, 0, 0);
+  [-1,1].forEach(function(s){
+    var e = _c3dAdd(head, _c3dSphere(.08, spec.hole), s*.14, .02, .27, 1, 1.4, .5);
+    e.userData ={ isEye: true };
+  });
+  _c3dAdd(head, _c3dSphere(.07, spec.hole), 0, -.12, .28, 1.1, 1.3, .5);
+  _c3dSetAnchors(g, head, [0,.26,0], [0,0,.3], [.52,.72,.14]);
+}
+function _c3dMonRobe(g, spec){
+  var body = _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.55,1.3,18), _c3dMat(spec.main)), 0, .65, 0);
+  body.userData.isBody = true;
+  _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.4,1.0,16), _c3dMat(spec.inner)), 0, .55, .09);
+  var head = new THREE.Group(); head.position.set(0, 1.42, 0); g.add(head); head.userData.isHead = true;
+  _c3dAdd(head, _c3dSphere(.34, spec.main), 0, 0, 0, 1, .95, .95);
+  if (spec.demon){
+    _c3dAdd(head, _c3dSphere(.32, spec.inner), 0, -.02, .12, .92, .85, .8); // フードの闇
+    [-1,1].forEach(function(s){
+      _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.08,.34,8), _c3dMat(spec.horns)), s*.24, .3, 0, 1, 1, 1, -.1, 0, s*-.7);
+      var e = new THREE.Mesh(new THREE.SphereGeometry(.06, 12, 12), new THREE.MeshBasicMaterial({ color: spec.eye }));
+      _c3dAdd(head, e, s*.13, .02, .3, 1, 1.3, .6);
+      e.userData = { isEye: true };
+    });
+    g.userData.float = true;
+  } else {
+    _c3dMonFace(head, spec, .04, .3);
+    _c3dAdd(head, _c3dSphere(.2, '#f5f5f4'), 0, -.2, .22, 1.2, .8, .5); // 白ひげ
+    if (spec.crown) _c3dGearCrown(head, spec.crown, .36);
+  }
+  [-1,1].forEach(function(s){
+    _c3dAdd(g, _c3dSphere(.1, spec.main), s*.5, .8, .1, .7, 1.6, .8, 0, 0, s*-.5);
+  });
+  if (spec.trim) _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.42, .04, 8, 20), _c3dMat(spec.trim)), 0, 1.12, 0, 1, 1, 1, Math.PI/2);
+  _c3dSetAnchors(g, head, [0,.4,0], [0,0,.32], [.55,.85,.18]);
+}
+function _c3dMonCrystal(g, spec){
+  var c = new THREE.Mesh(new THREE.OctahedronGeometry(.55, 0), _c3dMat(spec.main, { opacity: .9 }));
+  _c3dAdd(g, c, 0, .8, 0, .7, 1.1, .7);
+  c.userData.isBody = true;
+  var i = new THREE.Mesh(new THREE.OctahedronGeometry(.3, 0), new THREE.MeshBasicMaterial({ color: spec.hi }));
+  _c3dAdd(g, i, 0, .8, 0, .6, 1, .6);
+  g.userData.float = true;
+  var head = new THREE.Group(); head.position.set(0, .8, 0); g.add(head);
+  _c3dSetAnchors(g, head, [0,.7,0], [0,0,.4], [.5,.8,.1]);
 }
 
-// 装備絵文字 → スプライト（hero のみ。rpgCosState 等はメイン script 定義＝実行時に参照）
-function _c3dEmojiSprite(em, size){
-  var c = document.createElement('canvas'); c.width = c.height = 128;
-  var ctx = c.getContext('2d');
+// =============== 装備（3Dフィット） ===============
+function _c3dGearCrown(parent, color, r){
+  var cg = new THREE.Group();
+  _c3dAdd(cg, new THREE.Mesh(new THREE.CylinderGeometry(r*.62, r*.66, r*.3, 12), _c3dMat(color)), 0, 0, 0);
+  for (var i = 0; i < 5; i++){
+    var a = (i/5) * Math.PI * 2;
+    _c3dAdd(cg, new THREE.Mesh(new THREE.ConeGeometry(r*.12, r*.3, 4), _c3dMat(color)), Math.sin(a)*r*.58, r*.26, Math.cos(a)*r*.58);
+  }
+  _c3dAdd(parent, cg, 0, r*.9, 0);
+  return cg;
+}
+// 各アーケタイプは「頭の半径 ≒ .5」を前提に作り、hat/face/hand アンカーに置く
+function _c3dBuildGear(arch, slot){
+  var c = arch.c, g = new THREE.Group(), M = _c3dMat;
+  switch (arch.t){
+    case 'cap':
+      _c3dAdd(g, _c3dSphere(.42, c), 0, 0, 0, 1, .55, 1);
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.3,.34,.05,14), M(c)), 0, -.02, .3, 1, 1, 1.4);
+      _c3dAdd(g, _c3dSphere(.06, '#ffffff'), 0, .22, 0); break;
+    case 'sunhat':
+      _c3dAdd(g, _c3dSphere(.4, c), 0, .05, 0, 1, .6, 1);
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.68,.72,.05,18), M(c)), 0, -.08, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.4,.05,8,18), M('#e11d48')), 0, -.02, 0, 1, 1, 1, Math.PI/2); break;
+    case 'tophat':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.34,.36,.55,16), M(c)), 0, .2, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.56,.58,.05,18), M(c)), 0, -.08, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.36,.04,8,18), M('#b91c1c')), 0, .0, 0, 1, 1, 1, Math.PI/2); break;
+    case 'wizard':
+      _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.42,.9,14), M(c)), 0, .3, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.6,.62,.05,18), M(c)), 0, -.1, 0);
+      _c3dAdd(g, _c3dSphere(.07, '#fde047'), .12, .5, .18); break;
+    case 'crown': _c3dGearCrown(g, c, .52); g.position.y -= .54; break;
+    case 'halo':
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.32,.05,10,22), new THREE.MeshBasicMaterial({ color: c })), 0, .22, 0, 1, 1, 1, Math.PI/2 + .15); break;
+    case 'ribbon':
+      [-1,1].forEach(function(s){ _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.14,.3,4), M(c)), s*.2, 0, 0, 1, 1, .5, 0, 0, s*1.7); });
+      _c3dAdd(g, _c3dSphere(.09, c), 0, 0, 0); g.position.z += .1; break;
+    case 'grad':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.3,.32,.12,14), M(c)), 0, -.05, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.8,.05,.8), M(c)), 0, .04, 0);
+      _c3dAdd(g, _c3dSphere(.05, '#f2c94c'), .38, -.12, .38); break;
+    case 'helmet':
+      _c3dAdd(g, _c3dSphere(.48, c), 0, -.05, 0, 1, .75, 1);
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.42,.05,8,18), M('#374151')), 0, -.18, 0, 1, 1, 1, Math.PI/2); break;
+    case 'glasses': case 'sunglass':
+      var lensC = arch.t === 'sunglass' ? c : '#7dd3fc';
+      [-1,1].forEach(function(s){
+        _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.13,.025,8,18), M(c)), s*.19, 0, 0);
+        if (arch.t === 'sunglass') _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.02,14), M(lensC)), s*.19, 0, 0, 1, 1, 1, Math.PI/2);
+      });
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.14,6), M(c)), 0, 0, 0, 1, 1, 1, 0, 0, Math.PI/2); break;
+    case 'monocle':
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.13,.025,8,18), M(c)), .19, 0, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.3,6), M(c)), .3, -.18, 0, 1, 1, 1, 0, 0, .5); break;
+    case 'goggle':
+      [-1,1].forEach(function(s){ _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.14,.04,8,18), M(c)), s*.19, 0, 0); });
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.1,.06,.04), M(c)), 0, 0, 0); break;
+    case 'mask':
+      _c3dAdd(g, _c3dSphere(.24, c), 0, -.12, .02, 1.3, .9, .5);
+      [-1,1].forEach(function(s){ _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.3,6), M(c)), s*.32, -.06, -.1, 1, 1, 1, 0, s*.9, s*1.2); }); break;
+    case 'sword':
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.08,.62,.03), M(c)), 0, .38, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.055,.14,4), M(c)), 0, .74, 0, 1, 1, .5);
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.26,.06,.06), M('#b45309')), 0, .06, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.18,8), M('#7c2d12')), 0, -.06, 0); break;
+    case 'shield':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.06,16), M(c)), 0, .1, 0, 1, 1, 1, Math.PI/2);
+      _c3dAdd(g, _c3dSphere(.09, '#f2c94c'), 0, .1, .05); break;
+    case 'wand':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.5,8), M(c)), 0, .2, 0);
+      _c3dAdd(g, _c3dSphere(.09, '#fde047'), 0, .5, 0); break;
+    case 'orbstaff':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.03,.04,.7,8), M('#7c2d12')), 0, .25, 0);
+      _c3dAdd(g, _c3dSphere(.13, c, { opacity: .85 }), 0, .68, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.15,.02,8,16), M('#f2c94c')), 0, .68, 0); break;
+    case 'book':
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.4,.5,.1), M(c)), 0, .2, 0, 1, 1, 1, 0, .3);
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.34,.44,.04), M('#f8fafc')), 0, .2, .05, 1, 1, 1, 0, .3); break;
+    case 'hammer':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.6,8), M('#a16207')), 0, .22, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.34,10), M(c)), 0, .56, 0, 1, 1, 1, 0, 0, Math.PI/2); break;
+    case 'axe':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.62,8), M('#a16207')), 0, .22, 0);
+      _c3dAdd(g, _c3dSphere(.2, c), .12, .56, 0, .5, 1.1, .18); break;
+    case 'bow':
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.32,.03,8,20,Math.PI), M(c)), 0, .3, 0, 1, 1, 1, 0, 0, -Math.PI/2);
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.62,6), M('#e5e7eb')), 0, .3, 0); break;
+    case 'trident':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.8,8), M(c)), 0, .3, 0);
+      [[-.1,0],[0,0],[.1,0]].forEach(function(p){ _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.035,.16,4), M(c)), p[0], .76, 0); });
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.24,.05,.05), M(c)), 0, .66, 0); break;
+    default:
+      _c3dAdd(g, _c3dSphere(.15, c || '#94a3b8'), 0, .1, 0);
+  }
+  return g;
+}
+// 絵文字プレート（表に無いアイテム用）。アンカーに寄り添う板＝v1の浮きスプライトよりフィット
+function _c3dEmojiPlate(em, size){
+  var cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  var ctx = cv.getContext('2d');
   ctx.font = '100px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(em, 64, 72);
-  var tex = new THREE.CanvasTexture(c);
+  var tex = new THREE.CanvasTexture(cv);
   if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
-  var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
-  sp.scale.set(size, size, 1);
-  return sp;
+  var m = new THREE.Mesh(new THREE.PlaneGeometry(size, size),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
+  return m;
 }
-function _c3dAttachCostume(char, cosKind){
-  try {
-    if (typeof rpgCosState !== 'function' || typeof rpgState !== 'function' || typeof rpgCosById !== 'function') return;
-    var c = rpgCosState(rpgState());
-    var eq = (c.equip && c.equip[cosKind]) || {};
-    var anchors = { hat: [0, 1.78, .05, .52], face: [0, 1.06, .55, .4], hand: [.56, .5, .2, .42] };
-    ['hat','face','hand'].forEach(function(sl){
-      var id = eq[sl]; if (!id) return;
-      var it = rpgCosById(cosKind, id); if (!it || !it.em) return;
-      var a = anchors[sl];
-      var sp = _c3dEmojiSprite(it.em, a[3]);
-      sp.position.set(a[0], a[1], a[2]);
-      char.add(sp);
-    });
-  } catch(e){}
+// 装備をキャラ/モンスターに装着（アンカー式）。equip={hat:item,face:item,hand:item}（itemは{em}を持つ）
+function char3dEquip(charGroup, equip){
+  var an = charGroup.userData.anchors, head = charGroup.userData.headGroup;
+  if (!an || !head || !equip) return;
+  ['hat','face','hand'].forEach(function(sl){
+    var it = equip[sl]; if (!it || !it.em) return;
+    var arch = C3D_GEAR[it.em];
+    var mesh, s;
+    if (arch){ mesh = _c3dBuildGear(arch, sl); }
+    else {
+      var size = sl === 'hand' ? .5 : .55;
+      mesh = _c3dEmojiPlate(it.em, size);
+      if (sl === 'hat') mesh.rotation.x = -.35; // 頭にかぶさる角度
+    }
+    // アーケタイプ内部のオフセット（王冠の沈み込み等）を保つため、アンカーは「加算」する
+    if (sl === 'hat'){ s = an.hatL; head.add(mesh); mesh.position.x += s[0]; mesh.position.y += s[1]; mesh.position.z += s[2]; }
+    else if (sl === 'face'){ s = an.faceL; head.add(mesh); mesh.position.x += s[0]; mesh.position.y += s[1]; mesh.position.z += s[2] + .06; }
+    else { s = an.hand; charGroup.add(mesh); mesh.position.x += s[0] - .04; mesh.position.y += s[1] - .03; mesh.position.z += s[2]; mesh.rotation.z = -.4; }
+  });
 }
 
+// =============== 描画コア（共有レンダラ1個＋転写） ===============
+var C3D_RW = 260, C3D_RH = 325; // 内部レンダリング解像度
+var _c3dCore = null;
+function _c3dCoreGet(){
+  if (_c3dDead) return null;
+  if (_c3dCore) return _c3dCore;
+  try {
+    var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power', preserveDrawingBuffer: true });
+    renderer.setPixelRatio(1);
+    renderer.setSize(C3D_RW, C3D_RH, false);
+    var scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xb8c4d8, 1.4));
+    var dir = new THREE.DirectionalLight(0xffffff, 1.7); dir.position.set(1.5, 2.5, 2.5); scene.add(dir);
+    var camera = new THREE.PerspectiveCamera(30, C3D_RW / C3D_RH, .1, 20);
+    renderer.domElement.addEventListener('webglcontextlost', function(ev){
+      try { ev.preventDefault(); } catch(e){}
+      _c3dAllFallback();
+    }, false);
+    _c3dCore = { renderer: renderer, scene: scene, camera: camera };
+    return _c3dCore;
+  } catch(e){ _c3dDead = true; return null; }
+}
+// グループを1枚レンダリングして 2D ctx へ転写
+function _c3dRenderInto(group, ctx, w, h){
+  var core = _c3dCoreGet(); if (!core) return false;
+  try {
+    core.scene.add(group);
+    var f = group.userData.frame;
+    if (!f){
+      var box = new THREE.Box3().setFromObject(group);
+      var hgt = Math.max(.5, box.max.y - box.min.y), cy = (box.max.y + box.min.y) / 2;
+      f = group.userData.frame = { hgt: hgt, cy: cy };
+    }
+    core.camera.position.set(0, f.cy + f.hgt * .1, f.hgt * 2.35);
+    core.camera.lookAt(0, f.cy - f.hgt * .02, 0);
+    core.renderer.render(core.scene, core.camera);
+    core.scene.remove(group);
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(core.renderer.domElement, 0, 0, w, h);
+    return true;
+  } catch(e){ try { core.scene.remove(group); } catch(e2){} return false; }
+}
+
+// ---- スチル（1回描いて dataURL・キャッシュ）----
+var _c3dStillCache = {};
+function _c3dStillURL(cacheKey, buildFn){
+  if (_c3dStillCache[cacheKey] !== undefined) return _c3dStillCache[cacheKey];
+  var url = null;
+  try {
+    if (char3dActive() && _c3dCoreGet()){
+      var group = buildFn();
+      group.rotation.y = -.28; // 立体感の出る斜め
+      var cv = document.createElement('canvas'); cv.width = C3D_RW; cv.height = C3D_RH;
+      if (_c3dRenderInto(group, cv.getContext('2d'), C3D_RW, C3D_RH)) url = cv.toDataURL('image/png');
+    }
+  } catch(e){ url = null; }
+  _c3dStillCache[cacheKey] = url;
+  return url;
+}
+// 一覧向け静止画 HTML。3D不可なら null（呼び手が SVG にフォールバック）
+function char3dStillHtml(key){
+  var url = _c3dStillURL('c:' + key, function(){ return char3dBuild(char3dSpecOf(key)); });
+  return url ? '<img class="c3d-still" alt="" src="' + url + '">' : null;
+}
+function mon3dStillHtml(key){
+  if (!MON3D_SPECS[key]) return null;
+  var url = _c3dStillURL('m:' + key, function(){ return mon3dBuild(mon3dSpecOf(key)); });
+  return url ? '<img class="c3d-still" alt="" src="' + url + '">' : null;
+}
+
+// ---- ライブ（毎フレーム転写・タップ/まばたき/追従）----
+var _c3dViews = [];
+var _c3dRafOn = false;
+var _c3dPointer = { x: 0, y: 0 };
+var _c3dPointerBound = false;
 function _c3dBindPointer(){
   if (_c3dPointerBound) return; _c3dPointerBound = true;
   window.addEventListener('pointermove', function(ev){
@@ -380,89 +823,105 @@ function _c3dBindPointer(){
     _c3dPointer.y = (ev.clientY / window.innerHeight) * 2 - 1;
   }, { passive: true });
 }
-
-function char3dMount(slot){
-  if (!char3dActive()) return false;
-  var key = slot.getAttribute('data-c3d');
-  var spec = char3dSpecOf(key);
+function _c3dCollectParts(root){
+  var parts = { head: null, body: null, eyes: [], wings: [] };
+  root.traverse(function(o){
+    if (o.userData){
+      if (o.userData.isHead) parts.head = o;
+      if (o.userData.isBody) parts.body = o;
+      if (o.userData.isEye) parts.eyes.push(o);
+      if (o.userData.isWing) parts.wings.push(o);
+    }
+  });
+  return parts;
+}
+function _c3dReadEquip(cosKind){
   try {
-    var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    var scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight(0xffffff, 0xb8c4d8, 1.4));
-    var dir = new THREE.DirectionalLight(0xffffff, 1.7); dir.position.set(1.5, 2.5, 2.5); scene.add(dir);
-    var char = char3dBuild(spec);
-    scene.add(char);
-    var cosKind = slot.getAttribute('data-c3d-cos');
-    if (cosKind) _c3dAttachCostume(char, cosKind);
-    // キャラの実寸（耳・帽子込み）でカメラを自動フレーミング
-    var box = new THREE.Box3().setFromObject(char);
-    var hgt = Math.max(.5, box.max.y - box.min.y), cy = (box.max.y + box.min.y) / 2;
-    var camera = new THREE.PerspectiveCamera(30, 120/150, .1, 20);
-    camera.position.set(0, cy + hgt * .1, hgt * 2.35);
-    camera.lookAt(0, cy - hgt * .02, 0);
+    if (typeof rpgCosState !== 'function' || typeof rpgState !== 'function' || typeof rpgCosById !== 'function') return null;
+    var c = rpgCosState(rpgState());
+    var eq = (c.equip && c.equip[cosKind]) || {};
+    var out = {};
+    ['hat','face','hand'].forEach(function(sl){ var id = eq[sl]; if (id){ var it = rpgCosById(cosKind, id); if (it && it.em) out[sl] = it; } });
+    return out;
+  } catch(e){ return null; }
+}
+function char3dMount(slot){
+  if (!char3dActive() || !_c3dCoreGet()){ _c3dSlotFallback(slot); return false; }
+  try {
+    var monKey = slot.getAttribute('data-c3d-mon');
+    var group, isMon = false;
+    if (monKey){ group = mon3dBuild(mon3dSpecOf(monKey)); isMon = true; }
+    else {
+      var key = slot.getAttribute('data-c3d');
+      group = char3dBuild(char3dSpecOf(key));
+      var cosKind = slot.getAttribute('data-c3d-cos');
+      if (cosKind){ var eq = _c3dReadEquip(cosKind); if (eq) char3dEquip(group, eq); }
+    }
+    var canvas = document.createElement('canvas');
+    canvas.className = 'c3d-canvas';
+    canvas.width = C3D_RW; canvas.height = C3D_RH;
     slot.innerHTML = '';
-    slot.appendChild(renderer.domElement);
-    renderer.domElement.className = 'c3d-canvas';
+    slot.appendChild(canvas);
     var v = {
-      slot: slot, renderer: renderer, scene: scene, camera: camera, char: char,
-      parts: _c3dCollectParts(char),
+      slot: slot, canvas: canvas, ctx: canvas.getContext('2d'), char: group,
+      parts: _c3dCollectParts(group), float: !!group.userData.float,
       t0: performance.now(), blinkAt: performance.now() + 1800 + Math.random() * 2600,
-      blinkUntil: 0, spinStart: -1, w: 0, h: 0
+      blinkUntil: 0, spinStart: -1
     };
-    // タップでくるっと回ってジャンプ
-    renderer.domElement.addEventListener('pointerdown', function(){
-      if (v.spinStart < 0) { v.spinStart = performance.now(); try { if (typeof sfx === 'function') sfx('click'); } catch(e){} }
+    canvas.addEventListener('pointerdown', function(){
+      if (v.spinStart < 0){ v.spinStart = performance.now(); try { if (typeof sfx === 'function') sfx('click'); } catch(e){} }
     });
     slot.setAttribute('data-c3d-live', '1');
-    _c3dViewers.push(v);
+    _c3dViews.push(v);
     _c3dBindPointer();
-    _c3dStartLoop();
+    if (!_c3dRafOn){ _c3dRafOn = true; requestAnimationFrame(_c3dTick); }
     return true;
-  } catch(e){
-    // WebGL 失敗 → SVG フォールバック
-    try {
+  } catch(e){ _c3dSlotFallback(slot); return false; }
+}
+function _c3dSlotFallback(slot){
+  try {
+    var monKey = slot.getAttribute('data-c3d-mon');
+    if (monKey){ slot.innerHTML = (typeof RPG_SVG !== 'undefined' && RPG_SVG[monKey]) || '👾'; }
+    else {
+      var key = slot.getAttribute('data-c3d');
       slot.innerHTML = (typeof _charSVG === 'function') ? _charSVG(key) : ((typeof CHARS !== 'undefined' && CHARS[key]) ? CHARS[key].svg : '');
-      slot.setAttribute('data-c3d-live', 'svg');
-    } catch(e2){}
-    return false;
-  }
+    }
+    slot.setAttribute('data-c3d-live', 'svg');
+  } catch(e){}
 }
-
-function _c3dDispose(v){
-  try { v.renderer.dispose(); } catch(e){}
-  try { if (v.renderer.forceContextLoss) v.renderer.forceContextLoss(); } catch(e){}
-  v.dead = true;
+// コンテキスト喪失・致命エラー → 3D全停止して全部SVGへ（真っ白のまま、を防ぐ）
+function _c3dAllFallback(){
+  _c3dDead = true;
+  _c3dStillCache = {};
+  try {
+    for (var i = _c3dViews.length - 1; i >= 0; i--) _c3dSlotFallback(_c3dViews[i].slot);
+  } catch(e){}
+  _c3dViews = [];
+  try {
+    document.querySelectorAll('img.c3d-still').forEach(function(img){
+      var p = img.parentElement; if (p && p.getAttribute && p.getAttribute('data-c3d')) _c3dSlotFallback(p);
+    });
+  } catch(e){}
 }
-
 function _c3dTick(){
-  if (!_c3dViewers.length){ _c3dRafOn = false; return; }
-  _c3dRafOn = true;
+  if (!_c3dViews.length){ _c3dRafOn = false; return; }
   requestAnimationFrame(_c3dTick);
   if (document.hidden) return;
   var now = performance.now();
-  for (var i = _c3dViewers.length - 1; i >= 0; i--){
-    var v = _c3dViewers[i];
-    if (!v.slot.isConnected){ _c3dDispose(v); _c3dViewers.splice(i, 1); continue; }
-    // サイズ追従（表示されるまで 0 のことがある）
+  for (var i = _c3dViews.length - 1; i >= 0; i--){
+    var v = _c3dViews[i];
+    if (!v.slot.isConnected){ _c3dViews.splice(i, 1); continue; }
     var r = v.slot.getBoundingClientRect();
-    var w = Math.max(1, Math.round(r.width)) , h = Math.max(1, Math.round(r.height));
-    if (r.width < 2 || r.height < 2) continue; // 非表示中は描かない
-    if (w !== v.w || h !== v.h){
-      v.w = w; v.h = h;
-      v.renderer.setSize(w, h, false);
-      v.renderer.domElement.style.width = '100%';
-      v.renderer.domElement.style.height = '100%';
-      v.camera.aspect = w / h; v.camera.updateProjectionMatrix();
-    }
+    if (r.width < 2 || r.height < 2) continue;
     var t = (now - v.t0) / 1000;
-    // アイドル：ふわふわ＋呼吸＋首かしげ
-    v.char.position.y = Math.sin(t * 1.8) * .035;
-    if (v.parts.body){ var b = 1 + Math.sin(t * 2.2) * .015; v.parts.body.scale.y = (v.parts.body.userData.sy0 || (v.parts.body.userData.sy0 = v.parts.body.scale.y)) * b; }
-    if (v.parts.head){ v.parts.head.rotation.z = Math.sin(t * .7) * .05; }
-    // ポインタに体を向ける（±13度）
+    v.char.position.y = Math.sin(t * (v.float ? 1.2 : 1.8)) * (v.float ? .09 : .035);
+    if (v.parts.body){
+      if (v.parts.body.userData.sy0 == null) v.parts.body.userData.sy0 = v.parts.body.scale.y;
+      v.parts.body.scale.y = v.parts.body.userData.sy0 * (1 + Math.sin(t * 2.2) * .015);
+    }
+    if (v.parts.head) v.parts.head.rotation.z = Math.sin(t * .7) * .05;
+    v.parts.wings.forEach(function(w){ w.rotation.z = (w.userData.side || 1) * (.35 + Math.sin(t * 6) * .25); });
     var targetY = _c3dPointer.x * .23, targetX = _c3dPointer.y * .1;
-    // タップスピン
     if (v.spinStart > 0){
       var p = (now - v.spinStart) / 700;
       if (p >= 1){ v.spinStart = -1; }
@@ -474,18 +933,16 @@ function _c3dTick(){
     }
     v.char.rotation.y += (targetY - v.char.rotation.y) * .12;
     v.char.rotation.x += (targetX - v.char.rotation.x) * .12;
-    // まばたき
     if (now > v.blinkAt){ v.blinkUntil = now + 130; v.blinkAt = now + 1800 + Math.random() * 2800; }
     var blink = now < v.blinkUntil;
     v.parts.eyes.forEach(function(ey){ ey.scale.y += ((blink ? .12 : 1) - ey.scale.y) * .55; });
-    v.renderer.render(v.scene, v.camera);
+    _c3dRenderInto(v.char, v.ctx, C3D_RW, C3D_RH);
   }
 }
-function _c3dStartLoop(){ if (!_c3dRafOn){ _c3dRafOn = true; requestAnimationFrame(_c3dTick); } }
 
 // =============== ハイドレート＋自動監視 ===============
 function char3dHydrate(root){
-  if (!char3dActive()) return;
+  if (typeof document === 'undefined') return;
   var scope = root && root.querySelectorAll ? root : document;
   var slots = scope.querySelectorAll('.c3d-slot:not([data-c3d-live])');
   for (var i = 0; i < slots.length; i++) char3dMount(slots[i]);

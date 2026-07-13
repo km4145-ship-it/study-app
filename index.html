@@ -125,6 +125,10 @@
   .rpg-hero-avatar .c3d-slot { width: 52px; height: 66px; }
   .rpg-cos-pv-char .c3d-slot { width: 70px; height: 80px; }
   #rpg-hero-sprite .c3d-slot { width: 74px; height: 90px; }
+  #rpg-enemy-sprite .c3d-slot { width: 100%; height: 100%; }
+  /* 3D静止画（一覧・アイコン用）：従来SVGと同じく親幅に合わせる */
+  img.c3d-still { width: 100%; height: auto; display: block; }
+  .rpg-dex-svg img.c3d-still, .rpg-node-face img.c3d-still { width: 100%; height: 100%; object-fit: contain; }
   @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
   @keyframes shake-idle {
     0%,100% { transform: translateY(0) rotate(0deg); }
@@ -2223,6 +2227,11 @@ let currentAudio    = null;
 // 3Dが使えるときは canvas プレースホルダ、だめなら従来SVG
 function _charArt(ch){ try{ if(typeof char3dActive==='function' && char3dActive()) return char3dTag(ch); }catch(e){} return _charSVG(ch); }
 function _char3dHydrateSafe(el){ try{ if(typeof char3dHydrate==='function') char3dHydrate(el); }catch(e){} }
+// 一覧・アイコン用の3D静止画（キャッシュ）。3D不可なら従来SVG/絵文字
+function _charStill(k){ try{ if(typeof char3dStillHtml==='function'){ var h=char3dStillHtml(k); if(h) return h; } }catch(e){} return _charSVG(k); }
+function _monStill(k){ try{ if(typeof mon3dStillHtml==='function'){ var h=mon3dStillHtml(k); if(h) return h; } }catch(e){} return (typeof RPG_SVG!=='undefined'&&RPG_SVG[k])||'👾'; }
+// バトル敵などの動く3D。3D不可なら従来SVG
+function _monLive(k){ try{ if(typeof char3dActive==='function' && char3dActive() && typeof MON3D_SPECS!=='undefined' && MON3D_SPECS[k]) return mon3dTag(k); }catch(e){} return (typeof RPG_SVG!=='undefined'&&RPG_SVG[k])||'👾'; }
 function setCharacter(charKey, animate = true) {
   const wrap = document.getElementById('char-display');
   // 同じキャラの3Dが生きていれば差し替えない（WebGLの作り直しを避ける）
@@ -2284,7 +2293,7 @@ function init() {
   // Show mini chars on start overlay
   const wrap = document.getElementById('start-chars-display');
   if (wrap) {
-    wrap.innerHTML = Object.keys(CHARS).map(k => `<div class="start-mini">${CHARS[k].svg}</div>`).join('');
+    wrap.innerHTML = Object.keys(CHARS).map(k => `<div class="start-mini">${_charStill(k)}</div>`).join('');
   }
   updateNbBadge();
   renderDailyRing();
@@ -2520,7 +2529,7 @@ function renderUserSelect(){
   var cur=muCurrentId();
   muGetUsers().forEach(function(u){
     var b=document.createElement('button'); b.className='us-card'+(u.id===cur?' us-cur':'');
-    b.innerHTML='<div class="us-svg">'+_charSVG(u.char)+'</div><div class="us-name">'+(u.bio?'<span class="us-lock">🔒</span>':'')+escapeHtml(u.name)+'</div><div class="us-grade">'+muGradeLabel(muGradeLevel(u))+(u.admin?' <span class="us-admin">管理</span>':'')+'</div>';
+    b.innerHTML='<div class="us-svg">'+_charStill(u.char)+'</div><div class="us-name">'+(u.bio?'<span class="us-lock">🔒</span>':'')+escapeHtml(u.name)+'</div><div class="us-grade">'+muGradeLabel(muGradeLevel(u))+(u.admin?' <span class="us-admin">管理</span>':'')+'</div>';
     b.addEventListener('click', function(){ muPickUser(u.id); });
     el.appendChild(b);
   });
@@ -2678,7 +2687,7 @@ function renderUserAdmin(){
   var users=muGetUsers();
   users.forEach(function(u){
     var row=document.createElement('div'); row.className='ua-row';
-    var sv=document.createElement('span'); sv.className='ua-svg'; sv.innerHTML=_charSVG(u.char); row.appendChild(sv);
+    var sv=document.createElement('span'); sv.className='ua-svg'; sv.innerHTML=_charStill(u.char); row.appendChild(sv);
     var nm=document.createElement('span'); nm.className='ua-name'; nm.textContent=u.name+'（'+muGradeLabel(muGradeLevel(u))+'）'; row.appendChild(nm);
     function btn(label,bg,fn){ var b=document.createElement('button'); b.className='btn-sm'; b.textContent=label; if(bg) b.style.background=bg; b.addEventListener('click',fn); row.appendChild(b); }
     btn('名前','',function(){ var n=prompt('名前（8文字まで）',u.name); if(n===null) return; muRenameUser(u.id,(''+n).trim()||u.name); renderUserAdmin(); muUpdateHeader(); });
@@ -3598,7 +3607,7 @@ function _rankRender(){
     var medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'<span class="rk-rank">'+(i+1)+'</span>';
     var cls='rk-row'+(r.id===curId?' me':'')+(i===0?' top1':'');
     h+='<div class="'+cls+'"><div class="rk-medal">'+medal+'</div>'+
-       '<div class="rk-ava">'+_charSVG(r.char)+'</div>'+
+       '<div class="rk-ava">'+_charStill(r.char)+'</div>'+
        '<div class="rk-name">'+escapeHtml(r.name)+(r.id===curId?'<span class="rk-you">あなた</span>':'')+
        '<div class="rk-sub">Lv'+r.level+'・のべ'+r.cumAnswered+'問・🔥'+r.streak+'日</div></div>'+
        '<div class="rk-val">'+_rankMetricVal(r,_rankMetric)+'</div></div>';
@@ -3795,7 +3804,7 @@ function hideTabbar(){ var bar=document.getElementById('mu-tabbar'); if(bar) bar
 // 上部リソースバー（👤 / 🪙⭐🔥 / ⚙️）を最新化
 function updateResBar(){
   var u=(typeof muCurrentUser==='function' && muCurrentUser())||{};
-  var av=document.getElementById('rb-ava'); if(av){ try{ av.innerHTML=_charSVG(u.char||currentChar||'shiba'); }catch(e){} }
+  var av=document.getElementById('rb-ava'); if(av){ try{ av.innerHTML=_charStill(u.char||currentChar||'shiba'); }catch(e){} }
   var nm=document.getElementById('mu-current-name'); if(nm) nm.textContent=u.name||'ユーザー';
   var c=document.getElementById('rb-coin'); if(c){ try{ c.textContent=rpgCoin(); }catch(e){} }
   var p=document.getElementById('rb-pt'); if(p) p.textContent=totalPoints||0;
@@ -3823,7 +3832,7 @@ function renderGameHub(){
   var nb=0; try{ nb=getMistakes().length; }catch(e){}
   var td=null; try{ td=daysUntilTest(); }catch(e){}
   var rw=lsGetJSON('reward',null);
-  var avatar=''; try{ avatar=_charSVG(u.char||currentChar||'shiba'); }catch(e){}
+  var avatar=''; try{ avatar=_charStill(u.char||currentChar||'shiba'); }catch(e){}
   var rec = nb>0 ? ('まちがい直し '+nb+'問' ) : 'おまかせ10問';
   var h='';
   // プレイヤーストリップ
@@ -3955,7 +3964,7 @@ function renderCharacters(){
     g[1].forEach(function(k){
       const c=CHARS[k], info=CHAR_INFO[k]; if(!c||!info) return;
       html+='<div class="char-card" id="cc-'+k+'" onclick="introduceCharacter(\''+k+'\')">'+
-        '<div class="char-card-svg">'+c.svg+'</div>'+
+        '<div class="char-card-svg">'+_charStill(k)+'</div>'+
         '<div class="char-card-name">'+escapeHtml(c.name)+'</div>'+
         '<div class="char-card-chips"><span class="cc-chip cc-role">'+escapeHtml(info.role)+'</span><span class="cc-chip cc-voice">'+escapeHtml(info.voice)+'</span></div>'+
         '<div class="char-card-desc">'+escapeHtml(info.desc)+'</div>'+
@@ -5219,7 +5228,7 @@ function rpgAibouState(s){
 }
 function rpgAibouParty(){ try{ var s=rpgState(), ai=rpgAibouState(s); return ai.party.map(function(id){ return ai.roster[id]; }); }catch(e){ return []; } }
 // あいぼうの絵（旧ペットはPET_SVGの成長段階、モンスターはRPG_SVG）
-function rpgAibouArt(a){ if(!a) return '🐾'; if(a.art==='pet') return PET_SVG[Math.min(3, Math.floor(((a.lv||1)-1)/8))]; return RPG_SVG[a.art]||'👾'; }
+function rpgAibouArt(a){ if(!a) return '🐾'; if(a.art==='pet') return PET_SVG[Math.min(3, Math.floor(((a.lv||1)-1)/8))]; return _monStill(a.art); }
 // なかまスカウト：勝利時に抽選して「なかまになりたそう」なモンスター（オファー）を作る（まだ登録しない）
 // charmed=🌈にじのおまもり（復習ダンジョン限定）：加入率+20%・ランク+3章ぶん・レア種族2倍
 function rpgAibouMakeOffer(node, charmed){
@@ -5427,7 +5436,7 @@ function rpgRenderContinents(){
   var rescued=RPG_CONTINENTS.filter(function(a){ return s.crystals[a]; });
   h+='<div class="rpg-party"><div class="rpg-party-ttl">🐾 なかまの先生（'+rescued.length+'/5）</div><div class="rpg-party-row">';
   RPG_CONTINENTS.forEach(function(area){ var w=RPG_WORLD[area]; var got=!!s.crystals[area];
-    h+='<div class="rpg-party-mem'+(got?'':' locked')+'" title="'+escapeHtml(w.teacherName)+'先生">'+(got?_charSVG(w.teacher):'<span class="rpg-party-q">？</span>')+'</div>'; });
+    h+='<div class="rpg-party-mem'+(got?'':' locked')+'" title="'+escapeHtml(w.teacherName)+'先生">'+(got?_charStill(w.teacher):'<span class="rpg-party-q">？</span>')+'</div>'; });
   h+='</div></div>';
   // 魔王城
   var maouCleared=!!s.cleared['maou'];
@@ -5459,7 +5468,7 @@ function rpgShowDex(){
   h+='<div class="rpg-world-title">📖 モンスターずかん（'+Object.keys(s.dex).length+' / '+mons.length+'）</div>';
   h+='<div class="rpg-dex-grid">';
   mons.forEach(function(m){ var got=!!s.dex[m.mon];
-    h+='<div class="rpg-dex-cell'+(got?'':' unseen')+'"><div class="rpg-dex-svg">'+(got?RPG_SVG[m.mon]:'<span class="rpg-dex-q">？</span>')+'</div><span class="rpg-dex-name">'+(got?escapeHtml(m.name):'？？？')+'</span></div>'; });
+    h+='<div class="rpg-dex-cell'+(got?'':' unseen')+'"><div class="rpg-dex-svg">'+(got?_monStill(m.mon):'<span class="rpg-dex-q">？</span>')+'</div><span class="rpg-dex-name">'+(got?escapeHtml(m.name):'？？？')+'</span></div>'; });
   h+='</div>';
   var sk=Object.keys(s.stickers);
   h+='<div class="rpg-world-title">🎁 ごほうびシール（'+sk.length+' / '+STICKERS.length+'）</div>';
@@ -5932,7 +5941,7 @@ function rpgRenderMap(area){
       var oc=open?(' onclick="rpgEnterNode(\''+area+'\','+ci+','+ni+')"'):' disabled aria-disabled="true"';
       h+='<button class="'+cls+'" style="left:'+node.pos.x+'%;top:'+node.pos.y+'%"'+oc+' title="'+escapeHtml(node.name)+'">'+
          '<span class="rpg-node-mark">'+(done?'✓':(node.type==='boss'?'👑':(open?'':'🔒')))+'</span>'+
-         '<span class="rpg-node-face">'+(open?RPG_SVG[node.mon]:'')+'</span>'+
+         '<span class="rpg-node-face">'+(open?_monStill(node.mon):'')+'</span>'+
          '<span class="rpg-node-name">'+escapeHtml(node.name)+'</span></button>';
     });
     if(world.chapters.length>1){ var f=ch.nodes[0];
@@ -5986,7 +5995,8 @@ function rpgBeginBattle(area, ci, ni){
 function rpgShowBattle(){
   try{ hideTabbar(); }catch(e){}   // バトル中は下タブを隠す
   var st=document.getElementById('rpg-stage'); if(st) st.style.display='block';
-  document.getElementById('rpg-enemy-sprite').innerHTML=RPG_SVG[rpgBattle.node.mon]||'👾';
+  document.getElementById('rpg-enemy-sprite').innerHTML=_monLive(rpgBattle.node.mon);
+  try{ _char3dHydrateSafe(document.getElementById('rpg-enemy-sprite')); }catch(e){}
   document.getElementById('rpg-enemy-name').textContent=rpgBattle.node.name;
   document.getElementById('rpg-hero-sprite').innerHTML=_heroArt();
   document.getElementById('rpg-hero-name').textContent=escapeHtml(rpgHeroName());
@@ -6162,7 +6172,7 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   var s=rpgState(), acc=Math.round(b.correct/b.total*100);
   var L='<div class="rpg-res-card '+(victory?'win':'lose')+'">';
   L+='<div class="rpg-res-banner">'+(victory?'VICTORY':'しっぱい…')+'</div>';
-  L+='<div class="rpg-res-mon '+(victory?'beat':'')+'">'+(RPG_SVG[b.node.mon]||'')+'</div>';
+  L+='<div class="rpg-res-mon '+(victory?'beat':'')+'">'+_monStill(b.node.mon)+'</div>';
   L+='<div class="rpg-res-title">'+escapeHtml(victory?(b.node.name+' を たおした！'):(b.node.name+' に にげられた…'))+'</div>';
   L+='<div class="rpg-res-sub">正かい '+b.correct+' / '+b.total+'（'+acc+'%）</div>';
   L+='<div class="rpg-res-xp">＋'+xp+' けいけんち'+(pt?('　＋'+pt+'pt🌺'):'')+'</div>';
@@ -6173,7 +6183,7 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
     L+='<div class="rpg-res-offer" id="rpg-aibou-offer">'
       +'<div class="rpg-res-offer-ttl">😍 なかまに なりたそう！</div>'
       +(_ao._charm?'<div class="rpg-res-offer-charm">🌈 にじのおまもりの 力が はたらいた！（レアが 出やすい）</div>':'')
-      +'<div class="rpg-res-offer-svg">'+(RPG_SVG[_ao.art]||'👾')+'</div>'
+      +'<div class="rpg-res-offer-svg">'+_monStill(_ao.art)+'</div>'
       +'<div class="rpg-res-offer-txt">'+escapeHtml(_ao.name||'モンスター')+'　<span class="rpg-aibou-rank r'+_ao.rank+'">'+_ao.rank+'</span> '+(_aosp.em||'')+escapeHtml(_aosp.name||'')+(_aosp.rare?' <b>（レア種族！）</b>':'')+'</div>'
       +'<div class="rpg-res-offer-fx">とくせい：'+escapeHtml(_aosp.desc||'')+'</div>'
       +'<div class="rpg-res-offer-btns"><button class="rpg-btn" onclick="rpgAibouAccept()">🤝 なかまにする！</button><button class="rpg-abtn-line" onclick="rpgAibouDecline()">👋 ことわる</button></div></div>'; }
@@ -6337,7 +6347,7 @@ function rpgRenderEnding(b, xp){
   document.getElementById('rpg-map-view').style.display='none';
   var rv=document.getElementById('rpg-result-view'); rv.style.display='block';
   var s=rpgState();
-  var team=RPG_CONTINENTS.map(function(a){ return '<div class="rpg-end-mem">'+_charSVG(RPG_WORLD[a].teacher)+'</div>'; }).join('');
+  var team=RPG_CONTINENTS.map(function(a){ return '<div class="rpg-end-mem">'+_charStill(RPG_WORLD[a].teacher)+'</div>'; }).join('');
   var L='<div class="rpg-end-card">'+
     '<div class="rpg-end-crown">👑</div>'+
     '<div class="rpg-end-title">王国を すくった！</div>'+

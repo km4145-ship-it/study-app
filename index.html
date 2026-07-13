@@ -605,6 +605,25 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .imp-label { display:inline-block; }
   .q-time { font-size:0.72rem; color:var(--primary-light); margin-top:6px; }
   .careless-ask { font-size:0.78rem; color:var(--text); margin-top:8px; }
+  /* もんだいカバレッジ（管理者向けオーバーレイ） */
+  #cov-ov{ position:fixed; inset:0; z-index:2000000; background:rgba(15,23,42,.55); display:none; align-items:flex-start; justify-content:center; overflow:auto; padding:16px; }
+  .cov-card{ background:var(--card,#fff); color:var(--text,#0f172a); border-radius:16px; padding:14px 16px 18px; max-width:760px; width:100%; margin:8px auto 40px; box-shadow:0 18px 50px rgba(0,0,0,.35); }
+  .cov-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+  .cov-head b{ font-size:1.05rem; }
+  .cov-head .cov-hint{ flex:1; font-size:.74rem; opacity:.75; }
+  .cov-sec{ border-top:1px solid rgba(100,116,139,.25); padding:10px 0 6px; }
+  .cov-ttl{ font-weight:800; margin-bottom:6px; }
+  .cov-sum{ margin-left:10px; font-size:.78rem; font-weight:700; opacity:.7; }
+  .cov-holes{ background:#fee2e2; color:#991b1b; border-radius:9px; padding:6px 10px; font-size:.82rem; font-weight:700; margin:4px 0; }
+  .cov-thin{ background:#fef3c7; color:#92400e; border-radius:9px; padding:6px 10px; font-size:.82rem; font-weight:700; margin:4px 0; }
+  .cov-row{ display:flex; align-items:center; gap:8px; padding:2px 0; font-size:.82rem; }
+  .cov-u{ flex:0 0 10.5em; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cov-bar{ flex:1; height:9px; background:rgba(100,116,139,.18); border-radius:6px; overflow:hidden; }
+  .cov-bar i{ display:block; height:100%; background:linear-gradient(90deg,#38bdf8,#6366f1); border-radius:6px; }
+  .cov-n{ flex:0 0 3em; text-align:right; font-weight:800; }
+  .cov-lv{ flex:0 0 12em; font-size:.7rem; opacity:.75; white-space:nowrap; }
+  .cov-unm{ font-size:.74rem; opacity:.7; margin-top:4px; }
+  @media (max-width:560px){ .cov-lv{ display:none; } .cov-u{ flex-basis:8em; } }
   /* ミスの型分析（自動推定タグ＋コツ） */
   .miss-tag { display:inline-block; margin-top:7px; background:#fef3c7; color:#92400e; border-radius:9px; padding:3px 11px; font-size:.8rem; font-weight:800; }
   .miss-tip { margin-top:7px; background:#ecfeff; color:#155e75; border-radius:10px; padding:9px 12px; font-size:.86rem; font-weight:700; line-height:1.65; text-align:left; }
@@ -868,6 +887,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
       <p class="settings-hint">動作テスト用。コイン＋10万・アロハポイント＋10万・ガチャチケット＋50 を追加します。</p>
       <div class="settings-row">
         <button class="btn-sm" onclick="rpgTestGrant()">🪙 テスト用に 10万 付与</button>
+      </div>
+      <div class="settings-row">
+        <label>もんだいカバレッジ</label>
+        <button class="btn-sm" onclick="showCoverage()">📋 ひらく</button>
+        <span class="settings-hint" style="margin-left:6px">教科×単元ごとの問題数と「穴」（問題ゼロの単元）を確認できます</span>
       </div>
     </div>
 
@@ -2161,6 +2185,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/ui-data.js?v=1"></script>
 <script src="js/util.js?v=1"></script>
 <script src="js/miss-types.js?v=1"></script>
+<script src="js/coverage.js?v=1"></script>
 <script src="js/ranking.js?v=1"></script>
 <script src="js/three.min.js?v=1"></script>
 <script src="js/char3d.js?v=1"></script>
@@ -5180,6 +5205,49 @@ function rpgCosState(s){
   return c;
 }
 function rpgCoin(){ return rpgCosState(rpgState()).coin||0; }
+// ===== もんだいカバレッジ（A2・管理者向け）＝単元マスター×実コンテンツの照合 =====
+function _covCollectItems(area, nGen){
+  var items=[];
+  try{ if(typeof BANK!=='undefined' && BANK[area]){ [BANK[area].practice||[], BANK[area].exam||[]].forEach(function(a){ a.forEach(function(q){ if(q&&q.sub) items.push({sub:q.sub, level:q.level}); }); }); } }catch(e){}
+  if(area==='math'){ try{ if(typeof QUESTIONS!=='undefined'){ Object.keys(QUESTIONS).forEach(function(k){ var u=QUESTIONS[k]; var arr=Array.isArray(u)?u:((u&&u.questions)||[]); arr.forEach(function(q){ if(q&&q.sub) items.push({sub:q.sub, level:q.level}); }); }); } }catch(e){} }
+  for(var i=0;i<nGen;i++){ var q=null; try{ q=genQuestion(area); }catch(e){ break; } if(q&&q.sub) items.push({sub:q.sub, level:q.level}); }
+  return items;
+}
+function showCoverage(){
+  try{ sfx('click'); }catch(e){}
+  var ov=document.getElementById('cov-ov');
+  if(!ov){ ov=document.createElement('div'); ov.id='cov-ov'; document.body.appendChild(ov); }
+  var h='<div class="cov-card"><div class="cov-head"><b>📋 もんだいカバレッジ</b>'+
+    '<span class="cov-hint">固定バンク＋生成問題400回サンプルを、指導要領ベースの単元マスターに照合</span>'+
+    '<button class="btn-sm" onclick="covClose()">とじる ✖</button></div>';
+  AREAS.forEach(function(a){
+    var units=(typeof COV_CURRICULUM!=='undefined' && COV_CURRICULUM[a.key])||[];
+    if(!units.length) return;
+    var res=covAnalyze(_covCollectItems(a.key,400), units);
+    var mx=1; res.units.forEach(function(r){ if(r.count>mx) mx=r.count; });
+    h+='<div class="cov-sec"><div class="cov-ttl">'+a.icon+' '+escapeHtml(a.name)+
+       '<span class="cov-sum">単元 '+res.covered+'/'+res.units.length+' ・ 集計 '+res.total+'件</span></div>';
+    if(res.holes.length) h+='<div class="cov-holes">❌ 穴（問題ゼロ）: '+res.holes.map(escapeHtml).join('、')+'</div>';
+    if(res.thin.length)  h+='<div class="cov-thin">⚠️ うすい（5件未満）: '+res.thin.map(escapeHtml).join('、')+'</div>';
+    res.units.forEach(function(r){
+      if(!r.count){ return; }   // 穴は上の行にまとめて出すので表からは省く
+      var top=Object.keys(r.subs).sort(function(x,y){ return r.subs[y]-r.subs[x]; }).slice(0,4).join(' / ');
+      h+='<div class="cov-row" title="'+escapeHtml(top)+'">'+
+         '<span class="cov-u">'+escapeHtml(r.u)+'</span>'+
+         '<span class="cov-bar"><i style="width:'+Math.max(4,Math.round(r.count/mx*100))+'%"></i></span>'+
+         '<span class="cov-n">'+r.count+'</span>'+
+         '<span class="cov-lv">★'+r.byLevel[1]+'・★★'+r.byLevel[2]+'・★★★'+r.byLevel[3]+'・★★★★'+r.byLevel[4]+(r.byLevel[0]?('・?'+r.byLevel[0]):'')+'</span></div>';
+    });
+    var un=Object.keys(res.unmatched);
+    if(un.length){ var unN=0; un.forEach(function(k){ unN+=res.unmatched[k]; });
+      h+='<div class="cov-unm" title="'+escapeHtml(un.slice(0,10).join(' / '))+'">未分類: '+un.length+'種・'+unN+'件（マスターのキーワード追加候補）</div>'; }
+    h+='</div>';
+  });
+  h+='</div>';
+  ov.innerHTML=h; ov.style.display='flex';
+}
+function covClose(){ var ov=document.getElementById('cov-ov'); if(ov) ov.style.display='none'; }
+
 function rpgTestGrant(){   // テスト用：コイン・ポイント・チケットをまとめて付与（設定の管理者ボタンから）
   try{
     var s=rpgState(), cos=rpgCosState(s); cos.coin=(cos.coin||0)+100000; cos.tickets=(cos.tickets||0)+50; rpgSave(s);

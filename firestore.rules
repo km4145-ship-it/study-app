@@ -7,23 +7,39 @@ rules_version = '2';
 // 実行前に必ず内容を確認すること）。
 //
 // Phase 2（TTSキーのサーバープロキシ化）で private サブコレクションを追加。
-// ElevenLabsのAPIキーは families/{fam}/private/tts に保存し、Cloud Functions の
-// Admin SDK（ルールを迂回できる）からのみ読み書きする。クライアントには一切見せない。
+// ElevenLabsのAPIキーは families/{fam}/private/tts に保存し、Cloudflare Worker の
+// GCPサービスアカウント（ルールを迂回できる）からのみ読み書きする。クライアントには一切見せない。
+//
+// 【重要な修正・2026-07-14】以前は `match /private/{document=**} { allow: if false }` と
+// `match /{document=**} { allow: if request.auth != null }` を並べ、「private は具体的なパス
+// なので優先される＝ロックダウン」と考えていたが、これは誤り。Firestoreのルールは
+// 「より具体的なパスが優先」ではなく、マッチした全 allow の論理OR（1つでも真なら許可）。
+// そのため private/tts に対して下のワイルドカードの `if request.auth != null` が真となり、
+// 匿名ユーザーがElevenLabsキーを読み書きできていた（本番で実測・穴）。
+// → ワイルドカード match /{document=**} を撤廃し、許可するサブコレクション（shared/members/
+// sessions）だけを明示列挙する。private にはルールを一切書かない＝どの allow にもマッチせず
+// デフォルト拒否になる（クライアントからは永久に触れない。サーバーのサービスアカウントのみ）。
 //
 // Phase 4 Slice 1（実アカウントモデル・メール＋パスワード、単独オーナーのみ）で
 // accounts/{accountId} を追加。families/{fam}と違い匿名認証は許可しない
 // （request.auth.token.firebase.sign_in_provider!='anonymous'）。所有者本人（uid一致）のみ
 // 読み書き可＝家族コードのように知っていれば誰でも、という穴が無い。共有・招待（authorizedUsers/
-// invites）はSlice 2以降。families/{fam}は無変更（Phase 7の移行まで開けたまま）。
+// invites）はSlice 2以降。families/{fam}は Phase 7 の移行まで開けたまま（4桁コードを知れば誰でも
+// shared/members を読み書き可という既知の弱点は残るが、それはアカウントモデルで構造的に塞ぐ）。
 service cloud.firestore {
   match /databases/{database}/documents {
     match /families/{fam} {
+      // families ドキュメント自体（v1親doc・resetAt ブロードキャスト）
       allow read, write: if request.auth != null;
-      // private配下は「より具体的なパス」として下のワイルドカードより優先される＝完全ロックダウン
-      match /private/{document=**} {
-        allow read, write: if false;
+      // 許可するサブコレクションだけを明示列挙する。private/** は意図的にルールを書かない
+      // ＝デフォルト拒否（クライアント不可・Cloudflare Worker のサービスアカウントのみ触れる）。
+      match /shared/{document=**} {
+        allow read, write: if request.auth != null;
       }
-      match /{document=**} {
+      match /members/{document=**} {
+        allow read, write: if request.auth != null;
+      }
+      match /sessions/{document=**} {
         allow read, write: if request.auth != null;
       }
     }

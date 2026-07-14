@@ -21,11 +21,12 @@
 - **発見日**：2026-07-14
 
 ### 2. ElevenLabs APIキーが平文でクラウド同期・クライアントから直接使用されている
-- **ステータス：🟡 Workersデプロイ・Firestore疎通確認済み（2026-07-14）。実キーでの動作確認＋
-  クライアント切替コミットのpush待ち。**
-  残作業の手順は `docs/APP_STORE_ROADMAP.md` Phase 2「デプロイ実績」参照。
-  **pushが完了するまでは本項の穴は現状のまま残っている**（サーバーを立てただけでは効果が無い。
-  クライアントが新URLを使うよう切り替わって初めて閉じる）。
+- **ステータス：🟢 Workersプロキシ化・クライアント切替をpush済み（2026-07-14）。
+  さらに下記#3のルール欠陥（private/ttsが匿名で読めた）も修正済み。**
+  `el_api_key`はSHARED配列から除外済み（`el_key_set`の真偽値のみ同期）、鍵は
+  `families/{code}/private/tts`にのみ保存しCloudflare Worker（GCPサービスアカウント）経由でしか
+  触れない。**⚠️ ただし#3の期間中は鍵が漏洩しえた状態だったため、ElevenLabsダッシュボードでの
+  APIキー再発行を強く推奨**（下記#3参照）。
 - **内容**：`el_api_key` が `cloud-sync.js` の `SHARED` 配列に入っており、
   `families/{コード}/shared/settings` に平文で同期される。さらに `index.html` の3箇所
   （キー検証・ボイス追加・音声合成）で `fetch('https://api.elevenlabs.io/...', {headers:{'xi-api-key':elevenLabsKey}})`
@@ -45,6 +46,29 @@
   （無料枠は上限到達時に課金ではなくリクエスト拒否＝構造的に青天井になりえない）へ
   設計変更した（2026-07-15）。詳細は `docs/APP_STORE_ROADMAP.md` Phase 2参照。**
 - **発見日**：2026-07-14
+
+### 2b. Firestoreルールの構造欠陥で private/tts（ElevenLabsキー）が匿名ユーザーから読めていた
+- **ステータス：🟢 修正済み（2026-07-14）。要ユーザー操作：ルールの本番公開＋ElevenLabsキー再発行。**
+- **内容**：`firestore.rules` で private を守っていたつもりの
+  `match /private/{document=**} { allow: if false }` は、同じ階層に並んでいた
+  `match /{document=**} { allow: if request.auth != null }` と **論理OR** で評価されるため
+  無効だった（Firestoreに「より具体的なパス優先」は無く、マッチした全 allow の OR ＝1つでも
+  真なら許可）。結果、#2でサーバー側に隠したはずのElevenLabsキーが、匿名ユーザー（＝アプリの
+  全ユーザー）から `families/0000/private/tts` を直接読み書きできる状態だった（本番で実測・
+  読取も書込も200）。#2の秘匿対策が実質無効化されていた。
+- **影響**：家族コード（既定0000）を知る者は誰でもElevenLabsキーを平文で読めた＝課金盗用リスク。
+  実際に鍵が漏洩したかは不明だが、**漏洩しえた期間があった以上、キー再発行が必要**。
+- **対策**：`match /{document=**}` キャッチオールを撤廃し、許可するサブコレクション
+  （shared/members/sessions）だけを明示列挙。private にはルールを書かない＝デフォルト拒否
+  （サーバーのGCPサービスアカウントだけがルールを迂回して触れる）。デプロイ後、匿名トークンでの
+  実地プローブで private/tts が読取・書込とも403、shared/members/sessions は200 を実測して確認。
+  静的構造ガード `tests/unit-firestore-rules.js` でキャッチオール再混入を防ぐ。
+- **要ユーザー操作**：①修正版ルールを Firebase Console で公開（firebase CLI/サービスアカウントでは
+  権限不足のため手動）②ElevenLabsダッシュボードでAPIキーを再発行し、アプリ設定画面で入れ直す。
+- **残（follow-up）**：完全リセット（cloudWipeAll）時の private/tts 削除はルール拒否で失敗するように
+  なった（`.catch`で握りつぶし・鍵docが残るだけ）。正しくは Cloudflare Worker に deleteKey
+  エンドポイントを足す（`workers/tts-proxy/lib/firestore.js` の未使用 `deleteDoc` が土台）。
+- **発見日**：2026-07-14（Phase 4 Slice 2 の着手前の権限境界テストで発見）
 
 ---
 

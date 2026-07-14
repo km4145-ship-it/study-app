@@ -195,9 +195,16 @@ const c = makeChecker('unit-tts-worker');
     c.ok('JWT形状の事前チェックがJWKS取得より先にある（無駄な外部通信を避ける）', authIdx >= 0 && jwksCallIdx >= 0 && authIdx < jwksCallIdx);
   }
 
-  // ================= firestore.rules：privateサブコレクションのロックダウンは維持されている =================
+  // ================= firestore.rules：private は「ルールを書かない＝デフォルト拒否」で守る =================
+  // （旧方式の `match /private/... allow: if false` は、隣の match /{document=**} との OR 評価で
+  //   無効化されていた＝2026-07-14の穴。families配下にキャッチオールが無いことだけ確認する。
+  //   accounts配下の条件付きキャッチオールは正当。詳細検証は tests/unit-firestore-rules.js）
   const rules = fs.readFileSync(path.join(ROOT, 'firestore.rules'), 'utf8');
-  c.ok('firestore.rules に private ロックダウンがある', /match \/private\/\{document=\*\*\}[\s\S]{0,80}allow read, write: if false/.test(rules));
+  const effRules = rules.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  const famStart = effRules.indexOf('match /families/{fam}');
+  const famEnd = effRules.indexOf('match /accounts/', famStart);
+  const famRules = effRules.slice(famStart, famEnd >= 0 ? famEnd : undefined);
+  c.ok('families配下に無条件キャッチオール match /{document=**} が無い（private漏洩の元凶）', famRules.indexOf('match /{document=**}') < 0);
 
   c.done();
 })();

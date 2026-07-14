@@ -360,9 +360,13 @@ window.FIREBASE_CONFIG = {
     return rootRef().collection('members').get().then(function(qs){
       var dels=[]; qs.forEach(function(doc){ dels.push(doc.ref.delete()); });
       return Promise.all(dels);
-    // families/{code}/private/tts（Phase 2でCloud Functionsが保存するElevenLabsキー）も削除。
-    // ここを忘れると「完全リセットしたのにサーバー上に鍵が残り続ける」という見落としバグになる。
-    // TTSはSlice 1時点ではfamilyモード限定（accountモードには私鍵の保存先が無い）。
+    // families/{code}/private/tts（Phase 2でElevenLabsキーを保存する場所）も消したいが、
+    // 【2026-07-14のルール修正以降】private配下はセキュリティルールで完全拒否になったため、
+    // この delete はクライアントからは permission-denied で失敗する（.catch で握りつぶす）。
+    // ＝完全リセットしてもサーバー上の鍵docが残る副作用がある。匿名 delete を許可すると
+    // 4桁コード総当たりで他人の鍵を消せるgriefingになるためルールでは開けない。正しい対処は
+    // Cloudflare Worker に deleteKey エンドポイントを足すこと（follow-up・未実装）。
+    // TTSはfamilyモード限定（accountモードには鍵の保存先が無い）。
     }).then(function(){ return (mode==='family') ? legacyRef().collection('private').doc('tts').delete().catch(function(){}) : null; })
       .then(function(){ return sharedRef().delete(); })
       .then(function(){ return rootRef().set({ v2done:true, resetAt: epoch }); })  // merge無し＝旧v1のdataも消える（accountモードでもv2done/resetAtは無害）

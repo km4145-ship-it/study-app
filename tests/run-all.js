@@ -52,6 +52,7 @@ const TESTS = [
   ['tests/int-duels.js'],
   ['tests/int-accounts.js'],
   ['tests/unit-tts-worker.js'],
+  ['tests/unit-firestore-rules.js'],
   ['tests/int-build.js'],
   ['tests/e2e-smoke.js'],
 ];

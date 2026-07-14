@@ -729,23 +729,36 @@ function _c3dEmojiPlate(em, size){
     new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
   return m;
 }
-// 装備をキャラ/モンスターに装着（アンカー式）。equip={hat:item,face:item,hand:item}（itemは{em}を持つ）
+// 装備をキャラ/モンスターに装着（アンカー式）。equip={hat:item,face:item,hand:item,back:item,ride:item}（itemは{em}を持つ）
 function char3dEquip(charGroup, equip){
   var an = charGroup.userData.anchors, head = charGroup.userData.headGroup;
   if (!an || !head || !equip) return;
-  ['hat','face','hand'].forEach(function(sl){
+  ['hat','face','hand','back','ride'].forEach(function(sl){
     var it = equip[sl]; if (!it || !it.em) return;
     var arch = C3D_GEAR[it.em];
     var mesh, s;
-    if (arch){ mesh = _c3dBuildGear(arch, sl); }
+    if (sl === 'back' && !arch){
+      // せなか（翼/マント）：左右2枚のミラー板＝正面カメラでも体の両側からのぞいて見える
+      mesh = new THREE.Group();
+      [-1, 1].forEach(function(sd){
+        var p = _c3dEmojiPlate(it.em, .62);
+        p.position.set(sd * .33, 0, 0); p.rotation.y = sd * .55;
+        if (sd < 0) p.scale.x = -1;   // 左は鏡像＝左右対称の翼になる
+        mesh.add(p);
+      });
+    }
+    else if (arch){ mesh = _c3dBuildGear(arch, sl); }
     else {
-      var size = sl === 'hand' ? .5 : .55;
+      var size = sl === 'hand' ? .5 : (sl === 'ride' ? .85 : .55);
       mesh = _c3dEmojiPlate(it.em, size);
       if (sl === 'hat') mesh.rotation.x = -.35; // 頭にかぶさる角度
+      if (sl === 'ride') mesh.rotation.x = -.5; // 地面に寝かせぎみ＝台座らしく
     }
     // アーケタイプ内部のオフセット（王冠の沈み込み等）を保つため、アンカーは「加算」する
     if (sl === 'hat'){ s = an.hatL; head.add(mesh); mesh.position.x += s[0]; mesh.position.y += s[1]; mesh.position.z += s[2]; }
     else if (sl === 'face'){ s = an.faceL; head.add(mesh); mesh.position.x += s[0]; mesh.position.y += s[1]; mesh.position.z += s[2] + .06; }
+    else if (sl === 'back'){ s = an.back || [0, .74, -.30]; charGroup.add(mesh); mesh.position.x += s[0]; mesh.position.y += s[1]; mesh.position.z += s[2]; }
+    else if (sl === 'ride'){ s = an.ride || [0, .10, .16]; charGroup.add(mesh); mesh.position.x += s[0]; mesh.position.y += s[1]; mesh.position.z += s[2]; }
     else {
       s = an.hand;
       var armR = charGroup.userData.armR;
@@ -1116,7 +1129,7 @@ function _c3dReadEquip(cosKind){
     var c = rpgCosState(rpgState());
     var eq = (c.equip && c.equip[cosKind]) || {};
     var out = {};
-    ['hat','face','hand'].forEach(function(sl){ var id = eq[sl]; if (id){ var it = rpgCosById(cosKind, id); if (it && it.em) out[sl] = it; } });
+    ['hat','face','hand','back','ride'].forEach(function(sl){ var id = eq[sl]; if (id){ var it = rpgCosById(cosKind, id); if (it && it.em) out[sl] = it; } });
     return out;
   } catch(e){ return null; }
 }

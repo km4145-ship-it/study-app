@@ -12,7 +12,9 @@ const api = (new Function(code + '\nreturn { COS_DATA, COS_SETS, COS_TITLES, COS
 
 let count = 0;
 ['hero', 'pet'].forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => { count += api.COS_DATA[k][sl].length; }));
-c.ok('COS_DATA アイテム総数275（追加IIFE込み）', count === 275);
+c.ok('COS_DATA アイテム総数307（追加IIFE＋せなか/のりもの込み）', count === 307);
+c.ok('新スロット back/ride が hero にある', Array.isArray(api.COS_DATA.hero.back) && api.COS_DATA.hero.back.length === 16 && Array.isArray(api.COS_DATA.hero.ride) && api.COS_DATA.hero.ride.length === 16);
+c.ok('COS_SLOTS.hero に back/ride', api.COS_SLOTS.hero.some((s) => s[0] === 'back') && api.COS_SLOTS.hero.some((s) => s[0] === 'ride'));
 // idの一意性（過去にhat/handが同じgx_hh…を生成して12個衝突していた回帰ガード）
 {
   const seen = {};
@@ -27,7 +29,16 @@ const tiers = {};
 c.ok('8レア度すべてに装備がある', ['N', 'HN', 'R', 'HR', 'SR', 'SSR', 'UR', 'LR'].every((t) => tiers[t] > 0));
 c.ok('COS_RARITY に UR', !!api.COS_RARITY.UR);
 c.ok('COS_SLOTS に hero/pet', api.COS_SLOTS.hero && api.COS_SLOTS.pet);
-c.ok('COS_SETS 6セット', Array.isArray(api.COS_SETS) && api.COS_SETS.length === 6);
+c.ok('COS_SETS 8セット', Array.isArray(api.COS_SETS) && api.COS_SETS.length === 8);
+// セットが参照するアイテムidはすべて実在する（タイポでコンプ不能セットができるのを防ぐ）
+{
+  const allIds = {};
+  Object.keys(api.COS_DATA).forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => api.COS_DATA[k][sl].forEach((it) => { allIds[it.id] = 1; })));
+  api.COS_SETS.forEach((set) => {
+    c.ok('セット' + set.id + 'のitemsが全て実在', set.items.every((id) => allIds[id]));
+    c.ok('セット' + set.id + 'の称号が定義済み', !set.title || !!api.COS_TITLES[set.title]);
+  });
+}
 c.ok('COS_TITLES に t_master', api.COS_TITLES && api.COS_TITLES.t_master);
 
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

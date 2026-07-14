@@ -122,7 +122,29 @@ var COS_DATA={
   }
   Object.keys(PILE).forEach(function(kind){ Object.keys(PILE[kind]).forEach(function(slot){ add(kind,slot,PILE[kind][slot]); }); });
 })();
-var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['aura','✨ オーラ']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']] };
+// ===== 新スロット：せなか（翼/マント）＆ のりもの（足元の台座）。8段階レア度を直接指定 =====
+// （↑のレア度再割当IIFEより後に足すこと。id接頭辞 bk_/rd_ は固定＝セット定義から参照できる）
+COS_DATA.hero.back=[
+  {id:'bk_bag',em:'🎒',name:'ランドセル',price:30,r:'N'},{id:'bk_balloon',em:'🎈',name:'せなかふうせん',price:30,r:'N'},{id:'bk_kite',em:'🪁',name:'カイト',price:35,r:'N'},
+  {id:'bk_shell',em:'🐢',name:'かめのこうら',price:45,r:'HN'},{id:'bk_umbrella',em:'🌂',name:'かささし',price:45,r:'HN'},
+  {id:'bk_scarf',em:'🧣',name:'ひらひらマント',price:65,r:'R'},{id:'bk_butterfly',em:'🦋',name:'ちょうのはね',price:65,r:'R'},{id:'bk_dove',em:'🕊️',name:'はとのつばさ',price:70,r:'R'},
+  {id:'bk_para',em:'🪂',name:'パラシュート',price:100,r:'HR'},{id:'bk_guitar',em:'🎸',name:'せおいギター',price:100,r:'HR'},
+  {id:'bk_bolt',em:'⚡',name:'いなずまのマント',price:145,r:'SR'},{id:'bk_angel',em:'😇',name:'てんしのつばさ',price:150,r:'SR'},
+  {id:'bk_fire',em:'🔥',name:'でんせつのほのおマント',price:200,r:'SSR'},{id:'bk_dragon',em:'🐉',name:'でんせつのりゅうのつばさ',price:210,r:'SSR'},
+  {id:'bk_galaxy',em:'🌌',name:'しんかのぎんがマント',price:290,r:'UR'},
+  {id:'bk_rainbow',em:'🌈',name:'レジェンドにじのつばさ',price:420,r:'LR'}
+];
+COS_DATA.hero.ride=[
+  {id:'rd_skate',em:'🛹',name:'スケボー',price:30,r:'N'},{id:'rd_scooter',em:'🛴',name:'キックボード',price:30,r:'N'},{id:'rd_sled',em:'🛷',name:'そり',price:35,r:'N'},
+  {id:'rd_horse',em:'🎠',name:'もくば',price:45,r:'HN'},{id:'rd_ring',em:'🛟',name:'うきわ',price:45,r:'HN'},
+  {id:'rd_broom',em:'🧹',name:'まほうのほうき',price:65,r:'R'},{id:'rd_cloud',em:'☁️',name:'きんとうん',price:70,r:'R'},{id:'rd_wave',em:'🌊',name:'なみのり',price:70,r:'R'},
+  {id:'rd_ufo',em:'🛸',name:'ミニUFO',price:100,r:'HR'},{id:'rd_dolphin',em:'🐬',name:'イルカライド',price:105,r:'HR'},
+  {id:'rd_sleigh',em:'🦌',name:'トナカイぞり',price:145,r:'SR'},{id:'rd_uni',em:'🦄',name:'ユニコーン',price:150,r:'SR'},
+  {id:'rd_rocket',em:'🚀',name:'でんせつのロケット',price:200,r:'SSR'},{id:'rd_dragonride',em:'🐲',name:'でんせつのりゅうライド',price:210,r:'SSR'},
+  {id:'rd_star',em:'🌠',name:'しんかのながれぼし',price:290,r:'UR'},
+  {id:'rd_aurora',em:'✨',name:'レジェンドオーロラライド',price:420,r:'LR'}
+];
+var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['back','🦋 せなか'],['ride','🛹 のりもの'],['aura','✨ オーラ']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']] };
 var COS_RARITY={
   N:{name:'ノーマル',cls:'cos-n'},
   HN:{name:'ハイノーマル',cls:'cos-hn'},
@@ -140,7 +162,9 @@ var COS_SETS=[
   { id:'set_king',   name:'おうさま',     em:'👑', items:['h_crown','d_trophy'],             coin:100, title:'t_king' },
   { id:'set_angel',  name:'てんし',       em:'😇', items:['h_halo','a_holy','f_star'],       coin:120, title:'t_angel' },
   { id:'set_rainbow',name:'にじいろ',     em:'🌈', items:['a_rain','pa_rain'],               coin:80,  title:'t_rainbow' },
-  { id:'set_galaxy', name:'ぎんが',       em:'🌌', items:['a_galaxy','pa_galaxy'],           coin:200, title:'t_galaxy' }
+  { id:'set_galaxy', name:'ぎんが',       em:'🌌', items:['a_galaxy','pa_galaxy'],           coin:200, title:'t_galaxy' },
+  { id:'set_sky',    name:'おおぞら',     em:'🕊️', items:['bk_angel','rd_cloud'],            coin:120, title:'t_sky' },
+  { id:'set_speed',  name:'スピードスター', em:'🚀', items:['rd_skate','rd_rocket','bk_bolt'], coin:120, title:'t_speed' }
 ];
 var COS_TITLES={
   t_wizard:{ name:'だいまほうつかい', em:'🧙' },
@@ -149,6 +173,8 @@ var COS_TITLES={
   t_angel:{ name:'てんしの まもり', em:'😇' },
   t_rainbow:{ name:'にじの かなた', em:'🌈' },
   t_galaxy:{ name:'ぎんがの ゆうしゃ', em:'🌌' },
+  t_sky:{ name:'おおぞらの つばさ', em:'🕊️' },
+  t_speed:{ name:'いなずまライダー', em:'🚀' },
   t_collector:{ name:'コレクター', em:'📦' },        // 所持アイテムが半分
   t_master:{ name:'きせかえマスター', em:'🌟' },      // 全アイテムコンプ
   t_first_ur:{ name:'にじいろの きせき', em:'✨' }    // URを初ゲット

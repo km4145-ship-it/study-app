@@ -167,6 +167,13 @@ const devA = JSON.stringify({ v: 1, aibou: { roster: { m1: { id: 'm1', art: 'sli
 const devB = JSON.stringify({ v: 1, aibou: { roster: { m1: { id: 'm1', art: 'slime', sp: 'slime', rank: 'A', lv: 2, xp: 9, name: '' }, m2: { id: 'm2', art: 'dragon', sp: 'dragon', rank: 'SSS', lv: 1, xp: 0, name: 'ドラゴ' } }, party: ['m2'], food: 4 } });
 const m = JSON.parse(mergeRpg(devA, devB)).aibou;
 c.ok('roster は和集合（m1とm2が残る）', !!m.roster.m1 && !!m.roster.m2);
+// ぼうし（a.hat）：片側だけ装備していても merge で消えない（Object.assignの透過引き継ぎ）
+{
+  const withHat = JSON.stringify({ v: 1, aibou: { roster: { m9: { id: 'm9', art: 'slime', sp: 'slime', rank: 'C', lv: 3, xp: 0, name: 'ぼうしの子', hat: 'ah_ribbon' } }, party: [], food: 0 } });
+  const noHat = JSON.stringify({ v: 1, aibou: { roster: { m9: { id: 'm9', art: 'slime', sp: 'slime', rank: 'C', lv: 3, xp: 0, name: 'ぼうしの子' } }, party: [], food: 0 } });
+  c.eq('hatはローカル側だけでも残る', JSON.parse(mergeRpg(withHat, noHat)).aibou.roster.m9.hat, 'ah_ribbon');
+  c.eq('hatはクラウド側だけでも残る', JSON.parse(mergeRpg(noHat, withHat)).aibou.roster.m9.hat, 'ah_ribbon');
+}
 c.eq('lvはmax(5,2)=5', m.roster.m1.lv, 5);
 c.eq('xpはmax(3,9)=9', m.roster.m1.xp, 9);
 c.eq('名前は消えない(スラりん)', m.roster.m1.name, 'スラりん');

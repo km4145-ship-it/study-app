@@ -144,7 +144,18 @@ COS_DATA.hero.ride=[
   {id:'rd_star',em:'🌠',name:'しんかのながれぼし',price:290,r:'UR'},
   {id:'rd_aurora',em:'✨',name:'レジェンドオーロラライド',price:420,r:'LR'}
 ];
-var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['back','🦋 せなか'],['ride','🛹 のりもの'],['aura','✨ オーラ']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']] };
+// ===== あいぼう（なかまモンスター）のぼうし。装備は cos.equip でなく roster個体の a.hat（あいぼう詳細画面でそうび） =====
+COS_DATA.aibou={ hat:[
+  {id:'ah_ribbon',em:'🎀',name:'りぼん',price:30,r:'N'},{id:'ah_leaf',em:'🍀',name:'よつばのかざり',price:30,r:'N'},{id:'ah_flower',em:'🌼',name:'おはな',price:30,r:'N'},
+  {id:'ah_helm',em:'🪖',name:'ミニヘルメット',price:45,r:'HN'},{id:'ah_cap',em:'🧢',name:'ミニキャップ',price:45,r:'HN'},
+  {id:'ah_grad',em:'🎓',name:'はかせぼう',price:65,r:'R'},{id:'ah_top',em:'🎩',name:'ミニシルクハット',price:65,r:'R'},
+  {id:'ah_ninja',em:'🥷',name:'にんじゃずきん',price:100,r:'HR'},{id:'ah_pump',em:'🎃',name:'かぼちゃぼうし',price:100,r:'HR'},
+  {id:'ah_crown',em:'👑',name:'ミニおうかん',price:150,r:'SR'},
+  {id:'ah_dragon',em:'🐲',name:'でんせつのりゅうかぶと',price:210,r:'SSR'},
+  {id:'ah_galaxy',em:'🌌',name:'しんかのぎんがかんむり',price:290,r:'UR'},
+  {id:'ah_rainbow',em:'🌈',name:'レジェンドにじのかんむり',price:420,r:'LR'}
+] };
+var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['back','🦋 せなか'],['ride','🛹 のりもの'],['aura','✨ オーラ']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']], aibou:[['hat','🎀 ぼうし']] };
 var COS_RARITY={
   N:{name:'ノーマル',cls:'cos-n'},
   HN:{name:'ハイノーマル',cls:'cos-hn'},
@@ -164,7 +175,8 @@ var COS_SETS=[
   { id:'set_rainbow',name:'にじいろ',     em:'🌈', items:['a_rain','pa_rain'],               coin:80,  title:'t_rainbow' },
   { id:'set_galaxy', name:'ぎんが',       em:'🌌', items:['a_galaxy','pa_galaxy'],           coin:200, title:'t_galaxy' },
   { id:'set_sky',    name:'おおぞら',     em:'🕊️', items:['bk_angel','rd_cloud'],            coin:120, title:'t_sky' },
-  { id:'set_speed',  name:'スピードスター', em:'🚀', items:['rd_skate','rd_rocket','bk_bolt'], coin:120, title:'t_speed' }
+  { id:'set_speed',  name:'スピードスター', em:'🚀', items:['rd_skate','rd_rocket','bk_bolt'], coin:120, title:'t_speed' },
+  { id:'set_aibou',  name:'あいぼうコーデ', em:'🐾', items:['ah_ribbon','ah_grad'],            coin:80,  title:'t_aibou' }
 ];
 var COS_TITLES={
   t_wizard:{ name:'だいまほうつかい', em:'🧙' },
@@ -175,6 +187,7 @@ var COS_TITLES={
   t_galaxy:{ name:'ぎんがの ゆうしゃ', em:'🌌' },
   t_sky:{ name:'おおぞらの つばさ', em:'🕊️' },
   t_speed:{ name:'いなずまライダー', em:'🚀' },
+  t_aibou:{ name:'あいぼうマイスター', em:'🐾' },
   t_collector:{ name:'コレクター', em:'📦' },        // 所持アイテムが半分
   t_master:{ name:'きせかえマスター', em:'🌟' },      // 全アイテムコンプ
   t_first_ur:{ name:'にじいろの きせき', em:'✨' }    // URを初ゲット

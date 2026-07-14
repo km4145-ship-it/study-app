@@ -11,10 +11,11 @@ const code = fs.readFileSync(path.join(ROOT, 'js', 'cos-data.js'), 'utf8');
 const api = (new Function(code + '\nreturn { COS_DATA, COS_SETS, COS_TITLES, COS_RARITY, COS_SLOTS };'))();
 
 let count = 0;
-['hero', 'pet'].forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => { count += api.COS_DATA[k][sl].length; }));
-c.ok('COS_DATA アイテム総数307（追加IIFE＋せなか/のりもの込み）', count === 307);
+Object.keys(api.COS_DATA).forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => { count += api.COS_DATA[k][sl].length; }));
+c.ok('COS_DATA アイテム総数320（追加IIFE＋せなか/のりもの＋あいぼう込み）', count === 320);
 c.ok('新スロット back/ride が hero にある', Array.isArray(api.COS_DATA.hero.back) && api.COS_DATA.hero.back.length === 16 && Array.isArray(api.COS_DATA.hero.ride) && api.COS_DATA.hero.ride.length === 16);
 c.ok('COS_SLOTS.hero に back/ride', api.COS_SLOTS.hero.some((s) => s[0] === 'back') && api.COS_SLOTS.hero.some((s) => s[0] === 'ride'));
+c.ok('あいぼうのぼうし13種＋COS_SLOTS.aibou', api.COS_DATA.aibou && api.COS_DATA.aibou.hat.length === 13 && Array.isArray(api.COS_SLOTS.aibou));
 // idの一意性（過去にhat/handが同じgx_hh…を生成して12個衝突していた回帰ガード）
 {
   const seen = {};
@@ -25,11 +26,11 @@ c.ok('COS_SLOTS.hero に back/ride', api.COS_SLOTS.hero.some((s) => s[0] === 'ba
   c.ok('全アイテムidが一意（hat/hand衝突の回帰ガード）', dup === 0);
 }
 const tiers = {};
-['hero', 'pet'].forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => api.COS_DATA[k][sl].forEach((it) => { tiers[it.r] = (tiers[it.r] || 0) + 1; })));
+Object.keys(api.COS_DATA).forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => api.COS_DATA[k][sl].forEach((it) => { tiers[it.r] = (tiers[it.r] || 0) + 1; })));
 c.ok('8レア度すべてに装備がある', ['N', 'HN', 'R', 'HR', 'SR', 'SSR', 'UR', 'LR'].every((t) => tiers[t] > 0));
 c.ok('COS_RARITY に UR', !!api.COS_RARITY.UR);
 c.ok('COS_SLOTS に hero/pet', api.COS_SLOTS.hero && api.COS_SLOTS.pet);
-c.ok('COS_SETS 8セット', Array.isArray(api.COS_SETS) && api.COS_SETS.length === 8);
+c.ok('COS_SETS 9セット', Array.isArray(api.COS_SETS) && api.COS_SETS.length === 9);
 // セットが参照するアイテムidはすべて実在する（タイポでコンプ不能セットができるのを防ぐ）
 {
   const allIds = {};

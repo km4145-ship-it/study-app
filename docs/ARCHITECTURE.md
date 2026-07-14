@@ -42,11 +42,10 @@ tests/                依存ゼロのテスト群（node のみ。run-all.js で
 docs/ARCHITECTURE.md  この文書
 .github/workflows/    ci.yml（テスト＋ビルド検証） / deploy.yml（本番公開）
 
-index_backup_*.html / cloud-sync_backup_*.js  過去の手動バックアップ（ビルド対象外・参考のみ）
 ```
 
-> メモ：ルートの `index_backup_*.html` 等はビルドに含まれない（`build.js` は `index.html` だけを読む）。
-> 履歴は git にあるので、いずれ整理してよい。
+> メモ：かつてルートにあった `index_backup_*.html` / `cloud-sync_backup_*.js`（手動バックアップ）は
+> 2026-07-14 に削除済み。必要なら git 履歴から復元できる。
 
 ---
 

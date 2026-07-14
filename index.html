@@ -5341,7 +5341,7 @@ function renderDailyMenu(){
 function rpgItemById(id){ var pool=_gachaPool(); for(var i=0;i<pool.length;i++){ if(pool[i].it.id===id) return pool[i].it; } return null; }
 // ===== キャラのステータス（こうげき/ぼうぎょ/HP/MP）＝レベル＋装備 =====
 var RPG_SPECIAL_COST=6;                                          // 必殺技のMPコスト
-var STAT_EQUIP_MAG={N:2,R:4,S:7,UR:12};                          // 装備のレア度→ステータス上昇量
+var STAT_EQUIP_MAG={N:2,HN:3,R:4,HR:5,SR:7,SSR:9,UR:12,LR:15};   // 装備のレア度→ステータス上昇量（8段階。旧4段階のままでHN〜LRが+2に落ちていたのを修正）
 var STAT_SLOT={ hat:'def', face:'mp', hand:'atk', back:'hp', ride:'def', aura:'hp' };   // 部位→伸びるステータス（ぼうし/のりもの=防御・かお=MP・どうぐ=攻撃・せなか/オーラ=HP）
 function _rpgBaseStats(lv){ lv=lv||1; return { hp:18+lv*3, atk:6+lv*2, def:3+Math.floor(lv*1.5), mp:5+lv }; }
 function rpgEquipBonus(cos){
@@ -5733,7 +5733,6 @@ function _heroArt(){
 }
 
 // ---- 世界とモンスター配置（P1：数の大陸／2章8ノード。posはマップ上の%座標）----
-var RPG_STAMINA_MAX = 8;
 var rpgBattle = null;
   // rpg-world.js へ分離
 function rpgBossTaunt(node){
@@ -5803,7 +5802,17 @@ function rpgAibouState(s){
 }
 function rpgAibouParty(){ try{ var s=rpgState(), ai=rpgAibouState(s); return ai.party.map(function(id){ return ai.roster[id]; }); }catch(e){ return []; } }
 // あいぼうの絵（旧ペットはPET_SVGの成長段階、モンスターはRPG_SVG）
-function rpgAibouArt(a){ if(!a) return '🐾'; if(a.art==='pet') return PET_SVG[Math.min(3, Math.floor(((a.lv||1)-1)/8))]; return _monStill(a.art); }
+// あいぼうの絵。初代あいぼう（旧相棒ペット・art==='pet'）には「ペットのそうび」（cos.equip.pet）も重ねる＝
+// きせかえのペット装備が、あいぼう画面/バトルのミニアイコンでちゃんと見えるようにする
+function rpgAibouArt(a){
+  if(!a) return '🐾';
+  if(a.art==='pet'){
+    var h=PET_SVG[Math.min(3, Math.floor(((a.lv||1)-1)/8))];
+    try{ h+=rpgCosBadge('pet'); }catch(e){}
+    return h;
+  }
+  return _monStill(a.art);
+}
 // あいぼうのぼうし（roster個体の a.hat）を絵の上に重ねる。.rpg-aibou-art の中に入れて使う
 function rpgAibouHatHtml(a){ try{ var it=(a&&a.hat)?rpgCosById('aibou',a.hat):null; return it?'<span class="rpg-aibou-hat">'+it.em+'</span>':''; }catch(e){ return ''; } }
 // ぼうしの そうび/はずす（あいぼう詳細画面から）
@@ -5859,7 +5868,6 @@ function rpgMarkSeen(k){ var s=rpgState(); s.story[k]=1; rpgSave(s); }
 /* rpgXpForLevel は js/scoring.js へ分離 */
 /* rpgLevelForXp は js/scoring.js へ分離 */
 function rpgToday(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-function rpgStaminaLeft(){ return 999; }              // 1日の回数制限は撤廃：いくらでも冒険できる
 function rpgUseStamina(){ /* 制限なし：スタミナを消費しない */ }
 function rpgNodeKey(area,chId,nodeId){ return area+':'+chId+':'+nodeId; }
 function rpgIsCleared(area,chId,nodeId){ return !!rpgState().cleared[rpgNodeKey(area,chId,nodeId)]; }
@@ -6519,11 +6527,11 @@ function showCosmetics(){
   // 今のすがた プレビュー
   h+='<div class="rpg-cos-preview">'+
      '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+_heroArt()+'</div><span>ゆうしゃ</span></div>'+
-     '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+PET_SVG[Math.min((s.pet&&s.pet.stage)||0,3)]+rpgCosBadge('pet')+'</div><span>あいぼう</span></div></div>';
+     '<div class="rpg-cos-pv"><div class="rpg-cos-pv-char">'+PET_SVG[Math.min((s.pet&&s.pet.stage)||0,3)]+rpgCosBadge('pet')+'</div><span>ペット（初代あいぼう）</span></div></div>';
   var _et=rpgEquippedTitle(); if(_et) h+='<div class="rpg-cos-title-now">いまの称号：'+_et.em+' '+_et.name+'</div>';
   var _sts=rpgStats(); h+='<div class="rpg-cos-stats">ステータス　⚔️こうげき '+_sts.atk+'（+'+_sts.eq.atk+'）　🛡️ぼうぎょ '+_sts.def+'（+'+_sts.eq.def+'）　❤️HP '+_sts.hp+'（+'+_sts.eq.hp+'）　✨MP '+_sts.mp+'（+'+_sts.eq.mp+'）</div>';
   ['hero','pet','aibou'].forEach(function(kind){
-    h+='<div class="rpg-world-title" style="font-size:1.05rem;margin-top:10px">'+(kind==='hero'?'🦸 ゆうしゃ':(kind==='pet'?'🐾 あいぼう':'🐾 なかまモンスターのぼうし'))+'</div>';
+    h+='<div class="rpg-world-title" style="font-size:1.05rem;margin-top:10px">'+(kind==='hero'?'🦸 ゆうしゃ':(kind==='pet'?'🐕 ペット（初代あいぼう）':'🐾 なかまモンスターのぼうし'))+'</div>';
     COS_SLOTS[kind].forEach(function(sd){
       var slot=sd[0], items=COS_DATA[kind][slot]||[], equippedId=(cos.equip[kind]||{})[slot]||'';
       var ownedN=items.filter(function(it){ return !!cos.owned[it.id]; }).length;
@@ -6631,7 +6639,6 @@ function rpgMapPathSVG(area){
     '</svg>';
 }
 function rpgEnterNode(area, ci, ni){
-  if(rpgStaminaLeft()<=0){ showToast('😴','きょうの冒険はここまで','よくがんばったね！つづきは明日。ふつうの学習はできるよ'); return; }
   if(!rpgNodeUnlocked(area, ci, ni)){ sfx('wrong'); showToast('🔒','まだ行けないよ','前のマスをクリアするとひらけるよ'); return; }
   sfx('click'); vibe(15);
   var ch=RPG_WORLD[area].chapters[ci], node=ch.nodes[ni];
@@ -6902,7 +6909,7 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   if(!victory) L+='<div class="rpg-res-tip">💡 まちがえた問題は「📕ノート」で 復習できるよ。復習して リベンジしよう！</div>';
   L+='<div class="rpg-res-btns">';
   var retryFn = b.maou ? 'rpgStartMaou()' : ('rpgEnterNode(\''+b.area+'\','+b.chIdx+','+b.nodeIdx+')');
-  if(rpgStaminaLeft()>0) L+='<button class="rpg-btn" onclick="'+retryFn+'">🔁 もういちど たたかう</button>';
+  L+='<button class="rpg-btn" onclick="'+retryFn+'">🔁 もういちど たたかう</button>';
   if(RPG_WORLD[b.area]) L+='<button class="rpg-btn" onclick="rpgOpenMap(\''+b.area+'\')">🗺️ 大陸マップへ</button>';
   L+='<button class="rpg-btn ghost" onclick="showRpg()">🏔️ 大陸せんたく</button></div></div>';
   rv.innerHTML=L;
@@ -6938,7 +6945,6 @@ function rpgStartReview(){
   var due=[], all=[]; try{ due=dueMistakes(); }catch(e){} try{ all=getMistakes(); }catch(e){}
   var pool=due.length? due : all;
   if(!pool.length){ showToast('🎉','ふくしゅう なし','まちがえた問題が ないよ！ よくできてる！'); return; }
-  if(rpgStaminaLeft()<=0){ showToast('😴','きょうはここまで','また明日 いどもう'); return; }
   var lines=[
     { who:'ミミ学園長', char:'owl', text:'ここは「ふくしゅうダンジョン」。まえに まちがえた問題が モンスターに なって あらわれるの。' },
     { who:'ミミ学園長', char:'owl', text:'もう一度 とけば こくふくできる。しかも ここでしか 手に入らない「🌈にじのおまもり」が もらえるのよ。' },
@@ -6987,7 +6993,7 @@ function rpgResolveReview(b){
   if(leveled) L+='<div class="rpg-res-levelup">🎉 レベルアップ！ Lv.'+s.level+'</div>';
   L+='<div class="rpg-res-levelup">📕 のこりの ふくしゅう：'+remain+'問</div>';
   L+='<div class="rpg-res-btns">';
-  if(remain>0 && rpgStaminaLeft()>0) L+='<button class="rpg-btn" onclick="rpgStartReview()">🔁 つづけて ふくしゅう</button>';
+  if(remain>0) L+='<button class="rpg-btn" onclick="rpgStartReview()">🔁 つづけて ふくしゅう</button>';
   L+='<button class="rpg-btn ghost" onclick="showRpg()">🏔️ 大陸せんたく</button></div></div>';
   rv.innerHTML=L;
   if(win){ confetti(); sfx('fanfare'); vibe([20,40,20,40,80]); } else { sfx('wrong'); vibe(60); }
@@ -7003,7 +7009,6 @@ function rpgBuildMixedQuestions(count){
 }
 function rpgStartMaou(){
   if(rpgCrystalCount()<5 && !rpgFamilyMaouFreed()){ showToast('🔒','まだ魔王に いどめない','5つのクリスタルを あつめよう'); return; }
-  if(rpgStaminaLeft()<=0){ showToast('😴','きょうはここまで','また明日 いどもう'); return; }
   var lines=[
     { who:'魔王シグマ', char:'villain', text:'よくぞ ここまで来た、勇者よ。だが「偏差値65の壁」は こえられまい！' },
     { who:'ミミ学園長', char:'owl', text:'だいじょうぶ。あなたは 5教科ぜんぶを のりこえてきた。今の力を ぶつけて！' }

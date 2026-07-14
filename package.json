@@ -5,10 +5,19 @@
   "description": "小中学生向け学習アプリ（PWA）。テストは依存ゼロで node のみで動く。",
   "scripts": {
     "test": "node tests/run-all.js",
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "cap:sync": "npm run build && npx cap sync"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "esbuild": "^0.24.0",
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "typescript": "^7.0.2"
   }
 }

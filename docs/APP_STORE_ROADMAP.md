@@ -8,8 +8,11 @@
 
 家族利用のPWA（`docs/ARCHITECTURE.md` 参照）。認証は匿名＋4桁の家族コードのみ、
 単一のFirebaseプロジェクト（`study-app-48c8f`）に単一家族（`families/0000`）が実運用中。
-判明しているセキュリティ課題は `docs/SECURITY.md` に集約。**Phase 1 のみ実行済み**
-（ルールのコード化・セキュリティドキュメント整備・App Store用アイコン素材）。
+判明しているセキュリティ課題は `docs/SECURITY.md` に集約。**Phase 1・Phase 2は完了、
+Phase 3はコード側の準備のみ完了**（ルールのコード化・セキュリティドキュメント整備・
+App Store用アイコン素材／TTSプロキシのCloudflare Workersデプロイ＋実キー確認済み／
+Capacitor関連の依存追加・vendor化・ビルド対応まで済み、実機確認はXcode/Android Studio
+導入後の次セッション）。
 
 配布目標：iOS・Android両方。ネイティブ化はCapacitorを採用（PWAを最小改修でラップでき、
 IAPプラグイン（RevenueCat等）が成熟しているため）。カテゴリはApple Kids Categoryではなく
@@ -181,20 +184,42 @@ Phase 6（課金Webhook）を実装する際は、同じCloudflare Workers＋Fir
 （WebGL/Three.js・オーディオ自動再生・WebAuthn可否・localStorage永続化）を確認する。
 TestFlight内部テストのみ、一般公開はしない。
 
-- 新規 `capacitor.config.ts`（`webDir: "dist"`）、Capacitor生成の `ios/`/`android/`。
+**✅ コード側の準備のみ実行済み（2026-07-14・Xcode/Android Studio未導入のため意図的にここで停止）**
 - `package.json`：`@capacitor/core`, `@capacitor/cli`, `@capacitor/ios`, `@capacitor/android`,
-  `@capacitor/app`, `@capacitor/splash-screen`, `@capacitor/status-bar` を追加。
-- **Firebase Compat SDKをローカルにvendor化**：現在 `cloud-sync.js` は `www.gstatic.com` から
-  実行時に動的ロードしている。配布用ネイティブバイナリでは外部CDN依存を避けるため、
-  `js/vendor/` にピン留めしたビルドを配置し、`loadScript()` の3つのURLをローカルパスに変更。
-- `scripts/build.js`：`js/vendor/` を静的アセットのコピー対象に追加（`three.min.js` と同じ扱い）。
-- 新規npmスクリプト `cap:sync`（`npm run build && npx cap sync`）。
-- 手動：Apple Developer Program登録、Bundle ID、Xcode署名、App Store Connectアプリ登録
-  （TestFlightのみ）、Androidキーストア準備。
+  `@capacitor/app`, `@capacitor/splash-screen`, `@capacitor/status-bar` を追加。加えて
+  `typescript`も追加（`@capacitor/cli`の実ソースを確認したところ、`.ts`形式の設定ファイルを
+  読むには`typescript`のインストールが必須と判明。無いと`npx cap`系コマンドが
+  `Could not find installation of TypeScript`で即失敗する）。
+- 新規 `capacitor.config.ts`（`webDir: "dist"`、`appName: "小中学生学習アプリ"`）。
+  `appId`は仮値`app.studyapp48c8f.study`（Apple Developer Program未登録のため暫定・
+  Firebaseプロジェクトid由来。ネイティブプロジェクト生成前なら変更コストはファイル1行のみ）。
+- **Firebase Compat SDKをローカルにvendor化**：`js/vendor/`に`firebase-{app,auth,firestore}-compat.js`
+  （10.12.2固定・gstatic.comと完全一致することをdiffで確認済み）を配置し、`cloud-sync.js`の
+  `loadScript()`3箇所をローカル相対パスに変更。外部CDN依存が無くなるのはネイティブ版だけでなく、
+  同じ配信ファイルを使う現行のGitHub Pages版にも効く副次効果。ソースマップ（`.js.map`）は
+  DevTools専用・約3.3MBの追加になるだけなのでvendorしていない。
+- `scripts/build.js`：`js/vendor/`を`dist/js/vendor/`へ静的コピー（`assets/`と同じ扱い、
+  バンドルには含めない）。
+- 新規npmスクリプト `cap:sync`（`npm run build && npx cap sync`）。**まだ実行していない**。
+- 検証：`node tests/run-all.js`（`e2e-smoke`含め全緑）・`npm run build && node
+  scripts/check-globals.js`（緑）・`diff -r js/vendor dist/js/vendor`（完全一致）・
+  ローカルサーバーでブラウザから実読み込みしクラウド未接続バナーが出ないことを確認済み。
 
-**このフェーズで特に確認するリスク**：WebAuthn（顔/指紋認証、`index.html`の`bioSupported()`まわり）が
-CapacitorのWebView内で従来どおり動くか。ダメでもPINへの正常フォールバックが効くか。
-**推奨**：ショックダウンテストは使い捨ての家族コードで行い、`families/0000`（本番）には触れない。
+**❌ 明示的に未着手（Xcode / Android Studio 導入後の次セッションへ）**
+- `npx cap add ios` / `npx cap add android`（ネイティブプロジェクトフォルダ生成）。生成後に必要になる
+  `.gitignore`への`ios/`/`android/`関連エントリ追加も、フォルダが実在してから行う。
+- Xcode／CocoaPods／Android Studio・Android SDKのインストール自体（このMacには
+  Command Line Toolsのみで、Xcode本体・CocoaPods・Android Studio/SDKはいずれも未導入）。
+- 実機/シミュレータでのネイティブビルド・起動確認。
+- **このフェーズ本来の目的であるリスク確認**：WebAuthn（顔/指紋認証、`index.html`の
+  `bioSupported()`まわり）がCapacitorのWebView内で従来どおり動くか、ダメでもPINへの正常
+  フォールバックが効くか。**ネイティブWebViewが無いと原理的に確認不可能**なため今回は対象外
+  （PIN経由のフォールバック自体は`muBioGate()`にコード上は既に実装済み）。
+- 手動：Apple Developer Program登録、Bundle ID確定（上記仮値からの本決め）、Xcode署名、
+  App Store Connectアプリ登録（TestFlightのみ）、Androidキーストア準備。
+
+**推奨**：ショックダウンテストは使い捨ての家族コードで行い、`families/0000`（本番）には触れない
+（Xcode導入後、実際に`cap add`する次セッションで有効）。
 
 ## Phase 4 — 実アカウントモデルとFirestoreデータ再構成（最難関・最重要フェーズ）
 **目的**：4桁の推測可能な家族コードを、実認証に基づくアカウント単位のデータ分離に置き換える。

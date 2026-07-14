@@ -89,6 +89,8 @@ if (fs.existsSync(path.join(ROOT, 'icons'))) {
 }
 // assets/（BGM音源など、実行時にパス参照される静的ファイル）を丸ごとコピー
 if (fs.existsSync(path.join(ROOT, 'assets'))) fs.cpSync(path.join(ROOT, 'assets'), path.join(DIST, 'assets'), { recursive: true });
+// js/vendor/（vendor化したFirebase Compat SDK。three.min.jsと同じく素通しコピー・バンドル非対象）
+if (fs.existsSync(path.join(ROOT, 'js', 'vendor'))) fs.cpSync(path.join(ROOT, 'js', 'vendor'), path.join(DIST, 'js', 'vendor'), { recursive: true });
 
 const kb = (n) => (n / 1024).toFixed(0) + 'KB';
 console.log('✅ ビルド完了 dist/');

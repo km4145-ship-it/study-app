@@ -518,8 +518,8 @@ window.FIREBASE_CONFIG = {
     }).catch(function(){ setCloudStatus('error','auth'); });
   }
   Promise.all([
-    loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'),
-    loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'),
-    loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js')
+    loadScript('js/vendor/firebase-app-compat.js'),
+    loadScript('js/vendor/firebase-auth-compat.js'),
+    loadScript('js/vendor/firebase-firestore-compat.js')
   ]).then(function(){ firebase.initializeApp(CFG); start(); }).catch(function(){ setCloudStatus('error','load'); });
 })();

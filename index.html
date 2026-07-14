@@ -989,6 +989,23 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
     </div>
 
     <div class="settings-section">
+      <h3>🔑 アカウント（実験的）</h3>
+      <p class="settings-hint" id="account-mode-disp">現在：確認中…</p>
+      <p class="settings-hint">メール＋パスワードでアカウントを作ると、家族コードより安全なクラウド保存先（他人が家族コードを推測しても読み書きできない）が使えます。<b>今のところ家族コードのデータは自動で引き継がれません</b>（新しいアカウントは空の状態から始まります）。</p>
+      <div class="settings-row">
+        <input type="email" id="account-email" placeholder="メールアドレス" autocomplete="email" style="flex:1;min-width:140px">
+      </div>
+      <div class="settings-row">
+        <input type="password" id="account-password" placeholder="パスワード（6文字以上）" autocomplete="current-password" style="flex:1;min-width:140px">
+      </div>
+      <div class="settings-row">
+        <button class="btn-sm" style="background:#0891b2" onclick="(window.cloudAccountSignUp||function(){alert('同期スクリプト読込中です。少し待って再度お試しください。');})(document.getElementById('account-email').value.trim(), document.getElementById('account-password').value)">🆕 アカウント作成</button>
+        <button class="btn-sm" style="background:#0891b2" onclick="(window.cloudAccountSignIn||function(){alert('同期スクリプト読込中です。少し待って再度お試しください。');})(document.getElementById('account-email').value.trim(), document.getElementById('account-password').value)">🔓 ログイン</button>
+        <button class="btn-sm" style="background:#64748b" onclick="(window.cloudAccountSignOut||function(){})()">ログアウト</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <h3>🔒 合言葉ロック（公開URL向け・任意）</h3>
       <p class="settings-hint">公開URLを家族以外に開かれたくないときに。合言葉を決めると、起動時に入力を求めます（簡易的な目隠しです）。<span id="pin-state"></span></p>
       <div class="settings-row">
@@ -2831,6 +2848,8 @@ function refreshSettingsDisp(){
   const ld=document.getElementById('line-disp'); if(ld) ld.textContent= lineEndpoint()?'（設定済み）':'（未設定）';
   const li=document.getElementById('line-endpoint'); if(li && !li.value) li.value=lineEndpoint();
   const eq=document.getElementById('extraq-disp'); if(eq) eq.textContent='（追加問題：'+getExtraQuestions().length+'問）';
+  const am=document.getElementById('account-mode-disp');
+  if(am) am.textContent = (window.cloudMode && window.cloudMode()==='account') ? '現在：🔑 アカウントで同期中' : '現在：☁️ 家族コードで同期中';
 }
 // ---- 実模試の結果入力（偏差値の校正用） ----
 function addRealExam(){

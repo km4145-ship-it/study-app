@@ -213,8 +213,14 @@ window.FIREBASE_CONFIG = {
   var DEFAULT_FAMILY='0000'; // 既定で必ずクラウドDBに保存（端末ごとの設定不要）
   function famCode(){ var c=(rget('mu_family')||'').trim(); return c || DEFAULT_FAMILY; }
   function legacyRef(){ return db.collection('families').doc(fam); }
-  function sharedRef(){ return legacyRef().collection('shared').doc('settings'); }
-  function memberRef(uid){ return legacyRef().collection('members').doc(String(uid)); }
+  // ---- Phase 4 Slice 1：実アカウントモード（メール＋パスワード。単独オーナーのみ・共有はSlice 2）----
+  //   mode='account'の時は families/{fam} ではなく accounts/{acctId} を同期先にする。
+  //   families/{code}のデータとは完全に分離（自動移行はしない）。
+  var mode='family', acctId=null;
+  function curId(){ return mode==='account' ? acctId : fam; }
+  function rootRef(){ return mode==='account' ? db.collection('accounts').doc(acctId) : legacyRef(); }
+  function sharedRef(){ return rootRef().collection('shared').doc('settings'); }
+  function memberRef(uid){ return rootRef().collection('members').doc(String(uid)); }
 
   var dirtyShared=false, dirtyMembers={}, saveT=null;
   function markShared(){ dirtyShared=true; scheduleSave(); }
@@ -236,7 +242,7 @@ window.FIREBASE_CONFIG = {
       return sharedRef().set({ data: snap, updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
     }).catch(function(){ dirtyShared=true; });
   }
-  function doSaveDirty(){ if(!db||!fam||!ready) return;
+  function doSaveDirty(){ if(!db||!curId()||!ready) return;
     if(dirtyShared){ dirtyShared=false; saveSharedGrowOnly(); }
     Object.keys(dirtyMembers).forEach(function(uid){ delete dirtyMembers[uid];
       var snap=memberSnapshot(uid);
@@ -348,17 +354,18 @@ window.FIREBASE_CONFIG = {
   }
   // ---- 完全リセット：クラウドの全データを削除し、全端末にリセットを伝播 ----
   window.cloudWipeAll = function(){
-    if(!db||!fam) return Promise.reject(new Error('cloud-not-ready'));
+    if(!db||!curId()) return Promise.reject(new Error('cloud-not-ready'));
     stopSync();
     var epoch = Date.now();
-    return legacyRef().collection('members').get().then(function(qs){
+    return rootRef().collection('members').get().then(function(qs){
       var dels=[]; qs.forEach(function(doc){ dels.push(doc.ref.delete()); });
       return Promise.all(dels);
     // families/{code}/private/tts（Phase 2でCloud Functionsが保存するElevenLabsキー）も削除。
     // ここを忘れると「完全リセットしたのにサーバー上に鍵が残り続ける」という見落としバグになる。
-    }).then(function(){ return legacyRef().collection('private').doc('tts').delete().catch(function(){}); })
+    // TTSはSlice 1時点ではfamilyモード限定（accountモードには私鍵の保存先が無い）。
+    }).then(function(){ return (mode==='family') ? legacyRef().collection('private').doc('tts').delete().catch(function(){}) : null; })
       .then(function(){ return sharedRef().delete(); })
-      .then(function(){ return legacyRef().set({ v2done:true, resetAt: epoch }); })  // merge無し＝旧v1のdataも消える
+      .then(function(){ return rootRef().set({ v2done:true, resetAt: epoch }); })  // merge無し＝旧v1のdataも消える（accountモードでもv2done/resetAtは無害）
       .then(function(){ rset('mu_reset_at', String(epoch)); return true; });
   };
 
@@ -372,21 +379,23 @@ window.FIREBASE_CONFIG = {
   window.cloudStatus = function(){ return _cloudStatus; };
   // ユーザー選択画面用：共通設定（ユーザー一覧）を最新化
   window.cloudPullShared = function(){
-    if(!db||!fam) return readyPromise.then(function(){ return window.cloudPullShared(); });
-    return Promise.all([
-      sharedRef().get().then(function(d){ return d.exists ? applyKeys(((d.data()||{}).data)||{}) : false; }).catch(function(){ return false; }),
-      // ★v1親doc（通常保存では書き換わらない安定バックアップ）のユーザー一覧も必ず合算する。
-      //   これで shared が別端末に u1 だけへ縮められても、選択画面には常に家族全員が出る。
-      //   合算結果は applyKeys→markShared 経由で shared へ書き戻され、sharedも自己修復する。
-      legacyRef().get().then(function(d){ var raw=d.exists?(d.data()||{}):{}; return (raw.data && raw.data.mu_users)? applyKeys({ mu_users: raw.data.mu_users }) : false; }).catch(function(){ return false; })
-    ]).then(function(res){
-      if(res[0]||res[1]){ try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){} }
+    if(!db||!curId()) return readyPromise.then(function(){ return window.cloudPullShared(); });
+    var pulls = [ sharedRef().get().then(function(d){ return d.exists ? applyKeys(((d.data()||{}).data)||{}) : false; }).catch(function(){ return false; }) ];
+    // ★v1親doc（通常保存では書き換わらない安定バックアップ）のユーザー一覧も必ず合算する（familyモードのみ。
+    //   accountモードには対応するv1親docの概念が無い）。
+    //   これで shared が別端末に u1 だけへ縮められても、選択画面には常に家族全員が出る。
+    //   合算結果は applyKeys→markShared 経由で shared へ書き戻され、sharedも自己修復する。
+    if(mode==='family'){
+      pulls.push(legacyRef().get().then(function(d){ var raw=d.exists?(d.data()||{}):{}; return (raw.data && raw.data.mu_users)? applyKeys({ mu_users: raw.data.mu_users }) : false; }).catch(function(){ return false; }));
+    }
+    return Promise.all(pulls).then(function(res){
+      if(res.some(Boolean)){ try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){} }
       return true;
     }).catch(function(){ return false; });
   };
   // ユーザーをタップした時：その人の最新データを取得してから開始する
   window.cloudPullUser = function(uid){
-    if(!db||!fam) return readyPromise.then(function(){ return window.cloudPullUser(uid); });
+    if(!db||!curId()) return readyPromise.then(function(){ return window.cloudPullUser(uid); });
     return memberRef(uid).get().then(function(d){
       if(d.exists){ applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }
       listenMember(uid);
@@ -396,14 +405,14 @@ window.FIREBASE_CONFIG = {
   // 家族ランキング用：全メンバーの学習データを取得する（localStorageには反映しない＝集計専用）。
   //   返り値 { uid: {フィールド...}, ... }。クラウド不可時は null。
   window.cloudFetchAllMembers = function(){
-    if(!db||!fam) return readyPromise.then(function(){ return window.cloudFetchAllMembers(); });
-    return legacyRef().collection('members').get().then(function(qs){
+    if(!db||!curId()) return readyPromise.then(function(){ return window.cloudFetchAllMembers(); });
+    return rootRef().collection('members').get().then(function(qs){
       var out={}; qs.forEach(function(doc){ out[doc.id] = ((doc.data()||{}).data)||{}; }); return out;
     }).catch(function(){ return null; });
   };
   // ユーザー削除時：クラウド側のドキュメントも削除
   window.cloudDeleteMember = function(uid){
-    if(!db||!fam) return Promise.resolve(false);
+    if(!db||!curId()) return Promise.resolve(false);
     return memberRef(uid).delete().then(function(){ return true; }).catch(function(){ return false; });
   };
   window.cloudFamilySet = function(){
@@ -414,6 +423,29 @@ window.FIREBASE_CONFIG = {
   };
   window.cloudFamilyClear = function(){ rset('mu_family',''); stopSync(); if(unsubReset){ try{ unsubReset(); }catch(e){} unsubReset=null; } alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
 
+  // ---- Phase 4 Slice 1：メール＋パスワードでの実アカウント（単独オーナーのみ・共有機能はSlice 2）----
+  //   familyモードとaccountモードの間でローカルキャッシュを引き継ぐと、片方の家族/アカウントの
+  //   データがもう片方（特に本番families/0000）に混入する事故になるため、切替時は明示的に
+  //   同期対象キーだけを消してからreloadする（cloudFamilySetの「引き継ぎ」動作とは意図的に違う）。
+  function clearSyncCacheForModeSwitch(){
+    doSaveDirty();   // 保留中の書き込みを先に吐き出してから消す
+    try{ (window.muLocalWipe ? window.muLocalWipe() : basicWipe()); }catch(e){ basicWipe(); }
+  }
+  window.cloudMode = function(){ return mode; };
+  window.cloudAccountSignUp = function(email, password){
+    return firebase.auth().createUserWithEmailAndPassword(email, password)
+      .then(function(){ rset('mu_account_active','1'); clearSyncCacheForModeSwitch(); alert('アカウントを作成しました。'); location.reload(); })
+      .catch(function(e){ alert('作成できませんでした：' + (e && e.message)); });
+  };
+  window.cloudAccountSignIn = function(email, password){
+    return firebase.auth().signInWithEmailAndPassword(email, password)
+      .then(function(){ rset('mu_account_active','1'); clearSyncCacheForModeSwitch(); alert('ログインしました。'); location.reload(); })
+      .catch(function(e){ alert('ログインできませんでした：' + (e && e.message)); });
+  };
+  window.cloudAccountSignOut = function(){
+    return firebase.auth().signOut().then(function(){ rset('mu_account_active',''); clearSyncCacheForModeSwitch(); location.reload(); });
+  };
+
   // ---- 端末セッションロック（同じユーザーを複数端末で同時に操作させない）----
   //   families/{fam}/sessions/{uid} = { device, name, at(serverTimestamp) }
   //   ・使用開始時にロックを取得。別端末が使用中なら取得失敗を返す（UI側で「この端末で続ける」＝強制取得）。
@@ -421,7 +453,7 @@ window.FIREBASE_CONFIG = {
   //   ・他端末に奪われたら onTaken を呼んでUIをロックする。
   var SESSION_STALE_MS = 90000, _hbTimer=null, _sessUid=null, _unsubSess=null;
   function deviceId(){ var d=rget('mu_device_id'); if(!d){ d='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); rset('mu_device_id', d); } return d; }
-  function sessionRef(uid){ return legacyRef().collection('sessions').doc(String(uid)); }
+  function sessionRef(uid){ return rootRef().collection('sessions').doc(String(uid)); }
   // 使用中かどうかの純粋判定（テストしやすいよう分離）
   function _sessionBlocked(s, me, now, staleMs){
     if(!s || !s.device || s.device===me) return false;           // 空き or 自分 → ブロックしない
@@ -432,7 +464,7 @@ window.FIREBASE_CONFIG = {
   // ロック取得。取れれば {ok:true}、別端末が使用中なら {ok:false, by}
   window.cloudSessionClaim = function(uid, opts){
     opts=opts||{};
-    if(!db||!fam||!ready || !uid) return Promise.resolve({ok:true, offline:true});   // クラウド無効/未接続は素通し（オフラインで締め出さない）
+    if(!db||!curId()||!ready || !uid) return Promise.resolve({ok:true, offline:true});   // クラウド無効/未接続は素通し（オフラインで締め出さない）
     var me=deviceId();
     return sessionRef(uid).get().then(function(d){
       var s = d.exists ? (d.data()||{}) : null;
@@ -445,19 +477,19 @@ window.FIREBASE_CONFIG = {
     if(_hbTimer){ clearInterval(_hbTimer); _hbTimer=null; }
     if(_unsubSess){ try{ _unsubSess(); }catch(e){} _unsubSess=null; }
     var u=uid||_sessUid; _sessUid=null;
-    if(!db||!fam||!u) return Promise.resolve();
+    if(!db||!curId()||!u) return Promise.resolve();
     var me=deviceId();
     return sessionRef(u).get().then(function(d){ var s=d.exists?(d.data()||{}):null; if(s && s.device===me) return sessionRef(u).delete(); }).catch(function(){});
   };
   // 使用開始：ハートビート＋他端末が奪ったら onTaken(name) 通知
   window.cloudSessionStart = function(uid, onTaken){
     var me=deviceId();
-    if(_sessUid && _sessUid!==uid && db && fam){ var prev=_sessUid;   // 別ユーザーに切り替えたら前のセッションを解放
+    if(_sessUid && _sessUid!==uid && db && curId()){ var prev=_sessUid;   // 別ユーザーに切り替えたら前のセッションを解放
       sessionRef(prev).get().then(function(d){ var s=d.exists?(d.data()||{}):null; if(s && s.device===me) sessionRef(prev).delete(); }).catch(function(){}); }
     if(_hbTimer){ clearInterval(_hbTimer); _hbTimer=null; }
     if(_unsubSess){ try{ _unsubSess(); }catch(e){} _unsubSess=null; }
     _sessUid=uid;
-    if(!db||!fam||!ready||!uid) return;
+    if(!db||!curId()||!ready||!uid) return;
     _hbTimer=setInterval(function(){ sessionRef(uid).set({ device:me, at:firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(function(){}); }, 40000);
     _unsubSess=sessionRef(uid).onSnapshot(function(d){
       if(d.metadata && d.metadata.hasPendingWrites) return;
@@ -483,39 +515,96 @@ window.FIREBASE_CONFIG = {
   window.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden'){ clearTimeout(saveT); doSaveDirty(); } });
   window.addEventListener('pagehide', function(){ clearTimeout(saveT); doSaveDirty(); });
 
-  function start(){
+  // familyモードの起動処理（旧start()の中身そのまま。v1移行・リセット伝播はfamily限定の概念）
+  function bootSyncFamily(){
     fam = famCode();
-    if(!fam){ return; }
     setCloudStatus('connecting');
     setTimeout(function(){ if(_cloudStatus==='connecting') setCloudStatus('error','timeout'); }, 15000);  // 応答が無ければ警告
-    firebase.auth().signInAnonymously().then(function(){
-      db = firebase.firestore();
-      try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
-      var readOk=false; _parentReadOk=false;   // クラウド(shared)と親doc(バックアップ)を実際に読めたか（読めない時は書き戻さない＝上書き事故の防止）
-      checkLegacy().then(function(r){
-        if(r==='reset') return 'reset';
-        // ① まず共有設定（ユーザー一覧＝mu_users）を取得して反映する。
-        //    これで localStorage が空でも（キャッシュ削除・別端末・初回でも）家族全員が復元される。
-        return sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); readOk=true; setCloudStatus('ok'); })
-          .catch(function(e){ setCloudStatus('error', (e&&(e.code||e.message))||'read'); })   // ルール拒否/通信不可を検知
-          .then(function(){
-            // ② 共有を反映した後の「全ユーザー」ぶんの学習データをクラウドから取得。
-            //    localUids() を“共有プルの後”に評価するのが肝（前だと空で1件も読まれずデータが消えたように見える）。
-            var mpulls = localUids().map(function(uid){
-              return memberRef(uid).get().then(function(d){ if(d.exists) applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }).catch(function(){});
-            });
-            return Promise.all(mpulls);
+    db = firebase.firestore();
+    try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
+    var readOk=false; _parentReadOk=false;   // クラウド(shared)と親doc(バックアップ)を実際に読めたか（読めない時は書き戻さない＝上書き事故の防止）
+    checkLegacy().then(function(r){
+      if(r==='reset') return 'reset';
+      // ① まず共有設定（ユーザー一覧＝mu_users）を取得して反映する。
+      //    これで localStorage が空でも（キャッシュ削除・別端末・初回でも）家族全員が復元される。
+      return sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); readOk=true; setCloudStatus('ok'); })
+        .catch(function(e){ setCloudStatus('error', (e&&(e.code||e.message))||'read'); })   // ルール拒否/通信不可を検知
+        .then(function(){
+          // ② 共有を反映した後の「全ユーザー」ぶんの学習データをクラウドから取得。
+          //    localUids() を“共有プルの後”に評価するのが肝（前だと空で1件も読まれずデータが消えたように見える）。
+          var mpulls = localUids().map(function(uid){
+            return memberRef(uid).get().then(function(d){ if(d.exists) applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }).catch(function(){});
           });
-      }).then(function(r){
-        if(r==='reset') return;   // リセット直後はリロードするので同期を開始しない
+          return Promise.all(mpulls);
+        });
+    }).then(function(r){
+      if(r==='reset') return;   // リセット直後はリロードするので同期を開始しない
+      ready = true;
+      listenShared(); listenReset();
+      var cur = rget('mu_current'); if(cur) listenMember(cur);
+      if(readOk && _parentReadOk) doSaveAll();   // ★shared＋親doc(バックアップ)を両方読めた時だけ書き戻す。どちらか読めない時は古い/取りこぼしローカルでクラウドを上書きしない（ユーザー一覧が縮む事故の再発防止）
+      readyResolve(true);
+      try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){}
+    });
+  }
+  // accountモードの起動処理：v1移行・リセット伝播（checkLegacy/listenReset）はfamily専用の
+  // 概念なので呼ばない（新規accountにはv1親docが存在しないため）。readOkのみをゲート条件にする
+  // （守るべきv1バックアップが無いので、familyモードのreadOk&&_parentReadOkの二重ゲートは不要）。
+  function bootSyncAccount(){
+    setCloudStatus('connecting');
+    setTimeout(function(){ if(_cloudStatus==='connecting') setCloudStatus('error','timeout'); }, 15000);
+    db = firebase.firestore();
+    try{ db.enablePersistence({synchronizeTabs:true}).catch(function(){}); }catch(e){}
+    var readOk=false;
+    sharedRef().get().then(function(d){ if(d.exists) applyKeys(((d.data()||{}).data)||{}); readOk=true; setCloudStatus('ok'); })
+      .catch(function(e){ setCloudStatus('error', (e&&(e.code||e.message))||'read'); })
+      .then(function(){
+        var mpulls = localUids().map(function(uid){
+          return memberRef(uid).get().then(function(d){ if(d.exists) applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }).catch(function(){});
+        });
+        return Promise.all(mpulls);
+      }).then(function(){
         ready = true;
-        listenShared(); listenReset();
+        listenShared();
         var cur = rget('mu_current'); if(cur) listenMember(cur);
-        if(readOk && _parentReadOk) doSaveAll();   // ★shared＋親doc(バックアップ)を両方読めた時だけ書き戻す。どちらか読めない時は古い/取りこぼしローカルでクラウドを上書きしない（ユーザー一覧が縮む事故の再発防止）
+        if(readOk) doSaveAll();
         readyResolve(true);
         try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){}
       });
-    }).catch(function(){ setCloudStatus('error','auth'); });
+  }
+  function bootSync(){ if(mode==='account') bootSyncAccount(); else bootSyncFamily(); }
+
+  // onAuthStateChangedの1回の発火に対して、その場で取るべき行動を判定する（純粋関数・
+  // 副作用無し＝テストしやすいよう分離。_sessionBlockedと同じ方針）。
+  // Firebase Authのセッション復元は非同期で、実アカウントのセッションが復元し切る前に
+  // onAuthStateChangedが一旦nullで発火することがある（既知の挙動）。ここで即座に匿名認証へ
+  // フォールバックすると、実アカウントの端末がfamilyモード（既定families/0000）に誤って
+  // 落ちてしまう恐れがあるため、`mu_account_active`（アカウントセッション開始時に立てる
+  // ローカルマーカー）が立っている場合は少し待ってから判断する（action:'wait'）。
+  function _decideAuthAction(user, acctActive, alreadyWaiting){
+    if(user && !user.isAnonymous) return { action:'boot', mode:'account' };
+    if(user && user.isAnonymous) return { action:'boot', mode:'family' };
+    if(acctActive && !alreadyWaiting) return { action:'wait' };
+    if(!acctActive) return { action:'anon' };
+    return { action:'none' };
+  }
+  function start(){
+    var booted=false, authTimeout=null;
+    var acctActive = rget('mu_account_active')==='1';
+    firebase.auth().onAuthStateChanged(function(user){
+      if(booted) return;
+      var d = _decideAuthAction(user, acctActive, !!authTimeout);
+      if(d.action==='boot'){
+        if(authTimeout){ clearTimeout(authTimeout); authTimeout=null; }
+        mode=d.mode; if(mode==='account') acctId=user.uid; booted=true; bootSync();
+      } else if(d.action==='wait'){
+        authTimeout=setTimeout(function(){
+          if(!booted) firebase.auth().signInAnonymously().catch(function(){ setCloudStatus('error','auth'); });
+        }, 2000);
+      } else if(d.action==='anon'){
+        firebase.auth().signInAnonymously().catch(function(){ setCloudStatus('error','auth'); });
+      }
+    });
   }
   Promise.all([
     loadScript('js/vendor/firebase-app-compat.js'),

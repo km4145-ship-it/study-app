@@ -9,10 +9,11 @@
 家族利用のPWA（`docs/ARCHITECTURE.md` 参照）。認証は匿名＋4桁の家族コードのみ、
 単一のFirebaseプロジェクト（`study-app-48c8f`）に単一家族（`families/0000`）が実運用中。
 判明しているセキュリティ課題は `docs/SECURITY.md` に集約。**Phase 1・Phase 2は完了、
-Phase 3はコード側の準備のみ完了**（ルールのコード化・セキュリティドキュメント整備・
-App Store用アイコン素材／TTSプロキシのCloudflare Workersデプロイ＋実キー確認済み／
-Capacitor関連の依存追加・vendor化・ビルド対応まで済み、実機確認はXcode/Android Studio
-導入後の次セッション）。
+Phase 3はコード側の準備のみ完了、Phase 4はSlice 1（単独オーナーの実アカウント）まで完了**
+（ルールのコード化・セキュリティドキュメント整備・App Store用アイコン素材／TTSプロキシの
+Cloudflare Workersデプロイ＋実キー確認済み／Capacitor関連の依存追加・vendor化・ビルド対応まで
+済み、実機確認はXcode/Android Studio導入後の次セッション／メール＋パスワードでの実アカウント
+（`accounts/{uid}/...`、家族コードとは完全分離）を追加、共有・招待はSlice 2で未着手）。
 
 配布目標：iOS・Android両方。ネイティブ化はCapacitorを採用（PWAを最小改修でラップでき、
 IAPプラグイン（RevenueCat等）が成熟しているため）。カテゴリはApple Kids Categoryではなく
@@ -226,9 +227,49 @@ TestFlight内部テストのみ、一般公開はしない。
 Web版でまず構築・検証（イテレーションが最速）。**既存の `families/{code}` パスと共存**させ、
 新規パスとして追加する（既存家族は無停止）。
 
-**新データモデル**：
+フルスコープ（`accounts/{ownerUid}`＋`authorizedUsers`＋`invites`＋`userAccountIndex`＋
+Cloudflare Workersの新エンドポイント）は一度に実装するには大きすぎるため、**Slice 1（単独
+オーナーのみ・共有機能なし）とSlice 2（複数端末の共有・招待）に分割**して進める。
+
+### Slice 1 — 単独オーナーの実アカウント（メール＋パスワード）✅ 実装済み（2026-07-14）
+**認証方式はメール＋パスワード**（Phase 5のSign in with AppleはネイティブiOS向けのため、
+Web版での構築・検証にはつなぎとして使えない。ユーザー選定）。
+
 - `accounts/{ownerUid}/shared/settings`, `/members/{childId}`, `/sessions/{childId}`
-  （現行の`families/{code}/...`と構造は同じ、ルートだけ実認証UIDに）
+  （現行の`families/{code}/...`と構造は同じ、ルートだけ実認証UID）。**共有・招待は無し**＝
+  `accountId`は常に`= auth.currentUser.uid`（`userAccountIndex`・`authorizedUsers`・
+  `invites`はSlice 2で導入。今回は不要）。
+- `cloud-sync.js`：`mode`（`'family'|'account'`）を追加し、`legacyRef()`ベースの
+  `sharedRef`/`memberRef`/`sessionRef`を`rootRef()`（modeで`families/{fam}`と
+  `accounts/{acctId}`を切替）経由に変更。マージ関数群・`SHARED`/メンバーキー規約は無変更で
+  再利用。`start()`を`onAuthStateChanged`ベースに書き換え、`_decideAuthAction()`（純粋関数・
+  `tests/unit-account-model.js`でテスト）で認証状態から起動モードを判定。
+  **v1移行（`checkLegacy`）・リセット伝播（`listenReset`）はfamilyモード専用の概念のため
+  accountモードでは呼ばない**（新規アカウントにはv1親docが存在しないため）。
+- **重大な安全対策**：モード切替（`cloudAccountSignUp`/`SignIn`/`SignOut`）時は、単に
+  `location.reload()`するだけでは旧モードのローカルキャッシュ（`mu_users`・`u:*`等）が新モードの
+  クラウドに漏れ、特にサインアウト後は本番`families/0000`を汚染しうることが設計レビューで
+  判明。`clearSyncCacheForModeSwitch()`（既存の`basicWipe()`/`window.muLocalWipe`を再利用）で
+  reload前に同期対象キーを明示的に消去する。`cloudFamilySet`自体の「引き継ぎ」挙動は無変更。
+- `firestore.rules`：`accounts/{accountId}`を追加（`request.auth.uid==accountId &&
+  request.auth.token.firebase.sign_in_provider!='anonymous'`＝匿名不可・所有者本人のみ）。
+  `families/{fam}`は無変更（Phase 7の移行まで開けたまま）。
+- `index.html`：「🔑 アカウント（実験的）」設定セクション（メール・パスワード入力＋
+  作成/ログイン/ログアウト・現在のモード表示）。
+- テスト：`tests/lib/cloud-harness.js`の`firebase.auth()`スタブを拡張
+  （`currentUser`/`onAuthStateChanged`/`createUserWithEmailAndPassword`/
+  `signInWithEmailAndPassword`/`signOut`。**`signInAnonymously()`のスタブもcurrentUser更新＋
+  コールバック再発火に対応させないと、認証済みユーザーを一切seedしない既存の統合テストが
+  軒並みハングする**ことが判明・対応済み）。新規`tests/unit-account-model.js`
+  （`_decideAuthAction`のテスト）・`tests/int-accounts.js`（accountモードでの同期・
+  セッションロックの動作確認）。**既存7統合テストは無改修のまま全緑を維持**（最重要の回帰確認）。
+
+**ユーザー側の残作業**：①Firebase Console → Authentication → Sign-in method →
+「メール/パスワード」を有効化（プロジェクト`study-app-48c8f`）②`firebase deploy --only
+firestore:rules`の実行判断③実際にメールアドレスでアカウント作成→動作確認④
+本番`families/0000`のデータが本作業前後で変化していないことの確認。
+
+### Slice 2 — 共有・招待（未着手）
 - `accounts/{ownerUid}/authorizedUsers/{authedUid}`：オーナー以外の端末（配偶者・祖父母等）の
   アクセス許可リスト。ルールは `request.auth.uid == accountId || exists(.../authorizedUsers/$(uid))`。
 - `accounts/{ownerUid}/invites/{code}`：使い切りの招待コード（「コードを教える」という
@@ -238,18 +279,15 @@ Web版でまず構築・検証（イテレーションが最速）。**既存の
 - 新規サーバー処理（Phase 2の `workers/tts-proxy/` と同じCloudflare Workers＋Firestore REST
   パターンを再利用）：`createAccount`, `createInvite`, `redeemInvite`（招待の消費はアトミック性が
   要るためクライアント側ルールでは不可）。
+- TTSプロキシ（`workers/tts-proxy/`）のaccountモード対応（Slice 1では`_ttsFamilyCode()`は
+  無変更＝TTSは家族コード経由のまま）。
+- `families/{code}`から`accounts/{uid}`への既存データ移行はPhase 7、または専用の移行ツールで
+  別途検討（Slice 1・2いずれも自動移行はしない）。
 
-**触るもの**：`cloud-sync.js`（`famCode()`等のパス解決を`accountId()`に差し替え。マージ関数・
-`SHARED`/メンバーキー規約・セッションロックはそのまま再利用。新しいモード（`userAccountIndex`の
-有無で分岐）として並行実装し、既存パスの深いところへ条件分岐を混ぜない）。`firestore.rules`に
-`accounts/{accountId}/**` を追加（既存の`families/{code}/**`は開けたまま）。`index.html`に
-サインアップ/インの新規エントリーポイントと招待の生成/消費UI。新規テスト
-`tests/int-accounts.js`/`tests/unit-account-model.js`、`tests/lib/cloud-harness.js`の拡張。
-
-**要判断（最重要・後戻り困難）**：上記のデータモデル形（`accounts/{ownerUid}` +
-`authorizedUsers` + `userAccountIndex` + 招待コード）は、サブスク・権限管理・最終移行すべての土台。
-実装前に必ず内容を再確認すること。子どものプロフィール自体には個別のFirebase認証を持たせない
-（実認証を持つのは親のみ。子はこれまでどおりプロフィール選択＋PIN/WebAuthn）。
+**要判断（最重要・後戻り困難）**：Slice 2のデータモデル形（`accounts/{ownerUid}` +
+`authorizedUsers` + `userAccountIndex` + 招待コード）は、サブスク・権限管理・最終移行すべての
+土台。実装前に必ず内容を再確認すること。子どものプロフィール自体には個別のFirebase認証を
+持たせない（実認証を持つのは親のみ。子はこれまでどおりプロフィール選択＋PIN/WebAuthn）。
 
 ## Phase 5 — ネイティブ認証：Sign in with Apple＋保護者ゲート
 **目的**：Capacitor（Phase 3）とアカウントモデル（Phase 4）をつなぐ実ログインの実装。

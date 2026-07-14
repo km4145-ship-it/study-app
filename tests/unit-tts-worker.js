@@ -178,6 +178,14 @@ const c = makeChecker('unit-tts-worker');
   c.ok('CORSはALLOWED_ORIGINSに限定（origin全許可にしていない）', /allowedOrigins\(env\)\.indexOf\(origin\)/.test(glueCode));
   c.ok('firebase-adminやfirebase-functionsをimport/requireしていない（Workersで動くため。説明コメントでの言及は除外）',
     !/(?:from|require\()\s*['"]firebase-(?:admin|functions)/.test(glueCode));
+  // 実際に `wrangler dev` で確認：JWTの形をしていないBearerトークンは、JWKSへの外部通信の
+  // 前に弾かれる（無駄な通信を避ける最適化）。parseJwtUnverifiedでの事前チェックが
+  // getJwks()の呼び出しより前に書かれているかを静的に確認する。
+  {
+    const authIdx = glueCode.indexOf('parseJwtUnverified(m[1])');   // preflight内での形状チェック呼び出し
+    const jwksCallIdx = glueCode.indexOf('await getJwks()');         // 定義(function getJwks(){)ではなく呼び出し箇所
+    c.ok('JWT形状の事前チェックがJWKS取得より先にある（無駄な外部通信を避ける）', authIdx >= 0 && jwksCallIdx >= 0 && authIdx < jwksCallIdx);
+  }
 
   // ================= firestore.rules：privateサブコレクションのロックダウンは維持されている =================
   const rules = fs.readFileSync(path.join(ROOT, 'firestore.rules'), 'utf8');

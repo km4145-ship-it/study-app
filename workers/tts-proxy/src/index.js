@@ -20,7 +20,7 @@
 
    デプロイ：`wrangler deploy`（Cloudflareアカウント作成・wrangler loginが必要）。
    ローカル確認：`wrangler dev` の後、詳細は docs/APP_STORE_ROADMAP.md 参照。 */
-import { verifyFirebaseIdToken } from '../lib/jwt.js';
+import { verifyFirebaseIdToken, parseJwtUnverified } from '../lib/jwt.js';
 import { getAccessToken, getDoc, patchDoc } from '../lib/firestore.js';
 import {
   isValidFamilyCode, isPlausibleApiKey, sanitizeText,
@@ -74,6 +74,9 @@ async function preflight(request, env) {
   const authHeader = request.headers.get('Authorization') || '';
   const m = /^Bearer (.+)$/.exec(authHeader);
   if (!m) return { error: json(request, env, 401, { ok: false, error: 'auth_required' }) };
+  // トークンの形（3パートのJWTか）を先に見る。形になっていない/ゴミ値なら、
+  // GoogleのJWKSへ無駄な外部通信をせずに即401で返す（実害は無いが素の無駄弾きを減らす）。
+  if (!parseJwtUnverified(m[1])) return { error: json(request, env, 401, { ok: false, error: 'auth_required' }) };
   let jwks;
   try { jwks = await getJwks(); } catch (e) { return { error: json(request, env, 502, { ok: false, error: 'auth_check_failed' }) }; }
   const verified = await verifyFirebaseIdToken(m[1], jwks, { projectId: env.FIREBASE_PROJECT_ID, nowSeconds: Math.floor(Date.now() / 1000) });

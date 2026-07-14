@@ -2266,7 +2266,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/aibou.js?v=2"></script>
 <script src="js/chars.js?v=1"></script>
 <script src="js/areas.js?v=1"></script>
-<script src="js/cos-data.js?v=1"></script>
+<script src="js/cos-data.js?v=2"></script>
 <script src="js/subjects.js?v=1"></script>
 <script src="js/questions-bank.js?v=1"></script>
 <script src="js/questions-extra.js?v=1"></script>
@@ -5320,7 +5320,9 @@ function _computeCollections(cos, sets, titles, pool){
       if(set.title) cos.titles[set.title]=1;
       earned.push({kind:'set', set:set});
     } });
-  var total=pool.length, owned=Object.keys(cos.owned||{}).filter(function(k){ return cos.owned[k]; }).length;
+  // 所持数は「プールに実在するidだけ」を数える（id移行の残骸や旧idが混ざっても分子が膨らまない）
+  var ids={}; pool.forEach(function(p){ ids[p.id]=1; });
+  var total=pool.length, owned=Object.keys(cos.owned||{}).filter(function(k){ return cos.owned[k] && ids[k]; }).length;
   function grant(t){ if(!cos.titles[t]){ cos.titles[t]=1; earned.push({kind:'title', tid:t}); } }
   if(total && owned>=Math.ceil(total/2)) grant('t_collector');
   if(total && owned>=total) grant('t_master');
@@ -5361,6 +5363,16 @@ function rpgCosState(s){
   if(!c.equip.hero) c.equip.hero={}; if(!c.equip.pet) c.equip.pet={};
   if(!c.titles) c.titles={};   // 手に入れた称号
   if(!c.sets) c.sets={};       // ごほうび受け取り済みセット
+  // hat/handのid衝突バグ（旧コードは両方gx_hh…を生成）の移行。毎回実行しても安全（冪等）＝
+  // フラグ方式だとmergeCosが未知フィールドを落として消えるため、あえてフラグ無しで回す。
+  // 衝突していたidは「どちらを引いたか」を区別できないので、両方所持あつかい（ユーザーが損しない側）にする。
+  try{
+    (COS_DATA.hero.hand||[]).forEach(function(it){
+      if(it.id.indexOf('gx_hd')===0){ var old='gx_hh'+it.id.slice(5); if(c.owned[old]) c.owned[it.id]=1; }
+    });
+    var _hh=c.equip.hero.hand;
+    if(_hh && _hh.indexOf('gx_hh')===0) c.equip.hero.hand='gx_hd'+_hh.slice(5);
+  }catch(e){}
   return c;
 }
 function rpgCoin(){ return rpgCosState(rpgState()).coin||0; }

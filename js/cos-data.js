@@ -104,6 +104,9 @@ var COS_DATA={
       hat:[ ['🪖','ミニヘルメット'],['🧶','けいとぼう'],['🎽','はちまき'],['🧣','マフラー'],['🍄','きのこ'],['🌻','ひまわり'],['🥽','ゴーグル'],['🎧','ヘッドホン'],['🪅','ピニャータ'],['🌹','ばら'],['🦋','ちょう'],['🎃','パンプキン'],['🦺','フード'],['🪬','まもり'],['🏵️','はなくんしょう'],['🏅','メダル'],['🥇','きんメダル'],['🎖️','くんしょう'],['💐','はなのかんむり'],['🪩','ミラークラウン'],['💫','ティアラ'],['🔮','よげんかんむり'],['🎇','はなびかんむり'],['🌟','きらめきクラウン'],['🦁','ライオンのおうかん'],['🕊️','せいなるつばさ'],['🐉','りゅうのかぶと'],['🔱','トライデント'],['🪐','どせいのかんむり'],['☀️','たいようのかんむり'] ]
     }
   };
+  // スロット→id用の1文字コード。hatとhandはどちらも頭文字'h'でidが衝突していたため（gx_hhN0等12個）、
+  // handは'd'（既存のhd_接頭辞に合わせる）。旧gx_hh…のhandアイテムは rpgCosState が新idへ移行する。
+  var SLOT_CODE={hat:'h',face:'f',hand:'d',aura:'a',back:'b',ride:'r'};
   function add(kind,slot,pile){
     if(!COS_DATA[kind]) COS_DATA[kind]={};
     if(!COS_DATA[kind][slot]) COS_DATA[kind][slot]=[];
@@ -112,7 +115,7 @@ var COS_DATA={
       var cnt=(t===TIERS.length-1)?(n-idx):Math.max(1,Math.round(n*W[t]));
       if(idx+cnt>n) cnt=n-idx;
       for(j=0;j<cnt;j++){ var p=pile[idx+j]; if(!p) continue; var r=TIERS[t];
-        COS_DATA[kind][slot].push({ id:'gx_'+kind.charAt(0)+slot.charAt(0)+r+(seq++), em:p[0], name:(PRE[r]||'')+p[1], price:PRICE[r]||60, r:r });
+        COS_DATA[kind][slot].push({ id:'gx_'+kind.charAt(0)+(SLOT_CODE[slot]||slot.charAt(0))+r+(seq++), em:p[0], name:(PRE[r]||'')+p[1], price:PRICE[r]||60, r:r });
       }
       idx+=cnt; if(idx>=n) break;
     }

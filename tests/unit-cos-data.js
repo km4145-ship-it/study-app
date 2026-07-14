@@ -13,6 +13,15 @@ const api = (new Function(code + '\nreturn { COS_DATA, COS_SETS, COS_TITLES, COS
 let count = 0;
 ['hero', 'pet'].forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => { count += api.COS_DATA[k][sl].length; }));
 c.ok('COS_DATA アイテム総数275（追加IIFE込み）', count === 275);
+// idの一意性（過去にhat/handが同じgx_hh…を生成して12個衝突していた回帰ガード）
+{
+  const seen = {};
+  let dup = 0;
+  Object.keys(api.COS_DATA).forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => api.COS_DATA[k][sl].forEach((it) => {
+    if (seen[it.id]) dup++; seen[it.id] = 1;
+  })));
+  c.ok('全アイテムidが一意（hat/hand衝突の回帰ガード）', dup === 0);
+}
 const tiers = {};
 ['hero', 'pet'].forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => api.COS_DATA[k][sl].forEach((it) => { tiers[it.r] = (tiers[it.r] || 0) + 1; })));
 c.ok('8レア度すべてに装備がある', ['N', 'HN', 'R', 'HR', 'SR', 'SSR', 'UR', 'LR'].every((t) => tiers[t] > 0));

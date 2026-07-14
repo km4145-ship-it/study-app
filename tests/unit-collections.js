@@ -40,4 +40,12 @@ c.ok('earned3 = s2+master+first_ur', e3.length === 3);
 let cos2 = { owned: { i1: 1 }, coin: 0, titles: {}, sets: {} };
 let e4 = _computeCollections(cos2, SETS, {}, POOL);
 c.ok('部分セットは報酬なし', !cos2.sets.s1 && !e4.some((x) => x.kind === 'set'));
+
+// プールに存在しないid（id移行の残骸・旧id）はcollector/masterの分子に数えない
+let cos3 = { owned: { i1: 1, i2: 1, i3: 1, i4: 1, zombie_old_id: 1, gx_hhN0: 1 }, coin: 0, titles: {}, sets: {} };
+_computeCollections(cos3, SETS, {}, POOL);
+c.ok('未知idが混ざってもmaster判定は正しい(4/4)', cos3.titles.t_master === 1);
+let cos4 = { owned: { zombie1: 1, zombie2: 1, zombie3: 1, zombie4: 1 }, coin: 0, titles: {}, sets: {} };
+_computeCollections(cos4, SETS, {}, POOL);
+c.ok('未知idだけではcollectorも付かない', !cos4.titles.t_collector && !cos4.titles.t_master);
 c.done();

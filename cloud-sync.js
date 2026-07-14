@@ -172,9 +172,20 @@ window.FIREBASE_CONFIG = {
       return JSON.stringify(out);
     }catch(e){ return b||a; }
   }
+  // エラーレポート（err_log）：t+メッセージで和集合・古い順ソート・20件（端末Aの記録が端末Bの同期で消えないように）
+  function mergeErrLog(a,b){
+    try{
+      var x=JSON.parse(a||'[]')||[], y=JSON.parse(b||'[]')||[], seen={}, out=[];
+      x.concat(y).forEach(function(e){ if(!e||!e.m) return; var k=(e.t||0)+':'+e.m; if(seen[k]) return; seen[k]=1; out.push(e); });
+      out.sort(function(p,q){ return (p.t||0)-(q.t||0); });
+      while(out.length>20) out.shift();
+      return JSON.stringify(out);
+    }catch(e){ return b||a; }
+  }
   function mergeKey(k,cur,inc){
     if(k==='mu_users') return mergeUsers(cur,inc);
     if(k==='family_duels') return mergeDuels(cur,inc);
+    if(/:err_log$/.test(k)) return mergeErrLog(cur,inc);
     if(/:rpg_state$/.test(k)) return mergeRpg(cur,inc);
     if(isArr(k)) return mergeArr(cur,inc);
     if(isCounter(k)) return String(Math.max(parseInt(cur||'0',10)||0,parseInt(inc||'0',10)||0));

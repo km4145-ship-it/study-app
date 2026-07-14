@@ -2,6 +2,25 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script>
+/* ⚠️ 軽量エラーモニタ（先頭で読み込む＝以降のモジュール読込エラーも捕捉する）。
+   本体（_errSink）が起動するまではメモリと端末ローカルの err_boot_log に退避し、
+   ユーザー確定後に errMonitorInit() が per-user の err_log（クラウド同期対象）へ流し込む。 */
+(function(){
+  function ent(msg, src, line){ return { t:Date.now(), m:String(msg||'?').slice(0,200), s:String(src||'').split('/').pop().slice(0,60), l:line||0 }; }
+  function keep(e){
+    try{ if(window._errSink){ window._errSink(e); return; } }catch(_){}
+    try{
+      (window.__errBuf=window.__errBuf||[]).push(e);
+      var a=[]; try{ a=JSON.parse(localStorage.getItem('err_boot_log')||'[]')||[]; }catch(_){ a=[]; }
+      a.push(e); while(a.length>20) a.shift();
+      localStorage.setItem('err_boot_log', JSON.stringify(a));
+    }catch(_){}
+  }
+  window.addEventListener('error', function(ev){ keep(ent(ev.message, ev.filename, ev.lineno)); });
+  window.addEventListener('unhandledrejection', function(ev){ var r=ev&&ev.reason; keep(ent('Promise: '+((r&&(r.message||r))||'?'), '', 0)); });
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0891b2">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -946,6 +965,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
         <button class="btn-sm" onclick="rpgTestGrant()">🪙 テスト用に 10万 付与</button>
       </div>
       <div class="settings-row">
+        <label>エラーレポート</label>
+        <button class="btn-sm" onclick="errShowReport()">⚠️ ひらく</button>
+        <span class="settings-hint">アプリ内のエラー記録（家族ぶんも見られます）</span>
+      </div>
+      <div class="settings-row">
         <label>もんだいカバレッジ</label>
         <button class="btn-sm" onclick="showCoverage()">📋 ひらく</button>
         <span class="settings-hint" style="margin-left:6px">教科×単元ごとの問題数と「穴」（問題ゼロの単元）を確認できます</span>
@@ -1719,6 +1743,15 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
   .rpg-gacha-box{ font-size:64px; animation:rpgBoxShake .5s ease-in-out infinite; }
+  /* ⚠️ エラーレポート */
+  #err-report-ov{ position:fixed; inset:0; background:rgba(15,23,42,.8); z-index:9998; display:none; align-items:center; justify-content:center; padding:16px; }
+  .err-card{ background:var(--card,#fff); border-radius:16px; padding:16px; max-width:440px; width:100%; max-height:80vh; overflow-y:auto; }
+  .err-ttl{ font-weight:900; font-size:1.05rem; margin-bottom:8px; }
+  .err-who{ font-weight:800; font-size:.8rem; color:#0e7490; margin:10px 0 4px; }
+  .err-row{ background:var(--card2,#f8fafc); border:1px solid rgba(148,163,184,.35); border-radius:9px; padding:6px 9px; margin:3px 0; }
+  .err-msg{ display:block; font-size:.78rem; font-weight:700; word-break:break-all; }
+  .err-meta{ display:block; font-size:.68rem; color:#94a3b8; }
+  .err-cloud{ font-size:.8rem; margin-top:6px; }
   /* ⭐ ねがいごと */
   .gc-wish{ background:linear-gradient(90deg,#fefce8,#fef9c3); border:1.5px solid #facc15; color:#713f12; border-radius:11px; padding:7px 11px; margin:6px 0 2px; font-size:.84rem; font-weight:800; }
   .gc-wish small{ font-weight:600; color:#a16207; }
@@ -2442,7 +2475,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1};
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1};
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -2863,7 +2896,60 @@ async function muPickUser(id){
     muPickerLock(false);
     var ov=document.getElementById('user-select-overlay'); if(ov) ov.style.display='none';
     muGreetAndEnter();
+    try{ errMonitorInit(); }catch(e){}   // ユーザー確定＝起動前にたまったエラーをper-userのerr_logへ
   } finally { _muPicking=false; }
+}
+// ===== ⚠️ エラーモニタ本体：headの捕捉フックから受け取り per-user の err_log（同期対象・20件）へ =====
+function _errRecord(e){
+  try{
+    if(!e || !e.m) return;
+    var a=lsGetJSON('err_log',[])||[];
+    var key=e.m+'@'+(e.s||'')+':'+(e.l||0);
+    for(var i=a.length-1;i>=0;i--){ if((a[i].m+'@'+(a[i].s||'')+':'+(a[i].l||0))===key){ a[i].n=(a[i].n||1)+1; a[i].t=e.t||Date.now(); lsSetJSON('err_log',a); return; } }   // 同じエラーは回数(n)だけ増やす
+    a.push(e); while(a.length>20) a.shift();
+    lsSetJSON('err_log', a);
+  }catch(_){}
+}
+function errMonitorInit(){
+  try{
+    if(typeof muCurrentUser!=='function' || !muCurrentUser()) return;   // ユーザー未確定ならバッファのまま待つ
+    window._errSink=_errRecord;
+    (window.__errBuf||[]).forEach(_errRecord); window.__errBuf=[];
+    var boot=[]; try{ boot=JSON.parse(localStorage.getItem('err_boot_log')||'[]')||[]; }catch(e){}
+    boot.forEach(_errRecord); try{ localStorage.removeItem('err_boot_log'); }catch(e){}
+  }catch(e){}
+}
+// ⚠️ エラーレポート画面（設定の管理者エリアから）：この端末＋家族全員ぶん（クラウド）
+function errShowReport(){
+  var ov=document.getElementById('err-report-ov');
+  if(!ov){ ov=document.createElement('div'); ov.id='err-report-ov'; document.body.appendChild(ov); }
+  function fmt(list, who){
+    if(!list || !list.length) return '';
+    return '<div class="err-who">'+escapeHtml(who)+'</div>'+list.slice().reverse().map(function(e){
+      var d=new Date(e.t||0);
+      return '<div class="err-row"><span class="err-msg">'+escapeHtml(e.m||'?')+(e.n>1?(' <b>×'+e.n+'</b>'):'')+'</span><span class="err-meta">'+escapeHtml((e.s||'')+(e.l?(':'+e.l):''))+'　'+(d.getMonth()+1)+'/'+d.getDate()+'</span></div>';
+    }).join('');
+  }
+  var mine=lsGetJSON('err_log',[])||[];
+  var h='<div class="err-card"><div class="err-ttl">⚠️ エラーレポート</div>';
+  h+=fmt(mine,'この端末（'+(muCurrentUser()||{}).name+'）')||'';
+  h+='<div id="err-cloud" class="err-cloud">☁️ 家族ぶんを よみこみ中…</div>';
+  h+='<div class="settings-hint">アプリ内で起きたエラーの さいきん20件です。スクショと いっしょに 報告に つかえます。</div>';
+  h+='<button class="rpg-btn" onclick="document.getElementById(\'err-report-ov\').style.display=\'none\'">とじる</button></div>';
+  ov.innerHTML=h; ov.style.display='flex';
+  // クラウド：全メンバーの err_log（メンバーdocに同期済み）を集める
+  try{
+    if(window.cloudFetchAllMembers && window.cloudEnabled && window.cloudEnabled()){
+      window.cloudFetchAllMembers().then(function(all){
+        var el=document.getElementById('err-cloud'); if(!el) return;
+        var users=muGetUsers(), out='';
+        (users||[]).forEach(function(u){
+          try{ var lg=JSON.parse((all&&all[u.id]&&all[u.id].err_log)||'[]')||[]; out+=fmt(lg, u.name+'（クラウド）'); }catch(e){}
+        });
+        el.innerHTML=out||'<div class="settings-hint">クラウドに エラーは 記録されていません 🎉</div>';
+      }).catch(function(){ var el=document.getElementById('err-cloud'); if(el) el.textContent='☁️ よみこめませんでした'; });
+    } else { var el=document.getElementById('err-cloud'); if(el) el.textContent='☁️ クラウド未接続のため この端末ぶんのみ'; }
+  }catch(e){}
 }
 function muSwitchUser(){ try{ if(window.cloudSessionRelease && muCurrentId()) window.cloudSessionRelease(muCurrentId()); }catch(e){}   // 明示的なユーザー切替＝今の子は終了→ロック解放（別端末がすぐ使える）
   muShowPicker(); }
@@ -7713,7 +7799,7 @@ function initKeyboard(){
 
 init();
 </script>
-<script src="cloud-sync.js?v=1108" defer></script>
+<script src="cloud-sync.js?v=1109" defer></script>
 <script>
 /* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
 (function(){ try{

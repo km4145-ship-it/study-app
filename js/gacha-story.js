@@ -103,6 +103,24 @@ function gsSetStory(set){
   ];
 }
 
+// ===== たぬすけのお店：日替わりラインナップ（決定的＝同じ日は家族全員おなじ品揃え） =====
+// pool=[{id,r,price,...}]から6品：低レア(N〜HR)4＋中レア(SR/SSR)1＋高レア(UR/LR)1。
+// 高レアは「プレミアム価格」＝定価の3倍（ガチャの価値を壊さないための割増）。
+// 選出はdateKeyハッシュをシードにしたLCGで決定的（Math.random不使用＝テスト可能）
+var GACHA_SHOP_PREMIUM=3;
+function gachaShopLineup(pool, dateKey){
+  pool=pool||[];
+  var low=pool.filter(function(it){ return ['N','HN','R','HR'].indexOf(it.r||'N')>=0; });
+  var mid=pool.filter(function(it){ return it.r==='SR'||it.r==='SSR'; });
+  var high=pool.filter(function(it){ return it.r==='UR'||it.r==='LR'; });
+  var seed=gsHash('shop:'+dateKey);
+  function nxt(){ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; }
+  function take(arr,n){ var a=arr.slice(), out=[]; while(a.length&&out.length<n){ out.push(a.splice(Math.floor(nxt()*a.length),1)[0]); } return out; }
+  return take(low,4).map(function(it){ return { it:it, price:it.price||60 }; })
+    .concat(take(mid,1).map(function(it){ return { it:it, price:it.price||150 }; }))
+    .concat(take(high,1).map(function(it){ return { it:it, price:(it.price||300)*GACHA_SHOP_PREMIUM }; }));
+}
+
 // ===== レア装備の いいつたえ（lore）。開封カードときせかえの ながめる楽しみ =====
 var GS_LORE={
   h_crown:   'まなびの王国の 初代おうさまの おうかん。',

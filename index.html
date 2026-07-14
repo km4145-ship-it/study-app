@@ -1719,6 +1719,21 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
   .rpg-gacha-box{ font-size:64px; animation:rpgBoxShake .5s ease-in-out infinite; }
+  /* たぬすけのお店 */
+  .gc-shop-link{ display:flex; align-items:center; gap:10px; width:100%; font-family:inherit; cursor:pointer; text-align:left;
+    background:linear-gradient(135deg,#fff7ed,#fff); border:2px solid #fdba74; border-radius:14px; padding:10px 13px; margin-top:8px; }
+  .gc-shop-ic{ font-size:26px; }
+  .gc-shop{ display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; margin:10px 0; }
+  .gc-shop-cell{ position:relative; display:flex; flex-direction:column; align-items:center; gap:4px;
+    background:var(--card2,#fff); border:2px solid #e2e8f0; border-radius:13px; padding:9px 5px 8px; }
+  .gc-shop-cell.cos-r{ border-color:#a78bfa; } .gc-shop-cell.cos-hr{ border-color:#8b5cf6; }
+  .gc-shop-cell.cos-sr{ border-color:#f59e0b; } .gc-shop-cell.cos-ssr{ border-color:#d97706; }
+  .gc-shop-cell.cos-ur,.gc-shop-cell.cos-lr{ border-color:#f472b6; box-shadow:0 0 10px rgba(236,72,153,.4); }
+  .gc-shop-em{ font-size:30px; line-height:1.15; }
+  .gc-shop-nm{ font-size:.7rem; font-weight:800; text-align:center; min-height:2em; }
+  .gc-shop-buy{ border:none; background:#fde047; color:#7c2d12; border-radius:10px; padding:5px 10px; font-weight:900; font-family:inherit; cursor:pointer; box-shadow:0 2px 0 #ca8a04; }
+  .gc-shop-buy:active{ transform:translateY(2px); box-shadow:none; }
+  .gc-shop-owned{ font-size:.74rem; color:#16a34a; font-weight:800; padding:5px 0; }
   /* 確率開示・排出履歴 */
   .gc-odds-link{ display:block; width:100%; border:none; background:transparent; color:#64748b; font-family:inherit; font-size:.78rem; text-decoration:underline; cursor:pointer; padding:6px 0 2px; text-align:center; }
   .gc-odds-card{ background:var(--card2,#fff); border:1.5px solid var(--primary-light,#bae6fd); border-radius:13px; padding:10px 13px; margin:8px 0; }
@@ -2345,7 +2360,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/chars.js?v=1"></script>
 <script src="js/areas.js?v=1"></script>
 <script src="js/cos-data.js?v=5"></script>
-<script src="js/gacha-story.js?v=1"></script>
+<script src="js/gacha-story.js?v=2"></script>
 <script src="js/subjects.js?v=1"></script>
 <script src="js/questions-bank.js?v=1"></script>
 <script src="js/questions-extra.js?v=1"></script>
@@ -6582,10 +6597,52 @@ function showGacha(){
      '<button class="gc-pull ten" onclick="rpgGachaDraw10()"><span class="gc-pt">10回 ひく</span><span class="gc-pp">🪙 320 ・ スペシャル確定</span></button>'+
      '</div>';
   h+='<div class="gc-pity"><div class="gc-pity-l"><span>💫 天井（UR確定）まで</span><span>'+pity+' / '+pmax+'</span></div><div class="gc-pity-b"><i style="width:'+ppct+'%"></i></div></div>';
+  h+='<button class="gc-shop-link" onclick="gachaShowShop()"><span class="gc-shop-ic">🛒</span><span><b>たぬすけのお店</b><br><small>日替わりの品を コインで直接かえる</small></span></button>';
   h+='<button class="gc-odds-link" onclick="gachaShowOdds()">📊 くわしい かくりつ・さいきん出たもの</button>';
   h+='<div class="rpg-map-hint">出たアイテムは「👕 きせかえ」タブで そうびできるよ。ダブりは コインに かわる。</div>';
   mv.innerHTML=h;
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+}
+// 🛒 たぬすけのお店：日替わり6品をコインで直接こうにゅう（ダブりコインの出口）
+function gachaShowShop(){
+  try{ sfx('click'); }catch(e){}
+  rpgBattle=null; rpgHideBattle(); hideMainScreens();
+  document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
+  document.getElementById('rpg-result-view').style.display='none';
+  var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
+  var s=rpgState(), cos=rpgCosState(s);
+  var lineup=[];
+  try{ lineup=gachaShopLineup(_gachaPool().map(function(p){ return p.it; }), todayKey()); }catch(e){}
+  var h='<button class="rpg-back" onclick="showGacha()">← ガチャにもどる</button>';
+  h+='<div class="rpg-world-title">🛒 たぬすけのお店</div>';
+  h+='<div class="gc-merchant"><span class="gc-m-face">🦝</span><span class="gc-m-bubble">いらっしゃい！ きょうの品ぞろえじゃ。あしたには 入れかわるぞ</span></div>';
+  h+='<div class="rpg-coin-bar">🪙 もっているコイン：<b>'+cos.coin+'</b>　<span class="rpg-coin-hint">ダブりや バトルで たまるよ</span></div>';
+  h+='<div class="gc-shop">';
+  lineup.forEach(function(row){ var it=row.it, rar=COS_RARITY[it.r||'N']||{}, owned=!!cos.owned[it.id];
+    h+='<div class="gc-shop-cell '+(rar.cls||'')+'">'
+      +'<span class="rpg-cos-rar '+(rar.cls||'')+'">'+(it.r||'N')+'</span>'
+      +'<span class="gc-shop-em">'+it.em+'</span>'
+      +'<span class="gc-shop-nm">'+escapeHtml(it.name)+'</span>'
+      +(owned?'<span class="gc-shop-owned">✓ もってる</span>'
+             :'<button class="gc-shop-buy" onclick="gachaShopBuy(\''+it.id+'\','+row.price+')">🪙 '+row.price+'</button>')
+      +'</div>'; });
+  h+='</div>';
+  h+='<div class="rpg-map-hint">高レア（UR/LR）は プレミアム価格（定価の'+GACHA_SHOP_PREMIUM+'ばい）。ガチャで ねらうほうが おとくかも？</div>';
+  mv.innerHTML=h;
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+}
+function gachaShopBuy(id, price){
+  var s=rpgState(), cos=rpgCosState(s), it=rpgItemById(id); if(!it) return;
+  if(cos.owned[id]){ showToast('🛒','もう もってるよ',''); return; }
+  if((cos.coin||0)<price){ try{ sfx('wrong'); }catch(e){} showToast('🪙','コインが たりないよ','ダブりや バトルで ためよう'); return; }
+  if(!confirm('「'+it.name+'」を 🪙'+price+' で かう？')) return;
+  cos.coin-=price; cos.owned[id]=1;
+  _pendingCollect=rpgCheckCollections(s);
+  rpgSave(s);
+  try{ sfx('coin'); confetti(); }catch(e){}
+  showToast(it.em,'おかいあげ ありがとう！','「'+it.name+'」を てにいれた');
+  try{ rpgAnnounceCollect(); }catch(e){}
+  gachaShowShop();
 }
 // 📊 くわしい確率と排出履歴（提供割合の開示画面。ガチャ画面から）
 function gachaShowOdds(){

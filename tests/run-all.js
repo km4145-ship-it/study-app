@@ -46,6 +46,7 @@ const TESTS = [
   ['tests/int-ranking.js'],
   ['tests/int-growonly.js'],
   ['tests/int-build.js'],
+  ['tests/e2e-smoke.js'],
 ];
 
 const root = path.join(__dirname, '..');

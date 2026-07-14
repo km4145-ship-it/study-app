@@ -30,6 +30,7 @@ const TESTS = [
   ['tests/unit-coverage.js'],
   ['tests/unit-rating.js'],
   ['tests/unit-teach.js'],
+  ['tests/unit-duel.js'],
   ['tests/unit-ranking-logic.js'],
   ['tests/unit-merge-cos.js'],
   ['tests/unit-users.js'],
@@ -46,6 +47,7 @@ const TESTS = [
   ['tests/int-pullshared.js'],
   ['tests/int-ranking.js'],
   ['tests/int-growonly.js'],
+  ['tests/int-duels.js'],
   ['tests/int-build.js'],
   ['tests/e2e-smoke.js'],
 ];

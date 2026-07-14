@@ -25,7 +25,7 @@ window.FIREBASE_CONFIG = {
   function rset(k,v){ try{ _rawSetItem(k,v); }catch(e){} }
   function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
 
-  var SHARED = ['mu_users','mu_deleted','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_api_key','testdate','reward','line_endpoint','extra_questions','tts_voice','tts_rate','tts_pitch','el_voice_owners','sfx_on','vibe_on','rank_family_goal'];
+  var SHARED = ['mu_users','mu_deleted','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_api_key','testdate','reward','line_endpoint','extra_questions','tts_voice','tts_rate','tts_pitch','el_voice_owners','sfx_on','vibe_on','rank_family_goal','family_duels'];
   function isMemberKey(k){ return !!k && k.indexOf('u:')===0 && !/:q_log$/.test(k); }
   function uidOfKey(k){ var m=/^u:([^:]+):/.exec(k); return m? m[1] : null; }
   function fieldOfKey(k){ var m=/^u:[^:]+:(.+)$/.exec(k); return m? m[1] : null; }
@@ -147,8 +147,25 @@ window.FIREBASE_CONFIG = {
     o.aibou=mergeAibou(x.aibou, y.aibou);   // ★あいぼう（なかまモンスター）も同様に保全
     if(o.aibou===undefined) delete o.aibou;
     return JSON.stringify(o); }catch(e){ return b||a; } }
+  // 家族対戦の対戦状（{id:{...,results:{uid:{...}}}}）：id単位の和集合・resultsはuid単位の和集合（先勝ち）。
+  // 端末Aが挑戦状を書き、端末Bが結果を書いても、どちらも消えない（latest-winsだと相互に消し合う）。
+  function mergeDuels(a,b){
+    try{
+      var x=JSON.parse(a||'{}'), y=JSON.parse(b||'{}'), out={};
+      [x,y].forEach(function(m){ Object.keys(m||{}).forEach(function(id){
+        var d=m[id]; if(!d||!d.id) return;
+        if(!out[id]){ out[id]=d; return; }
+        var t=out[id]; t.results=t.results||{};
+        Object.keys(d.results||{}).forEach(function(u){ if(!t.results[u]) t.results[u]=d.results[u]; });
+      }); });
+      var ids=Object.keys(out).sort(function(p,q){ return (out[q].at||0)-(out[p].at||0); });
+      ids.slice(12).forEach(function(id){ delete out[id]; });   // 古い対戦状は12件で間引く（sharedドキュメント肥大防止）
+      return JSON.stringify(out);
+    }catch(e){ return b||a; }
+  }
   function mergeKey(k,cur,inc){
     if(k==='mu_users') return mergeUsers(cur,inc);
+    if(k==='family_duels') return mergeDuels(cur,inc);
     if(/:rpg_state$/.test(k)) return mergeRpg(cur,inc);
     if(isArr(k)) return mergeArr(cur,inc);
     if(isCounter(k)) return String(Math.max(parseInt(cur||'0',10)||0,parseInt(inc||'0',10)||0));
@@ -211,6 +228,8 @@ window.FIREBASE_CONFIG = {
       snap.mu_users = mergeUsers(cloud.mu_users, snap.mu_users);                       // 名簿＝和集合（クラウドより縮まない）
       var md = mergeObjMax(cloud.mu_deleted || '{}', snap.mu_deleted || '{}');          // 墓標＝和集合（削除フラグは消さない）
       if(md && md !== '{}') snap.mu_deleted = md;
+      if(snap.family_duels || cloud.family_duels)                                       // 対戦状＝書込時も和集合（相互クロバー防止）
+        snap.family_duels = mergeDuels(cloud.family_duels, snap.family_duels);
       return sharedRef().set({ data: snap, updated: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
     }).catch(function(){ dirtyShared=true; });
   }

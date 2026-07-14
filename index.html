@@ -605,6 +605,32 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .imp-label { display:inline-block; }
   .q-time { font-size:0.72rem; color:var(--primary-light); margin-top:6px; }
   .careless-ask { font-size:0.78rem; color:var(--text); margin-top:8px; }
+  /* ⚔️ 家族対戦・協力レイド */
+  .raid-card{ display:flex; gap:12px; align-items:center; background:linear-gradient(135deg,#312e81,#6d28d9); color:#fff; border-radius:16px; padding:12px 14px; margin-bottom:10px; border:1px solid rgba(252,211,77,.4); }
+  .raid-card.beat{ background:linear-gradient(135deg,#065f46,#059669); }
+  .raid-boss{ width:74px; flex:0 0 auto; }
+  .raid-boss img.c3d-still, .raid-boss svg{ width:100%; height:auto; }
+  .raid-info{ flex:1; min-width:0; }
+  .raid-ttl{ font-weight:800; margin-bottom:5px; }
+  .raid-bar{ height:12px; background:rgba(255,255,255,.25); border-radius:8px; overflow:hidden; }
+  .raid-bar i{ display:block; height:100%; background:linear-gradient(90deg,#ef4444,#f97316); border-radius:8px; float:right; }
+  .raid-num{ font-size:.82rem; font-weight:800; margin-top:4px; }
+  .raid-sub{ opacity:.8; font-weight:700; }
+  .raid-per{ font-size:.76rem; opacity:.85; margin-top:2px; }
+  .raid-claim{ margin-top:6px; }
+  .raid-got{ margin-top:6px; font-weight:800; font-size:.85rem; }
+  .duel-sec{ background:var(--card,#fff); border:1.5px solid #fbbf24; border-radius:14px; padding:10px 12px; margin-bottom:10px; }
+  .duel-head{ font-weight:800; display:flex; align-items:center; gap:10px; }
+  .duel-head .btn-sm{ margin-left:auto; }
+  .duel-empty{ font-size:.82rem; opacity:.75; font-weight:600; margin-top:6px; }
+  .duel-row{ display:flex; align-items:center; gap:8px; padding:6px 0; border-top:1px dashed rgba(148,163,184,.4); margin-top:6px; flex-wrap:wrap; }
+  .duel-meta{ font-weight:700; font-size:.86rem; }
+  .duel-meta small{ opacity:.6; }
+  .duel-go{ margin-left:auto; background:#f59e0b!important; color:#fff!important; font-weight:800; }
+  .duel-wait{ margin-left:auto; font-size:.78rem; opacity:.7; font-weight:700; }
+  .duel-res{ margin-left:auto; font-size:.8rem; font-weight:800; }
+  .duel-pick{ margin:8px 0; display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-weight:700; font-size:.85rem; }
+  .result-duel{ background:#fef3c7; }
   /* 🗣️おしえてモード */
   #teach-ov{ position:fixed; inset:0; z-index:2000010; background:rgba(15,23,42,.55); display:none; align-items:flex-start; justify-content:center; overflow:auto; padding:14px; }
   .teach-card{ background:var(--card,#fff); color:var(--text,#0f172a); border-radius:16px; padding:14px 16px 18px; max-width:560px; width:100%; margin:10px auto 40px; box-shadow:0 18px 50px rgba(0,0,0,.35); }
@@ -2220,6 +2246,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/coverage.js?v=1"></script>
 <script src="js/rating.js?v=1"></script>
 <script src="js/teach.js?v=1"></script>
+<script src="js/duel.js?v=1"></script>
 <script src="js/ranking.js?v=1"></script>
 <script src="js/three.min.js?v=1"></script>
 <script src="js/char3d.js?v=1"></script>
@@ -2250,7 +2277,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1};
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1};
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -3411,9 +3438,9 @@ function handleAnswer(correct, correctAns) {
       }
     }catch(e){}
   }
-  // まちがい→その場で類題リベンジ（練習のみ。模試/バトル/まちがい直しは除外・1問1回・1セッション3回まで）
+  // まちがい→その場で類題リベンジ（練習のみ。模試/バトル/まちがい直し/対戦中は除外・1問1回・1セッション3回まで）
   // ミスの型が分かっていれば「同じ型をためせる類題」を優先して出す（型別リベンジ）
-  if(!correct && !isExam && !rpgBattle && !isMistakePractice
+  if(!correct && !isExam && !rpgBattle && !isMistakePractice && !_duel
      && currentQuestions[currentIndex] && !currentQuestions[currentIndex]._revenge && _revengeCount<3){
     var _rq=null; try{ _rq=findSimilarQuestion(currentQuestions[currentIndex], _mtNow); }catch(e){}
     if(_rq){
@@ -3468,6 +3495,14 @@ function showResult() {
       _prEl.innerHTML='⚡ 実力メーター '+_ratingStart.toFixed(1)+' → <b>'+_nowR.toFixed(1)+'</b> <span style="color:'+(_d>=0?'#10b981':'#ef4444')+';font-weight:800">('+(_d>=0?'+':'')+_d.toFixed(1)+')</span>';
       _prEl.style.display='block';
     } else { _prEl.style.display='none'; }
+  }catch(e){}
+  // ⚔️ 対戦（きょうだい対戦）の結果記録と勝敗表示
+  try{
+    var _dline=(typeof duelRecordResult==='function')?duelRecordResult():'';
+    var _dEl=document.getElementById('result-duel');
+    if(!_dEl){ _dEl=document.createElement('div'); _dEl.id='result-duel'; _dEl.className='result-rating result-duel';
+      var _pr2=document.getElementById('result-rating'); if(_pr2&&_pr2.parentNode) _pr2.parentNode.insertBefore(_dEl,_pr2.nextSibling); }
+    if(_dline){ _dEl.innerHTML=_dline; _dEl.style.display='inline-block'; } else { _dEl.style.display='none'; }
   }catch(e){}
   let stars, msg, char;
   if (pct === 1) {
@@ -3674,6 +3709,7 @@ function _rankLoad(){
     if(overlay) allMembers[overlay.uid]=Object.assign({}, allMembers[overlay.uid]||{}, overlay.data);
     _rankData={ allMembers:allMembers, roster:roster, cloud:cloud };
     _rankRender();
+    try{ _familyExtras(); }catch(e){}   // レイド＋対戦コーナー（B1）
   }
   if(window.cloudFetchAllMembers && window.cloudEnabled && window.cloudEnabled()){
     var done=false;
@@ -5267,6 +5303,126 @@ function rpgCosState(s){
   return c;
 }
 function rpgCoin(){ return rpgCosState(rpgState()).coin||0; }
+// ===== 家族対戦・協力レイド（B1）。純ロジックは js/duel.js、同期は cloud-sync の family_duels =====
+var _duel=null;   // 対戦プレイ中 {id, t0}
+function duelsLoad(){ try{ return JSON.parse(safeLS.getItem('family_duels')||'{}'); }catch(e){ return {}; } }
+function duelsSave(m){ try{ safeLS.setItem('family_duels', JSON.stringify(m)); }catch(e){} }
+// 家族タブ（ランキング画面）にレイドカードと対戦コーナーを差し込む
+function _familyExtras(){
+  try{
+    var body=document.getElementById('ranking-body'); if(!body || !_rankData) return;
+    var roster=_rankData.roster||[], all=_rankData.allMembers||{};
+    // --- 協力レイド（週間ボス） ---
+    var members=roster.map(function(u){ var d=all[u.id]||{}; return { uid:u.id, name:u.name, hist:d.daily_hist }; });
+    var raid=raidCompute(members, new Date());
+    var claimed=(lsGetJSON('raid_claim',{})||{})[raid.weekId]===1;
+    var h='<div class="raid-card'+(raid.defeated?' beat':'')+'">'+
+      '<div class="raid-boss">'+_monStill(raid.boss.mon)+'</div>'+
+      '<div class="raid-info"><div class="raid-ttl">⚔️ 今週のレイドボス：'+escapeHtml(raid.boss.name)+'</div>'+
+      '<div class="raid-bar"><i style="width:'+(100-raid.pct)+'%"></i></div>'+
+      '<div class="raid-num">'+(raid.defeated? '🎉 とうばつ せいこう！！' : 'のこりHP '+raid.hp+'（家族みんなの正解で削れる）')+'　<span class="raid-sub">今週 '+raid.total+' / '+raid.boss.target+'問</span></div>'+
+      '<div class="raid-per">'+raid.per.map(function(p){ return escapeHtml(p.name)+' '+p.n; }).join('　')+'</div>'+
+      (raid.defeated ? (claimed? '<div class="raid-got">✅ ほうび受けとりずみ</div>'
+        : '<button class="rpg-btn raid-claim" onclick="raidClaim(\''+raid.weekId+'\')">🎁 ほうびを うけとる（🪙200＋🎟️1）</button>') : '')+
+      '</div></div>';
+    // --- きょうだい対戦（非同期・同じ問題で勝負） ---
+    var duels=duelsLoad(); var myUid=muCurrentId();
+    var ids=Object.keys(duels).sort(function(a,b){ return (duels[b].at||0)-(duels[a].at||0); }).slice(0,5);
+    h+='<div class="duel-sec"><div class="duel-head">⚔️ きょうだい対戦 <button class="btn-sm" onclick="duelPickArea()">挑戦状を出す</button></div>';
+    if(!ids.length) h+='<div class="duel-empty">「挑戦状を出す」で 5問勝負！ 同じ問題を といて スコアとタイムで競うよ</div>';
+    ids.forEach(function(id){
+      var d=duels[id], st=duelStatusFor(d, myUid);
+      var a=AREAS.find(function(x){return x.key===d.area;})||{icon:'✏️',name:''};
+      var when=new Date(d.at); var ds=(when.getMonth()+1)+'/'+when.getDate();
+      h+='<div class="duel-row"><span class="duel-meta">'+a.icon+' '+escapeHtml(d.fromName)+'の挑戦状 <small>'+ds+'</small></span>';
+      if(st==='challenge') h+='<button class="btn-sm duel-go" onclick="duelAccept(\''+id+'\')">うけて たつ！</button>';
+      else if(st==='waiting') h+='<span class="duel-wait">あいての挑戦まち…（'+(d.results[d.from]?d.results[d.from].score+'点':'')+'）</span>';
+      else {
+        var rk=duelRanking(d);
+        h+='<span class="duel-res">'+rk.map(function(r,i){ return (i===0?'🏆':'　')+escapeHtml(r.name)+' '+r.score+'点/'+Math.round(r.timeMs/1000)+'秒'; }).join('　')+'</span>';
+      }
+      h+='</div>';
+    });
+    h+='</div>';
+    var ex=document.getElementById('family-extras');
+    if(!ex){ ex=document.createElement('div'); ex.id='family-extras'; body.insertBefore(ex, body.firstChild); }
+    ex.innerHTML=h;
+  }catch(e){}
+}
+function raidClaim(weekId){
+  var c=lsGetJSON('raid_claim',{})||{}; if(c[weekId]===1) return;
+  c[weekId]=1; lsSetJSON('raid_claim', c);
+  try{ var s=rpgState(), cos=rpgCosState(s); cos.coin=(cos.coin||0)+200; cos.tickets=(cos.tickets||0)+1; rpgSave(s); }catch(e){}
+  try{ sfx('fanfare'); confetti(); showToast('🎁','レイドほうび！','🪙200コインと 🎟️ガチャチケットを ゲット！'); }catch(e){}
+  _familyExtras();
+}
+function duelPickArea(){
+  var ex=document.getElementById('family-extras'); if(!ex) return;
+  var h='<div class="duel-pick">どの教科で 勝負する？ ';
+  AREAS.forEach(function(a){ h+='<button class="btn-sm" onclick="duelChallenge(\''+a.key+'\')">'+a.icon+' '+escapeHtml(a.name)+'</button>'; });
+  h+='<button class="btn-sm" onclick="_familyExtras()">やめる</button></div>';
+  var sec=ex.querySelector('.duel-sec'); if(sec) sec.insertAdjacentHTML('afterbegin', h);
+}
+function duelChallenge(area){
+  try{ sfx('click'); }catch(e){}
+  // 図なし・持ち運べる問題を集める（対戦状に「問題そのもの」を入れる＝相手と完全に同じ問題）
+  var qs=[], seen={}, guard=0;
+  while(qs.length<DUEL_N && guard<600){ guard++;
+    var q=null; try{ q=genQuestion(area); }catch(e){ break; }
+    var s=duelSanitizeQ(q); if(!s || seen[s.q]) continue;
+    seen[s.q]=1; qs.push(s);
+  }
+  var u=muCurrentUser()||{id:muCurrentId(),name:'ゆうしゃ'};
+  var d=duelNew(u.id, u.name, area, qs, Date.now());
+  if(!d){ try{ showToast('⚔️','ごめん！','問題を うまく 用意できなかった。もう一度ためしてね'); }catch(e){} return; }
+  var m=duelsLoad(); m[d.id]=d; duelsSave(duelMergeMaps(m, {}, DUEL_CAP));
+  duelPlay(d);   // 出した本人も すぐ同じ問題をプレイ（結果が入って相手待ちになる）
+}
+function duelAccept(id){
+  var d=duelsLoad()[id]; if(!d) return;
+  try{ sfx('click'); }catch(e){}
+  duelPlay(d);
+}
+function duelPlay(d){
+  _duel={ id:d.id, t0:Date.now() };
+  currentArea=d.area; currentMode='practice'; isExam=false; isGenPractice=true; stopExamTimer();
+  currentSubject=d.area; currentPracticeLevel='mid8';
+  currentQuestions=d.qs.map(function(q){ return Object.assign({}, q); });
+  currentIndex=0; score=0;
+  hideMainScreens();
+  document.getElementById('quiz-screen').style.display='block';
+  document.getElementById('exam-timer').style.display='none';
+  var a=AREAS.find(function(x){return x.key===d.area;})||{name:'',icon:'✏️'};
+  document.getElementById('quiz-title').textContent='⚔️ '+escapeHtml(d.fromName)+'との対戦 ・'+a.icon+a.name;
+  setCharacter(areaCharOf(d.area));
+  var intro='対戦だ！ 同じ5問を といて スコアとはやさで 勝負！';
+  setLunaText(intro); showQuestion(true); introThenQuestion(intro);
+}
+// 対戦の結果を対戦状に記録（showResult から呼ばれる）
+function duelRecordResult(){
+  if(!_duel) return '';
+  var m=duelsLoad(); var d=m[_duel.id];
+  var u=muCurrentUser()||{id:muCurrentId(),name:'ゆうしゃ'};
+  var line='';
+  if(d){
+    d.results=d.results||{};
+    if(!d.results[u.id]){
+      d.results[u.id]={ name:u.name, score:score, timeMs:Date.now()-_duel.t0, at:Date.now() };
+      m[d.id]=d; duelsSave(m);
+    }
+    var rk=duelRanking(d);
+    if(rk.length>=2){
+      var win=rk[0];
+      line = (win.uid===u.id)? '🏆 対戦に かった！！' : '🥈 '+escapeHtml(win.name)+'の かち！つぎは まけないぞ！';
+      line += '（'+rk.map(function(r){ return escapeHtml(r.name)+' '+r.score+'点/'+Math.round(r.timeMs/1000)+'秒'; }).join(' vs ')+'）';
+    } else {
+      line = '⚔️ きろく完了！ あいてが といたら 家族タブで けっかが 見られるよ';
+    }
+  }
+  _duel=null;
+  return line;
+}
+
 // ===== 🗣️おしえてモード（A4・ファインマン学習法）。評価は js/teach.js のルーブリック =====
 var _teach={ topic:null, phase:0, base:null, followKey:null };
 var _teachRec=null;
@@ -6982,7 +7138,7 @@ function initKeyboard(){
 
 init();
 </script>
-<script src="cloud-sync.js?v=1105" defer></script>
+<script src="cloud-sync.js?v=1106" defer></script>
 <script>
 /* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
 (function(){ try{

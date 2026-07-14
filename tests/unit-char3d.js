@@ -22,7 +22,7 @@ c.ok('three.min.js が グローバル THREE を定義する', !!(THREE && THREE
 const api = (new Function('THREE', code +
   '\nreturn { CHAR3D_SPECS, char3dSpecOf, char3dTag, char3dBuild, char3dEnabled,' +
   ' MON3D_SPECS, mon3dSpecOf, mon3dBuild, mon3dTag, C3D_GEAR, _c3dBuildGear, char3dEquip,' +
-  ' _c3dBuildChest, _c3dChestClip, C3D_CHEST_TIERS };'))(THREE);
+  ' _c3dBuildChest, _c3dChestClip, _c3dChestRiseClip, C3D_CHEST_TIERS };'))(THREE);
 
 // 3) CHARS の全キーに 3D 仕様がある
 const charsCode = fs.readFileSync(path.join(ROOT, 'js', 'chars.js'), 'utf8');
@@ -155,6 +155,23 @@ c.ok('装備アーケタイプ全 ' + archs.length + ' 型が組み立て可能'
   c.ok('ガタガタクリップが構築できる', rattle && rattle.name === 'c3dChestRattle' && rattle.duration > 0);
 }
 
+// 7e) 宝箱から中身が浮かび上がる（_c3dChestRiseClip）：C3D_GEARメッシュが回転しながら出現し保持される
+{
+  const g = api._c3dBuildChest(4);
+  const rc = api._c3dChestRiseClip(g, '👑');   // 👑はC3D_GEARにある＝メッシュ経路（documentスタブ不要）
+  c.ok('中身はメッシュのグループ（c3dChestItem）', rc.item.name === 'c3dChestItem' && rc.item.children.length >= 1);
+  c.ok('初期はほぼ不可視（scale.01）', rc.item.scale.x === .01);
+  g.add(rc.item);
+  const mixer = new THREE.AnimationMixer(g);
+  const a = mixer.clipAction(rc.clip);
+  a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.play();
+  mixer.update(2.0);   // 終端超え＝clampで保持
+  c.ok('中身が浮かんだ位置で保持（y≈0.88）', Math.abs(rc.item.position.y - .88) < 1e-3);
+  c.ok('中身は等倍に戻って保持', Math.abs(rc.item.scale.x - 1) < 1e-3);
+  c.ok('フタは開いたまま（-2.1）', Math.abs(g.userData.lid.rotation.x - (-2.1)) < 1e-3);
+  c.ok('回転しながら出現（rotation.y≈2.5π）', Math.abs(rc.item.rotation.y - Math.PI * 2.5) < 1e-2);
+}
+
 // 8) Node（localStorage 無し）でも char3dEnabled が例外を出さず true を返す
 try { c.ok('char3dEnabled は localStorage 無しで true', api.char3dEnabled() === true); }
 catch (e) { c.ok('char3dEnabled が例外: ' + e.message, false); }
@@ -168,4 +185,7 @@ c.ok('setCharacter は _charArt を使う', html.indexOf('wrap.innerHTML = _char
 c.ok('勇者アバターは _heroArt を使う', html.indexOf("+_heroArt()+") >= 0);
 c.ok('ガチャは3D宝箱（gacha3dBoxHtml）を使う', html.indexOf('gacha3dBoxHtml(') >= 0);
 c.ok('ガチャは宝箱フェーズ（_c3dTriggerChest）を呼ぶ', html.indexOf("_c3dTriggerChest(ov,'open')") >= 0 && html.indexOf("_c3dTriggerChest(ov,'charge')") >= 0);
+c.ok('開封で3Dアイテムが出現（_c3dChestReveal）', html.indexOf('_c3dChestReveal(ov, it.em)') >= 0);
+c.ok('渦巻きと星の雨を呼ぶ（gachaFx.vortex/rain）', html.indexOf('gachaFx.vortex(rank)') >= 0 && html.indexOf('gachaFx.rain(rank)') >= 0);
+c.ok('LRフェイクアウトがある', html.indexOf("classList.add('fakeout')") >= 0);
 c.done();

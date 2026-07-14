@@ -1150,6 +1150,40 @@ function _c3dChestClip(v, phase){
        _c3dNT('c3dChestLid.rotation[x]', [0, spd*.5, spd], [0, mag*.6, 0]) ];
   return new THREE.AnimationClip('c3dChestRattle', spd, tr);
 }
+// 開いた宝箱から中身が浮かび上がるクリップ（開封のクライマックス）。
+// アイテムはC3D_GEARのメッシュ（既知の絵文字）か絵文字プレート。返り値 {item, clip}＝
+// 呼び出し側が chestGroup.add(item) してから再生する（テストしやすいようクリップ構築を分離）
+function _c3dChestRiseClip(chestGroup, em){
+  var arch=C3D_GEAR[em];
+  var item=arch? _c3dBuildGear(arch,'hat') : _c3dEmojiPlate(em,.62);
+  item.name='c3dChestItem';
+  item.position.set(0,.2,0); item.scale.setScalar(.01);
+  var tr=[
+    _c3dVT('c3dChestItem.position',[0,.5,.9],[0,.2,0, 0,1.0,.12, 0,.88,.12]),        // 飛び出して少し沈む
+    _c3dVT('c3dChestItem.scale',[0,.4,.68,.9],[.01,.01,.01, 1.18,1.18,1.18, .94,.94,.94, 1,1,1]),
+    _c3dNT('c3dChestItem.rotation[y]',[0,.9],[0, Math.PI*2.5]),                       // 回りながら現れる
+    _c3dNT('c3dChestLid.rotation[x]',[0,.9],[-2.1,-2.1])                              // フタは開いたまま固定
+  ];
+  return { item:item, clip:new THREE.AnimationClip('c3dChestRise', .9, tr) };
+}
+function _c3dChestReveal(el, em){
+  try{
+    if(_c3dDead || !el || _c3dReduced() || !em) return false;
+    var slot=(el.classList&&el.classList.contains('c3d-slot'))?el:(el.querySelector?el.querySelector('.c3d-slot'):null);
+    if(!slot) return false;
+    var v=null; for(var i=0;i<_c3dViews.length;i++){ if(_c3dViews[i].slot===slot){ v=_c3dViews[i]; break; } }
+    if(!v || !v.char.userData.lid) return false;
+    var prev=v.char.getObjectByName('c3dChestItem'); if(prev) v.char.remove(prev);   // 10連の使い回しで前の中身を消す
+    var rc=_c3dChestRiseClip(v.char, em);
+    v.char.add(rc.item);
+    if(v.mixer){ try{ v.mixer.stopAllAction(); }catch(e){} }
+    v.mixer=new THREE.AnimationMixer(v.char);
+    var a=v.mixer.clipAction(rc.clip);
+    a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished=true; a.play();
+    v.animState='defeat'; v.animUntil=Infinity;   // 浮かんだ姿勢を保持（idleに戻さない）
+    return true;
+  }catch(e){ return false; }
+}
 function _c3dTriggerChest(el, phase){
   try{
     if(_c3dDead || !el || _c3dReduced()) return false;

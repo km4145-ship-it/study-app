@@ -41,13 +41,20 @@ function rankBestHensachi(logJson) {
 // 1人ぶんのメンバーデータ(フィールドは文字列)から指標を算出
 function rankUserMetrics(data, todayStr) {
   data = data || {};
-  var level = 1; try { var rs = JSON.parse(data.rpg_state || '{}'); if (rs && rs.level) level = rs.level; } catch (e) {}
+  var level = 1, frame = '';
+  try {
+    var rs = JSON.parse(data.rpg_state || '{}');
+    if (rs && rs.level) level = rs.level;
+    // プロフィール枠（装備中のアイテムid）。cssへの解決はUI側（rpgCosById）が行う＝このモジュールは純粋なまま
+    frame = (rs && rs.cos && rs.cos.equip && rs.cos.equip.hero && rs.cos.equip.hero.frame) || '';
+  } catch (e) {}
   return {
     answered: _rankNum(data.c_answered),
     points: _rankNum(data.c_points),
     streak: rankStreakFromLog(data.study_log, todayStr),
     hensachi: rankBestHensachi(data.study_log),
     level: level,
+    frame: frame,
   };
 }
 
@@ -123,7 +130,7 @@ function rankBuildRowsPeriod(allMembers, users, todayStr, period) {
     return {
       id: u.id, name: u.name, char: u.char, admin: !!u.admin,
       answered: period === 'all' ? cum.answered : rankSumDailyHist(data.daily_hist, range.from, range.to),
-      cumAnswered: cum.answered, points: cum.points, streak: cum.streak, level: cum.level,
+      cumAnswered: cum.answered, points: cum.points, streak: cum.streak, level: cum.level, frame: cum.frame,
       activeDays: rankActiveDays(data.daily_hist, range.from, range.to),
       hensachi: period === 'all' ? cum.hensachi : rankPeriodBestHensachi(data.study_log, range.from, range.to),
     };

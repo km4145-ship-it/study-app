@@ -12,7 +12,8 @@ const api = (new Function(code + '\nreturn { COS_DATA, COS_SETS, COS_TITLES, COS
 
 let count = 0;
 Object.keys(api.COS_DATA).forEach((k) => Object.keys(api.COS_DATA[k]).forEach((sl) => { count += api.COS_DATA[k][sl].length; }));
-c.ok('COS_DATA アイテム総数320（追加IIFE＋せなか/のりもの＋あいぼう込み）', count === 320);
+c.ok('COS_DATA アイテム総数330（追加IIFE＋せなか/のりもの＋あいぼう＋わく込み）', count === 330);
+c.ok('プロフィール枠10種（全てframeキー付き）', api.COS_DATA.hero.frame.length === 10 && api.COS_DATA.hero.frame.every((it) => !!it.frame));
 c.ok('新スロット back/ride が hero にある', Array.isArray(api.COS_DATA.hero.back) && api.COS_DATA.hero.back.length === 16 && Array.isArray(api.COS_DATA.hero.ride) && api.COS_DATA.hero.ride.length === 16);
 c.ok('COS_SLOTS.hero に back/ride', api.COS_SLOTS.hero.some((s) => s[0] === 'back') && api.COS_SLOTS.hero.some((s) => s[0] === 'ride'));
 c.ok('あいぼうのぼうし13種＋COS_SLOTS.aibou', api.COS_DATA.aibou && api.COS_DATA.aibou.hat.length === 13 && Array.isArray(api.COS_SLOTS.aibou));

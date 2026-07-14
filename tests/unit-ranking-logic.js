@@ -27,14 +27,16 @@ c.eq('exam の最高偏差値(practiceは除外)', api.rankBestHensachi(elog), 6
 c.eq('exam無しは0', api.rankBestHensachi(JSON.stringify([{ mode: 'practice', hensachi: 70 }])), 0);
 
 // --- ユーザー指標 ---
-const m = api.rankUserMetrics({ c_answered: '320', c_points: '4200', study_log: log3, rpg_state: JSON.stringify({ level: 12 }) }, TODAY);
+const m = api.rankUserMetrics({ c_answered: '320', c_points: '4200', study_log: log3, rpg_state: JSON.stringify({ level: 12, cos: { equip: { hero: { frame: 'fr_gold' } } } }) }, TODAY);
 c.eq('answered', m.answered, 320);
 c.eq('points', m.points, 4200);
 c.eq('streak', m.streak, 3);
 c.eq('level(rpg_stateから)', m.level, 12);
+c.eq('frame(装備中のプロフィール枠id)', m.frame, 'fr_gold');
 const m0 = api.rankUserMetrics({}, TODAY);
 c.eq('データ無しは answered=0', m0.answered, 0);
 c.eq('データ無しは level=1', m0.level, 1);
+c.eq('データ無しは frame=空', m0.frame, '');
 
 // --- 行構築・ソート・合計 ---
 const users = [{ id: 'u1', name: 'ちさき', char: 'cat', admin: true }, { id: 'u2', name: 'あやか', char: 'rabbit' }, { id: 'u3', name: 'けんいち', char: 'shiba' }];
@@ -43,6 +45,7 @@ const members = {
   u2: { c_answered: '280', study_log: JSON.stringify([{ date: '2026-07-13' }]) },
   u3: { c_answered: '150' },
 };
+members.u1.rpg_state = JSON.stringify({ level: 3, cos: { equip: { hero: { frame: 'fr_fire' } } } });
 const rows = api.rankBuildRows(members, users, TODAY);
 c.eq('行数=ユーザー数', rows.length, 3);
 c.eq('メンバーdocが無いユーザーも0で行に出る', rows.find((r) => r.id === 'u3').answered, 150);
@@ -80,6 +83,10 @@ c.eq('壊れたdaily_histは0', api2.rankSumDailyHist('{bad', wr.from, wr.to), 0
 const elog2 = JSON.stringify([{ mode: 'exam', hensachi: 55, date: '2026-07-14' }, { mode: 'exam', hensachi: 60, date: '2026-05-01' }]);
 c.eq('週の最高偏差値(55)', api2.rankPeriodBestHensachi(elog2, wr.from, wr.to), 55);
 c.eq('月の最高偏差値(55)', api2.rankPeriodBestHensachi(elog2, mr.from, mr.to), 55);
+{
+  const prows = api2.rankBuildRowsPeriod(members, users, TODAY, 'week');
+  c.eq('期間行にもframe（プロフィール枠id）が乗る', prows.find((r) => r.id === 'u1').frame, 'fr_fire');
+}
 c.eq('期間外は0', api2.rankPeriodBestHensachi(elog2, '2026-08-01', '2026-08-31'), 0);
 
 const pMembers = {

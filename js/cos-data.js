@@ -144,6 +144,19 @@ COS_DATA.hero.ride=[
   {id:'rd_star',em:'🌠',name:'しんかのながれぼし',price:290,r:'UR'},
   {id:'rd_aurora',em:'✨',name:'レジェンドオーロラライド',price:420,r:'LR'}
 ];
+// ===== プロフィール枠（アバターのかざりリング）。キャラ本体には付かず、ランキング/ヘッダー/ユーザー選択のアバターに巻く =====
+COS_DATA.hero.frame=[
+  {id:'fr_wood',em:'🪵',name:'きのわく',price:30,r:'N',frame:'wood'},
+  {id:'fr_leaf',em:'🍃',name:'はっぱのわく',price:35,r:'N',frame:'leaf'},
+  {id:'fr_ice',em:'🧊',name:'こおりのわく',price:45,r:'HN',frame:'ice'},
+  {id:'fr_candy',em:'🍬',name:'キャンディわく',price:50,r:'HN',frame:'candy'},
+  {id:'fr_silver',em:'🥈',name:'ぎんのわく',price:65,r:'R',frame:'silver'},
+  {id:'fr_gold',em:'🥇',name:'きんのわく',price:100,r:'HR',frame:'gold'},
+  {id:'fr_fire',em:'🔥',name:'ほのおのわく',price:145,r:'SR',frame:'fire'},
+  {id:'fr_thunder',em:'⚡',name:'でんせつのいなずまのわく',price:200,r:'SSR',frame:'thunder'},
+  {id:'fr_rainbow',em:'🌈',name:'しんかのにじのわく',price:290,r:'UR',frame:'rainbow'},
+  {id:'fr_galaxy',em:'🌌',name:'レジェンドぎんがのわく',price:420,r:'LR',frame:'galaxy'}
+];
 // ===== あいぼう（なかまモンスター）のぼうし。装備は cos.equip でなく roster個体の a.hat（あいぼう詳細画面でそうび） =====
 COS_DATA.aibou={ hat:[
   {id:'ah_ribbon',em:'🎀',name:'りぼん',price:30,r:'N'},{id:'ah_leaf',em:'🍀',name:'よつばのかざり',price:30,r:'N'},{id:'ah_flower',em:'🌼',name:'おはな',price:30,r:'N'},
@@ -155,7 +168,7 @@ COS_DATA.aibou={ hat:[
   {id:'ah_galaxy',em:'🌌',name:'しんかのぎんがかんむり',price:290,r:'UR'},
   {id:'ah_rainbow',em:'🌈',name:'レジェンドにじのかんむり',price:420,r:'LR'}
 ] };
-var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['back','🦋 せなか'],['ride','🛹 のりもの'],['aura','✨ オーラ']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']], aibou:[['hat','🎀 ぼうし']] };
+var COS_SLOTS={ hero:[['hat','🎩 ぼうし'],['face','😎 かお'],['hand','⚔️ どうぐ'],['back','🦋 せなか'],['ride','🛹 のりもの'],['aura','✨ オーラ'],['frame','🖼️ プロフィールわく']], pet:[['hat','🎀 ぼうし'],['aura','✨ オーラ']], aibou:[['hat','🎀 ぼうし']] };
 var COS_RARITY={
   N:{name:'ノーマル',cls:'cos-n'},
   HN:{name:'ハイノーマル',cls:'cos-hn'},

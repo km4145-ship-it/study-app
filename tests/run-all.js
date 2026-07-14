@@ -38,6 +38,7 @@ const TESTS = [
   ['tests/unit-session.js'],
   ['tests/unit-account-model.js'],
   ['tests/unit-gacha.js'],
+  ['tests/unit-gacha-story.js'],
   ['tests/unit-collections.js'],
   ['tests/unit-stats.js'],
   ['tests/int-restore.js'],

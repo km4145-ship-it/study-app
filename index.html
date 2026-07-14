@@ -6501,10 +6501,12 @@ function rpgAfterAnswer(correct){
     rpgBattle.mp=Math.min(rpgBattle.mpMax||0, (rpgBattle.mp||0)+2);   // 正解でMPがたまる（必殺技のもと）
     rpgBattle.xpGain += (rpgBattle.node.type!=='zako'?15:10) + (crit?5:0);
     if(hero){ hero.classList.remove('rpg-attack'); void hero.offsetWidth; hero.classList.add('rpg-attack'); }
+    try{ _c3dTriggerCombat(hero,'heroAttack'); }catch(e){}
     sfx(crit?'crit':'attack'); vibe(crit?[12,24,12,24]:22);
     try{ document.body.classList.toggle('combo-glow', rpgBattle.combo>=3); }catch(e){}
     setTimeout(function(){
       if(enemy){ enemy.classList.remove('rpg-hit'); void enemy.offsetWidth; enemy.classList.add('rpg-hit'); }
+      try{ _c3dTriggerCombat(enemy,'monHit'); }catch(e){}
       if(sky){ sky.classList.remove('rpg-flash'); void sky.offsetWidth; sky.classList.add('rpg-flash'); }
       rpgFloat((crit?'会心！ ':'')+'-'+dmg, crit?'crit':'dmg');
       if(enemy) sparkleBurst(enemy);
@@ -6531,6 +6533,7 @@ function rpgAfterAnswer(correct){
       // あいぼうの みがわり！ダメージを防ぐ（バトル中の回数制）
       rpgBattle.guardLeft--;
       if(enemy){ enemy.classList.remove('rpg-enemy-attack-big'); void enemy.offsetWidth; enemy.classList.add('rpg-enemy-attack-big'); }
+      try{ _c3dTriggerCombat(enemy,'monAttack'); }catch(e){}
       sfx('swish'); vibe(30);
       setTimeout(function(){
         var row=document.getElementById('rpg-aibou-row'); if(row){ row.classList.remove('rpg-aibou-cheer'); void row.offsetWidth; row.classList.add('rpg-aibou-cheer'); }
@@ -6542,9 +6545,11 @@ function rpgAfterAnswer(correct){
       rpgBattle.heroHp=Math.max(0, rpgBattle.heroHp-takenDmg);
       // 敵が斬りかかる（少し長めのモーション）→ 間を置いてヒーローがやられる
       if(enemy){ enemy.classList.remove('rpg-enemy-attack-big'); void enemy.offsetWidth; enemy.classList.add('rpg-enemy-attack-big'); }
+      try{ _c3dTriggerCombat(enemy,'monAttack'); }catch(e){}
       sfx('swish'); vibe(30);
       setTimeout(function(){
         if(hero){ hero.classList.remove('rpg-hurt-big'); void hero.offsetWidth; hero.classList.add('rpg-hurt-big'); }
+        try{ _c3dTriggerCombat(hero,'heroHit'); }catch(e){}
         if(sky){ sky.classList.remove('rpg-danger-flash'); void sky.offsetWidth; sky.classList.add('rpg-danger-flash'); }
         var stg=document.getElementById('rpg-stage'); if(stg){ stg.classList.remove('rpg-shake-big'); void stg.offsetWidth; stg.classList.add('rpg-shake-big'); }
         sfx('hurtbig'); vibe([60,40,90,40,120]);   // やられた！大きめの一撃＋強い振動
@@ -6559,6 +6564,9 @@ function rpgAfterAnswer(correct){
     // 残りの問題を打ち切って、次の「つぎへ」でリザルトへ
     try{ currentQuestions.length=currentIndex+1; }catch(e){}
     if(rpgBattle.enemyHp<=0 && enemy){ setTimeout(function(){ enemy.classList.add('rpg-defeated'); sfx('defeat'); vibe([25,40,25,40,60]); },300); }
+    // 3Dの勝利/やられポーズ（勝利＝自分の攻撃モーションが終わってから。敗北演出は従来無かった新規追加）
+    if(rpgBattle.enemyHp<=0 && hero){ setTimeout(function(){ try{ _c3dTriggerCombat(hero,'heroVictory'); }catch(e){} },650); }
+    if(rpgBattle.heroHp<=0 && hero){ setTimeout(function(){ try{ _c3dTriggerCombat(hero,'heroDefeat'); }catch(e){} },780); }
   }
 }
 // 必殺技：MPを消費して大ダメージ（敵を倒したらそのままリザルトへ）
@@ -6571,9 +6579,11 @@ function rpgUseSpecial(){
   rpgBattle.xpGain += 12;
   var hero=document.getElementById('rpg-hero-sprite'), enemy=document.getElementById('rpg-enemy-sprite'), sky=document.getElementById('rpg-stage-sky');
   if(hero){ hero.classList.remove('rpg-attack'); void hero.offsetWidth; hero.classList.add('rpg-attack'); }
+  try{ _c3dTriggerCombat(hero,'heroAttack'); }catch(e){}
   try{ sfx('crit'); vibe([15,30,15,30,60]); }catch(e){}
   setTimeout(function(){
     if(enemy){ enemy.classList.remove('rpg-hit'); void enemy.offsetWidth; enemy.classList.add('rpg-hit'); }
+    try{ _c3dTriggerCombat(enemy,'monHit'); }catch(e){}
     if(sky){ sky.classList.remove('rpg-flash'); void sky.offsetWidth; sky.classList.add('rpg-flash'); }
     if(enemy) try{ sparkleBurst(enemy); }catch(e){}
     rpgFloat('★ひっさつ★ -'+dmg, 'crit');
@@ -6583,6 +6593,7 @@ function rpgUseSpecial(){
   if(rpgBattle.enemyHp<=0){
     rpgBattle.over=true;
     if(enemy){ setTimeout(function(){ enemy.classList.add('rpg-defeated'); try{ sfx('defeat'); }catch(e){} }, 300); }
+    if(hero){ setTimeout(function(){ try{ _c3dTriggerCombat(hero,'heroVictory'); }catch(e){} }, 650); }
     setTimeout(function(){ try{ showResult(); }catch(e){} }, 1150);   // 演出のあとリザルトへ
   }
 }

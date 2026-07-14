@@ -741,6 +741,140 @@ function char3dEquip(charGroup, equip){
   });
 }
 
+// =============== バトルアニメーション（AnimationMixer/AnimationClip） ===============
+// 骨（スケルトン）は導入せず、既存のGroup階層（root位置/回転・c3dBody/c3dHead/c3dWingN）を
+// キーフレームで動かす。攻撃/被弾/勝利クリップは最終キーで必ず中立姿勢に戻す
+// （_c3dTickのアイドル再開と段差なく繋がる）。defeat（やられ）だけは倒れた姿勢を保持する。
+// モンスター12プランは体型で4カテゴリに分類し、カテゴリごとの共通クリップを使い回す。
+var _C3D_MON_CAT = {
+  imp:'limbed', beast:'limbed', golem:'limbed',
+  flyer:'winged', dragon:'winged', bird:'winged',
+  blob:'amorphous', ghost:'amorphous', cube:'amorphous', robe:'amorphous', crystal:'amorphous',
+  tree:'rooted'
+};
+function _c3dReduced(){ try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } }
+function _c3dNT(name, times, vals){ return new THREE.NumberKeyframeTrack(name, times, vals); }
+function _c3dVT(name, times, vals){ return new THREE.VectorKeyframeTrack(name, times, vals); }
+// bodyの静止時scale.y（アーケタイプごとに違うので絶対値でなく倍率で書く）
+function _c3dBodySy0(v){
+  var b = v.parts && v.parts.body;
+  if (!b) return 1;
+  return (b.userData.sy0 != null) ? b.userData.sy0 : b.scale.y;
+}
+// 突進攻撃（ヒーロー共通＋limbedモンスター）。dir=+1で右（ヒーロー→敵）、-1で左（敵→ヒーロー）
+function _c3dClipLunge(v, dir){
+  var sy0 = _c3dBodySy0(v);
+  var tr = [
+    _c3dVT('.position', [0,.12,.26,.45], [0,0,0, -dir*.1,.04,0, dir*.4,.1,.18, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.12,.26,.45], [0, dir*.12, -dir*.3, 0])
+  ];
+  if (v.parts.body) tr.push(_c3dNT('c3dBody.scale[y]', [0,.12,.26,.45], [sy0, sy0*1.06, sy0*.9, sy0]));
+  return new THREE.AnimationClip('c3dLunge', .45, tr);
+}
+// のけぞり（被弾）。dirは自分の攻撃方向＝相手と反対側へ弾かれる
+function _c3dClipRecoil(v, dir){
+  var sy0 = _c3dBodySy0(v);
+  var tr = [
+    _c3dVT('.position', [0,.1,.24,.4], [0,0,0, -dir*.3,.06,0, -dir*.1,.01,0, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.1,.24,.4], [0, dir*.28, dir*.1, 0])
+  ];
+  if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.1,.26,.4], [0, dir*.35, dir*.12, 0]));
+  if (v.parts.body) tr.push(_c3dNT('c3dBody.scale[y]', [0,.1,.24,.4], [sy0, sy0*.86, sy0*1.05, sy0]));
+  return new THREE.AnimationClip('c3dRecoil', .4, tr);
+}
+// 急降下攻撃（winged：既存のwing Groupを使って羽ばたきを強調）
+function _c3dClipDive(v, dir){
+  var tr = [
+    _c3dVT('.position', [0,.16,.32,.5], [0,0,0, -dir*.12,.32,0, dir*.38,-.06,.15, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.16,.32,.5], [0, dir*.1, -dir*.5, 0])
+  ];
+  v.parts.wings.forEach(function(w, i){
+    var s = w.userData.side || 1;
+    tr.push(_c3dNT('c3dWing' + i + '.rotation[z]', [0,.1,.2,.32,.42,.5], [s*.35, s*1.05, s*.1, s*.95, s*.2, s*.35]));
+  });
+  return new THREE.AnimationClip('c3dDive', .5, tr);
+}
+// 拡縮バースト攻撃（amorphous：手足の無い体型向け。深くつぶれて跳ねる）
+function _c3dClipPulse(v, dir){
+  var sy0 = _c3dBodySy0(v);
+  var tr = [
+    _c3dVT('.position', [0,.14,.3,.45], [0,0,0, 0,-.08,0, dir*.32,.24,.12, 0,0,0])
+  ];
+  if (v.parts.body) tr.push(_c3dNT('c3dBody.scale[y]', [0,.14,.3,.45], [sy0, sy0*.68, sy0*1.28, sy0]));
+  return new THREE.AnimationClip('c3dPulse', .45, tr);
+}
+// 枝振り攻撃（rooted：木は移動せず幹と樹冠をしならせる）
+function _c3dClipWhip(v, dir){
+  var sy0 = _c3dBodySy0(v);
+  var tr = [
+    _c3dNT('.rotation[z]', [0,.16,.32,.5], [0, dir*.18, -dir*.35, 0])
+  ];
+  if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.18,.34,.5], [0, dir*.3, -dir*.55, 0]));
+  if (v.parts.body) tr.push(_c3dNT('c3dBody.scale[y]', [0,.16,.32,.5], [sy0, sy0*1.06, sy0*.94, sy0]));
+  return new THREE.AnimationClip('c3dWhip', .5, tr);
+}
+// 震え（rooted被弾：移動しない体型向け）
+function _c3dClipShudder(v){
+  var tr = [ _c3dNT('.rotation[z]', [0,.08,.18,.28,.4], [0,.12,-.1,.06,0]) ];
+  if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.1,.2,.3,.4], [0,-.22,.16,-.08,0]));
+  return new THREE.AnimationClip('c3dShudder', .4, tr);
+}
+// 勝利ポーズ（ヒーロー：二段ジャンプ＋うれしい首振り。終わったらアイドルに戻る）
+function _c3dClipVictory(v){
+  var tr = [
+    _c3dVT('.position', [0,.18,.34,.52,.68,.9], [0,0,0, 0,.34,0, 0,0,0, 0,.4,0, 0,0,0, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.18,.34,.52,.68,.9], [0,.14,-.12,.12,-.08,0])
+  ];
+  if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.25,.5,.75,.9], [0,.22,-.22,.14,0]));
+  return new THREE.AnimationClip('c3dVictory', .9, tr);
+}
+// やられポーズ（ヒーロー：よろけて横に倒れ、そのまま保持）
+function _c3dClipDefeat(v){
+  var tr = [
+    _c3dVT('.position', [0,.2,.75], [0,0,0, 0,.07,0, -.16,-.18,0]),
+    _c3dNT('.rotation[z]', [0,.2,.75], [0, -.06, 1.25])
+  ];
+  if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.3,.75], [0,.1,.55]));
+  return new THREE.AnimationClip('c3dDefeat', .75, tr);
+}
+function _c3dCombatClip(v, kind){
+  if (kind === 'heroAttack') return _c3dClipLunge(v, 1);
+  if (kind === 'heroHit') return _c3dClipRecoil(v, 1);
+  if (kind === 'heroVictory') return _c3dClipVictory(v);
+  if (kind === 'heroDefeat') return _c3dClipDefeat(v);
+  var cat = v.monCat || 'limbed';
+  if (kind === 'monAttack'){
+    if (cat === 'winged') return _c3dClipDive(v, -1);
+    if (cat === 'amorphous') return _c3dClipPulse(v, -1);
+    if (cat === 'rooted') return _c3dClipWhip(v, -1);
+    return _c3dClipLunge(v, -1);
+  }
+  if (kind === 'monHit') return (cat === 'rooted') ? _c3dClipShudder(v) : _c3dClipRecoil(v, -1);
+  return null;
+}
+// 公開エントリポイント：バトル演出からラッパー要素とkindだけで呼ぶ（mixer/クリップの内部構造は外に見せない）。
+// kind: heroAttack | heroHit | heroVictory | heroDefeat | monAttack | monHit
+function _c3dTriggerCombat(el, kind){
+  try {
+    if (_c3dDead || !el || _c3dReduced()) return false;   // reduced-motion時は既存CSS抑制と同じくアニメしない
+    var slot = (el.classList && el.classList.contains('c3d-slot')) ? el : (el.querySelector ? el.querySelector('.c3d-slot') : null);
+    if (!slot) return false;
+    var v = null;
+    for (var i = 0; i < _c3dViews.length; i++){ if (_c3dViews[i].slot === slot){ v = _c3dViews[i]; break; } }
+    if (!v) return false;
+    var clip = _c3dCombatClip(v, kind);
+    if (!clip) return false;
+    // 前のクリップが残っていてもミキサーごと作り直す（クリップキャッシュの蓄積も防ぐ）
+    if (v.mixer){ try { v.mixer.stopAllAction(); } catch(e){} }
+    v.mixer = new THREE.AnimationMixer(v.char);
+    var a = v.mixer.clipAction(clip);
+    a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.play();
+    v.animState = (kind === 'heroDefeat') ? 'defeat' : (kind === 'heroVictory') ? 'victory' : (kind.indexOf('Hit') > 0 ? 'hit' : 'attack');
+    v.animUntil = performance.now() + clip.duration * 1000 + 60;
+    return true;
+  } catch(e){ return false; }
+}
+
 // =============== 描画コア（共有レンダラ1個＋転写） ===============
 var C3D_RW = 260, C3D_RH = 325; // 内部レンダリング解像度
 var _c3dCore = null;
@@ -827,10 +961,11 @@ function _c3dCollectParts(root){
   var parts = { head: null, body: null, eyes: [], wings: [] };
   root.traverse(function(o){
     if (o.userData){
-      if (o.userData.isHead) parts.head = o;
-      if (o.userData.isBody) parts.body = o;
+      // AnimationMixerのKeyframeTrackは対象ノードを「名前」で解決するため、ここで安定した名前を付ける
+      if (o.userData.isHead){ if (!o.name) o.name = 'c3dHead'; parts.head = o; }
+      if (o.userData.isBody){ if (!o.name) o.name = 'c3dBody'; parts.body = o; }
       if (o.userData.isEye) parts.eyes.push(o);
-      if (o.userData.isWing) parts.wings.push(o);
+      if (o.userData.isWing){ if (!o.name) o.name = 'c3dWing' + parts.wings.length; parts.wings.push(o); }
     }
   });
   return parts;
@@ -866,10 +1001,14 @@ function char3dMount(slot){
       slot: slot, canvas: canvas, ctx: canvas.getContext('2d'), char: group,
       parts: _c3dCollectParts(group), float: !!group.userData.float,
       t0: performance.now(), blinkAt: performance.now() + 1800 + Math.random() * 2600,
-      blinkUntil: 0, spinStart: -1
+      blinkUntil: 0, spinStart: -1,
+      // バトルアニメーション（AnimationMixer）用の状態。idle以外の間は_c3dTickの
+      // 手続きアイドル（揺れ・呼吸・首かしげ）を止めてミキサーに姿勢の所有権を渡す
+      animState: 'idle', mixer: null, animUntil: 0,
+      monCat: isMon ? (_C3D_MON_CAT[mon3dSpecOf(monKey).plan] || 'limbed') : null
     };
     canvas.addEventListener('pointerdown', function(){
-      if (v.spinStart < 0){ v.spinStart = performance.now(); try { if (typeof sfx === 'function') sfx('click'); } catch(e){} }
+      if (v.spinStart < 0 && v.animState === 'idle'){ v.spinStart = performance.now(); try { if (typeof sfx === 'function') sfx('click'); } catch(e){} }
     });
     slot.setAttribute('data-c3d-live', '1');
     _c3dViews.push(v);
@@ -903,36 +1042,51 @@ function _c3dAllFallback(){
     });
   } catch(e){}
 }
+var _c3dLastTick = null;
 function _c3dTick(){
-  if (!_c3dViews.length){ _c3dRafOn = false; return; }
+  if (!_c3dViews.length){ _c3dRafOn = false; _c3dLastTick = null; return; }
   requestAnimationFrame(_c3dTick);
   if (document.hidden) return;
   var now = performance.now();
+  // AnimationMixer用のフレーム間デルタ秒。タブ非表示からの復帰で巨大なdtが出ると
+  // 一撃モーションが丸ごとスキップされるため0.1秒でクランプする
+  var dt = _c3dLastTick != null ? Math.min((now - _c3dLastTick) / 1000, .1) : 0;
+  _c3dLastTick = now;
   for (var i = _c3dViews.length - 1; i >= 0; i--){
     var v = _c3dViews[i];
     if (!v.slot.isConnected){ _c3dViews.splice(i, 1); continue; }
     var r = v.slot.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) continue;
     var t = (now - v.t0) / 1000;
-    v.char.position.y = Math.sin(t * (v.float ? 1.2 : 1.8)) * (v.float ? .09 : .035);
-    if (v.parts.body){
-      if (v.parts.body.userData.sy0 == null) v.parts.body.userData.sy0 = v.parts.body.scale.y;
-      v.parts.body.scale.y = v.parts.body.userData.sy0 * (1 + Math.sin(t * 2.2) * .015);
-    }
-    if (v.parts.head) v.parts.head.rotation.z = Math.sin(t * .7) * .05;
-    v.parts.wings.forEach(function(w){ w.rotation.z = (w.userData.side || 1) * (.35 + Math.sin(t * 6) * .25); });
-    var targetY = _c3dPointer.x * .23, targetX = _c3dPointer.y * .1;
-    if (v.spinStart > 0){
-      var p = (now - v.spinStart) / 700;
-      if (p >= 1){ v.spinStart = -1; }
-      else {
-        var e = 1 - Math.pow(1 - p, 3);
-        targetY += e * Math.PI * 2;
-        v.char.position.y += Math.sin(p * Math.PI) * .22;
+    if (v.animState === 'idle'){
+      v.char.position.y = Math.sin(t * (v.float ? 1.2 : 1.8)) * (v.float ? .09 : .035);
+      if (v.parts.body){
+        if (v.parts.body.userData.sy0 == null) v.parts.body.userData.sy0 = v.parts.body.scale.y;
+        v.parts.body.scale.y = v.parts.body.userData.sy0 * (1 + Math.sin(t * 2.2) * .015);
       }
+      if (v.parts.head) v.parts.head.rotation.z = Math.sin(t * .7) * .05;
+      v.parts.wings.forEach(function(w){ w.rotation.z = (w.userData.side || 1) * (.35 + Math.sin(t * 6) * .25); });
+      var targetY = _c3dPointer.x * .23, targetX = _c3dPointer.y * .1;
+      if (v.spinStart > 0){
+        var p = (now - v.spinStart) / 700;
+        if (p >= 1){ v.spinStart = -1; }
+        else {
+          var e = 1 - Math.pow(1 - p, 3);
+          targetY += e * Math.PI * 2;
+          v.char.position.y += Math.sin(p * Math.PI) * .22;
+        }
+      }
+      v.char.rotation.y += (targetY - v.char.rotation.y) * .12;
+      v.char.rotation.x += (targetX - v.char.rotation.x) * .12;
+    } else if (v.mixer){
+      // バトルクリップ再生中：手続きアイドルを止めてミキサーが姿勢を所有する。
+      // defeat（やられ）は最終姿勢を保持したまま戻さない（clampWhenFinished）
+      v.mixer.update(dt);
+      if (v.animState !== 'defeat' && now > v.animUntil) v.animState = 'idle';
+    } else {
+      v.animState = 'idle';
     }
-    v.char.rotation.y += (targetY - v.char.rotation.y) * .12;
-    v.char.rotation.x += (targetX - v.char.rotation.x) * .12;
+    // まばたきはクリップと競合しないので常に動かす（攻撃中もまばたきする）
     if (now > v.blinkAt){ v.blinkUntil = now + 130; v.blinkAt = now + 1800 + Math.random() * 2800; }
     var blink = now < v.blinkUntil;
     v.parts.eyes.forEach(function(ey){ ey.scale.y += ((blink ? .12 : 1) - ey.scale.y) * .55; });

@@ -86,7 +86,36 @@ var C3D_GEAR = {
   '🔨': { t:'hammer',   c:'#92400e' },
   '🪓': { t:'axe',      c:'#94a3b8' },
   '🏹': { t:'bow',      c:'#92400e' },
-  '🔱': { t:'trident',  c:'#f2c94c' }
+  '🔱': { t:'trident',  c:'#f2c94c' },
+  // ---- 上位レアのメッシュ化（絵文字キー＝全スロット共通） ----
+  '⚡': { t:'bolt',     c:'#fde047' },
+  '☄️': { t:'comet',    c:'#f59e0b' },
+  '⭐': { t:'star3d',   c:'#fde047' },
+  '🌟': { t:'star3d',   c:'#fde047' },
+  '🌠': { t:'star3d',   c:'#fde047' },
+  '🌈': { t:'arc',      c:'#f472b6' },
+  '🌌': { t:'wizard',   c:'#312e81' },
+  '🐲': { t:'hornhelm', c:'#16a34a' },
+  '🐉': { t:'hornhelm', c:'#16a34a' },
+  // ---- スロット限定キー（'slot:絵文字'）：同じ絵文字でも部位で形を変える。lookupは char3dEquip 側 ----
+  'back:😇': { t:'wings', c:'#fde68a' },
+  'back:🦋': { t:'wings', c:'#38bdf8' },
+  'back:🕊️': { t:'wings', c:'#f8fafc' },
+  'back:🐉': { t:'wings', c:'#16a34a' },
+  'back:🌈': { t:'wings', c:'#f472b6' },
+  'back:⚡': { t:'cape',  c:'#eab308' },
+  'back:🔥': { t:'cape',  c:'#ef4444' },
+  'back:🌌': { t:'cape',  c:'#4c1d95' },
+  'back:🧣': { t:'cape',  c:'#dc2626' },
+  'hand:🐉': { t:'sword', c:'#16a34a' },
+  'hand:🌌': { t:'sword', c:'#6d28d9' },
+  'ride:🛹': { t:'board', c:'#f97316' },
+  'ride:🧹': { t:'broom', c:'#a16207' },
+  'ride:☁️': { t:'cloud', c:'#f8fafc' },
+  'ride:🌊': { t:'cloud', c:'#38bdf8' },
+  'ride:🚀': { t:'rocket', c:'#e11d48' },
+  'ride:🛸': { t:'saucer', c:'#94a3b8' },
+  'ride:🌠': { t:'star3d', c:'#fde047' }
 };
 
 // =============== 設定・対応判定 ===============
@@ -711,6 +740,54 @@ function _c3dBuildGear(arch, slot){
       _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.8,8), M(c)), 0, .3, 0);
       [[-.1,0],[0,0],[.1,0]].forEach(function(p){ _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.035,.16,4), M(c)), p[0], .76, 0); });
       _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.24,.05,.05), M(c)), 0, .66, 0); break;
+    case 'wings':
+      // 背中の翼：左右ミラーの平たいコーン2枚重ね（羽ばたきはしない装飾。バトルの傾きには追従）
+      [-1,1].forEach(function(s){
+        _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.3,.85,6), M(c)), s*.42, .1, -.02, 1, 1, .22, 0, 0, s*(Math.PI/2+.5));
+        _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.2,.55,6), M(c)), s*.3, -.12, -.02, 1, 1, .22, 0, 0, s*(Math.PI/2+.8));
+      }); break;
+    case 'cape':
+      // マント：肩から下がる円錐台の後ろ半分＋留め金
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.34,.5,.95,10,1,true), M(c)), 0, -.2, 0, 1, 1, .45);
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.4,8), M('#f2c94c')), 0, .3, .1, 1, 1, 1, 0, 0, Math.PI/2); break;
+    case 'board':
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.95,.06,.34), M(c)), 0, .09, 0);
+      [[-.32,-.12],[-.32,.12],[.32,-.12],[.32,.12]].forEach(function(p){ _c3dAdd(g, _c3dSphere(.07,'#1f2937'), p[0], .02, p[1]); }); break;
+    case 'broom':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,1.0,8), M(c)), 0, .12, 0, 1, 1, 1, 0, 0, Math.PI/2);   // 横向きの柄（またがる向き）
+      _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.16,.4,10), M('#eab308')), .62, .12, 0, 1, 1, 1, 0, 0, Math.PI/2); break;
+    case 'cloud':
+      _c3dAdd(g, _c3dSphere(.3, c, { opacity:.95 }), 0, .08, 0, 1, .7, .8);
+      _c3dAdd(g, _c3dSphere(.22, c, { opacity:.95 }), -.3, .06, 0, 1, .7, .8);
+      _c3dAdd(g, _c3dSphere(.22, c, { opacity:.95 }), .3, .06, 0, 1, .7, .8); break;
+    case 'rocket':
+      _c3dAdd(g, new THREE.Mesh(new THREE.CylinderGeometry(.14,.16,.5,12), M('#e5e7eb')), 0, .3, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.15,.25,12), M(c)), 0, .67, 0);
+      [-1,1].forEach(function(s){ _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.08,.2,4), M(c)), s*.17, .12, 0); });
+      _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.1,.2,10), M('#f59e0b')), 0, 0, 0, 1, -1, 1); break;
+    case 'saucer':
+      _c3dAdd(g, _c3dSphere(.42, c), 0, .1, 0, 1, .28, 1);
+      _c3dAdd(g, _c3dSphere(.18, '#7dd3fc', { opacity:.85 }), 0, .22, 0);
+      [0,1,2,3,4,5].forEach(function(i){ var a=i*Math.PI/3; _c3dAdd(g, _c3dSphere(.04,'#fde047'), Math.cos(a)*.34, .1, Math.sin(a)*.34); }); break;
+    case 'star3d':
+      _c3dAdd(g, _c3dSphere(.16, c), 0, .16, 0);
+      [0,1,2,3].forEach(function(i){ var a=i*Math.PI/2; _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.07,.22,4), M(c)), Math.cos(a)*.2, .16+Math.sin(a)*.2, 0, 1, 1, 1, 0, 0, a-Math.PI/2); }); break;
+    case 'hornhelm':
+      _c3dAdd(g, _c3dSphere(.46, c), 0, -.05, 0, 1, .72, 1);
+      [-1,1].forEach(function(s){ _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.09,.34,8), M('#f8fafc')), s*.3, .22, 0, 1, 1, 1, 0, 0, s*-.5); }); break;
+    case 'bolt':
+      // いなずま：ジグザグ3節
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.1,.3,.05), M(c)), -.05, .42, 0, 1, 1, 1, 0, 0, .4);
+      _c3dAdd(g, new THREE.Mesh(new THREE.BoxGeometry(.1,.3,.05), M(c)), .05, .2, 0, 1, 1, 1, 0, 0, -.4);
+      _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.08,.22,4), M(c)), -.03, -.02, 0, 1, -1, 1); break;
+    case 'comet':
+      _c3dAdd(g, _c3dSphere(.14, '#fde047'), 0, .5, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.1,.5,8), M(c)), 0, .22, 0); break;
+    case 'arc':
+      // にじ：半円トーラス3重
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.34,.07,8,20,Math.PI), M('#f87171')), 0, .05, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.26,.05,8,20,Math.PI), M('#fbbf24')), 0, .05, 0);
+      _c3dAdd(g, new THREE.Mesh(new THREE.TorusGeometry(.19,.04,8,20,Math.PI), M('#38bdf8')), 0, .05, 0); break;
     default:
       _c3dAdd(g, _c3dSphere(.15, c || '#94a3b8'), 0, .1, 0);
   }
@@ -735,7 +812,7 @@ function char3dEquip(charGroup, equip){
   if (!an || !head || !equip) return;
   ['hat','face','hand','back','ride'].forEach(function(sl){
     var it = equip[sl]; if (!it || !it.em) return;
-    var arch = C3D_GEAR[it.em];
+    var arch = C3D_GEAR[sl + ':' + it.em] || C3D_GEAR[it.em];   // スロット限定キー優先（😇=頭なら輪・背中なら翼）
     var mesh, s;
     if (sl === 'back' && !arch){
       // せなか（翼/マント）：左右2枚のミラー板＝正面カメラでも体の両側からのぞいて見える

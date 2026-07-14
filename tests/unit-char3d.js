@@ -114,12 +114,25 @@ c.ok('装備アーケタイプ全 ' + archs.length + ' 型が組み立て可能'
   const api2 = (new Function('THREE', 'document', code + '\nreturn { char3dSpecOf, char3dBuild, char3dEquip };'))(THREE, doc);
   const g = api2.char3dBuild(api2.char3dSpecOf('boy'));
   const before = g.children.length;
-  api2.char3dEquip(g, { back: { em: '🦋' }, ride: { em: '🛹' } });
+  api2.char3dEquip(g, { back: { em: '🎒' }, ride: { em: '🛷' } });   // どちらもアーケタイプ未定義＝絵文字プレート経路
   c.ok('char3dEquip で せなか＋のりもの がルートに付く', g.children.length === before + 2);
   const backGroup = g.children[g.children.length - 2];
   c.ok('せなかは左右2枚のミラー板', backGroup.children && backGroup.children.length === 2 && backGroup.children[0].scale.x === -1);
   const ride = g.children[g.children.length - 1];
   c.ok('のりものは足元（y<0.3）', ride.position.y < .3);
+}
+{
+  // スロット限定アーケタイプ：同じ絵文字でも部位で形が変わる（😇＝頭なら輪1個・背中なら翼4枚）
+  const g = api.char3dBuild(api.char3dSpecOf('girl'));
+  api.char3dEquip(g, { back: { em: '😇' } });
+  const wings = g.children[g.children.length - 1];
+  let wingMeshes = 0; wings.traverse((o) => { if (o.isMesh) wingMeshes++; });
+  c.ok('back:😇 は翼メッシュ4枚（haloでない）', wingMeshes === 4);
+  const g2 = api.char3dBuild(api.char3dSpecOf('girl'));
+  api.char3dEquip(g2, { ride: { em: '🚀' } });
+  const rocket = g2.children[g2.children.length - 1];
+  let rocketMeshes = 0; rocket.traverse((o) => { if (o.isMesh) rocketMeshes++; });
+  c.ok('ride:🚀 はロケットメッシュ（5個以上）', rocketMeshes >= 5);
 }
 
 // 8) Node（localStorage 無し）でも char3dEnabled が例外を出さず true を返す

@@ -1719,6 +1719,14 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
   .rpg-gacha-box{ font-size:64px; animation:rpgBoxShake .5s ease-in-out infinite; }
+  /* ⭐ ねがいごと */
+  .gc-wish{ background:linear-gradient(90deg,#fefce8,#fef9c3); border:1.5px solid #facc15; color:#713f12; border-radius:11px; padding:7px 11px; margin:6px 0 2px; font-size:.84rem; font-weight:800; }
+  .gc-wish small{ font-weight:600; color:#a16207; }
+  .rpg-set-wish{ float:right; border:1.5px solid #facc15; background:#fefce8; color:#a16207; border-radius:9px; font-size:.7rem; font-weight:800; padding:2px 8px; cursor:pointer; font-family:inherit; }
+  .rpg-set-wish.on{ background:#facc15; color:#713f12; border-color:#eab308; cursor:default; }
+  .rpg-set.wished{ border-color:#facc15; box-shadow:0 0 0 2px rgba(250,204,21,.25); }
+  .rpg-gacha-wishhit{ display:none; }
+  .rpg-gacha-ov.open .rpg-gacha-wishhit{ display:block; margin-top:6px; font-size:.9rem; font-weight:900; color:#facc15; animation:rpgItemPop .5s cubic-bezier(.2,1.4,.4,1); }
   /* バナー選択 */
   .gc-banners{ display:flex; flex-direction:column; gap:6px; margin:8px 0 2px; }
   .gc-banner{ display:flex; align-items:center; gap:10px; width:100%; font-family:inherit; cursor:pointer; text-align:left;
@@ -5456,6 +5464,8 @@ function rpgAnnounceCollect(){
   list.forEach(function(e, i){ setTimeout(function(){
     if(e.kind==='set'){ try{ sfx('fanfare'); confetti(); }catch(_){}
       showToast(e.set.em||'🎉','セット「'+e.set.name+'」かんせい！','🪙+'+(e.set.coin||0)+(e.set.title?(' ・ 称号「'+((COS_TITLES[e.set.title]||{}).name||'')+'」ゲット！'):''), 4200);
+      // ⭐ ねがいのセットが完成＝ねがいが かなった！（ねがいは解除）
+      try{ if((safeLS.getItem('gacha_wish')||'')===e.set.id){ safeLS.setItem('gacha_wish',''); setTimeout(function(){ try{ confetti(); showToast('⭐','ねがいが かなった！','「'+e.set.name+'」セット コンプリート！'); }catch(_){} }, 900); } }catch(_){}
       // ごほうびストーリー（gacha-story.js・初回のみ）：トーストのあとに行商人の小話を再生
       try{
         var _gsk='gs_'+e.set.id;
@@ -6455,6 +6465,10 @@ function rpgGachaReveal(pick, dup, refund, opts){
   if(!ov){ ov=document.createElement('div'); ov.id='rpg-gacha-ov'; document.body.appendChild(ov); }
   // 3D宝箱（char3d）：使えるときだけ絵文字🎁を置き換える（3D不可/reduced-motion/演出なしは従来のまま）
   var _ch3=null; try{ if(fxm!=='off' && typeof gacha3dBoxHtml==='function') _ch3=gacha3dBoxHtml(rank); }catch(e){}
+  // ⭐ ねがいのセットのアイテムなら開封カードでお知らせ
+  var _wishHit=false;
+  try{ var _wid=safeLS.getItem('gacha_wish'); if(_wid && !pick.goodie){ var _ws=null; COS_SETS.forEach(function(x){ if(x.id===_wid) _ws=x; }); _wishHit=!!(_ws && _ws.items.indexOf(it.id)>=0); } }catch(e){}
+  var _wishHtml=_wishHit?'<div class="rpg-gacha-wishhit">⭐ ねがいの セットの アイテム！</div>':'';
   // ===== SR以上（rank>=4）は約10秒のエピック演出（レア度ほど豪華）=====
   if(rank>=4){
     var sp=''; for(var _i=0;_i<16;_i++){ sp+='<span class="rpg-gacha-spark" style="--a:'+(_i*23)+'deg;--d:'+(0.02+(_i%4)*0.05)+'s"></span>'; }
@@ -6474,6 +6488,7 @@ function rpgGachaReveal(pick, dup, refund, opts){
       '<div class="rpg-gacha-name">'+it.name+'</div>'+
       (typeof gsCheer==='function'?('<div class="rpg-gacha-cheer">🦝「'+gsCheer(rank, it.id)+'」</div>'):'')+
       (typeof GS_LORE!=='undefined'&&GS_LORE[it.id]?('<div class="rpg-gacha-lore">'+GS_LORE[it.id]+'</div>'):'')+
+      _wishHtml+
       (pick.goodie?('<div class="rpg-gacha-new">'+(pick.it.fx||'✨ つかったよ！')+'</div>'):dup?('<div class="rpg-gacha-dup">ダブり！ 🪙＋'+refund+' コインにかえたよ</div>'):'<div class="rpg-gacha-new">✨ ゲット！ ✨</div>')+
       (opts.progress?('<div class="rpg-gacha-prog">'+opts.progress+'</div>'):'')+
       '<button class="rpg-btn rpg-epic-skip" onclick="_gachaEpicSkip()">スキップ ⏭</button>'+
@@ -6532,6 +6547,7 @@ function rpgGachaReveal(pick, dup, refund, opts){
     '<div class="rpg-gacha-rar '+rcls+'">'+rar.name+'</div>'+
     '<div class="rpg-gacha-name">'+it.name+'</div>'+
     (typeof GS_LORE!=='undefined'&&GS_LORE[it.id]?('<div class="rpg-gacha-lore">'+GS_LORE[it.id]+'</div>'):'')+
+    _wishHtml+
     (pick.goodie?('<div class="rpg-gacha-new">'+(pick.it.fx||'✨ つかったよ！')+'</div>'):dup?('<div class="rpg-gacha-dup">ダブり！ 🪙＋'+refund+' コインにかえたよ</div>'):'<div class="rpg-gacha-new">✨ ゲット！ ✨</div>')+
     (opts.progress?('<div class="rpg-gacha-prog">'+opts.progress+'</div>'):'')+
     '<button class="rpg-btn" onclick="'+(opts.action||'rpgGachaClose()')+'">'+(opts.label||'つぎへ')+'</button></div>';
@@ -6641,6 +6657,9 @@ function showGacha(){
   }catch(e){}
   h+='<div class="rpg-coin-bar">🪙 コイン：<b>'+cos.coin+'</b>　🎫 チケット：<b>'+tickets+'</b>　<span class="rpg-coin-hint">バトルに かつと コインがたまる</span></div>';
   h+='<button class="gc-free'+(box?' ready':' done')+'" onclick="rpgOpenDailyBox()"><span class="gc-free-ic">📦</span><span class="gc-free-tx"><b>きょうの 無料ガチャ</b><br><small>'+(box?'1日1回 タダで ひける！ タップして あけよう':'また あした ひけるよ')+'</small></span><span class="gc-free-go">'+(box?'ひく':'✓')+'</span></button>';
+  // ⭐ ねがい（セット単位の目標）の進捗
+  var _wi=_gachaWishInfo();
+  if(_wi) h+='<div class="gc-wish">⭐ ねがい：'+_wi.set.em+' '+escapeHtml(_wi.set.name)+'セット <b>'+_wi.have+' / '+_wi.total+'</b><small>　のこりを あてて ねがいを かなえよう！</small></div>';
   // バナー選択（宝箱のしゅるい）
   h+='<div class="gc-banners">';
   GACHA_BANNERS.forEach(function(b){
@@ -6662,6 +6681,27 @@ function showGacha(){
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
 function gachaSetBanner(id){ _gachaBanner=id; try{ sfx('click'); }catch(e){} showGacha(); }
+// ⭐ ねがいごと：セット単位の目標。出たら開封カードでお知らせ・かなったら（セット完成）はれて解除
+function gachaWishSet(id){
+  try{
+    var cur=safeLS.getItem('gacha_wish')||'';
+    safeLS.setItem('gacha_wish', cur===id?'':id);
+    var set=null; COS_SETS.forEach(function(x){ if(x.id===id) set=x; });
+    if(cur!==id && set) showToast('⭐','ねがいを かけた！','「'+set.name+'」セットを そろえるのが もくひょう！');
+    sfx('click');
+  }catch(e){}
+  showCosmetics();
+}
+function _gachaWishInfo(){
+  try{
+    var wid=safeLS.getItem('gacha_wish')||''; if(!wid) return null;
+    var set=null; COS_SETS.forEach(function(x){ if(x.id===wid) set=x; });
+    if(!set) return null;
+    var cos=rpgCosState(rpgState());
+    var have=set.items.filter(function(id){ return !!cos.owned[id]; }).length;
+    return { set:set, have:have, total:set.items.length };
+  }catch(e){ return null; }
+}
 // 🛒 たぬすけのお店：日替わり6品をコインで直接こうにゅう（ダブりコインの出口）
 function gachaShowShop(){
   try{ sfx('click'); }catch(e){}
@@ -6801,11 +6841,14 @@ function showCosmetics(){
     h+='</div>'; }
   // 📚 コレクション（セット）セクション
   h+='<div class="rpg-world-title" style="font-size:1.05rem;margin-top:14px">📚 コレクション</div><div class="rpg-set-list">';
+  var _wishId=''; try{ _wishId=safeLS.getItem('gacha_wish')||''; }catch(e){}
   COS_SETS.forEach(function(set){
     var have=set.items.filter(function(id){ return !!cos.owned[id]; }).length, done=(have>=set.items.length);
-    h+='<div class="rpg-set'+(done?' done':'')+'"><div class="rpg-set-h"><b>'+set.em+' '+set.name+'</b><span>'+(done?'✓ かんせい':have+'/'+set.items.length)+'</span></div>';
+    var wished=(_wishId===set.id);
+    h+='<div class="rpg-set'+(done?' done':'')+(wished?' wished':'')+'"><div class="rpg-set-h"><b>'+set.em+' '+set.name+'</b><span>'+(done?'✓ かんせい':have+'/'+set.items.length)+'</span></div>';
     h+='<div class="rpg-set-items">'+set.items.map(function(id){ var it=rpgItemById(id); return '<span class="rpg-set-it'+(cos.owned[id]?' o':'')+'">'+(cos.owned[id]?(it?it.em:'？'):'？')+'</span>'; }).join('')+'</div>';
-    h+='<div class="rpg-set-rw">ごほうび：🪙'+set.coin+(set.title?(' ＋称号「'+((COS_TITLES[set.title]||{}).name||'')+'」'):'')+'</div></div>';
+    h+='<div class="rpg-set-rw">ごほうび：🪙'+set.coin+(set.title?(' ＋称号「'+((COS_TITLES[set.title]||{}).name||'')+'」'):'')
+      +(done?'':(wished?'<span class="rpg-set-wish on">⭐ ねがい中</span>':'<button class="rpg-set-wish" onclick="gachaWishSet(\''+set.id+'\')">⭐ ねがいにする</button>'))+'</div></div>';
   });
   h+='</div>';
   h+='<div class="rpg-map-hint">？は まだ手に入れていないアイテム。<b>ガチャ</b>で あつめよう！ 手に入れたアイテムは タップで そうび／もう一度で はずせる（部位ごと 1つ）。</div>';

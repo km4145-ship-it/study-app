@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- 3D宝箱の目視確認ハーネス（run-all対象外・手動/スクショ用）。
+     使い方（リポジトリルートで）:
+       cp tests/preview-chest.html ./preview-chest-tmp.html
+       "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
+         --screenshot=chest.png --window-size=560,260 --virtual-time-budget=4000 \
+         --enable-unsafe-swiftshader "file://$PWD/preview-chest-tmp.html"
+       rm preview-chest-tmp.html
+     注意：ヘッドレスはrAFがほぼ発火しないため、2.4秒時点で全ミキサーを終端まで手動で進めて
+     強制レンダリングしている（実機の開封後と同じ最終構図が撮れる）。絵文字プレートは
+     ヘッドレスのフォント都合で空になることがある（実機では表示される）。 -->
+<html><head><meta charset="utf-8"><style>
+  body{ margin:0; background:#0f172a; display:flex; gap:20px; padding:20px; }
+  .c3d-slot{ width:148px; height:185px; display:block; outline:1px solid #334155; }
+  .c3d-slot canvas{ width:100%; height:100%; display:block; }
+  .lbl{ color:#94a3b8; font:12px sans-serif; text-align:center; }
+</style></head><body>
+<div><div class="lbl">開封+出現(👑=メッシュ)</div><div class="c3d-slot" id="a" data-c3d-chest="6"></div></div>
+<div><div class="lbl">開封+出現(🍓=プレート)</div><div class="c3d-slot" id="b" data-c3d-chest="2"></div></div>
+<div><div class="lbl">ガタガタ中(閉)</div><div class="c3d-slot" id="c" data-c3d-chest="7"></div></div>
+<script src="../js/three.min.js"></script>
+<script src="../js/char3d.js"></script>
+<script>
+  // ルートにコピーして使う場合は ../js/ が js/ になるようパス解決に注意（コピー先がルートなら書き換え不要のよう
+  // 両対応：読み込み失敗時にルート相対で再試行する
+  if (typeof THREE === 'undefined') {
+    document.write('<script src="js/three.min.js"><\/script><script src="js/char3d.js"><\/script>');
+  }
+</script>
+<script>
+  char3dHydrate(document);
+  setTimeout(function(){
+    _c3dTriggerChest(document.getElementById('a'), 'open');
+    _c3dTriggerChest(document.getElementById('b'), 'open');
+    _c3dTriggerChest(document.getElementById('c'), 'phase2');
+  }, 400);
+  setTimeout(function(){
+    _c3dChestReveal(document.getElementById('a'), '👑');
+    _c3dChestReveal(document.getElementById('b'), '🍓');
+  }, 800);
+  setTimeout(function(){
+    try{ _c3dViews.forEach(function(v){ if(v.mixer) v.mixer.update(3); _c3dRenderInto(v.char, v.ctx, 260, 325); }); }catch(e){}
+  }, 2400);
+</script>
+</body></html>

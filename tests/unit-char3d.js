@@ -22,7 +22,7 @@ c.ok('three.min.js が グローバル THREE を定義する', !!(THREE && THREE
 const api = (new Function('THREE', code +
   '\nreturn { CHAR3D_SPECS, char3dSpecOf, char3dTag, char3dBuild, char3dEnabled,' +
   ' MON3D_SPECS, mon3dSpecOf, mon3dBuild, mon3dTag, C3D_GEAR, _c3dBuildGear, char3dEquip,' +
-  ' _c3dBuildChest, _c3dChestClip, _c3dChestRiseClip, C3D_CHEST_TIERS };'))(THREE);
+  ' _c3dBuildChest, _c3dChestClip, _c3dChestRiseClip, C3D_CHEST_TIERS, C3D_CHEST_FRAME };'))(THREE);
 
 // 3) CHARS の全キーに 3D 仕様がある
 const charsCode = fs.readFileSync(path.join(ROOT, 'js', 'chars.js'), 'utf8');
@@ -161,15 +161,22 @@ c.ok('装備アーケタイプ全 ' + archs.length + ' 型が組み立て可能'
   const rc = api._c3dChestRiseClip(g, '👑');   // 👑はC3D_GEARにある＝メッシュ経路（documentスタブ不要）
   c.ok('中身はメッシュのグループ（c3dChestItem）', rc.item.name === 'c3dChestItem' && rc.item.children.length >= 1);
   c.ok('初期はほぼ不可視（scale.01）', rc.item.scale.x === .01);
+  {
+    // 内部オフセット持ちのアーケタイプ（crownはg.position.y-=.54）でも視覚的中心が原点にそろう
+    const bb = new THREE.Box3().setFromObject(rc.item.children[0]);
+    c.ok('中身の視覚的中心が原点（|中心|<0.05）', Math.abs((bb.max.y + bb.min.y) / 2) < .05);
+  }
   g.add(rc.item);
   const mixer = new THREE.AnimationMixer(g);
   const a = mixer.clipAction(rc.clip);
   a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.play();
   mixer.update(2.0);   // 終端超え＝clampで保持
-  c.ok('中身が浮かんだ位置で保持（y≈0.88）', Math.abs(rc.item.position.y - .88) < 1e-3);
+  c.ok('中身が浮かんだ位置で保持（y≈1.08）', Math.abs(rc.item.position.y - 1.08) < 1e-3);
   c.ok('中身は等倍に戻って保持', Math.abs(rc.item.scale.x - 1) < 1e-3);
   c.ok('フタは開いたまま（-2.1）', Math.abs(g.userData.lid.rotation.x - (-2.1)) < 1e-3);
   c.ok('回転しながら出現（rotation.y≈2.5π）', Math.abs(rc.item.rotation.y - Math.PI * 2.5) < 1e-2);
+  // 開封シーンのカメラ枠が浮かんだ中身までカバーする（枠外で見えなくなる回帰の防止）
+  c.ok('C3D_CHEST_FRAMEが出現位置をカバー', api.C3D_CHEST_FRAME && (api.C3D_CHEST_FRAME.cy + api.C3D_CHEST_FRAME.hgt / 2) > 1.4);
 }
 
 // 8) Node（localStorage 無し）でも char3dEnabled が例外を出さず true を返す

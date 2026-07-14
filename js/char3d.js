@@ -1114,6 +1114,10 @@ var C3D_CHEST_TIERS=[
   { body:'#1f2937', trim:'#f2c94c', lock:'#fde047' }
 ];
 function _c3dChestTier(rank){ return C3D_CHEST_TIERS[ rank>=7?4 : rank>=6?3 : rank>=4?2 : rank>=2?1 : 0 ]; }
+// 開封シーンのカメラ枠。_c3dRenderIntoは初回のバウンディングボックスで枠をキャッシュするため、
+// 宝箱（高さ0.77）のままだと浮かび上がったアイテム（y≈1.0＋アイテムの高さ）が枠外＝見えなくなる。
+// フタが開く瞬間にこの広い枠へ差し替える（カメラが引くカット割りとして機能する）
+var C3D_CHEST_FRAME={ hgt:1.7, cy:.72 };
 function _c3dBuildChest(rank){
   var t=_c3dChestTier(rank||0), g=new THREE.Group(), M=_c3dMat;
   var base=new THREE.Mesh(new THREE.BoxGeometry(1.0,.55,.7), M(t.body)); base.position.y=.28; g.add(base);
@@ -1155,11 +1159,18 @@ function _c3dChestClip(v, phase){
 // 呼び出し側が chestGroup.add(item) してから再生する（テストしやすいようクリップ構築を分離）
 function _c3dChestRiseClip(chestGroup, em){
   var arch=C3D_GEAR[em];
-  var item=arch? _c3dBuildGear(arch,'hat') : _c3dEmojiPlate(em,.62);
+  var inner=arch? _c3dBuildGear(arch,'hat') : _c3dEmojiPlate(em,.62);
+  // アーケタイプは内部に原点オフセットを持つもの（crown等）があるため、バウンディングボックスで
+  // 視覚的中心を原点にそろえたラッパーGroupを動かす＝どのアイテムも同じ高さに浮かぶ
+  var item=new THREE.Group(); item.add(inner);
+  try{
+    var bb=new THREE.Box3().setFromObject(inner);
+    if(isFinite(bb.max.y)&&isFinite(bb.min.y)) inner.position.y-=(bb.max.y+bb.min.y)/2;
+  }catch(e){}
   item.name='c3dChestItem';
-  item.position.set(0,.2,0); item.scale.setScalar(.01);
+  item.position.set(0,.3,0); item.scale.setScalar(.01);
   var tr=[
-    _c3dVT('c3dChestItem.position',[0,.5,.9],[0,.2,0, 0,1.0,.12, 0,.88,.12]),        // 飛び出して少し沈む
+    _c3dVT('c3dChestItem.position',[0,.5,.9],[0,.3,0, 0,1.18,.12, 0,1.08,.12]),       // 宝箱の上まで飛び出して少し沈む（縁に乗って見えない高さ）
     _c3dVT('c3dChestItem.scale',[0,.4,.68,.9],[.01,.01,.01, 1.18,1.18,1.18, .94,.94,.94, 1,1,1]),
     _c3dNT('c3dChestItem.rotation[y]',[0,.9],[0, Math.PI*2.5]),                       // 回りながら現れる
     _c3dNT('c3dChestLid.rotation[x]',[0,.9],[-2.1,-2.1])                              // フタは開いたまま固定
@@ -1174,6 +1185,7 @@ function _c3dChestReveal(el, em){
     var v=null; for(var i=0;i<_c3dViews.length;i++){ if(_c3dViews[i].slot===slot){ v=_c3dViews[i]; break; } }
     if(!v || !v.char.userData.lid) return false;
     var prev=v.char.getObjectByName('c3dChestItem'); if(prev) v.char.remove(prev);   // 10連の使い回しで前の中身を消す
+    v.char.userData.frame=C3D_CHEST_FRAME;   // 事前openを経ていない高速経路（10連quick等）でも枠を広げる
     var rc=_c3dChestRiseClip(v.char, em);
     v.char.add(rc.item);
     if(v.mixer){ try{ v.mixer.stopAllAction(); }catch(e){} }
@@ -1196,7 +1208,7 @@ function _c3dTriggerChest(el, phase){
     v.mixer=new THREE.AnimationMixer(v.char);
     var a=v.mixer.clipAction(clip);
     // ガタガタは次のフェーズが来るまで無限ループ、openはdefeatと同じ「保持」＝フタは開きっぱなし
-    if(phase==='open'){ a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished=true; v.animState='defeat'; }
+    if(phase==='open'){ a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished=true; v.animState='defeat'; v.char.userData.frame=C3D_CHEST_FRAME; }
     else { a.setLoop(THREE.LoopRepeat, Infinity); v.animState='attack'; }
     v.animUntil=Infinity;
     a.play();

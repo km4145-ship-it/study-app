@@ -1719,6 +1719,20 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
   .rpg-gacha-box{ font-size:64px; animation:rpgBoxShake .5s ease-in-out infinite; }
+  /* 確率開示・排出履歴 */
+  .gc-odds-link{ display:block; width:100%; border:none; background:transparent; color:#64748b; font-family:inherit; font-size:.78rem; text-decoration:underline; cursor:pointer; padding:6px 0 2px; text-align:center; }
+  .gc-odds-card{ background:var(--card2,#fff); border:1.5px solid var(--primary-light,#bae6fd); border-radius:13px; padding:10px 13px; margin:8px 0; }
+  .gc-odds-ttl{ font-weight:900; font-size:.88rem; margin-bottom:6px; }
+  .gc-odds-tbl{ width:100%; border-collapse:collapse; font-size:.84rem; }
+  .gc-odds-tbl td{ padding:3px 2px; border-bottom:1px dashed rgba(148,163,184,.35); }
+  .gc-odds-pct{ text-align:right; font-weight:800; }
+  .gc-odds-note{ font-size:.78rem; color:#64748b; line-height:1.8; margin:8px 2px; }
+  .gc-log{ display:flex; flex-direction:column; gap:4px; }
+  .gc-log-row{ display:flex; align-items:center; gap:8px; background:var(--card2,#fff); border:1px solid rgba(148,163,184,.35); border-radius:10px; padding:5px 9px; font-size:.84rem; }
+  .gc-log-em{ font-size:19px; }
+  .gc-log-nm{ flex:1; font-weight:700; }
+  .gc-log-tag{ font-size:.68rem; color:#64748b; font-weight:600; }
+  .gc-log-dt{ font-size:.72rem; color:#94a3b8; }
   /* 行商人たぬすけ＋ピックアップ（gacha-story.js） */
   .gc-merchant{ display:flex; align-items:flex-start; gap:8px; margin:8px 0 2px; }
   .gc-m-face{ font-size:30px; line-height:1.1; filter:drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
@@ -2381,7 +2395,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1};
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1};
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -6270,14 +6284,37 @@ function rpgAibouPat(id){
 function _gachaPool(){ var pool=[]; ['hero','pet','aibou'].forEach(function(kind){ var g=COS_DATA[kind]; for(var sl in g){ g[sl].forEach(function(it){ pool.push({kind:kind,slot:sl,it:it}); }); } }); return pool; }
 var COS_RANK={N:0,HN:1,R:2,HR:3,SR:4,SSR:5,UR:6,LR:7};
 function _cosRank(r){ return COS_RANK[r||'N']||0; }
-// 排出率（重み・合計1000）：N40% HN25% R16% HR9% SR5.5% SSR2.8% UR1.2% LR0.5%
-function _gachaPick(){ var pool=_gachaPool(), wr={N:400,HN:250,R:160,HR:90,SR:55,SSR:28,UR:12,LR:5}, tot=0, weighted=[];
+// 排出率（アイテム1個あたりの重み）：確率表示（_gachaRates）と抽選（_gachaPick）で共有する
+var GACHA_W={N:400,HN:250,R:160,HR:90,SR:55,SSR:28,UR:12,LR:5};
+function _gachaPick(){ var pool=_gachaPool(), tot=0, weighted=[];
   // 週替わりピックアップ（gacha-story.js）：対象セットのアイテムは重み2倍。未ロード環境（テスト抽出）ではスキップ
   var _pkIds=null; try{ if(typeof gachaPickupSet==='function'){ var _pk=gachaPickupSet(COS_SETS, gsWeekId(new Date())); if(_pk&&_pk.items) _pkIds=_pk.items; } }catch(e){}
-  pool.forEach(function(p){ var w=(wr[p.it.r||'N']||160)*((_pkIds&&_pkIds.indexOf(p.it.id)>=0)?2:1); weighted.push({p:p,w:w}); tot+=w; });
+  pool.forEach(function(p){ var w=(GACHA_W[p.it.r||'N']||160)*((_pkIds&&_pkIds.indexOf(p.it.id)>=0)?2:1); weighted.push({p:p,w:w}); tot+=w; });
   var roll=Math.random()*tot, acc=0, pick=weighted[0].p;
   for(var i=0;i<weighted.length;i++){ acc+=weighted[i].w; if(roll<acc){ pick=weighted[i].p; break; } }
   return pick; }
+// くわしい確率（表示用の純関数）：消費アイテム枠（12%）を差し引いた実効レア度分布を、
+// いまのプール構成から計算する（提供割合の開示＝App Store審査要件でもある）
+function _gachaRates(){
+  var pool=_gachaPool(), byR={}, tot=0;
+  pool.forEach(function(p){ var r=p.it.r||'N', w=GACHA_W[r]||160; if(!byR[r]) byR[r]={n:0,w:0}; byR[r].n++; byR[r].w+=w; tot+=w; });
+  var itemShare=1-GACHA_GOODIE_RATE;
+  var tiers=['N','HN','R','HR','SR','SSR','UR','LR'].filter(function(r){ return byR[r]; }).map(function(r){
+    return { r:r, n:byR[r].n, pct: byR[r].w/tot*itemShare*100 };
+  });
+  var gtot=0; GACHA_GOODIES.forEach(function(g){ gtot+=g.w; });
+  var goodies=GACHA_GOODIES.map(function(g){ return { id:g.id, name:g.name, em:g.em, pct: GACHA_GOODIE_RATE*(g.w/gtot)*100 }; });
+  return { tiers:tiers, goodies:goodies, goodiePct:GACHA_GOODIE_RATE*100, total:pool.length };
+}
+// 排出履歴（最近50件・この端末のみ＝q_logと同じく容量対策で同期しない）
+function _gachaLog(outs){
+  try{
+    var log=lsGetJSON('gacha_log',[])||[];
+    (outs||[]).forEach(function(o){ log.push({ t:Date.now(), id:o.pick.it.id, em:o.pick.it.em, nm:o.pick.it.name, r:o.pick.it.r||'N', d:o.dup?1:0, g:o.pick.goodie?1:0 }); });
+    while(log.length>50) log.shift();
+    lsSetJSON('gacha_log', log);
+  }catch(e){}
+}
 function _gachaPickRarity(rar){ var pool=_gachaPool().filter(function(p){ return (p.it.r||'N')===rar; }); if(!pool.length) return null; return pool[Math.floor(Math.random()*pool.length)]; }
 // ---- 天井（ピティ）：純粋関数でテストしやすく ----
 var GACHA_PITY_MAX=50;                                   // これだけURなしで引くと次で確定
@@ -6334,6 +6371,7 @@ function rpgOpenDailyBox(){
   if(s.dailyBox===rpgToday()){ showToast('🎁','きょうは もう あけたよ','また あした あけよう！'); return; }
   var cos=rpgCosState(s); s.dailyBox=rpgToday();
   var out=_gachaDrawInto(cos,1,s)[0];
+  _gachaLog([out]);
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   try{ muGachaBadge(); }catch(e){}
@@ -6345,6 +6383,7 @@ function rpgGachaDraw(){
   if(!useTicket && (cos.coin||0)<40){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','40コイン か 無料チケットが いるよ（ボスをたおすと もらえる）'); return; }
   if(useTicket) cos.tickets--; else cos.coin-=40;
   var out=_gachaDrawInto(cos,1,s)[0];
+  _gachaLog([out]);
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   rpgGachaReveal(out.pick, out.dup, out.refund);
@@ -6354,6 +6393,7 @@ function rpgGachaDraw10(){
   if((cos.coin||0)<COST){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','10れんは 🪙'+COST+' いるよ（40×10より おとくで スペシャル1つ かくてい）'); return; }
   cos.coin-=COST;
   var outs=_gachaDrawInto(cos,10,s);
+  _gachaLog(outs);
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   rpgGacha10Reveal(outs);
@@ -6542,7 +6582,45 @@ function showGacha(){
      '<button class="gc-pull ten" onclick="rpgGachaDraw10()"><span class="gc-pt">10回 ひく</span><span class="gc-pp">🪙 320 ・ スペシャル確定</span></button>'+
      '</div>';
   h+='<div class="gc-pity"><div class="gc-pity-l"><span>💫 天井（UR確定）まで</span><span>'+pity+' / '+pmax+'</span></div><div class="gc-pity-b"><i style="width:'+ppct+'%"></i></div></div>';
+  h+='<button class="gc-odds-link" onclick="gachaShowOdds()">📊 くわしい かくりつ・さいきん出たもの</button>';
   h+='<div class="rpg-map-hint">出たアイテムは「👕 きせかえ」タブで そうびできるよ。ダブりは コインに かわる。</div>';
+  mv.innerHTML=h;
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+}
+// 📊 くわしい確率と排出履歴（提供割合の開示画面。ガチャ画面から）
+function gachaShowOdds(){
+  try{ sfx('click'); }catch(e){}
+  rpgBattle=null; rpgHideBattle(); hideMainScreens();
+  document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
+  document.getElementById('rpg-result-view').style.display='none';
+  var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
+  var rt=_gachaRates();
+  var h='<button class="rpg-back" onclick="showGacha()">← ガチャにもどる</button>';
+  h+='<div class="rpg-world-title">📊 くわしい かくりつ</div>';
+  h+='<div class="gc-odds-card"><div class="gc-odds-ttl">アイテム（'+rt.total+'種）</div><table class="gc-odds-tbl">';
+  rt.tiers.forEach(function(t){ var rar=COS_RARITY[t.r]||{};
+    h+='<tr><td><span class="rpg-cos-rar '+(rar.cls||'')+'">'+t.r+'</span> '+(rar.name||'')+'</td><td>'+t.n+'種</td><td class="gc-odds-pct">'+t.pct.toFixed(2)+'%</td></tr>'; });
+  h+='</table></div>';
+  h+='<div class="gc-odds-card"><div class="gc-odds-ttl">おたのしみ枠（合計 '+rt.goodiePct.toFixed(0)+'%）</div><table class="gc-odds-tbl">';
+  rt.goodies.forEach(function(g){ h+='<tr><td>'+g.em+' '+escapeHtml(g.name)+'</td><td></td><td class="gc-odds-pct">'+g.pct.toFixed(2)+'%</td></tr>'; });
+  h+='</table></div>';
+  h+='<div class="gc-odds-note">・同じレア度の中では どのアイテムも同じ確率だよ<br>'
+    +'・🎪ピックアップ中のセットのアイテムは 2ばい でやすい<br>'
+    +'・'+GACHA_PITY_MAX+'回 アルティメットレア(UR)が出ないと、つぎは かならずUR！（UR/LRが出るとカウントは0にもどる）<br>'
+    +'・10れんは スーパーレア(SR)以上が 1つ かくてい</div>';
+  // 排出履歴（この端末のみ）
+  var log=(lsGetJSON('gacha_log',[])||[]).slice().reverse();
+  h+='<div class="rpg-world-title" style="font-size:1.05rem;margin-top:12px">📜 さいきん出たもの（'+log.length+'件）</div>';
+  if(!log.length){ h+='<div class="rpg-map-hint">まだ りれきが ないよ。ガチャを ひいてみよう！</div>'; }
+  else{
+    h+='<div class="gc-log">';
+    log.forEach(function(e){ var rar=COS_RARITY[e.r]||{}; var d=new Date(e.t);
+      h+='<div class="gc-log-row"><span class="gc-log-em">'+e.em+'</span><span class="gc-log-nm">'+escapeHtml(e.nm||'')
+        +(e.g?' <span class="gc-log-tag">つかった</span>':(e.d?' <span class="gc-log-tag">ダブり</span>':''))+'</span>'
+        +'<span class="rpg-cos-rar '+(rar.cls||'')+'">'+e.r+'</span><span class="gc-log-dt">'+(d.getMonth()+1)+'/'+d.getDate()+'</span></div>'; });
+    h+='</div>';
+    h+='<div class="rpg-map-hint">りれきは この端末の さいきん50件だよ。</div>';
+  }
   mv.innerHTML=h;
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
@@ -7442,7 +7520,7 @@ function initKeyboard(){
 
 init();
 </script>
-<script src="cloud-sync.js?v=1107" defer></script>
+<script src="cloud-sync.js?v=1108" defer></script>
 <script>
 /* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
 (function(){ try{

@@ -29,7 +29,7 @@ window.FIREBASE_CONFIG = {
   // 生の鍵をクライアント間で同期すると平文露出に逆戻りするため）。el_key_set は
   // 「設定済みかどうか」の真偽値のみで、秘密情報を含まない。
   var SHARED = ['mu_users','mu_deleted','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_key_set','testdate','reward','line_endpoint','extra_questions','tts_voice','tts_rate','tts_pitch','el_voice_owners','sfx_on','vibe_on','rank_family_goal','family_duels'];
-  function isMemberKey(k){ return !!k && k.indexOf('u:')===0 && !/:q_log$/.test(k); }
+  function isMemberKey(k){ return !!k && k.indexOf('u:')===0 && !/:(q_log|gacha_log)$/.test(k); }   // 履歴系は容量対策で端末ローカルのみ
   function uidOfKey(k){ var m=/^u:([^:]+):/.exec(k); return m? m[1] : null; }
   function fieldOfKey(k){ var m=/^u:[^:]+:(.+)$/.exec(k); return m? m[1] : null; }
   function isSharedKey(k){ return SHARED.indexOf(k)>=0; }
@@ -37,7 +37,7 @@ window.FIREBASE_CONFIG = {
 
   // ---- マージ規則（v1と同じ・キー名のサフィックスで判定）----
   function isArr(k){ return /:(study_log|mistake_notebook|real_exams|paper_sheets)$/.test(k) || k==='extra_questions'; }
-  function isCounter(k){ return /:(c_correct|c_streak|c_points|c_beststreak|c_answered|c_seconds)$/.test(k); }
+  function isCounter(k){ return /:(c_correct|c_streak|c_points|c_beststreak|c_answered|c_seconds|gacha_pulls|gacha_stamp_claims)$/.test(k); }   // gacha_*はスタンプカード（増えるだけ＝maxマージで安全）
   function isObjMax(k){ return /:(daily_hist|study_seconds|week_srs|careless_log)$/.test(k) || k==='mu_deleted'; }
   function isTopic(k){ return /:topic_stats$/.test(k); }
   function isUnionObj(k){ return /:(quest_done|badges)$/.test(k); }

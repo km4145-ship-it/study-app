@@ -9,9 +9,10 @@ const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const a = src.indexOf('function _gachaPool()');
 const b = src.indexOf('function rpgDailyBoxReady');
 const code = src.slice(a, b);
-const make = new Function('COS_DATA', code + '\nreturn { _gachaDrawInto, _pityTriggered, _gacha10NeedGuarantee, _cosRank, _gachaPickRarity, _gachaPickGoodie, _gachaApplyGoodie, GACHA_GOODIES };');
+const make = new Function('COS_DATA', 'lsGetJSON', 'lsSetJSON', code + '\nreturn { _gachaDrawInto, _pityTriggered, _gacha10NeedGuarantee, _cosRank, _gachaPickRarity, _gachaPickGoodie, _gachaApplyGoodie, GACHA_GOODIES, _gachaRates, _gachaLog };');
 const COS_DATA = { hero: { hat: [{ id: 'n1', r: 'N' }, { id: 'sr1', r: 'SR' }, { id: 'u1', r: 'UR' }] }, pet: { hat: [{ id: 'r1', r: 'R' }] } };
-const api = make(COS_DATA);
+const LS = {};   // _gachaLog用のlocalStorageスタブ
+const api = make(COS_DATA, (k, d) => (k in LS ? JSON.parse(LS[k]) : d), (k, v) => { LS[k] = JSON.stringify(v); });
 
 let RND = 0; Math.random = () => RND;
 
@@ -75,4 +76,28 @@ RND = 0;
 cos = { pity: 50, owned: {}, coin: 0 };
 r = api._gachaDrawInto(cos, 1);
 c.ok('goodie: 天井優先（RND=0でもUR）', r[0].pick.it.id === 'u1');
+
+// ---- 確率表示（_gachaRates）：合計がちょうど100%・重みに比例 ----
+{
+  const rt = api._gachaRates();
+  const sum = rt.tiers.reduce((s, t) => s + t.pct, 0) + rt.goodies.reduce((s, g) => s + g.pct, 0);
+  c.ok('確率の合計=100%', Math.abs(sum - 100) < 1e-9);
+  c.ok('レア度は4種（モックプール）', rt.tiers.length === 4 && rt.total === 4);
+  // モック: N400+SR55+UR12+R160=627、アイテム枠88% → N=400/627*88
+  const n = rt.tiers.find((t) => t.r === 'N');
+  c.ok('Nの確率=重み比例（56.14%）', Math.abs(n.pct - (400 / 627) * 88) < 1e-9);
+  c.ok('おたのしみ枠は12%', Math.abs(rt.goodiePct - 12) < 1e-9);
+}
+// ---- 排出履歴（_gachaLog）：50件でキャップ・古い方から消える ----
+{
+  const outs = [];
+  for (let i = 0; i < 55; i++) outs.push({ pick: { it: { id: 'x' + i, em: '🎁', name: 'item' + i, r: 'N' } }, dup: false });
+  api._gachaLog(outs);
+  const log = JSON.parse(LS['gacha_log']);
+  c.ok('履歴は50件でキャップ', log.length === 50);
+  c.ok('古い方から消える（先頭=x5）', log[0].id === 'x5' && log[49].id === 'x54');
+  api._gachaLog([{ pick: { it: { id: 'y', em: '🎉', name: 'Y', r: 'UR' }, goodie: 0 }, dup: true }]);
+  const log2 = JSON.parse(LS['gacha_log']);
+  c.ok('追記でも50件維持・dupフラグ記録', log2.length === 50 && log2[49].id === 'y' && log2[49].d === 1);
+}
 c.done();

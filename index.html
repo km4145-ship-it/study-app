@@ -6230,18 +6230,45 @@ function _gachaPickRarity(rar){ var pool=_gachaPool().filter(function(p){ return
 var GACHA_PITY_MAX=50;                                   // これだけURなしで引くと次で確定
 function _pityTriggered(pity, max){ return (pity||0) >= (max||GACHA_PITY_MAX); }
 function _gacha10NeedGuarantee(rarities){ return !rarities.some(function(r){ return _cosRank(r)>=4; }); }  // SR+が1つも無ければtrue
-// cos に対して n 回抽選：天井・ピティ・所持登録・ダブり還元まで行い、結果配列を返す
-function _gachaDrawInto(cos, n){
+// ===== 消費アイテム（おたのしみ枠）：owned登録せず即時効果＝ダブり無し =====
+// COS_DATA/_gachaPoolには入れない（コンプ称号t_masterの分母・きせかえ画面を汚さないため別プール）
+var GACHA_GOODIE_RATE=0.12;   // 抽選の12%は消費アイテム（天井発動時は出ない）
+var GACHA_GOODIES=[
+  { id:'g_food_s', em:'🍖', name:'エサ ×5',         r:'N',  w:50, use:{food:5},  fx:'あいぼうのエサが 5こ ふえた！' },
+  { id:'g_food_l', em:'🍗', name:'ごちそうエサ ×15', r:'R',  w:30, use:{food:15}, fx:'あいぼうのエサが 15こ ふえた！' },
+  { id:'g_coin',   em:'💰', name:'コインぶくろ',     r:'R',  w:15, use:{coin:50}, fx:'🪙50コインが 手に入った！' },
+  { id:'g_charm',  em:'🌈', name:'にじのおまもり',   r:'HR', w:5,  use:{charm:1}, fx:'つぎのスカウトが せいこうしやすくなる！' }
+];
+function _gachaPickGoodie(){ var tot=0; GACHA_GOODIES.forEach(function(g){ tot+=g.w; });
+  var roll=Math.random()*tot, acc=0;
+  for(var i=0;i<GACHA_GOODIES.length;i++){ acc+=GACHA_GOODIES[i].w; if(roll<acc) return GACHA_GOODIES[i]; }
+  return GACHA_GOODIES[GACHA_GOODIES.length-1]; }
+// 効果の即時適用。s（rpg_state）はUI側から渡す。s無し/rpgAibouState未定義（テスト環境）なら該当効果はスキップ
+function _gachaApplyGoodie(cos, s, g){
+  var u=(g&&g.use)||{};
+  if(u.coin) cos.coin=(cos.coin||0)+u.coin;
+  try{
+    if(s && typeof rpgAibouState==='function'){
+      var ai=rpgAibouState(s);
+      if(u.food) ai.food=(ai.food||0)+u.food;
+      if(u.charm && (ai.charm||0)<9) ai.charm=(ai.charm||0)+1;   // 🌈おまもりは上限9（復習ダンジョンと同じ）
+    }
+  }catch(e){}
+}
+// cos に対して n 回抽選：天井・ピティ・消費アイテム・所持登録・ダブり還元まで行い、結果配列を返す
+function _gachaDrawInto(cos, n, s){
   var picks=[];
   for(var i=0;i<n;i++){
     var pity=(cos.pity||0), pick;
     if(_pityTriggered(pity, GACHA_PITY_MAX)) pick=(_gachaPickRarity('UR')||_gachaPickRarity('LR')||_gachaPick());
+    else if(Math.random()<GACHA_GOODIE_RATE) pick={goodie:1, it:_gachaPickGoodie()};
     else pick=_gachaPick();
-    if(_cosRank(pick.it.r)>=6) cos.pity=0; else cos.pity=pity+1;   // UR/LRで天井カウンタをリセット
+    if(!pick.goodie && _cosRank(pick.it.r)>=6) cos.pity=0; else cos.pity=pity+1;   // UR/LRで天井リセット（消費はURになれない＝天井は進む）
     picks.push(pick);
   }
   if(n>=10 && _gacha10NeedGuarantee(picks.map(function(p){ return p.it.r; }))){ var up=(_gachaPickRarity('SR')||_gachaPickRarity('SSR')); if(up) picks[picks.length-1]=up; }  // 10連はSR+を1つ保証
   return picks.map(function(pick){
+    if(pick.goodie){ _gachaApplyGoodie(cos, s, pick.it); return {pick:pick, dup:false, refund:0}; }   // 消費＝即時効果・ダブり無し
     var dup=!!cos.owned[pick.it.id], refund=0;
     if(dup){ refund=({N:20,HN:25,R:30,HR:45,SR:60,SSR:80,UR:100,LR:150})[pick.it.r||'N']||20; cos.coin=(cos.coin||0)+refund; } else { cos.owned[pick.it.id]=1; }
     return {pick:pick, dup:dup, refund:refund};
@@ -6253,7 +6280,7 @@ function rpgOpenDailyBox(){
   var s=rpgState();
   if(s.dailyBox===rpgToday()){ showToast('🎁','きょうは もう あけたよ','また あした あけよう！'); return; }
   var cos=rpgCosState(s); s.dailyBox=rpgToday();
-  var out=_gachaDrawInto(cos,1)[0];
+  var out=_gachaDrawInto(cos,1,s)[0];
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   try{ muGachaBadge(); }catch(e){}
@@ -6264,7 +6291,7 @@ function rpgGachaDraw(){
   var useTicket=(cos.tickets||0)>0;
   if(!useTicket && (cos.coin||0)<40){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','40コイン か 無料チケットが いるよ（ボスをたおすと もらえる）'); return; }
   if(useTicket) cos.tickets--; else cos.coin-=40;
-  var out=_gachaDrawInto(cos,1)[0];
+  var out=_gachaDrawInto(cos,1,s)[0];
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   rpgGachaReveal(out.pick, out.dup, out.refund);
@@ -6273,7 +6300,7 @@ function rpgGachaDraw10(){
   var s=rpgState(), cos=rpgCosState(s), COST=320;
   if((cos.coin||0)<COST){ try{ sfx('wrong'); }catch(e){} showToast('🎁','コインが たりないよ','10れんは 🪙'+COST+' いるよ（40×10より おとくで スペシャル1つ かくてい）'); return; }
   cos.coin-=COST;
-  var outs=_gachaDrawInto(cos,10);
+  var outs=_gachaDrawInto(cos,10,s);
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   rpgGacha10Reveal(outs);
@@ -6302,7 +6329,7 @@ function rpgGachaReveal(pick, dup, refund, opts){
       '<div class="rpg-gacha-item">'+it.em+'</div>'+
       '<div class="rpg-gacha-rar '+rcls+'">'+rar.name+'</div>'+
       '<div class="rpg-gacha-name">'+it.name+'</div>'+
-      (dup?('<div class="rpg-gacha-dup">ダブり！ 🪙＋'+refund+' コインにかえたよ</div>'):'<div class="rpg-gacha-new">✨ ゲット！ ✨</div>')+
+      (pick.goodie?('<div class="rpg-gacha-new">'+(pick.it.fx||'✨ つかったよ！')+'</div>'):dup?('<div class="rpg-gacha-dup">ダブり！ 🪙＋'+refund+' コインにかえたよ</div>'):'<div class="rpg-gacha-new">✨ ゲット！ ✨</div>')+
       (opts.progress?('<div class="rpg-gacha-prog">'+opts.progress+'</div>'):'')+
       '<button class="rpg-btn rpg-epic-skip" onclick="_gachaEpicSkip()">スキップ ⏭</button>'+
       '<button class="rpg-btn rpg-epic-nextbtn" onclick="'+(opts.action||'rpgGachaClose()')+'">'+(opts.label||'つぎへ')+'</button></div>';
@@ -6400,7 +6427,7 @@ function _g10Summary(){
   var ov=document.getElementById('rpg-gacha-ov'); if(!ov){ ov=document.createElement('div'); ov.id='rpg-gacha-ov'; document.body.appendChild(ov); }
   var best=0; outs.forEach(function(o){ best=Math.max(best,_cosRank(o.pick.it.r)); });
   var cells=outs.map(function(o, idx){ var it=o.pick.it, rc=(COS_RARITY[it.r||'N']||{}).cls||'';
-    return '<div class="rpg-g10-cell '+rc+'" style="--gi:'+idx+'"><span class="rpg-g10-rar '+rc+'">'+(it.r||'N')+'</span><span class="rpg-g10-em">'+it.em+'</span><span class="rpg-g10-nm">'+it.name+'</span>'+(o.dup?('<span class="rpg-g10-dup">🪙+'+o.refund+'</span>'):'<span class="rpg-g10-new">NEW</span>')+'</div>'; }).join('');
+    return '<div class="rpg-g10-cell '+rc+'" style="--gi:'+idx+'"><span class="rpg-g10-rar '+rc+'">'+(it.r||'N')+'</span><span class="rpg-g10-em">'+it.em+'</span><span class="rpg-g10-nm">'+it.name+'</span>'+(o.pick.goodie?'<span class="rpg-g10-dup">つかった✔</span>':o.dup?('<span class="rpg-g10-dup">🪙+'+o.refund+'</span>'):'<span class="rpg-g10-new">NEW</span>')+'</div>'; }).join('');
   ov.className='rpg-gacha-ov g10 open'+(best>=3?' ultra flash':(best>=2?' flash':''));
   ov.innerHTML='<div class="rpg-gacha-card g10card '+(best>=3?'cos-ur':(best>=2?'cos-s':''))+'"><div class="rpg-g10-ttl">🎁 10れんガチャ けっか</div><div class="rpg-g10-grid">'+cells+'</div><button class="rpg-btn" onclick="rpgGachaClose()">とじる</button></div>';
   ov.style.display='flex';

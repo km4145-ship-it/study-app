@@ -101,11 +101,11 @@ for (const t of archs) {
 c.ok('装備アーケタイプ全 ' + archs.length + ' 型が組み立て可能', gearOk);
 {
   const g = api.char3dBuild(api.char3dSpecOf('girl'));
-  const head = g.userData.headGroup;
-  const beforeHead = head.children.length, beforeRoot = g.children.length;
+  const head = g.userData.headGroup, armR = g.userData.armR;
+  const beforeHead = head.children.length, beforeArm = armR.children.length;
   api.char3dEquip(g, { hat: { em: '👑' }, hand: { em: '⚔️' } });
   c.ok('char3dEquip で王冠が頭に付く', head.children.length > beforeHead);
-  c.ok('char3dEquip で剣が本体に付く', g.children.length > beforeRoot);
+  c.ok('char3dEquip で剣が右腕グループに付く（腕振りに追従）', armR.children.length > beforeArm);
 }
 
 // 8) Node（localStorage 無し）でも char3dEnabled が例外を出さず true を返す

@@ -13,7 +13,7 @@ const THREE = (new Function(threeSrc + '\nreturn THREE;'))();
 
 const api = (new Function('THREE', code +
   '\nreturn { CHAR3D_SPECS, char3dSpecOf, char3dBuild, MON3D_SPECS, mon3dSpecOf, mon3dBuild,' +
-  ' _C3D_MON_CAT, _c3dCollectParts, _c3dCombatClip, _c3dBodySy0 };'))(THREE);
+  ' _C3D_MON_CAT, _c3dCollectParts, _c3dCombatClip, _c3dBodySy0, char3dEquip };'))(THREE);
 
 const EPS = 1e-3;
 const near = (a, b) => Math.abs(a - b) < EPS;
@@ -48,11 +48,42 @@ function fakeView(group, monKey) {
   c.ok('rooted の monHit は c3dShudder', api._c3dCombatClip(vTree, 'monHit').name === 'c3dShudder');
   const vSlime = fakeView(api.mon3dBuild(api.mon3dSpecOf('slime')), 'slime');
   c.ok('rooted 以外の monHit は c3dRecoil', api._c3dCombatClip(vSlime, 'monHit').name === 'c3dRecoil');
+  // ヒーローは体型（kind）でアニメーションが変わる
+  const heroReps = { girl: ['c3dLungeSwing', 'c3dVictory'], shiba: ['c3dLungeSwing', 'c3dVictory'],
+    owl: ['c3dSwoop', 'c3dFlyUp'], dolphin: ['c3dFlip', 'c3dFlipJump'], penguin: ['c3dSlide', 'c3dWiggle'] };
+  for (const k of Object.keys(heroReps)) {
+    const v = fakeView(api.char3dBuild(api.char3dSpecOf(k)), null);
+    v.heroKind = api.CHAR3D_SPECS[k].kind;
+    c.ok(k + ' の heroAttack は ' + heroReps[k][0], api._c3dCombatClip(v, 'heroAttack').name === heroReps[k][0]);
+    c.ok(k + ' の heroVictory は ' + heroReps[k][1], api._c3dCombatClip(v, 'heroVictory').name === heroReps[k][1]);
+  }
   const vHero = fakeView(api.char3dBuild(api.char3dSpecOf('girl')), null);
-  c.ok('heroAttack は c3dLunge', api._c3dCombatClip(vHero, 'heroAttack').name === 'c3dLunge');
-  c.ok('heroVictory は c3dVictory', api._c3dCombatClip(vHero, 'heroVictory').name === 'c3dVictory');
+  vHero.heroKind = 'human';
   c.ok('heroDefeat は c3dDefeat', api._c3dCombatClip(vHero, 'heroDefeat').name === 'c3dDefeat');
   c.ok('未知kindは null', api._c3dCombatClip(vHero, 'nazo') === null);
+}
+
+// ---- 2b) 右腕グループ：全ヒーローがarmRを持ち、hand装備が腕の子になる（腕振り追従） ----
+{
+  let armOk = true;
+  for (const k of Object.keys(api.CHAR3D_SPECS)) {
+    const g = api.char3dBuild(api.char3dSpecOf(k));
+    const parts = api._c3dCollectParts(g);
+    if (!parts.armR || parts.armR.name !== 'c3dArmR') { armOk = false; c.ok(k + ' が armR を持つ', false); }
+  }
+  c.ok('全12ヒーローが右腕グループ（c3dArmR）を持つ', armOk);
+  const g = api.char3dBuild(api.char3dSpecOf('boy'));
+  api.char3dEquip(g, { hand: { em: '⚔️' } });
+  const armR = g.userData.armR;
+  c.ok('剣メッシュの親が右腕グループ', armR.children.some((ch) => ch.children && ch.children.length > 0));
+  // 腕振りクリップに剣が追従する＝armRを回すとその子（剣）の世界座標が変わる
+  const sword = armR.children[armR.children.length - 1];
+  g.updateMatrixWorld(true);
+  const before = new THREE.Vector3(); sword.getWorldPosition(before);
+  armR.rotation.z = 2.6;
+  g.updateMatrixWorld(true);
+  const after = new THREE.Vector3(); sword.getWorldPosition(after);
+  c.ok('armRを振ると装備（剣）の世界座標が追従して動く', before.distanceTo(after) > .3);
 }
 
 // ---- 3) 全モンスター×attack/hit＋全ヒーロー×4種でクリップが構築でき、トラック名が実在パーツに解決する ----
@@ -65,6 +96,7 @@ function fakeView(group, monKey) {
       if (node === '') continue; // root対象（.position / .rotation[z]）
       if (node === 'c3dHead' && !v.parts.head) { all = false; c.ok(label + ' が存在しないheadを参照', false); }
       if (node === 'c3dBody' && !v.parts.body) { all = false; c.ok(label + ' が存在しないbodyを参照', false); }
+      if (node === 'c3dArmR' && !v.parts.armR) { all = false; c.ok(label + ' が存在しないarmRを参照', false); }
       if (node.indexOf('c3dWing') === 0 && !v.parts.wings[parseInt(node.slice(7), 10)]) { all = false; c.ok(label + ' が存在しないwingを参照', false); }
     }
   };
@@ -75,6 +107,7 @@ function fakeView(group, monKey) {
   }
   for (const k of Object.keys(api.CHAR3D_SPECS)) {
     const v = fakeView(api.char3dBuild(api.char3dSpecOf(k)), null);
+    v.heroKind = api.CHAR3D_SPECS[k].kind;   // 実際のマウントと同じ体型別ディスパッチを通す
     ['heroAttack', 'heroHit', 'heroVictory', 'heroDefeat'].forEach((kind) => {
       checkClip(k + ':' + kind, v, api._c3dCombatClip(v, kind));
     });
@@ -114,6 +147,7 @@ function fakeView(group, monKey) {
   mixer.update(.12);   // ちょうど2番目のキーフレーム（振りかぶり）
   c.ok('t=0.12 でx=-0.1（振りかぶり）', near(g.position.x, -.1));
   c.ok('t=0.12 でrotation.z=+0.12（後傾）', near(g.rotation.z, .12));
+  c.ok('t=0.12 で腕が振りかぶり（armR.rotation.z≈2.6）', near(v.parts.armR.rotation.z, 2.6));
   mixer.update(.14);   // t=0.26（打撃）
   c.ok('t=0.26 でx=+0.4（突進）', near(g.position.x, .4));
   c.ok('t=0.26 でrotation.z=-0.3（前傾）', near(g.rotation.z, -.3));

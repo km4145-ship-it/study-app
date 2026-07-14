@@ -174,6 +174,13 @@ function _c3dSetAnchors(g, head, hatL, faceL, hand){
   g.userData.headGroup = head;
   g.userData.anchors = { hatL: hatL, faceL: faceL, hand: hand };
 }
+// 右腕グループ（肩ピボット）。攻撃の腕振りアニメーションと、hand装備の追従に使う。
+// x,y,zは肩（回転の支点）のルート座標。腕メッシュはこのGroupのローカル座標で入れる。
+function _c3dArmGroup(g, x, y, z){
+  var a = new THREE.Group(); a.position.set(x, y, z);
+  a.userData.isArmR = true; g.add(a); g.userData.armR = a;
+  return a;
+}
 
 // =============== キャラ組み立て ===============
 function char3dBuild(spec){
@@ -197,10 +204,12 @@ function _c3dBuildHuman(g, spec){
   var body = _c3dAdd(g, _c3dSphere(.40, spec.outfit), 0, .52, 0, 1, .95, .88);
   body.userData.isBody = true;
   if (spec.outfit2) _c3dAdd(g, _c3dSphere(.40, spec.outfit2), 0, .74, .06, .45, .3, .85);
-  [-1,1].forEach(function(s){
-    _c3dAdd(g, _c3dSphere(.1, skin), s*.40, .55, .04, 1, 2.0, 1, 0, 0, s*-.5);
-    _c3dAdd(g, _c3dSphere(.1, skin), s*.48, .36, .06);
-  });
+  _c3dAdd(g, _c3dSphere(.1, skin), -.40, .55, .04, 1, 2.0, 1, 0, 0, .5);
+  _c3dAdd(g, _c3dSphere(.1, skin), -.48, .36, .06);
+  // 右腕は肩ピボットのGroupにまとめる（攻撃の腕振り＋hand装備の追従。世界座標は従来と同じ）
+  var armR = _c3dArmGroup(g, .34, .68, .04);
+  _c3dAdd(armR, _c3dSphere(.1, skin), .06, -.13, 0, 1, 2.0, 1, 0, 0, -.5);
+  _c3dAdd(armR, _c3dSphere(.1, skin), .14, -.32, .02);
   var head = new THREE.Group(); head.position.set(0, 1.18, 0); g.add(head);
   head.userData.isHead = true;
   _c3dAdd(head, _c3dSphere(.5, skin), 0, 0, 0, 1, .92, .95);
@@ -229,9 +238,9 @@ function _c3dBuildAnimal(g, spec){
   var body = _c3dAdd(g, _c3dSphere(.40, fur), 0, .5, 0, 1, .95, .9);
   body.userData.isBody = true;
   if (spec.belly) _c3dAdd(g, _c3dSphere(.3, spec.belly), 0, .46, .18, .85, .85, .55);
-  [-1,1].forEach(function(s){
-    _c3dAdd(g, _c3dSphere(.1, limb), s*.38, .52, .06, 1, 1.6, 1, 0, 0, s*-.45);
-  });
+  _c3dAdd(g, _c3dSphere(.1, limb), -.38, .52, .06, 1, 1.6, 1, 0, 0, .45);
+  var armR = _c3dArmGroup(g, .30, .62, .06);
+  _c3dAdd(armR, _c3dSphere(.1, limb), .08, -.10, 0, 1, 1.6, 1, 0, 0, -.45);
   var head = new THREE.Group(); head.position.set(0, 1.16, 0); g.add(head);
   head.userData.isHead = true;
   _c3dAdd(head, _c3dSphere(.5, fur), 0, 0, 0, 1.02, .92, .95);
@@ -291,9 +300,9 @@ function _c3dBuildOwl(g, spec){
   var body = _c3dAdd(g, _c3dSphere(.42, fur), 0, .48, 0, 1, 1.0, .9);
   body.userData.isBody = true;
   _c3dAdd(g, _c3dSphere(.3, spec.belly), 0, .42, .17, .8, .9, .55);
-  [-1,1].forEach(function(s){
-    _c3dAdd(g, _c3dSphere(.13, spec.wing), s*.4, .48, -.02, .8, 1.9, .7, 0, 0, s*-.35);
-  });
+  _c3dAdd(g, _c3dSphere(.13, spec.wing), -.4, .48, -.02, .8, 1.9, .7, 0, 0, .35);
+  var armR = _c3dArmGroup(g, .36, .64, -.02);
+  _c3dAdd(armR, _c3dSphere(.13, spec.wing), .04, -.16, 0, .8, 1.9, .7, 0, 0, -.35);
   var head = new THREE.Group(); head.position.set(0, 1.12, 0); g.add(head);
   head.userData.isHead = true;
   _c3dAdd(head, _c3dSphere(.52, fur), 0, 0, 0, 1.05, .9, .95);
@@ -330,9 +339,9 @@ function _c3dBuildDolphin(g, spec){
   body.userData.isBody = true;
   _c3dAdd(g, _c3dSphere(.34, spec.belly), 0, .68, .2, .7, 1.1, .5);
   _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.13,.32,4), _c3dMat(spec.fin)), 0, 1.32, -.3, 1, 1, .5, -.7);
-  [-1,1].forEach(function(s){
-    _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.11,.3,4), _c3dMat(spec.fin)), s*.44, .72, .08, 1, 1, .45, 0, 0, s*2.2);
-  });
+  _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.11,.3,4), _c3dMat(spec.fin)), -.44, .72, .08, 1, 1, .45, 0, 0, -2.2);
+  var armR = _c3dArmGroup(g, .38, .80, .08);
+  _c3dAdd(armR, new THREE.Mesh(new THREE.ConeGeometry(.11,.3,4), _c3dMat(spec.fin)), .06, -.08, 0, 1, 1, .45, 0, 0, 2.2);
   var head = new THREE.Group(); head.position.set(0, 1.18, 0); g.add(head);
   head.userData.isHead = true;
   _c3dAdd(head, _c3dSphere(.12, spec.belly), 0, -.18, .38, 1.3, .6, 1.1);
@@ -350,9 +359,9 @@ function _c3dBuildPenguin(g, spec){
   var body = _c3dAdd(g, _c3dSphere(.48, fur), 0, .72, 0, .92, 1.3, .85);
   body.userData.isBody = true;
   _c3dAdd(g, _c3dSphere(.36, spec.belly), 0, .62, .28, .8, 1.05, .42);
-  [-1,1].forEach(function(s){
-    _c3dAdd(g, _c3dSphere(.11, spec.wing || fur), s*.44, .72, .02, .55, 1.8, .7, 0, 0, s*-.25);
-  });
+  _c3dAdd(g, _c3dSphere(.11, spec.wing || fur), -.44, .72, .02, .55, 1.8, .7, 0, 0, .25);
+  var armR = _c3dArmGroup(g, .40, .84, .02);
+  _c3dAdd(armR, _c3dSphere(.11, spec.wing || fur), .04, -.12, 0, .55, 1.8, .7, 0, 0, -.25);
   var head = new THREE.Group(); head.position.set(0, 1.06, 0); g.add(head);
   head.userData.isHead = true;
   [_c3dEye(spec, -.15, .04, .3), _c3dEye(spec, .15, .04, .3)].forEach(function(e){ head.add(e); });
@@ -737,7 +746,22 @@ function char3dEquip(charGroup, equip){
     // アーケタイプ内部のオフセット（王冠の沈み込み等）を保つため、アンカーは「加算」する
     if (sl === 'hat'){ s = an.hatL; head.add(mesh); mesh.position.x += s[0]; mesh.position.y += s[1]; mesh.position.z += s[2]; }
     else if (sl === 'face'){ s = an.faceL; head.add(mesh); mesh.position.x += s[0]; mesh.position.y += s[1]; mesh.position.z += s[2] + .06; }
-    else { s = an.hand; charGroup.add(mesh); mesh.position.x += s[0] - .04; mesh.position.y += s[1] - .03; mesh.position.z += s[2]; mesh.rotation.z = -.4; }
+    else {
+      s = an.hand;
+      var armR = charGroup.userData.armR;
+      if (armR){
+        // 右腕グループの子にする＝攻撃の腕振りに剣や杖が追従する。
+        // handアンカーはルート座標なので、肩ピボットぶんを引いて腕ローカル座標に変換する
+        armR.add(mesh);
+        mesh.position.x += s[0] - armR.position.x - .04;
+        mesh.position.y += s[1] - armR.position.y - .03;
+        mesh.position.z += s[2] - armR.position.z;
+      } else {
+        charGroup.add(mesh);
+        mesh.position.x += s[0] - .04; mesh.position.y += s[1] - .03; mesh.position.z += s[2];
+      }
+      mesh.rotation.z = -.4;
+    }
   });
 }
 
@@ -761,7 +785,7 @@ function _c3dBodySy0(v){
   if (!b) return 1;
   return (b.userData.sy0 != null) ? b.userData.sy0 : b.scale.y;
 }
-// 突進攻撃（ヒーロー共通＋limbedモンスター）。dir=+1で右（ヒーロー→敵）、-1で左（敵→ヒーロー）
+// 突進攻撃（limbedモンスター等の基本形）。dir=+1で右（ヒーロー→敵）、-1で左（敵→ヒーロー）
 function _c3dClipLunge(v, dir){
   var sy0 = _c3dBodySy0(v);
   var tr = [
@@ -770,6 +794,41 @@ function _c3dClipLunge(v, dir){
   ];
   if (v.parts.body) tr.push(_c3dNT('c3dBody.scale[y]', [0,.12,.26,.45], [sy0, sy0*1.06, sy0*.9, sy0]));
   return new THREE.AnimationClip('c3dLunge', .45, tr);
+}
+// 腕振り付き突進（human/animal＋armR持ちのbeast系：振りかぶって振り下ろす。剣や杖が腕に追従する）
+function _c3dClipLungeSwing(v, dir){
+  var clip = _c3dClipLunge(v, dir);
+  if (v.parts.armR){
+    clip.tracks.push(_c3dNT('c3dArmR.rotation[z]', [0,.12,.26,.45], [0, dir*2.6, dir*.3, 0]));
+    clip.tracks.push(_c3dNT('c3dArmR.rotation[x]', [0,.12,.26,.45], [0, -.25, .15, 0]));
+    clip.name = 'c3dLungeSwing';
+  }
+  return clip;
+}
+// フクロウ急降下（ヒーローowl用：舞い上がってくちばしから突っ込む＋翼ばたつき）
+function _c3dClipSwoop(v, dir){
+  var tr = [
+    _c3dVT('.position', [0,.16,.32,.5], [0,0,0, -dir*.1,.3,0, dir*.38,-.04,.15, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.16,.32,.5], [0, dir*.12, -dir*.55, 0])
+  ];
+  if (v.parts.armR) tr.push(_c3dNT('c3dArmR.rotation[z]', [0,.1,.2,.32,.45,.5], [0, dir*1.2, -dir*.2, dir*1.0, -dir*.1, 0]));
+  return new THREE.AnimationClip('c3dSwoop', .5, tr);
+}
+// イルカ宙返り（ヒーローdolphin用：跳ねながら前方1回転して体当たり）
+function _c3dClipFlip(v, dir){
+  var tr = [
+    _c3dVT('.position', [0,.14,.32,.5], [0,0,0, -dir*.06,.34,0, dir*.36,.12,.12, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.5], [0, -dir*Math.PI*2])
+  ];
+  return new THREE.AnimationClip('c3dFlip', .5, tr);
+}
+// ペンギン腹滑り（ヒーローpenguin用：腹ばいで敵まで滑る）
+function _c3dClipSlide(v, dir){
+  var tr = [
+    _c3dVT('.position', [0,.12,.3,.42,.55], [0,0,0, -dir*.08,.12,0, dir*.42,-.28,.1, dir*.2,-.05,0, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.12,.3,.42,.55], [0, dir*.15, -dir*1.35, -dir*.4, 0])
+  ];
+  return new THREE.AnimationClip('c3dSlide', .55, tr);
 }
 // のけぞり（被弾）。dirは自分の攻撃方向＝相手と反対側へ弾かれる
 function _c3dClipRecoil(v, dir){
@@ -819,14 +878,41 @@ function _c3dClipShudder(v){
   if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.1,.2,.3,.4], [0,-.22,.16,-.08,0]));
   return new THREE.AnimationClip('c3dShudder', .4, tr);
 }
-// 勝利ポーズ（ヒーロー：二段ジャンプ＋うれしい首振り。終わったらアイドルに戻る）
+// 勝利ポーズ（human/animal：二段ジャンプ＋腕を突き上げてガッツポーズ。終わったらアイドルに戻る）
 function _c3dClipVictory(v){
   var tr = [
     _c3dVT('.position', [0,.18,.34,.52,.68,.9], [0,0,0, 0,.34,0, 0,0,0, 0,.4,0, 0,0,0, 0,0,0]),
     _c3dNT('.rotation[z]', [0,.18,.34,.52,.68,.9], [0,.14,-.12,.12,-.08,0])
   ];
   if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.25,.5,.75,.9], [0,.22,-.22,.14,0]));
+  if (v.parts.armR) tr.push(_c3dNT('c3dArmR.rotation[z]', [0,.18,.34,.52,.68,.9], [0,2.6,2.2,2.7,2.2,0]));
   return new THREE.AnimationClip('c3dVictory', .9, tr);
+}
+// フクロウ勝利（owl：高く舞い上がって羽ばたく）
+function _c3dClipFlyUp(v){
+  var tr = [
+    _c3dVT('.position', [0,.2,.45,.7,.9], [0,0,0, 0,.5,0, 0,.35,0, 0,.5,0, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.3,.6,.9], [0,.12,-.12,0])
+  ];
+  if (v.parts.armR) tr.push(_c3dNT('c3dArmR.rotation[z]', [0,.15,.3,.45,.6,.75,.9], [0,1.3,.2,1.3,.2,1.3,0]));
+  return new THREE.AnimationClip('c3dFlyUp', .9, tr);
+}
+// イルカ勝利（dolphin：大ジャンプ宙返り）
+function _c3dClipFlipJump(v){
+  var tr = [
+    _c3dVT('.position', [0,.25,.55,.75,.9], [0,0,0, 0,.55,0, 0,.1,0, 0,.3,0, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.55,.9], [0, -Math.PI*2, -Math.PI*2])
+  ];
+  return new THREE.AnimationClip('c3dFlipJump', .9, tr);
+}
+// ペンギン勝利（penguin：うれしいよちよちダンス）
+function _c3dClipWiggle(v){
+  var tr = [
+    _c3dVT('.position', [0,.15,.3,.45,.6,.75,.9], [0,0,0, 0,.18,0, 0,0,0, 0,.18,0, 0,0,0, 0,.12,0, 0,0,0]),
+    _c3dNT('.rotation[z]', [0,.12,.26,.4,.54,.68,.82,.9], [0,.22,-.22,.2,-.2,.15,-.1,0])
+  ];
+  if (v.parts.armR) tr.push(_c3dNT('c3dArmR.rotation[z]', [0,.2,.4,.6,.8,.9], [0,1.0,.1,1.0,.1,0]));
+  return new THREE.AnimationClip('c3dWiggle', .9, tr);
 }
 // やられポーズ（ヒーロー：よろけて横に倒れ、そのまま保持）
 function _c3dClipDefeat(v){
@@ -838,16 +924,27 @@ function _c3dClipDefeat(v){
   return new THREE.AnimationClip('c3dDefeat', .75, tr);
 }
 function _c3dCombatClip(v, kind){
-  if (kind === 'heroAttack') return _c3dClipLunge(v, 1);
+  var hk = v.heroKind || 'animal';
+  if (kind === 'heroAttack'){
+    if (hk === 'owl') return _c3dClipSwoop(v, 1);
+    if (hk === 'dolphin') return _c3dClipFlip(v, 1);
+    if (hk === 'penguin') return _c3dClipSlide(v, 1);
+    return _c3dClipLungeSwing(v, 1);   // human / animal
+  }
   if (kind === 'heroHit') return _c3dClipRecoil(v, 1);
-  if (kind === 'heroVictory') return _c3dClipVictory(v);
+  if (kind === 'heroVictory'){
+    if (hk === 'owl') return _c3dClipFlyUp(v);
+    if (hk === 'dolphin') return _c3dClipFlipJump(v);
+    if (hk === 'penguin') return _c3dClipWiggle(v);
+    return _c3dClipVictory(v);
+  }
   if (kind === 'heroDefeat') return _c3dClipDefeat(v);
   var cat = v.monCat || 'limbed';
   if (kind === 'monAttack'){
     if (cat === 'winged') return _c3dClipDive(v, -1);
     if (cat === 'amorphous') return _c3dClipPulse(v, -1);
     if (cat === 'rooted') return _c3dClipWhip(v, -1);
-    return _c3dClipLunge(v, -1);
+    return _c3dClipLungeSwing(v, -1);   // beast系はarmRを持つので腕振りも乗る（imp/golemは基本形にフォールバック）
   }
   if (kind === 'monHit') return (cat === 'rooted') ? _c3dClipShudder(v) : _c3dClipRecoil(v, -1);
   return null;
@@ -958,12 +1055,13 @@ function _c3dBindPointer(){
   }, { passive: true });
 }
 function _c3dCollectParts(root){
-  var parts = { head: null, body: null, eyes: [], wings: [] };
+  var parts = { head: null, body: null, armR: null, eyes: [], wings: [] };
   root.traverse(function(o){
     if (o.userData){
       // AnimationMixerのKeyframeTrackは対象ノードを「名前」で解決するため、ここで安定した名前を付ける
       if (o.userData.isHead){ if (!o.name) o.name = 'c3dHead'; parts.head = o; }
       if (o.userData.isBody){ if (!o.name) o.name = 'c3dBody'; parts.body = o; }
+      if (o.userData.isArmR){ if (!o.name) o.name = 'c3dArmR'; parts.armR = o; }
       if (o.userData.isEye) parts.eyes.push(o);
       if (o.userData.isWing){ if (!o.name) o.name = 'c3dWing' + parts.wings.length; parts.wings.push(o); }
     }
@@ -1005,7 +1103,8 @@ function char3dMount(slot){
       // バトルアニメーション（AnimationMixer）用の状態。idle以外の間は_c3dTickの
       // 手続きアイドル（揺れ・呼吸・首かしげ）を止めてミキサーに姿勢の所有権を渡す
       animState: 'idle', mixer: null, animUntil: 0,
-      monCat: isMon ? (_C3D_MON_CAT[mon3dSpecOf(monKey).plan] || 'limbed') : null
+      monCat: isMon ? (_C3D_MON_CAT[mon3dSpecOf(monKey).plan] || 'limbed') : null,
+      heroKind: isMon ? null : char3dSpecOf(key).kind
     };
     canvas.addEventListener('pointerdown', function(){
       if (v.spinStart < 0 && v.animState === 'idle'){ v.spinStart = performance.now(); try { if (typeof sfx === 'function') sfx('click'); } catch(e){} }

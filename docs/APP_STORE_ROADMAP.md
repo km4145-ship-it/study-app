@@ -1,0 +1,198 @@
+# App Store／Google Play 外部販売への移行ロードマップ
+
+> このドキュメントの役割は `docs/ARCHITECTURE.md`（現在のコードの地図）と対になる、
+> **将来の姿への地図**。数ヶ月にまたがる作業なので、セッションをまたいでも参照できるよう
+> ここに全フェーズを記録する。**「再開」時、外部販売の話であればまずこれを読むこと。**
+
+## 現在地（2026-07-14）
+
+家族利用のPWA（`docs/ARCHITECTURE.md` 参照）。認証は匿名＋4桁の家族コードのみ、
+単一のFirebaseプロジェクト（`study-app-48c8f`）に単一家族（`families/0000`）が実運用中。
+判明しているセキュリティ課題は `docs/SECURITY.md` に集約。**Phase 1 のみ実行済み**
+（ルールのコード化・セキュリティドキュメント整備・App Store用アイコン素材）。
+
+配布目標：iOS・Android両方。ネイティブ化はCapacitorを採用（PWAを最小改修でラップでき、
+IAPプラグイン（RevenueCat等）が成熟しているため）。カテゴリはApple Kids Categoryではなく
+**Education**を推奨（理由は本文末尾）。
+
+## 横断的な不変条件（すべてのフェーズで守る）
+
+- 各フェーズの前後で `node tests/run-all.js` と `npm run build && node scripts/check-globals.js` が緑。
+- `--minify-identifiers` は使わない。ES Modules化はしない（Capacitorはdist/の中身を問わないので、
+  この制約が移行の障害になることはない）。
+- 既存の家族（`families/0000`）は Phase 7 の明示的な移行操作まで、今のGitHub Pages URLで
+  今までどおり動き続ける。共有インフラ（Firestoreルール・Cloud Functions）を触るフェーズは
+  すべて「追加」であって「置き換え」ではない。
+- `cloud-sync.js` のgrow-onlyマージ関数群（`mergeRpg`/`mergeCos`/`mergeUsers`/`mergeAibou`/
+  `mergeDuels`等）と `MU_PER_USER`/`SHARED` のキー同期の仕組みは、このコードベース最大の資産。
+  どのフェーズも「書き込み先のパス」だけを変え、ロジックはそのまま再利用する。
+
+## 今すぐ（コード外・ユーザー対応）
+
+- ElevenLabs APIキーのダッシュボードで利用上限／スコープを制限する（`docs/SECURITY.md` #2）。
+  Phase 2完了までの暫定対策。
+
+---
+
+## Phase 1 — インフラのコード化・アイコン素材（✅ 実行済み・2026-07-14）
+挙動ゼロ変更。`firestore.rules`/`firebase.json`/`.firebaserc`（現行ルールをそのままコード化）、
+`docs/SECURITY.md`、このロードマップ、`icons/icon-1024.png`（App Store提出用マスター）を追加。
+**`firebase deploy --only firestore:rules` はまだ実行していない**（本番反映はユーザー判断）。
+
+## Phase 2 — TTSサーバープロキシ（最初のCloud Function）
+**目的**：ElevenLabsキーの平文露出を無くす。他フェーズと独立して着手・出荷できる、最優先の実害対策。
+**前提**：Firebaseプロジェクトを無料(Spark)から従量課金(Blaze)プランへ切替が必要
+（Cloud FunctionsからElevenLabsへの外部通信にBlazeが必須）。
+
+- 新規 `functions/`（Firebase Cloud Functions・Node）：キー保存用・音声合成用・ボイス追加用の
+  callable関数を3つ。鍵は `families/{code}/private/ttsKey` のような、ルールで
+  `allow read, write: if false`（Admin SDK経由でのみ到達可能）なパスに保管。
+- `cloud-sync.js`：`SHARED` 配列から `el_api_key` を削除し、真偽値だけの `el_key_set` に置き換え。
+  `MU_WIPE_KEYS` も合わせて更新。
+- `index.html`：3箇所の直接fetchをCloud Functions呼び出しに置き換え。
+- 新規テスト：`tests/int-tts-proxy.js`（`tests/lib/cloud-harness.js` の作法で契約レベル検証）。
+- デプロイは `firebase deploy --only functions` を手動実行（CI自動デプロイにはまだ組み込まない＝
+  従量課金APIを叩く関数は人の確認を挟む）。
+
+**要判断**：カスタムバックエンド vs Firebase-only。**推奨：Firebase Cloud Functions**
+（すでに全面Firebase構成・Secret Manager統合・ゼロスケール・新規ホスティング不要）。
+ここで確立するデプロイパターンは Phase 4（招待コード）・Phase 6（課金Webhook）でも再利用する。
+
+**再利用/作り直し**：「家族が自前のElevenLabsキーを持ち込む」UXはそのまま維持し、鍵の置き場所だけ
+サーバー側に移す。TTSを課金機能にするかどうかはPhase 6に委ねる（このフェーズは純粋なセキュリティ修正）。
+
+## Phase 3 — Capacitorネイティブシェル（配布前の動作検証）
+**目的**：App Store申請前に、既存PWAがネイティブWebView内で正しく動くか
+（WebGL/Three.js・オーディオ自動再生・WebAuthn可否・localStorage永続化）を確認する。
+TestFlight内部テストのみ、一般公開はしない。
+
+- 新規 `capacitor.config.ts`（`webDir: "dist"`）、Capacitor生成の `ios/`/`android/`。
+- `package.json`：`@capacitor/core`, `@capacitor/cli`, `@capacitor/ios`, `@capacitor/android`,
+  `@capacitor/app`, `@capacitor/splash-screen`, `@capacitor/status-bar` を追加。
+- **Firebase Compat SDKをローカルにvendor化**：現在 `cloud-sync.js` は `www.gstatic.com` から
+  実行時に動的ロードしている。配布用ネイティブバイナリでは外部CDN依存を避けるため、
+  `js/vendor/` にピン留めしたビルドを配置し、`loadScript()` の3つのURLをローカルパスに変更。
+- `scripts/build.js`：`js/vendor/` を静的アセットのコピー対象に追加（`three.min.js` と同じ扱い）。
+- 新規npmスクリプト `cap:sync`（`npm run build && npx cap sync`）。
+- 手動：Apple Developer Program登録、Bundle ID、Xcode署名、App Store Connectアプリ登録
+  （TestFlightのみ）、Androidキーストア準備。
+
+**このフェーズで特に確認するリスク**：WebAuthn（顔/指紋認証、`index.html`の`bioSupported()`まわり）が
+CapacitorのWebView内で従来どおり動くか。ダメでもPINへの正常フォールバックが効くか。
+**推奨**：ショックダウンテストは使い捨ての家族コードで行い、`families/0000`（本番）には触れない。
+
+## Phase 4 — 実アカウントモデルとFirestoreデータ再構成（最難関・最重要フェーズ）
+**目的**：4桁の推測可能な家族コードを、実認証に基づくアカウント単位のデータ分離に置き換える。
+Web版でまず構築・検証（イテレーションが最速）。**既存の `families/{code}` パスと共存**させ、
+新規パスとして追加する（既存家族は無停止）。
+
+**新データモデル**：
+- `accounts/{ownerUid}/shared/settings`, `/members/{childId}`, `/sessions/{childId}`
+  （現行の`families/{code}/...`と構造は同じ、ルートだけ実認証UIDに）
+- `accounts/{ownerUid}/authorizedUsers/{authedUid}`：オーナー以外の端末（配偶者・祖父母等）の
+  アクセス許可リスト。ルールは `request.auth.uid == accountId || exists(.../authorizedUsers/$(uid))`。
+- `accounts/{ownerUid}/invites/{code}`：使い切りの招待コード（「コードを教える」という
+  既存の使い勝手を、永続的に推測可能ではない形で残す）。
+- 新規トップレベル `userAccountIndex/{authedUid}: {accountId}`：どの端末がどのアカウントに
+  同期すべきかのルックアップ。
+- 新規Cloud Functions（Phase 2の `functions/` を再利用）：`createAccount`, `createInvite`,
+  `redeemInvite`（招待の消費はアトミック性が要るためクライアント側ルールでは不可）。
+
+**触るもの**：`cloud-sync.js`（`famCode()`等のパス解決を`accountId()`に差し替え。マージ関数・
+`SHARED`/メンバーキー規約・セッションロックはそのまま再利用。新しいモード（`userAccountIndex`の
+有無で分岐）として並行実装し、既存パスの深いところへ条件分岐を混ぜない）。`firestore.rules`に
+`accounts/{accountId}/**` を追加（既存の`families/{code}/**`は開けたまま）。`index.html`に
+サインアップ/インの新規エントリーポイントと招待の生成/消費UI。新規テスト
+`tests/int-accounts.js`/`tests/unit-account-model.js`、`tests/lib/cloud-harness.js`の拡張。
+
+**要判断（最重要・後戻り困難）**：上記のデータモデル形（`accounts/{ownerUid}` +
+`authorizedUsers` + `userAccountIndex` + 招待コード）は、サブスク・権限管理・最終移行すべての土台。
+実装前に必ず内容を再確認すること。子どものプロフィール自体には個別のFirebase認証を持たせない
+（実認証を持つのは親のみ。子はこれまでどおりプロフィール選択＋PIN/WebAuthn）。
+
+## Phase 5 — ネイティブ認証：Sign in with Apple＋保護者ゲート
+**目的**：Capacitor（Phase 3）とアカウントモデル（Phase 4）をつなぐ実ログインの実装。
+
+- `@capacitor-community/apple-sign-in`（WebView内ではFirebase JS SDKのポップアップ式Appleログインが
+  機能しないため、ネイティブトークンを`firebase.auth.OAuthProvider('apple.com')`に渡す）。
+- メール/パスワードのサインインUIをAndroid/フォールバック用に配線。
+- 保護者ゲート：新規実装せず、既存の`mu_admin_pin`/WebAuthnパターン（`index.html`の
+  `muRequireAdmin()`周辺）を再利用。Phase 6の課金操作や外部リンクの手前に配置する。
+
+**要判断**：ログイン手段は**Apple＋メール/パスワードのみを推奨**（Googleログインを追加すると
+Appleガイドライン4.8によりSign in with Appleが必須になる制約自体は満たすが、Android側の対称性が
+崩れメール/パスワードで十分。Googleは後からでも追加可能で、今は入れない）。
+
+## Phase 6 — アプリ内課金・エンタイトルメント
+**目的**：収益化。Phase 4完了を待たずサンドボックスで検証可能。
+
+- `@revenuecat/purchases-capacitor`（StoreKit 2 / Play Billingのラップ＋クロスプラットフォームの
+  レシート検証をRevenueCat側で処理。自前レシート検証を実装しなくてよい）。
+- 新規Cloud Function `revenueCatWebhook`：RevenueCatからのWebhookを検証し、
+  `accounts/{ownerUid}/entitlement: {tier, status, expiresAt}` をAdmin SDKで書き込む
+  （これがクライアントより信頼できる、権限の正とする）。
+- `entitlement`に応じた機能ゲート（例：子どもプロフィール数上限、Phase 2のTTSプロキシの
+  呼び出し可否／クォータ）。
+- 新規UI：ペイウォール、Phase 5の保護者ゲートの奥にあるサブスク管理画面。
+- 手動：App Store Connect/Google Play Consoleでの商品設定、RevenueCatダッシュボード、
+  サンドボックステスターアカウント。
+
+**要判断（ビジネス判断・現時点では未決定）**：
+- サブスクリプション vs 買い切り。このプロジェクトは非常に高頻度で機能追加が続いている
+  （継続開発の原資としてはサブスクが有利。買い切りはUXがシンプルで失効の考慮が不要）。
+  価格設計時にApple Small Business Program（手数料15%）の対象になりうる規模かも考慮。
+- ElevenLabsの高品質音声を有料ティア限定にするか、無料のまま原価をアプリ価格に織り込むか。
+
+## Phase 7 — 移行・切替・App Store申請
+**目的**：既存の家族（実運用中）を「顧客第1号」として無停止で移行し、その後一般申請する。
+
+- 移行関数 `migrateFamilyToAccount({familyCode, accountId})`：`families/{code}/*` を
+  `accounts/{accountId}/*` へ**grow-onlyマージ**（`cloud-sync.js`の既存マージ関数をそのまま使う）。
+  破壊的な移動ではなくコピー/マージなので、複数回実行しても安全＝旧パスは移行後もしばらく
+  ロールバック用に生かしておける。
+- `firestore.rules`：ここで初めて古い `families/{code}/**` の全開放ルールを縮小/読み取り専用化
+  （＝`docs/SECURITY.md` #1 が実際に塞がれるのはこのタイミング）。
+- ストア掲載素材（Phase 1のアイコンを起点にスクリーンショット・説明文・年齢区分）、
+  プライバシーポリシーページ（GitHub Pagesに新規静的ページで可）、
+  Appプライバシー"栄養成分表示"（Firebase Auth＋RevenueCatの収集データを正確に申告）。
+  `PrivacyInfo.xcprivacy`のバンドル確認（Firebase/RevenueCatの最新SDKが同梱するものを確認）。
+- Google Play Consoleの掲載（Data Safetyフォームが同等のチェック項目）。
+- TestFlight外部ベータ→App Review提出→段階リリース。
+- GitHub Pages版PWAの扱いを決める（`accounts/`バックエンドを指す無料版として残す or 終了）。
+  このフェーズ内で急いで決める必要はない。
+
+**要判断**：移行後のデータモデル最終確認（有償顧客に対して行う前の最後の変更機会）。
+カテゴリ・年齢区分の最終決定（申請後の変更は追加審査を招くため事前に固定）。
+
+---
+
+## カテゴリ推奨：Kids Category ではなく Education
+
+**結論：Apple「Education」カテゴリ＋標準の年齢区分（4+想定）で申請し、Kids Category
+プログラムには入らない。** Google Playの「ファミリー向け」登録も同様に見送る。
+
+**理由**：
+1. アカウント作成自体が実ログインになる（Sign in with Apple/メール）。Kids Categoryは
+   購入だけでなく**アカウント作成やデータ収集そのもの**にCOPPA由来の継続的な審査対応を要求する
+   （アップデートのたびに要件を満たし続ける必要があり、個人開発には重い）。
+2. Kids Categoryは購入機会を「保護者ゲートの奥の指定エリア」に限定し、サブスク中心のアプリは
+   審査で問題になりやすい。通常のEducationカテゴリにはこの形式的制約が無い
+   （保護者ゲート自体はPhase 5でどのみち作るので、良い実践として維持する）。
+3. 構造的にこのアプリの購入者は**大人の保護者**（一度ログインし、その下で複数の子プロフィールを
+   管理する）＝「子どもが単独でダウンロードして遊ぶ」Kids Category的な形ではなく、
+   家庭学習ツールの形。IXL・Prodigy・Epic!等の類似アプリもEducationカテゴリで配信している。
+4. **後戻りのしやすさ**でもEducation始動が有利。あとから簡易版のCOPPA準拠・課金無しの
+   「キッズモード」を追加するのは現実的だが、逆（Kids Categoryで始めて後からサブスクを
+   足す）は審査上の負担が大きい。
+
+「サードパーティ分析・広告を使わない」という現状の性質はカテゴリに関わらず維持する価値がある
+（Appプライバシー表示がシンプルになる）。RevenueCat・Firebase自体の収集データは正確に申告する。
+
+## 要判断まとめ（実装前に確定させるべきもの）
+
+1. **Phase 4** — `accounts/{ownerUid}` + `authorizedUsers` + `userAccountIndex` + 招待の
+   最終データモデル形（最重要・最後戻り困難）。
+2. **Phase 2/6** — Firebase Cloud Functions vs 独自バックエンド（推奨：Cloud Functions）。
+3. **Phase 5** — 起動時のログイン手段（推奨：Apple＋メール/パスワードのみ、Googleは後回し）。
+4. **Phase 6** — サブスク vs 買い切り、TTS高品質音声を課金ゲートにするか（ビジネス判断・未決）。
+5. **Phase 7** — ストアのカテゴリ・年齢区分（推奨：Education、Kids Categoryは見送り）。

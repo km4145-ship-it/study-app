@@ -1,0 +1,18 @@
+rules_version = '2';
+// このファイルは Firebase コンソールに手貼りされていた運用中のルールを、
+// そのままバージョン管理下に置いたもの（2026-07-14時点。中身は変更していない）。
+// 「家族コードを知っていれば誰でも読み書きできる」という設計上の弱点は現状のまま。
+// これは意図的：外部販売に向けた口座（アカウント）モデルへの移行（docs/APP_STORE_ROADMAP.md の
+// Phase 4/7）で構造的に塞ぐ計画で、今回はその前段としてルールをレビュー可能にすることが目的。
+// 反映するときは `firebase deploy --only firestore:rules`（本番Firestoreへの変更のため、
+// 実行前に必ず内容を確認すること）。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /families/{fam} {
+      allow read, write: if request.auth != null;
+      match /{document=**} {
+        allow read, write: if request.auth != null;
+      }
+    }
+  }
+}

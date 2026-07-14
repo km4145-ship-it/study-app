@@ -26,22 +26,31 @@ const js = fs.readFileSync(jsPath, 'utf8');
 // 1) 単一バンドルが構文的に妥当か
 try { new Function(js); } catch (e) { fail('app.min.js が構文エラー: ' + e.message); }
 
-// 2) index.html は単一の app.min.js を1つだけ読み込む（他の<script src>が残っていない）
-const srcTags = (html.match(/<script\b[^>]*\bsrc=/g) || []).length;
-if (srcTags !== 1) fail('dist/index.html の <script src> が ' + srcTags + ' 個（期待は1）。ビルドの結合が壊れている可能性。');
-if (!/<script\b[^>]*src="app\.min\.js/.test(html)) fail('dist/index.html が app.min.js を読み込んでいない。');
+// 2) index.html の <script src> は「three.min.js（別チャンク）→ app.min.js」の2本だけ・この順。
+//    three はバンドル内の char3d が実行時に THREE を参照するため必ず先に読む。
+const srcList = [...html.matchAll(/<script\b[^>]*\bsrc="([^"?]+)/g)].map((x) => x[1]);
+const hasThree = fs.existsSync(path.join(DIST, 'three.min.js'));
+const expectScripts = hasThree ? ['three.min.js', 'app.min.js'] : ['app.min.js'];
+if (JSON.stringify(srcList) !== JSON.stringify(expectScripts)) {
+  fail('dist/index.html の <script src> が期待と違う（実際=' + srcList.join(',') + ' / 期待=' + expectScripts.join(',') + '）。');
+}
 
-// 2b) キャッシュ破棄の ?v がバンドル内容ハッシュと一致すること。
+// 2b) キャッシュ破棄の ?v が各ファイルの内容ハッシュと一致すること。
 //     SW無効環境では ?v が唯一のキャッシュ制御。ここが固定化すると「配信したのに古い版が
 //     ブラウザに残り続ける」＝修正が永久に届かない最悪事故になる（過去に発生）。内容ハッシュを強制する。
 const crypto = require('crypto');
-const expectHash = 'h' + crypto.createHash('sha1').update(js).digest('hex').slice(0, 12);
-const verM = html.match(/app\.min\.js\?([A-Za-z0-9]+)/);
-if (!verM) fail('dist/index.html に app.min.js?<version> が無い。');
-if (verM[1] !== expectHash) {
-  fail('キャッシュ破棄バージョンがバンドル内容ハッシュと一致しない（実際=' + verM[1] + ' / 期待=' + expectHash +
-    '）。build.js のバージョン付与が内容ハッシュでない可能性＝キャッシュが効かず古い版が配信され続ける。');
+const sha12 = (s) => 'h' + crypto.createHash('sha1').update(s).digest('hex').slice(0, 12);
+function checkHash(file, content) {
+  const mv = html.match(new RegExp(file.replace('.', '\\.') + '\\?([A-Za-z0-9]+)'));
+  if (!mv) fail('dist/index.html に ' + file + '?<version> が無い。');
+  const expect = sha12(content);
+  if (mv[1] !== expect) {
+    fail(file + ' のキャッシュ破棄バージョンが内容ハッシュと一致しない（実際=' + mv[1] + ' / 期待=' + expect +
+      '）。＝キャッシュが効かず古い版が配信され続ける危険。');
+  }
 }
+checkHash('app.min.js', js);
+if (hasThree) checkHash('three.min.js', fs.readFileSync(path.join(DIST, 'three.min.js'), 'utf8'));
 
 // 3) インラインイベントハンドラから呼ばれる識別子を機械的に収集
 //    ※ ハンドラは静的HTMLだけでなく、JSのテンプレートリテラル内で動的生成される
@@ -107,4 +116,4 @@ if (missing.length) {
     'または該当関数が結合から漏れていないか確認すること。');
 }
 
-console.log('✅ dist健全性OK：ハンドラ関数 ' + checked.length + '個すべてが圧縮後も定義として生存 / バンドル構文OK / <script src>1本');
+console.log('✅ dist健全性OK：ハンドラ関数 ' + checked.length + '個すべてが圧縮後も定義として生存 / バンドル構文OK / <script src>=' + srcList.join('→'));

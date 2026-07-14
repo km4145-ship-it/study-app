@@ -39,12 +39,20 @@ fs.mkdirSync(DIST, { recursive: true });
 let html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
 // 1) スクリプトを文書順に集める
+//    ★ js/three.min.js（約700KB・更新されない）はバンドルに入れず“別チャンク”にする。
+//      デプロイのたびに変わるのは app.min.js だけになり、three はブラウザキャッシュが効き続ける
+//      ＝更新後の再ダウンロード量が半分以下になる（子供の端末・回線ほど効く）。
 const parts = [];
+let threeSrc = null;
 let m;
 SCRIPT_RE.lastIndex = 0;
 while ((m = SCRIPT_RE.exec(html))) {
   const srcM = /src=["']([^"']+)["']/.exec(m[1]);
-  if (srcM) { const src = srcM[1].split('?')[0]; parts.push('/* ' + src + ' */\n' + fs.readFileSync(path.join(ROOT, src), 'utf8')); }
+  if (srcM) {
+    const src = srcM[1].split('?')[0];
+    if (src === 'js/three.min.js') { threeSrc = fs.readFileSync(path.join(ROOT, src), 'utf8'); continue; }
+    parts.push('/* ' + src + ' */\n' + fs.readFileSync(path.join(ROOT, src), 'utf8'));
+  }
   else { parts.push('/* inline */\n' + m[2]); }
 }
 const bundle = parts.join('\n;\n');
@@ -62,8 +70,15 @@ html = html.replace(STYLE_RE, (full, attrs, css) => '<style' + attrs + '>' + min
 //      端末は確実に新版を読む（＝「配信したのに古いまま」を根絶）。内容不変なら同一URLで無駄DLなし。
 html = html.replace(SCRIPT_RE, '');
 const crypto = require('crypto');
-const ver = 'h' + crypto.createHash('sha1').update(minJs).digest('hex').slice(0, 12);
-html = html.replace('</body>', '  <script src="app.min.js?' + ver + '"></script>\n</body>');
+const sha12 = (s) => 'h' + crypto.createHash('sha1').update(s).digest('hex').slice(0, 12);
+const ver = sha12(minJs);
+// three チャンク（app.min.js より先に読む＝バンドル内の char3d が実行時に THREE を使う）
+let threeTag = '';
+if (threeSrc) {
+  fs.writeFileSync(path.join(DIST, 'three.min.js'), threeSrc);
+  threeTag = '  <script src="three.min.js?' + sha12(threeSrc) + '"></script>\n';
+}
+html = html.replace('</body>', threeTag + '  <script src="app.min.js?' + ver + '"></script>\n</body>');
 fs.writeFileSync(path.join(DIST, 'index.html'), html);
 
 // 4) 静的アセットをコピー
@@ -78,4 +93,5 @@ if (fs.existsSync(path.join(ROOT, 'assets'))) fs.cpSync(path.join(ROOT, 'assets'
 const kb = (n) => (n / 1024).toFixed(0) + 'KB';
 console.log('✅ ビルド完了 dist/');
 console.log('   スクリプト結合: ' + parts.length + '本 → app.min.js ' + kb(Buffer.byteLength(minJs)) + '（元 ' + kb(Buffer.byteLength(bundle)) + '）');
+if (threeSrc) console.log('   別チャンク: three.min.js ' + kb(Buffer.byteLength(threeSrc)) + '（内容不変＝キャッシュ永続）');
 console.log('   index.html: ' + kb(fs.statSync(path.join(DIST, 'index.html')).size));

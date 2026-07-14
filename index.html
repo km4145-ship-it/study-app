@@ -1531,6 +1531,9 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   @keyframes rpgEnAtk{ 0%{transform:translate(0,0)} 40%{transform:translate(-24px,16px) scale(1.05)} 100%{transform:translate(0,0)} }
   .rpg-defeated{ animation:rpgDefeat .7s ease-in forwards!important; }
   @keyframes rpgDefeat{ 0%{transform:scale(1) rotate(0);opacity:1} 60%{transform:scale(1.1) rotate(8deg);opacity:1;filter:brightness(2)} 100%{transform:scale(.2) rotate(40deg);opacity:0} }
+  /* 3D版の撃破：倒れるモーションはAnimationMixer（monDefeat）が担当。ラッパーは倒れを見せてからフェードだけする */
+  .rpg-defeated-3d{ animation:rpgDefeat3d 1.7s ease-in forwards!important; }
+  @keyframes rpgDefeat3d{ 0%,60%{opacity:1} 100%{opacity:0} }
   .rpg-flash::after{ content:""; position:absolute; inset:0; background:#fff; opacity:0; z-index:5; animation:rpgFlash .3s ease-out; pointer-events:none; }
   @keyframes rpgFlash{ 0%{opacity:.6} 100%{opacity:0} }
   .rpg-shake{ animation:rpgStageShake .4s!important; }
@@ -1912,7 +1915,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .score-pop{ animation:scorePop .45s ease-out; }
   @keyframes scorePop{ 0%{ transform:scale(1); } 40%{ transform:scale(1.5); color:var(--gold,#f59e0b); } 100%{ transform:scale(1); } }
   body.combo-glow #quiz-box{ box-shadow:0 0 0 3px rgba(252,211,77,.5), 0 8px 26px rgba(252,211,77,.35)!important; }
-  @media (prefers-reduced-motion:reduce){ .mon-svg,.rpg-enemy svg,.rpg-title-btn,.rpg-crystals svg,.rpg-node.open .rpg-node-face,.rpg-castle.ready,.rpg-title-stars,.rpg-story-next,.rpg-hit,.rpg-attack,.rpg-hurt,.rpg-enemy-attack,.rpg-enemy-attack-big,.rpg-hurt-big,.rpg-shake-big,.rpg-shake,.sparkle,.score-pop{ animation:none!important; } }
+  @media (prefers-reduced-motion:reduce){ .mon-svg,.rpg-enemy svg,.rpg-title-btn,.rpg-crystals svg,.rpg-node.open .rpg-node-face,.rpg-castle.ready,.rpg-title-stars,.rpg-story-next,.rpg-hit,.rpg-attack,.rpg-hurt,.rpg-enemy-attack,.rpg-enemy-attack-big,.rpg-hurt-big,.rpg-shake-big,.rpg-shake,.sparkle,.score-pop{ animation:none!important; }
+    /* 撃破は回転・縮小をやめてフェードだけにする（動きなしでも「消えた」は伝える） */
+    .rpg-defeated,.rpg-defeated-3d{ animation:rpgDefeatFade 1s linear forwards!important; } }
+  @keyframes rpgDefeatFade{ to{opacity:0} }
   </style>
   <div id="rpg-screen" style="display:none">
     <div class="rpg-topbar"><button class="rpg-back" onclick="backToSubjects()">← 学習トップ</button><div class="rpg-topttl">🗡️ まなびの王国クエスト</div></div>
@@ -2269,7 +2275,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/duel.js?v=1"></script>
 <script src="js/ranking.js?v=1"></script>
 <script src="js/three.min.js?v=1"></script>
-<script src="js/char3d.js?v=1"></script>
+<script src="js/char3d.js?v=2"></script>
 <script>
 // =================== CHARACTER SVGs ===================
   // chars.js へ分離
@@ -6581,7 +6587,10 @@ function rpgAfterAnswer(correct){
     try{ document.body.classList.remove('combo-glow'); }catch(e){}
     // 残りの問題を打ち切って、次の「つぎへ」でリザルトへ
     try{ currentQuestions.length=currentIndex+1; }catch(e){}
-    if(rpgBattle.enemyHp<=0 && enemy){ setTimeout(function(){ enemy.classList.add('rpg-defeated'); sfx('defeat'); vibe([25,40,25,40,60]); },300); }
+    if(rpgBattle.enemyHp<=0 && enemy){ setTimeout(function(){
+      var did3d=false; try{ did3d=_c3dTriggerCombat(enemy,'monDefeat'); }catch(e){}
+      enemy.classList.add(did3d?'rpg-defeated-3d':'rpg-defeated');   // 3D不可（SVG/reduced-motion）は従来のCSS演出にフォールバック
+      sfx('defeat'); vibe([25,40,25,40,60]); },300); }
     // 3Dの勝利/やられポーズ（勝利＝自分の攻撃モーションが終わってから。敗北演出は従来無かった新規追加）
     if(rpgBattle.enemyHp<=0 && hero){ setTimeout(function(){ try{ _c3dTriggerCombat(hero,'heroVictory'); }catch(e){} },650); }
     if(rpgBattle.heroHp<=0 && hero){ setTimeout(function(){ try{ _c3dTriggerCombat(hero,'heroDefeat'); }catch(e){} },780); }
@@ -6610,7 +6619,10 @@ function rpgUseSpecial(){
   rpgUpdateGauges();
   if(rpgBattle.enemyHp<=0){
     rpgBattle.over=true;
-    if(enemy){ setTimeout(function(){ enemy.classList.add('rpg-defeated'); try{ sfx('defeat'); }catch(e){} }, 300); }
+    if(enemy){ setTimeout(function(){
+      var did3d=false; try{ did3d=_c3dTriggerCombat(enemy,'monDefeat'); }catch(e){}
+      enemy.classList.add(did3d?'rpg-defeated-3d':'rpg-defeated');
+      try{ sfx('defeat'); }catch(e){} }, 300); }
     if(hero){ setTimeout(function(){ try{ _c3dTriggerCombat(hero,'heroVictory'); }catch(e){} }, 650); }
     setTimeout(function(){ try{ showResult(); }catch(e){} }, 1150);   // 演出のあとリザルトへ
   }

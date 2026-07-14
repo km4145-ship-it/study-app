@@ -923,6 +923,47 @@ function _c3dClipDefeat(v){
   if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.3,.75], [0,.1,.55]));
   return new THREE.AnimationClip('c3dDefeat', .75, tr);
 }
+// 撃破（モンスター）：体型カテゴリごとに倒れ方を変え、最終キーの倒れ姿勢を保持する
+// （敵はヒーローの反対側＝画面右へ吹き飛ぶので回転はマイナス方向）。フェードはCSS側（.rpg-defeated-3d）が担当
+function _c3dClipMonDefeat(v){
+  var cat = v.monCat || 'limbed';
+  var sy0 = _c3dBodySy0(v);
+  var tr;
+  if (cat === 'winged'){
+    // 墜落：一度ふわっと浮いてから落ちる。翼はだらりと垂れる
+    tr = [
+      _c3dVT('.position', [0,.25,.7,.95], [0,0,0, .06,.22,0, .18,-.3,0, .18,-.34,0]),
+      _c3dNT('.rotation[z]', [0,.25,.7,.95], [0, .15, -1.15, -1.35])
+    ];
+    (v.parts.wings || []).forEach(function(w, i){
+      var s = w.userData.side || 1;
+      tr.push(_c3dNT('c3dWing' + i + '.rotation[z]', [0,.2,.6,.95], [s*.35, s*1.1, s*.08, s*.03]));
+    });
+    return new THREE.AnimationClip('c3dCrash', .95, tr);
+  }
+  if (cat === 'amorphous'){
+    // つぶれ：ぷるっとふくらんでから ぺしゃんこに沈む
+    tr = [ _c3dVT('.position', [0,.2,.5,.85], [0,0,0, 0,.08,0, 0,-.22,0, 0,-.26,0]) ];
+    if (v.parts.body) tr.push(_c3dNT('c3dBody.scale[y]', [0,.2,.5,.85], [sy0, sy0*1.15, sy0*.35, sy0*.22]));
+    return new THREE.AnimationClip('c3dSquash', .85, tr);
+  }
+  if (cat === 'rooted'){
+    // 伐倒：ゆっくり傾きはじめてから一気に倒れる（木こり式）
+    tr = [
+      _c3dNT('.rotation[z]', [0,.35,.75,.95], [0, -.18, -1.3, -1.42]),
+      _c3dVT('.position', [0,.35,.95], [0,0,0, 0,.02,0, .1,-.12,0])
+    ];
+    if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.4,.95], [0, -.15, -.5]));
+    return new THREE.AnimationClip('c3dTopple', .95, tr);
+  }
+  // limbed：よろけて横倒れ（ヒーローのDefeatと同型・倒れる向きは敵側）
+  tr = [
+    _c3dVT('.position', [0,.2,.75], [0,0,0, 0,.07,0, .16,-.18,0]),
+    _c3dNT('.rotation[z]', [0,.2,.75], [0, .06, -1.25])
+  ];
+  if (v.parts.head) tr.push(_c3dNT('c3dHead.rotation[z]', [0,.3,.75], [0,-.1,-.55]));
+  return new THREE.AnimationClip('c3dFallOver', .75, tr);
+}
 function _c3dCombatClip(v, kind){
   var hk = v.heroKind || 'animal';
   if (kind === 'heroAttack'){
@@ -947,10 +988,11 @@ function _c3dCombatClip(v, kind){
     return _c3dClipLungeSwing(v, -1);   // beast系はarmRを持つので腕振りも乗る（imp/golemは基本形にフォールバック）
   }
   if (kind === 'monHit') return (cat === 'rooted') ? _c3dClipShudder(v) : _c3dClipRecoil(v, -1);
+  if (kind === 'monDefeat') return _c3dClipMonDefeat(v);
   return null;
 }
 // 公開エントリポイント：バトル演出からラッパー要素とkindだけで呼ぶ（mixer/クリップの内部構造は外に見せない）。
-// kind: heroAttack | heroHit | heroVictory | heroDefeat | monAttack | monHit
+// kind: heroAttack | heroHit | heroVictory | heroDefeat | monAttack | monHit | monDefeat
 function _c3dTriggerCombat(el, kind){
   try {
     if (_c3dDead || !el || _c3dReduced()) return false;   // reduced-motion時は既存CSS抑制と同じくアニメしない
@@ -966,7 +1008,7 @@ function _c3dTriggerCombat(el, kind){
     v.mixer = new THREE.AnimationMixer(v.char);
     var a = v.mixer.clipAction(clip);
     a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.play();
-    v.animState = (kind === 'heroDefeat') ? 'defeat' : (kind === 'heroVictory') ? 'victory' : (kind.indexOf('Hit') > 0 ? 'hit' : 'attack');
+    v.animState = (kind === 'heroDefeat' || kind === 'monDefeat') ? 'defeat' : (kind === 'heroVictory') ? 'victory' : (kind.indexOf('Hit') > 0 ? 'hit' : 'attack');
     v.animUntil = performance.now() + clip.duration * 1000 + 60;
     return true;
   } catch(e){ return false; }

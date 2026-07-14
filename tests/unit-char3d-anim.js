@@ -48,6 +48,13 @@ function fakeView(group, monKey) {
   c.ok('rooted の monHit は c3dShudder', api._c3dCombatClip(vTree, 'monHit').name === 'c3dShudder');
   const vSlime = fakeView(api.mon3dBuild(api.mon3dSpecOf('slime')), 'slime');
   c.ok('rooted 以外の monHit は c3dRecoil', api._c3dCombatClip(vSlime, 'monHit').name === 'c3dRecoil');
+  // 撃破（monDefeat）はカテゴリごとに倒れ方が変わる
+  const defeatReps = { goblin: 'c3dFallOver', bat: 'c3dCrash', slime: 'c3dSquash', trent: 'c3dTopple' };
+  for (const k of Object.keys(defeatReps)) {
+    const v = fakeView(api.mon3dBuild(api.mon3dSpecOf(k)), k);
+    const clip = api._c3dCombatClip(v, 'monDefeat');
+    c.ok(k + ' の monDefeat は ' + defeatReps[k], clip && clip.name === defeatReps[k]);
+  }
   // ヒーローは体型（kind）でアニメーションが変わる
   const heroReps = { girl: ['c3dLungeSwing', 'c3dVictory'], shiba: ['c3dLungeSwing', 'c3dVictory'],
     owl: ['c3dSwoop', 'c3dFlyUp'], dolphin: ['c3dFlip', 'c3dFlipJump'], penguin: ['c3dSlide', 'c3dWiggle'] };
@@ -104,6 +111,7 @@ function fakeView(group, monKey) {
     const v = fakeView(api.mon3dBuild(api.mon3dSpecOf(k)), k);
     checkClip(k + ':monAttack', v, api._c3dCombatClip(v, 'monAttack'));
     checkClip(k + ':monHit', v, api._c3dCombatClip(v, 'monHit'));
+    checkClip(k + ':monDefeat', v, api._c3dCombatClip(v, 'monDefeat'));
   }
   for (const k of Object.keys(api.CHAR3D_SPECS)) {
     const v = fakeView(api.char3dBuild(api.char3dSpecOf(k)), null);
@@ -171,10 +179,39 @@ function fakeView(group, monKey) {
   c.ok('やられ位置を保持（y≈-0.18）', near(g.position.y, -.18));
 }
 
+// ---- 7b) 敵撃破（monDefeat）も全カテゴリで最終の倒れ姿勢を保持する（clampWhenFinished） ----
+{
+  const holdChecks = {
+    goblin: (g, v, sy0) => near(g.rotation.z, -1.25) && near(g.position.y, -.18),            // limbed: 横倒れ
+    bat:    (g, v, sy0) => near(g.rotation.z, -1.35) && near(g.position.y, -.34),            // winged: 墜落
+    slime:  (g, v, sy0) => near(v.parts.body.scale.y, sy0 * .22) && near(g.position.y, -.26),// amorphous: ぺしゃんこ
+    trent:  (g, v, sy0) => near(g.rotation.z, -1.42),                                        // rooted: 伐倒
+  };
+  for (const k of Object.keys(holdChecks)) {
+    const g = api.mon3dBuild(api.mon3dSpecOf(k));
+    const v = fakeView(g, k);
+    const sy0 = api._c3dBodySy0(v);   // 再生前に捕捉（userData.sy0が無い体型は再生後だとつぶれた値になる）
+    const clip = api._c3dCombatClip(v, 'monDefeat');
+    const mixer = new THREE.AnimationMixer(g);
+    const a = mixer.clipAction(clip);
+    a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.play();
+    mixer.update(2.0);   // 終端超え
+    c.ok(k + ' の撃破姿勢を保持（' + clip.name + '）', holdChecks[k](g, v, sy0));
+  }
+  // winged は翼がだらりと垂れた姿勢で保持される
+  const gBat = api.mon3dBuild(api.mon3dSpecOf('bat'));
+  const vBat = fakeView(gBat, 'bat');
+  const mixBat = new THREE.AnimationMixer(gBat);
+  const aBat = mixBat.clipAction(api._c3dCombatClip(vBat, 'monDefeat'));
+  aBat.setLoop(THREE.LoopOnce, 1); aBat.clampWhenFinished = true; aBat.play();
+  mixBat.update(2.0);
+  c.ok('bat 撃破後は翼が垂れる（|rotation.z|≈0.03）', vBat.parts.wings.every((w) => Math.abs(Math.abs(w.rotation.z) - .03) < EPS));
+}
+
 // ---- 8) index.html の統合：バトル処理からトリガーが呼ばれている ----
 {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  ['heroAttack', 'heroHit', 'heroVictory', 'heroDefeat', 'monAttack', 'monHit'].forEach((kind) => {
+  ['heroAttack', 'heroHit', 'heroVictory', 'heroDefeat', 'monAttack', 'monHit', 'monDefeat'].forEach((kind) => {
     c.ok("index.html が _c3dTriggerCombat('" + kind + "') を呼ぶ", html.indexOf("_c3dTriggerCombat(hero,'" + kind + "')") >= 0 || html.indexOf("_c3dTriggerCombat(enemy,'" + kind + "')") >= 0);
   });
 }

@@ -1,0 +1,13 @@
+{
+  "name": "study-app-tts-proxy",
+  "private": true,
+  "type": "module",
+  "description": "ElevenLabs TTSキーのサーバー側プロキシ（Cloudflare Workers版・docs/APP_STORE_ROADMAP.md Phase 2）",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

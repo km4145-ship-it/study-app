@@ -1,0 +1,15 @@
+# Cloudflare Workers 設定（docs/APP_STORE_ROADMAP.md Phase 2）。
+# デプロイ: cd workers/tts-proxy && npx wrangler deploy
+# シークレット（コミットしない）: npx wrangler secret put GCP_CLIENT_EMAIL
+#                                  npx wrangler secret put GCP_PRIVATE_KEY
+
+name = "study-app-tts-proxy"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# 秘密ではない設定値（ここに書いてよい）
+[vars]
+FIREBASE_PROJECT_ID = "study-app-48c8f"
+# 本番オリジン＋ローカル開発用サーバー（python3 -m http.server 8080、docs/ARCHITECTURE.md参照）。
+# 独自ドメインやCapacitorアプリを追加する際はここに足す（カンマ区切り）。
+ALLOWED_ORIGINS = "https://km4145-ship-it.github.io,http://localhost:8080,http://127.0.0.1:8080"

@@ -154,6 +154,12 @@ function rankBossFor(stage) {
   var b = RANK_BOSSES[idx];
   return { emoji: b.emoji, name: b.name, goal: RANK_GOALS[Math.min(stage, RANK_GOALS.length) - 1], stage: stage };
 }
+// ===== 魔王解放イベント（家族→RPG連動）=====
+// 家族の共同目標で「魔王シグマ」（RANK_BOSSES[4]＝stage5・8000問）を討伐すると、
+// RPG本編の魔王城がクリスタル5個そろっていなくても先行解放される。
+// 引数は rank_family_goal（討伐済みステージ数。共有キーで家族全員に同期される）の値
+var RANK_MAOU_STAGE = 5;
+function rankMaouFreed(clearedCount) { return (parseInt(clearedCount, 10) || 0) >= RANK_MAOU_STAGE; }
 
 // 合計問題数 → 次の共同目標マイルストーンの進捗
 function rankFamilyGoal(total) {

@@ -2286,7 +2286,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/rating.js?v=1"></script>
 <script src="js/teach.js?v=1"></script>
 <script src="js/duel.js?v=1"></script>
-<script src="js/ranking.js?v=1"></script>
+<script src="js/ranking.js?v=2"></script>
 <script src="js/three.min.js?v=1"></script>
 <script src="js/char3d.js?v=2"></script>
 <script>
@@ -3839,6 +3839,10 @@ function _rankCheckMilestone(cumTotal){
   try{ confetti(); }catch(e){}
   try{ sfx('fanfare'); }catch(e){}
   try{ showToast(boss.emoji,'家族で魔王を討伐！', boss.name+' をたおした！（通算 '+cumTotal+'問 達成）', 6500); }catch(e){}
+  // 魔王解放イベント：魔王シグマ（stage5）を家族で討伐→RPG本編の魔王城が全員に先行解放
+  if(prev<RANK_MAOU_STAGE && cleared>=RANK_MAOU_STAGE){
+    setTimeout(function(){ try{ confetti(); sfx('legendary'); showToast('🏰','魔王城が かいほうされた！','かぞくの力で ふういんが とけた！「🗡️ ぼうけん」の魔王城から 決戦できるよ', 8000); }catch(e){} }, 1800);
+  }
 }
 function hideMainScreens(){
   ['subject-select-screen','subject-pick-screen','mode-select-screen','level-select-screen','home-screen','quiz-screen','exam-result-screen','records-screen','roadmap-screen','mistakes-screen','characters-screen','flashcards-screen','study-notes-screen','write-screen','paper-screen','rpg-screen','ranking-screen'].forEach(id=>{
@@ -5777,6 +5781,9 @@ function rpgIsCleared(area,chId,nodeId){ return !!rpgState().cleared[rpgNodeKey(
 function rpgHeroChar(){ var u=(typeof muCurrentUser==='function')?muCurrentUser():null; return (u&&u.char)||'shiba'; }
 function rpgHeroName(){ var u=(typeof muCurrentUser==='function')?muCurrentUser():null; return (u&&u.name)||'勇者'; }
 function rpgCrystalCount(){ return Object.keys(rpgState().crystals).length; }
+// 魔王解放イベント：家族ランキングの共同目標で魔王シグマ（stage5・8000問）を討伐済みなら、
+// クリスタルがそろっていなくても魔王城に挑める（rank_family_goalは共有キー＝家族全員に同期）
+function rpgFamilyMaouFreed(){ try{ return rankMaouFreed(safeLS.getItem('rank_family_goal')); }catch(e){ return false; } }
 function rpgReduced(){ try{ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } }
 function rpgNodeUnlocked(area, chIdx, nodeIdx){
   var world=RPG_WORLD[area], ch=world.chapters[chIdx];
@@ -5943,8 +5950,9 @@ function rpgRenderContinents(){
   var maouCleared=!!s.cleared['maou'];
   if(maouCleared){
     h+='<button class="rpg-castle-card cleared" onclick="rpgRenderEnding(null,0)">🏰 王国は すくわれた！ もう一度 エンディングを見る</button>';
-  } else if(cc>=5){
-    h+='<button class="rpg-castle-card ready" onclick="rpgStartMaou()"><span class="rpg-castle-em">🏰</span><span><b>決戦！ 魔王シグマ</b><br><small>5教科の力で 偏差値65の壁を こえろ！</small></span></button>';
+  } else if(cc>=5 || rpgFamilyMaouFreed()){
+    var _famFree=(cc<5);   // クリスタル未達＝家族の共同目標による先行解放
+    h+='<button class="rpg-castle-card ready" onclick="rpgStartMaou()"><span class="rpg-castle-em">🏰</span><span><b>決戦！ 魔王シグマ</b><br><small>'+(_famFree?'👨‍👩‍👧‍👦 かぞくの力で ふういんが とけた！ いますぐ 決戦できる！':'5教科の力で 偏差値65の壁を こえろ！')+'</small></span></button>';
   } else {
     h+='<div class="rpg-castle-card locked"><span class="rpg-castle-em">🏰</span><span><b>魔王城（偏差値65）</b><br><small>クリスタルを 5つ あつめると 決戦できる（いま '+cc+'/5）</small></span></div>';
   }
@@ -6841,7 +6849,7 @@ function rpgBuildMixedQuestions(count){
   return qs;
 }
 function rpgStartMaou(){
-  if(rpgCrystalCount()<5){ showToast('🔒','まだ魔王に いどめない','5つのクリスタルを あつめよう'); return; }
+  if(rpgCrystalCount()<5 && !rpgFamilyMaouFreed()){ showToast('🔒','まだ魔王に いどめない','5つのクリスタルを あつめよう'); return; }
   if(rpgStaminaLeft()<=0){ showToast('😴','きょうはここまで','また明日 いどもう'); return; }
   var lines=[
     { who:'魔王シグマ', char:'villain', text:'よくぞ ここまで来た、勇者よ。だが「偏差値65の壁」は こえられまい！' },

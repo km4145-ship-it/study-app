@@ -117,8 +117,20 @@ c.ok('範囲超のstageは最後の魔王を返す', api3.rankBossFor(99).name =
 // 次の魔王の目標は rankFamilyGoal.target と一致する（UIの整合）
 c.eq('合計750の次の魔王(stage2)目標=次マイルストーン', api3.rankBossFor(api3.rankClearedCount(750) + 1).goal, api3.rankFamilyGoal(750).target);
 
+// --- 魔王解放イベント（家族の共同目標→RPG魔王城の先行解放）---
+const api4 = (new Function(code + '\nreturn { rankMaouFreed, rankBossFor, RANK_MAOU_STAGE };'))();
+c.eq('解放ステージ=魔王シグマ（定数とボス表の整合）', api4.rankBossFor(api4.RANK_MAOU_STAGE).name, '魔王シグマ');
+c.ok('討伐4体では解放されない', api4.rankMaouFreed('4') === false);
+c.ok('討伐5体で解放', api4.rankMaouFreed('5') === true);
+c.ok('討伐6体でも解放のまま', api4.rankMaouFreed(6) === true);
+c.ok('未設定(null)は解放しない', api4.rankMaouFreed(null) === false);
+c.ok('空文字は解放しない', api4.rankMaouFreed('') === false);
+c.ok('壊れた値は解放しない', api4.rankMaouFreed('abc') === false);
+
 // index.html/モジュール整合
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は js/ranking.js を読み込む', html.indexOf('<script src="js/ranking.js') >= 0);
+c.ok('index.html は魔王解放判定（rpgFamilyMaouFreed）を持つ', html.indexOf('function rpgFamilyMaouFreed') >= 0);
+c.ok('魔王城の挑戦ゲートが家族解放を考慮する', html.indexOf("rpgCrystalCount()<5 && !rpgFamilyMaouFreed()") >= 0);
 
 c.done();

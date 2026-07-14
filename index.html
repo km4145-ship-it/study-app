@@ -6663,7 +6663,7 @@ function showGacha(){
     if(typeof gachaPickupSet==='function'){
       var _pk=gachaPickupSet(COS_SETS, gsWeekId(new Date()));
       h+='<div class="gc-merchant"><span class="gc-m-face">🦝</span><span class="gc-m-bubble">'+escapeHtml(gsGreet(_pk, rpgToday()))+'</span></div>';
-      if(_pk) h+='<div class="gc-pickup">🎪 こんしゅうのピックアップ：<b>'+_pk.em+' '+escapeHtml(_pk.name)+'セット</b>（でる率 2ばい！）</div>';
+      if(_pk) h+='<div class="gc-pickup">🎪 こんしゅうのピックアップ：<b>'+_pk.em+' '+escapeHtml(_pk.name)+'セット</b>（ピックアップ宝箱で 3ばい！）</div>';
     }
   }catch(e){}
   h+='<div class="rpg-coin-bar">🪙 コイン：<b>'+cos.coin+'</b>　🎫 チケット：<b>'+tickets+'</b>　<span class="rpg-coin-hint">バトルに かつと コインがたまる</span></div>';
@@ -6729,6 +6729,7 @@ function _gachaWishInfo(){
     if(!set) return null;
     var cos=rpgCosState(rpgState());
     var have=set.items.filter(function(id){ return !!cos.owned[id]; }).length;
+    if(have>=set.items.length){ try{ safeLS.setItem('gacha_wish',''); }catch(_){} return null; }   // すでに完成＝ねがい成就ずみ（表示せず解除）
     return { set:set, have:have, total:set.items.length };
   }catch(e){ return null; }
 }

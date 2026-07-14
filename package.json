@@ -5,6 +5,7 @@
   "description": "小中学生向け学習アプリ（PWA）。テストは依存ゼロで node のみで動く。",
   "scripts": {
     "test": "node tests/run-all.js",
+    "preview": "node tests/preview-screens.js",
     "build": "node scripts/build.js",
     "cap:sync": "npm run build && npx cap sync"
   },

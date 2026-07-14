@@ -3,3 +3,5 @@ dist/
 .DS_Store
 *.log
 .wrangler/
+tests/screens/
+_preview_*.html

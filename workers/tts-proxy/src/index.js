@@ -23,7 +23,7 @@
 import { verifyFirebaseIdToken, parseJwtUnverified } from '../lib/jwt.js';
 import { getAccessToken, getDoc, patchDoc } from '../lib/firestore.js';
 import {
-  isValidFamilyCode, isPlausibleApiKey, sanitizeText,
+  isValidFamilyCode, isPlausibleApiKey, sanitizeText, isKeyValidFromUserCheck,
   checkAndConsumeQuota, mapElevenLabsStatus, todayDateKey, DAILY_CHAR_LIMIT,
 } from '../lib/tts.js';
 
@@ -68,6 +68,15 @@ function json(request, env, status, body) {
 
 function privateTtsPath(familyCode) { return 'families/' + encodeURIComponent(familyCode) + '/private/tts'; }
 
+// ---- キー検証：GET /v1/user への問い合わせ結果を isKeyValidFromUserCheck で解釈する
+// （判定ロジック自体は ../lib/tts.js の純粋関数＝ネットワーク無しでテスト済み）。
+async function verifyElevenLabsKey(apiKey) {
+  const r = await fetch('https://api.elevenlabs.io/v1/user', { headers: { 'xi-api-key': apiKey } });
+  const bodyText = r.ok ? '' : await r.text().catch(() => '');
+  if (isKeyValidFromUserCheck(r.status, bodyText)) return { ok: true };
+  return { ok: false, mapped: mapElevenLabsStatus(r.status, bodyText) };
+}
+
 // ---- 共通の前処理：POSTのみ・認証必須・familyCode必須 ----
 async function preflight(request, env) {
   if (request.method !== 'POST') return { error: json(request, env, 405, { ok: false, error: 'method_not_allowed' }) };
@@ -92,10 +101,9 @@ async function preflight(request, env) {
 async function handleSetTtsKey(request, env, familyCode, body) {
   const apiKey = body.apiKey;
   if (!isPlausibleApiKey(apiKey)) return json(request, env, 400, { ok: false, error: 'invalid_key_format' });
-  const r = await fetch('https://api.elevenlabs.io/v1/user', { headers: { 'xi-api-key': apiKey } });
-  if (!r.ok) {
-    const mapped = mapElevenLabsStatus(r.status, await r.text().catch(() => ''));
-    return json(request, env, mapped.status, { ok: false, error: mapped.error, message: mapped.message });
+  const verified = await verifyElevenLabsKey(apiKey);
+  if (!verified.ok) {
+    return json(request, env, verified.mapped.status, { ok: false, error: verified.mapped.error, message: verified.mapped.message });
   }
   const token = await getFirestoreAccessToken(env);
   // 鍵を変えたら日次クォータもリセットする（updateMaskを指定せず全置換）
@@ -108,10 +116,9 @@ async function handleVerifyTtsKey(request, env, familyCode) {
   const token = await getFirestoreAccessToken(env);
   const doc = await getDoc(env.FIREBASE_PROJECT_ID, privateTtsPath(familyCode), token);
   if (!doc || !doc.apiKey) return json(request, env, 400, { ok: false, error: 'no_key_set' });
-  const r = await fetch('https://api.elevenlabs.io/v1/user', { headers: { 'xi-api-key': doc.apiKey } });
-  if (r.ok) return json(request, env, 200, { ok: true });
-  const mapped = mapElevenLabsStatus(r.status, await r.text().catch(() => ''));
-  return json(request, env, mapped.status, { ok: false, error: mapped.error, message: mapped.message });
+  const verified = await verifyElevenLabsKey(doc.apiKey);
+  if (verified.ok) return json(request, env, 200, { ok: true });
+  return json(request, env, verified.mapped.status, { ok: false, error: verified.mapped.error, message: verified.mapped.message });
 }
 
 // ---- /synthesizeSpeech：保存済みキーで音声合成し、音声バイナリをそのまま返す ----

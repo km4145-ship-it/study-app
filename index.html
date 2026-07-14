@@ -2882,11 +2882,7 @@ function closeSettings() { document.getElementById('settings-modal').classList.r
 
 // =================== TTS プロキシ（Phase 2：鍵はサーバー側のみ・クライアントには一切戻さない）===================
 // docs/APP_STORE_ROADMAP.md Phase 2 参照（Cloudflare Workers版・workers/tts-proxy/）。
-// Workersがまだデプロイされていない間はcloud未接続と同じ扱いになり、
-// 既存の「内蔵音声にフォールバック」がそのまま働く。
-// ⚠️ 下のURLはプレースホルダ。`wrangler deploy` 後に表示される実際のWorkers URL
-// （https://study-app-tts-proxy.<あなたのサブドメイン>.workers.dev）に差し替えてからpushすること。
-var TTS_FUNCTIONS_BASE = 'https://study-app-tts-proxy.YOUR-SUBDOMAIN.workers.dev';
+var TTS_FUNCTIONS_BASE = 'https://study-app-tts-proxy.km4145-study-app.workers.dev';
 function _ttsFamilyCode(){ return (localStorage.getItem('mu_family')||'').trim() || '0000'; }
 // 認証トークン付きでTTS関数を呼ぶ（cloud未接続/未サインインなら例外を投げる＝呼び出し側でcatchする）
 async function ttsCall(fn, body){

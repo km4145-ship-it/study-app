@@ -48,6 +48,22 @@ export function mapElevenLabsStatus(status, bodyText) {
   return { status: status || 500, error: 'upstream_error', message: '接続エラー', body: bodyText };
 }
 
+// GET /v1/user はキー検証だけに使う軽量エンドポイント。ElevenLabsは「user_read」権限が
+// 無いキーにも401を返すため、意図的に権限を絞ったキー（docs/SECURITY.mdで推奨している運用）が
+// 誤って「無効なキー」判定されてしまう。ElevenLabsのエラーレスポンスは
+// invalid_api_key（本当に無効）とmissing_permissions（有効だが読み取り権限が無いだけ）を
+// 区別して返すので、後者は「有効なキー」として扱う。
+export function isKeyValidFromUserCheck(status, bodyText) {
+  if (status >= 200 && status < 300) return true;
+  if (status !== 401) return false;
+  try {
+    const parsed = JSON.parse(bodyText);
+    return !!(parsed && parsed.detail && parsed.detail.status === 'missing_permissions');
+  } catch (e) {
+    return false;
+  }
+}
+
 // 今日の日付キー（JST基準・study-appの todayKey() と同じ 'YYYY-MM-DD' 形式に統一）
 export function todayDateKey(d) {
   const dt = d || new Date();

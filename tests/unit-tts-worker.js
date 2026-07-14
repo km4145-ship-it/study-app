@@ -46,6 +46,14 @@ const c = makeChecker('unit-tts-worker');
   c.eq('実HTTPステータスを保持（常に200固定にしない）', tts.mapElevenLabsStatus(401, '').status, 401);
   c.eq('todayDateKeyはYYYY-MM-DD形式', tts.todayDateKey(new Date(2026, 6, 5)), '2026-07-05');
 
+  // isKeyValidFromUserCheck：GET /v1/user の401を「本当に無効」と「権限を絞っただけ」で区別する
+  c.ok('200は常に有効', tts.isKeyValidFromUserCheck(200, ''));
+  c.ok('missing_permissionsは有効なキーとして扱う', tts.isKeyValidFromUserCheck(401, JSON.stringify({ detail: { status: 'missing_permissions' } })));
+  c.ok('invalid_api_keyは無効', !tts.isKeyValidFromUserCheck(401, JSON.stringify({ detail: { status: 'invalid_api_key' } })));
+  c.ok('needs_authorizationは無効', !tts.isKeyValidFromUserCheck(401, JSON.stringify({ detail: { status: 'needs_authorization' } })));
+  c.ok('本文が壊れたJSONでも無効側に倒す', !tts.isKeyValidFromUserCheck(401, 'not json'));
+  c.ok('401以外のエラーステータスは無効', !tts.isKeyValidFromUserCheck(500, ''));
+
   // ================= lib/jwt.js（RS256署名・検証。実RSA鍵ペアで往復させる） =================
   const kp = await crypto.subtle.generateKey(
     { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },

@@ -8,7 +8,7 @@ const c = makeChecker('unit-gacha-story');
 
 const code = fs.readFileSync(path.join(ROOT, 'js', 'gacha-story.js'), 'utf8');
 const api = (new Function(code +
-  '\nreturn { gsWeekId, gsHash, gachaPickupSet, gsGreet, gsCheer, gsSetStory, GS_SET_STORIES, GS_LORE, GS_GREETS, gachaShopLineup, GACHA_SHOP_PREMIUM };'))();
+  '\nreturn { gsWeekId, gsHash, gachaPickupSet, gsGreet, gsCheer, gsSetStory, GS_SET_STORIES, GS_LORE, GS_GREETS, gachaShopLineup, GACHA_SHOP_PREMIUM, gachaStamps, GACHA_STAMP_SIZE };'))();
 
 // ---- 週ID（月曜はじまり・ゼロ埋め）----
 c.eq('水曜→その週の月曜', api.gsWeekId(new Date(2026, 6, 15)), '2026-07-13');
@@ -82,6 +82,19 @@ c.ok('未知セットは汎用ストーリー', api.gsSetStory({ id: 'set_unknow
     const rl = api.gachaShopLineup(realPool, '2026-07-14');
     c.ok('実プールで6品', rl.length === 6);
   }
+}
+
+// ---- スタンプカード（10回で1まい・pulls/claimsは増えるだけ）----
+{
+  const st = api.gachaStamps;
+  c.ok('0回=スタンプ0・受取0', JSON.stringify(st(0, 0)) === JSON.stringify({ stamps: 0, claimable: 0 }));
+  c.ok('9回=スタンプ9・受取0', JSON.stringify(st(9, 0)) === JSON.stringify({ stamps: 9, claimable: 0 }));
+  c.ok('10回=満タン・受取1', JSON.stringify(st(10, 0)) === JSON.stringify({ stamps: 10, claimable: 1 }));
+  c.ok('35回・未受取=満タン・受取3', JSON.stringify(st(35, 0)) === JSON.stringify({ stamps: 10, claimable: 3 }));
+  c.ok('35回・2回受取=満タン・受取1', JSON.stringify(st(35, 2)) === JSON.stringify({ stamps: 10, claimable: 1 }));
+  c.ok('35回・3回受取=スタンプ5・受取0', JSON.stringify(st(35, 3)) === JSON.stringify({ stamps: 5, claimable: 0 }));
+  c.ok('文字列入力（localStorage経由）でも正しい', JSON.stringify(st('21', '2')) === JSON.stringify({ stamps: 1, claimable: 0 }));
+  c.ok('壊れた値は0あつかい', JSON.stringify(st('abc', null)) === JSON.stringify({ stamps: 0, claimable: 0 }));
 }
 
 // ---- index.html 統合 ----

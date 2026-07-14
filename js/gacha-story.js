@@ -121,6 +121,16 @@ function gachaShopLineup(pool, dateKey){
     .concat(take(high,1).map(function(it){ return { it:it, price:(it.price||300)*GACHA_SHOP_PREMIUM }; }));
 }
 
+// ===== スタンプカード：ガチャを10回ひくごとに🎟️1まい =====
+// pulls（のべ回数）とclaims（受取回数）はどちらも「増えるだけ」＝counterのmaxマージで同期しても壊れない
+var GACHA_STAMP_SIZE=10;
+function gachaStamps(pulls, claims){
+  pulls=parseInt(pulls,10)||0; claims=parseInt(claims,10)||0;
+  var claimable=Math.max(0, Math.floor(pulls/GACHA_STAMP_SIZE)-claims);
+  var stamps=claimable>0 ? GACHA_STAMP_SIZE : Math.max(0, pulls-claims*GACHA_STAMP_SIZE);
+  return { stamps:stamps, claimable:claimable };
+}
+
 // ===== レア装備の いいつたえ（lore）。開封カードときせかえの ながめる楽しみ =====
 var GS_LORE={
   h_crown:   'まなびの王国の 初代おうさまの おうかん。',

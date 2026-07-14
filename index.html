@@ -1735,6 +1735,14 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .gc-bn-em{ font-size:24px; }
   .gc-bn-tx{ flex:1; line-height:1.35; } .gc-bn-tx small{ color:#64748b; font-size:.72rem; }
   .gc-bn-on{ color:#db2777; font-weight:900; }
+  /* 🎫 スタンプカード */
+  .gc-stampcard{ background:var(--card2,#fff); border:1.5px solid #a5b4fc; border-radius:12px; padding:8px 12px; margin-top:8px; }
+  .gc-stamp-l{ display:flex; align-items:center; justify-content:space-between; font-size:.82rem; font-weight:800; }
+  .gc-stamp-l small{ color:#64748b; font-weight:600; }
+  .gc-stamp-claim{ border:none; background:linear-gradient(90deg,#818cf8,#6366f1); color:#fff; border-radius:10px; padding:5px 11px; font-weight:900; font-family:inherit; cursor:pointer; box-shadow:0 2px 0 #4338ca; }
+  .gc-stamp-claim:active{ transform:translateY(2px); box-shadow:none; }
+  .gc-stamp-dots{ display:flex; gap:4px; margin-top:4px; font-size:16px; }
+  .gc-stamp{ opacity:.35; } .gc-stamp.on{ opacity:1; filter:drop-shadow(0 0 3px rgba(250,204,21,.7)); }
   /* たぬすけのお店 */
   .gc-shop-link{ display:flex; align-items:center; gap:10px; width:100%; font-family:inherit; cursor:pointer; text-align:left;
     background:linear-gradient(135deg,#fff7ed,#fff); border:2px solid #fdba74; border-radius:14px; padding:10px 13px; margin-top:8px; }
@@ -2384,7 +2392,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/chars.js?v=1"></script>
 <script src="js/areas.js?v=1"></script>
 <script src="js/cos-data.js?v=5"></script>
-<script src="js/gacha-story.js?v=2"></script>
+<script src="js/gacha-story.js?v=3"></script>
 <script src="js/subjects.js?v=1"></script>
 <script src="js/questions-bank.js?v=1"></script>
 <script src="js/questions-extra.js?v=1"></script>
@@ -6429,6 +6437,7 @@ function rpgOpenDailyBox(){
   var cos=rpgCosState(s); s.dailyBox=rpgToday();
   var out=_gachaDrawInto(cos,1,s)[0];
   _gachaLog([out]);
+  _gachaBumpPulls(1);
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   try{ muGachaBadge(); }catch(e){}
@@ -6441,6 +6450,7 @@ function rpgGachaDraw(){
   if(useTicket) cos.tickets--; else cos.coin-=40;
   var out=_gachaDrawInto(cos,1,s,_gachaBanner)[0];
   _gachaLog([out]);
+  _gachaBumpPulls(1);
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   rpgGachaReveal(out.pick, out.dup, out.refund);
@@ -6451,6 +6461,7 @@ function rpgGachaDraw10(){
   cos.coin-=COST;
   var outs=_gachaDrawInto(cos,10,s,_gachaBanner);
   _gachaLog(outs);
+  _gachaBumpPulls(10);
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
   rpgGacha10Reveal(outs);
@@ -6674,6 +6685,14 @@ function showGacha(){
      '<button class="gc-pull ten" onclick="rpgGachaDraw10()"><span class="gc-pt">10回 ひく</span><span class="gc-pp">🪙 320 ・ スペシャル確定</span></button>'+
      '</div>';
   h+='<div class="gc-pity"><div class="gc-pity-l"><span>💫 天井（UR確定）まで</span><span>'+pity+' / '+pmax+'</span></div><div class="gc-pity-b"><i style="width:'+ppct+'%"></i></div></div>';
+  // 🎫 スタンプカード（10回ひくごとにチケット1まい）
+  try{
+    var _st=gachaStamps(safeLS.getItem('gacha_pulls'), safeLS.getItem('gacha_stamp_claims'));
+    var _dots=''; for(var _d=0;_d<GACHA_STAMP_SIZE;_d++) _dots+='<span class="gc-stamp'+(_d<_st.stamps?' on':'')+'">'+(_d<_st.stamps?'⭐':'・')+'</span>';
+    h+='<div class="gc-stampcard"><div class="gc-stamp-l"><span>🎫 スタンプカード<small>（10回ひくと チケット1まい）</small></span>'
+      +(_st.claimable>0?'<button class="gc-stamp-claim" onclick="gachaStampClaim()">🎟️ うけとる'+(_st.claimable>1?(' ×'+_st.claimable):'')+'</button>':'')
+      +'</div><div class="gc-stamp-dots">'+_dots+'</div></div>';
+  }catch(e){}
   h+='<button class="gc-shop-link" onclick="gachaShowShop()"><span class="gc-shop-ic">🛒</span><span><b>たぬすけのお店</b><br><small>日替わりの品を コインで直接かえる</small></span></button>';
   h+='<button class="gc-odds-link" onclick="gachaShowOdds()">📊 くわしい かくりつ・さいきん出たもの</button>';
   h+='<div class="rpg-map-hint">出たアイテムは「👕 きせかえ」タブで そうびできるよ。ダブりは コインに かわる。</div>';
@@ -6681,6 +6700,17 @@ function showGacha(){
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
 function gachaSetBanner(id){ _gachaBanner=id; try{ sfx('click'); }catch(e){} showGacha(); }
+// 🎫 スタンプカード：ひいた回数を記録（10回でチケット1まい。数学はgacha-story.jsのgachaStamps）
+function _gachaBumpPulls(n){ try{ safeLS.setItem('gacha_pulls', String((parseInt(safeLS.getItem('gacha_pulls')||'0',10)||0)+(n||1))); }catch(e){} }
+function gachaStampClaim(){
+  var st=gachaStamps(safeLS.getItem('gacha_pulls'), safeLS.getItem('gacha_stamp_claims'));
+  if(st.claimable<=0) return;
+  safeLS.setItem('gacha_stamp_claims', String((parseInt(safeLS.getItem('gacha_stamp_claims')||'0',10)||0)+1));
+  var s=rpgState(), cos=rpgCosState(s); cos.tickets=(cos.tickets||0)+1; rpgSave(s);
+  try{ sfx('fanfare'); confetti(); }catch(e){}
+  showToast('🎟️','スタンプカードが いっぱい！','無料チケット 1まい ゲット！');
+  showGacha();
+}
 // ⭐ ねがいごと：セット単位の目標。出たら開封カードでお知らせ・かなったら（セット完成）はれて解除
 function gachaWishSet(id){
   try{

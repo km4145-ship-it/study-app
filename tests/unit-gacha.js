@@ -6,7 +6,7 @@ const { makeChecker, ROOT } = require('./lib/assert');
 const c = makeChecker('unit-gacha');
 
 const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const a = src.indexOf('function _gachaPool()');
+const a = src.indexOf('function _gachaPool(');
 const b = src.indexOf('function rpgDailyBoxReady');
 const code = src.slice(a, b);
 const make = new Function('COS_DATA', 'lsGetJSON', 'lsSetJSON', code + '\nreturn { _gachaDrawInto, _pityTriggered, _gacha10NeedGuarantee, _cosRank, _gachaPickRarity, _gachaPickGoodie, _gachaApplyGoodie, GACHA_GOODIES, _gachaRates, _gachaLog };');
@@ -76,6 +76,28 @@ RND = 0;
 cos = { pity: 50, owned: {}, coin: 0 };
 r = api._gachaDrawInto(cos, 1);
 c.ok('goodie: 天井優先（RND=0でもUR）', r[0].pick.it.id === 'u1');
+
+// ---- バナー制：あいぼう宝箱はaibouプールだけ・該当レアが無い保証はフォールバック ----
+{
+  const COS2 = { hero: { hat: [{ id: 'n1', r: 'N' }, { id: 'sr1', r: 'SR' }, { id: 'u1', r: 'UR' }] }, pet: { hat: [{ id: 'r1', r: 'R' }] },
+    aibou: { hat: [{ id: 'ah1', r: 'N' }, { id: 'ah2', r: 'N' }] } };
+  const api2 = make(COS2, (k, d) => d, () => {});
+  RND = 0.5;
+  let cos2 = { pity: 0, owned: {}, coin: 0 };
+  let r2 = api2._gachaDrawInto(cos2, 1, null, 'aibou');
+  c.ok('あいぼう宝箱はah_*だけが出る', r2[0].pick.it.id.indexOf('ah') === 0);
+  // 10連保証：aibouプールにSRが無い→常設からSRを補完（保証は必ず守る）
+  cos2 = { pity: 0, owned: {}, coin: 0 };
+  r2 = api2._gachaDrawInto(cos2, 10, null, 'aibou');
+  c.ok('あいぼう宝箱の10連でもSR保証（常設から補完）', r2.some((o) => api2._cosRank(o.pick.it.r) >= 4));
+  // 天井：aibouにURがある実データと違い、モックは無し→常設URで天井を守る
+  cos2 = { pity: 50, owned: {}, coin: 0 };
+  r2 = api2._gachaDrawInto(cos2, 1, null, 'aibou');
+  c.ok('あいぼう宝箱でも天井UR（常設から補完）', r2[0].pick.it.r === 'UR');
+  // 未知バナー/aibou欠落データは常設に安全フォールバック
+  const r3 = api._gachaDrawInto({ pity: 0, owned: {}, coin: 0 }, 1, null, 'aibou');
+  c.ok('aibouデータが無い環境では常設へフォールバック', !!r3[0].pick.it.id);
+}
 
 // ---- 確率表示（_gachaRates）：合計がちょうど100%・重みに比例 ----
 {

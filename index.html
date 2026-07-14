@@ -1936,6 +1936,14 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-g10p-box{ font-size:30px; line-height:1; padding:8px 0; border-radius:12px; background:rgba(255,255,255,.06);
     opacity:0; transform:scale(.4) translateY(8px); animation:rpgG10Pop .42s cubic-bezier(.2,1.5,.4,1) forwards, rpgG10Glow 1.8s ease-in-out infinite;
     animation-delay:calc(var(--gi) * .08s), calc(.5s + var(--gi) * .08s); }
+  /* タップ開封：えらべる箱はボタン・開けた箱は結果ミニカードに変わる */
+  button.rpg-g10p-box.tap{ border:2px solid rgba(255,255,255,.25); cursor:pointer; font-family:inherit; }
+  button.rpg-g10p-box.tap:active{ transform:scale(.9); }
+  .rpg-g10p-box.done{ background:rgba(255,255,255,.14); border:2px solid rgba(255,255,255,.3); animation:rpgG10Pop .3s forwards; opacity:1; transform:none; }
+  .rpg-g10p-box.done.cos-r{ border-color:#a78bfa; } .rpg-g10p-box.done.cos-hr{ border-color:#8b5cf6; }
+  .rpg-g10p-box.done.cos-sr,.rpg-g10p-box.done.cos-ssr{ border-color:#f59e0b; box-shadow:0 0 8px rgba(245,158,11,.5); }
+  .rpg-g10p-box.done.cos-ur,.rpg-g10p-box.done.cos-lr{ border-color:#f472b6; box-shadow:0 0 10px rgba(236,72,153,.6); }
+  .g10p-done-em{ filter:drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
   @keyframes rpgG10Pop{ to{ opacity:1; transform:none; } }
   @keyframes rpgG10Glow{ 0%,100%{ box-shadow:0 0 0 rgba(255,255,255,0);} 50%{ box-shadow:0 0 12px rgba(255,255,255,.35);} }
   .rpg-gacha-ov.g10preview.mid .rpg-g10p-box{ background:rgba(56,189,248,.12); }
@@ -6547,35 +6555,52 @@ function rpgGachaReveal(pick, dup, refund, opts){
     }catch(e){}
   }, build);
 }
-// 10連の結果まとめ表示
-// 10連：1枚ずつ順番に演出 → 最後にまとめ
-var _g10Queue=null, _g10Idx=0;
-function rpgGacha10Reveal(outs){ _g10Queue=outs||[]; _g10Idx=0; if(_gachaFxMode()==='off'){ _g10ShowNext(); return; } _g10Preview(); }
-// C：1枚ずつ開ける前の一括プレビュー（宝箱が順に光り、SR以上が混ざると虹で確定示唆）
+// 10連：すきな宝箱を自分の指でタップして開ける（→ぜんぶ開けたら まとめ）
+var _g10Queue=null, _g10Idx=0, _g10Opened={};
+function rpgGacha10Reveal(outs){ _g10Queue=outs||[]; _g10Idx=0; _g10Opened={}; if(_gachaFxMode()==='off'){ _g10OpenAll(); return; } _g10Preview(); }
+// 一括プレビュー＝選択画面（SR以上が混ざると虹で確定示唆）。開けた箱は結果ミニカードに変わる
 function _g10Preview(){
   var outs=_g10Queue||[]; if(!outs.length){ return; }
   var best=0; outs.forEach(function(o){ best=Math.max(best,_cosRank(o.pick.it.r)); });
   var hi=best>=4, mid=(!hi && best>=2);
+  var opened=Object.keys(_g10Opened).length, remain=outs.length-opened;
   var ov=document.getElementById('rpg-gacha-ov'); if(!ov){ ov=document.createElement('div'); ov.id='rpg-gacha-ov'; document.body.appendChild(ov); }
-  var boxes=''; for(var i=0;i<outs.length;i++){ boxes+='<div class="rpg-g10p-box" style="--gi:'+i+'">🎁</div>'; }
+  var boxes='';
+  for(var i=0;i<outs.length;i++){
+    if(_g10Opened[i]){ var it=outs[i].pick.it, rc=(COS_RARITY[it.r||'N']||{}).cls||'';
+      boxes+='<div class="rpg-g10p-box done '+rc+'" style="--gi:'+i+'"><span class="g10p-done-em">'+it.em+'</span></div>'; }
+    else boxes+='<button class="rpg-g10p-box tap" style="--gi:'+i+'" onclick="_g10Open('+i+')">🎁</button>';
+  }
   ov.className='rpg-gacha-ov g10preview'+(hi?' hi':(mid?' mid':''));
   ov.innerHTML='<div class="rpg-gacha-card g10pcard">'+
     '<div class="rpg-g10p-ttl">🎁 10れんガチャ</div>'+
-    '<div class="rpg-g10p-sub">10この たからばこが あらわれた！</div>'+
+    '<div class="rpg-g10p-sub">'+(opened?('のこり '+remain+'こ！ すきな はこを タップ'):'すきな はこを タップして あけよう！')+'</div>'+
     '<div class="rpg-g10p-grid">'+boxes+'</div>'+
     '<div class="rpg-g10p-omen">'+(hi?'✨ 高レアの きらめきを かんじる…！ ✨':(mid?'キラリ… 何か 出そう？':'どれが 出るかな？'))+'</div>'+
-    '<button class="rpg-btn rpg-g10p-go" onclick="_g10StartReveal()">1つずつ あけていく ▶</button></div>';
+    '<button class="rpg-btn rpg-g10p-go" onclick="_g10OpenAll()">のこりを ぜんぶ あける ▶</button></div>';
   ov.style.display='flex';
-  try{ sfx('charge'); }catch(e){}
-  if(hi){ setTimeout(function(){ try{ sfx('powerup'); vibe([20,40,20,40,60]); }catch(e){} if(ov) ov.classList.add('omenpulse'); }, 1150); }   // 演出はCSSのみ（canvasはボタンに重ねない）
+  if(!opened){ try{ sfx('charge'); }catch(e){} }
+  if(hi && !opened){ setTimeout(function(){ try{ sfx('powerup'); vibe([20,40,20,40,60]); }catch(e){} if(ov) ov.classList.add('omenpulse'); }, 1150); }   // 演出はCSSのみ（canvasはボタンに重ねない）
 }
-function _g10StartReveal(){ try{ sfx('click'); if(window.gachaFx) gachaFx.reset(); }catch(e){} _g10Idx=0; _g10ShowNext(); }
+// タップで1箱あける → 開封演出 → 選択画面へもどる（ぜんぶ開いたら まとめへ）
+function _g10Open(i){
+  if(!_g10Queue || _g10Opened[i]) return;
+  _g10Opened[i]=1;
+  try{ if(window.gachaFx) gachaFx.reset(); }catch(e){}
+  var o=_g10Queue[i], remain=_g10Queue.length-Object.keys(_g10Opened).length;
+  rpgGachaReveal(o.pick, o.dup, o.refund, { action:'_g10Back()', label:(remain>0?('はこえらびに もどる（のこり'+remain+'）'):'けっかを見る'), quick:true, progress:'🎁 10れん' });
+}
+function _g10Back(){ if(Object.keys(_g10Opened).length>=(_g10Queue||[]).length){ _g10Summary(); } else { _g10Preview(); } }
+// のこりを順番に自動で開ける（従来の連続演出）
+function _g10OpenAll(){ try{ sfx('click'); if(window.gachaFx) gachaFx.reset(); }catch(e){} _g10Idx=0; _g10ShowNext(); }
 function _g10ShowNext(){
   if(!_g10Queue){ return; }
+  while(_g10Idx<_g10Queue.length && _g10Opened[_g10Idx]) _g10Idx++;   // タップで開封済みの箱はとばす
   if(_g10Idx>=_g10Queue.length){ _g10Summary(); return; }
-  var o=_g10Queue[_g10Idx], n=_g10Idx+1, tot=_g10Queue.length, remaining=tot-n;
+  var i=_g10Idx; _g10Opened[i]=1;
+  var o=_g10Queue[i], remaining=_g10Queue.length-Object.keys(_g10Opened).length;
   var label = remaining>0 ? ('つぎへ ▶（あと'+remaining+'）') : 'けっかを見る';
-  rpgGachaReveal(o.pick, o.dup, o.refund, { action:'_g10Next()', label:label, quick:true, progress:'🎁 10れん　'+n+' / '+tot });
+  rpgGachaReveal(o.pick, o.dup, o.refund, { action:'_g10Next()', label:label, quick:true, progress:'🎁 10れん' });
 }
 function _g10Next(){ _g10Idx++; _g10ShowNext(); }
 function _g10Summary(){

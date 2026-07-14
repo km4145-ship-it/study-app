@@ -76,7 +76,7 @@ exports.setTtsKey = onRequest({ region: REGION, cors: ALLOWED_ORIGINS }, async (
     const r = await fetch('https://api.elevenlabs.io/v1/user', { headers: { 'xi-api-key': apiKey } });
     if (!r.ok) {
       const mapped = mapElevenLabsStatus(r.status, await r.text().catch(() => ''));
-      sendJson(res, 200, { ok: false, error: mapped.error, message: mapped.message });
+      sendJson(res, mapped.status, { ok: false, error: mapped.error, message: mapped.message });
       return;
     }
     await privateTtsRef(pre.familyCode).set({
@@ -85,7 +85,7 @@ exports.setTtsKey = onRequest({ region: REGION, cors: ALLOWED_ORIGINS }, async (
     sendJson(res, 200, { ok: true });
   } catch (e) {
     logger.error('setTtsKey failed', e);
-    sendJson(res, 200, { ok: false, error: 'network_error' });
+    sendJson(res, 502, { ok: false, error: 'network_error' });
   }
 });
 
@@ -94,14 +94,14 @@ exports.verifyTtsKey = onRequest({ region: REGION, cors: ALLOWED_ORIGINS }, asyn
   const pre = await preflight(req, res); if (!pre) return;
   try {
     const snap = await privateTtsRef(pre.familyCode).get();
-    if (!snap.exists || !snap.data().apiKey) { sendJson(res, 200, { ok: false, error: 'no_key_set' }); return; }
+    if (!snap.exists || !snap.data().apiKey) { sendJson(res, 400, { ok: false, error: 'no_key_set' }); return; }
     const r = await fetch('https://api.elevenlabs.io/v1/user', { headers: { 'xi-api-key': snap.data().apiKey } });
     if (r.ok) { sendJson(res, 200, { ok: true }); return; }
     const mapped = mapElevenLabsStatus(r.status, await r.text().catch(() => ''));
-    sendJson(res, 200, { ok: false, error: mapped.error, message: mapped.message });
+    sendJson(res, mapped.status, { ok: false, error: mapped.error, message: mapped.message });
   } catch (e) {
     logger.error('verifyTtsKey failed', e);
-    sendJson(res, 200, { ok: false, error: 'network_error' });
+    sendJson(res, 502, { ok: false, error: 'network_error' });
   }
 });
 
@@ -115,15 +115,19 @@ exports.synthesizeSpeech = onRequest({ region: REGION, cors: ALLOWED_ORIGINS, ti
   const sanitized = sanitizeText(req.body && req.body.text);
   if (!sanitized.ok) { sendJson(res, 400, { ok: false, error: sanitized.reason }); return; }
 
+  // 音声バイナリ（成功）とJSONエラー（失敗）の両方をクライアントは同じ`fetch`結果から
+  // 判別する（resp.ok を見て分岐＝index.htmlの既存fetchVoiceBlobと同じ設計）。そのため
+  // 失敗時は必ず「意味のあるHTTPステータス」を返す（常に200だとクライアントが
+  // エラーJSONを音声バイナリと誤認してしまう）。
   const ref = privateTtsRef(pre.familyCode);
   try {
     const snap = await ref.get();
-    if (!snap.exists || !snap.data().apiKey) { sendJson(res, 200, { ok: false, error: 'no_key_set' }); return; }
+    if (!snap.exists || !snap.data().apiKey) { sendJson(res, 400, { ok: false, error: 'no_key_set' }); return; }
     const apiKey = snap.data().apiKey;
 
     const today = todayDateKey();
     const quota = checkAndConsumeQuota(snap.data(), today, sanitized.text.length, DAILY_CHAR_LIMIT);
-    if (!quota.allowed) { sendJson(res, 200, { ok: false, error: quota.reason }); return; }
+    if (!quota.allowed) { sendJson(res, 429, { ok: false, error: quota.reason }); return; }
 
     const doSynthesize = () => fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
       method: 'POST',
@@ -145,7 +149,7 @@ exports.synthesizeSpeech = onRequest({ region: REGION, cors: ALLOWED_ORIGINS, ti
     }
     if (!r.ok) {
       const mapped = mapElevenLabsStatus(r.status, await r.text().catch(() => ''));
-      sendJson(res, 200, { ok: false, error: mapped.error, message: mapped.message });
+      sendJson(res, mapped.status, { ok: false, error: mapped.error, message: mapped.message });
       return;
     }
     // クォータ消費を書き戻す（実際に合成成功した分だけ課金対象になるため、成功後に更新）
@@ -155,6 +159,6 @@ exports.synthesizeSpeech = onRequest({ region: REGION, cors: ALLOWED_ORIGINS, ti
     res.status(200).send(buf);
   } catch (e) {
     logger.error('synthesizeSpeech failed', e);
-    sendJson(res, 200, { ok: false, error: 'network_error' });
+    sendJson(res, 502, { ok: false, error: 'network_error' });
   }
 });

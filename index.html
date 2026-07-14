@@ -605,6 +605,30 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .imp-label { display:inline-block; }
   .q-time { font-size:0.72rem; color:var(--primary-light); margin-top:6px; }
   .careless-ask { font-size:0.78rem; color:var(--text); margin-top:8px; }
+  /* 🗣️おしえてモード */
+  #teach-ov{ position:fixed; inset:0; z-index:2000010; background:rgba(15,23,42,.55); display:none; align-items:flex-start; justify-content:center; overflow:auto; padding:14px; }
+  .teach-card{ background:var(--card,#fff); color:var(--text,#0f172a); border-radius:16px; padding:14px 16px 18px; max-width:560px; width:100%; margin:10px auto 40px; box-shadow:0 18px 50px rgba(0,0,0,.35); }
+  .teach-head{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .teach-head b{ font-size:1.02rem; }
+  .teach-head .teach-hint{ flex:1; font-size:.72rem; opacity:.75; font-weight:600; }
+  .teach-head .btn-sm{ margin-left:auto; }
+  .teach-subjects{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; }
+  .teach-subj{ font-family:inherit; cursor:pointer; border:1.5px solid #bae6fd; background:#f0f9ff; border-radius:12px; padding:12px 6px; font-size:1.4rem; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .teach-subj span{ font-size:.85rem; font-weight:800; }
+  .teach-stage{ display:flex; gap:10px; align-items:flex-end; margin:6px 0 10px; }
+  .teach-chara{ width:92px; flex:0 0 auto; }
+  .teach-chara .c3d-slot{ width:92px; height:115px; }
+  .teach-bubble{ flex:1; background:#fefce8; border:2px solid #fde047; border-radius:14px; padding:11px 13px; font-weight:700; line-height:1.7; font-size:.94rem; }
+  .teach-input{ width:100%; box-sizing:border-box; font-family:inherit; font-size:1rem; line-height:1.7; border:2px solid #93c5fd; border-radius:12px; padding:10px 12px; resize:vertical; }
+  .teach-btns{ display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .teach-go{ margin-left:auto; }
+  .teach-result{ text-align:center; }
+  .teach-stars{ font-size:2.1rem; letter-spacing:.1em; color:#f59e0b; }
+  .teach-msg{ font-weight:800; font-size:1.02rem; margin:6px 0; }
+  .teach-pts{ font-weight:800; color:#059669; margin-bottom:8px; }
+  .teach-hits{ background:#ecfdf5; color:#065f46; border-radius:10px; padding:7px 10px; font-size:.86rem; font-weight:700; margin:4px 0; text-align:left; }
+  .teach-miss{ background:#fef3c7; color:#92400e; border-radius:10px; padding:7px 10px; font-size:.86rem; font-weight:700; margin:4px 0; text-align:left; }
+  .teach-model{ background:#eff6ff; color:#1e3a8a; border-radius:10px; padding:9px 11px; font-size:.88rem; font-weight:600; line-height:1.7; margin:6px 0 4px; text-align:left; }
   /* もんだいカバレッジ（管理者向けオーバーレイ） */
   #cov-ov{ position:fixed; inset:0; z-index:2000000; background:rgba(15,23,42,.55); display:none; align-items:flex-start; justify-content:center; overflow:auto; padding:16px; }
   .cov-card{ background:var(--card,#fff); color:var(--text,#0f172a); border-radius:16px; padding:14px 16px 18px; max-width:760px; width:100%; margin:8px auto 40px; box-shadow:0 18px 50px rgba(0,0,0,.35); }
@@ -2195,6 +2219,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/miss-types.js?v=1"></script>
 <script src="js/coverage.js?v=1"></script>
 <script src="js/rating.js?v=1"></script>
+<script src="js/teach.js?v=1"></script>
 <script src="js/ranking.js?v=1"></script>
 <script src="js/three.min.js?v=1"></script>
 <script src="js/char3d.js?v=1"></script>
@@ -3968,6 +3993,7 @@ function renderGameHub(){
   h+= hubCard('mix','🔀','ミックス演習','全教科ごちゃまぜ','startMixedPractice()');
   h+= hubCard('flash','🃏','暗記カード','サッとおぼえる','showFlashcards()');
   h+= hubCard('write','✍️','記述問題','説明する力をつける','showWrite()');
+  h+= hubCard('teach','🗣️','おしえて','キャラ先生に説明して理解チェック','teachStart()');
   h+= hubCard('note','📖','まとめ','要点・公式集を見る','showStudyNotes()');
   h+='</div>';
   host.innerHTML=h;
@@ -5241,6 +5267,103 @@ function rpgCosState(s){
   return c;
 }
 function rpgCoin(){ return rpgCosState(rpgState()).coin||0; }
+// ===== 🗣️おしえてモード（A4・ファインマン学習法）。評価は js/teach.js のルーブリック =====
+var _teach={ topic:null, phase:0, base:null, followKey:null };
+var _teachRec=null;
+function _teachMicAvail(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }
+function teachStart(){
+  try{ sfx('click'); }catch(e){}
+  var ov=document.getElementById('teach-ov');
+  if(!ov){ ov=document.createElement('div'); ov.id='teach-ov'; document.body.appendChild(ov); }
+  var h='<div class="teach-card"><div class="teach-head"><b>🗣️ おしえてモード</b><span class="teach-hint">キャラ先生に「せつめい」してあげよう。人に教えられたら ほんとうに わかった証拠！</span><button class="btn-sm" onclick="teachClose()">✖</button></div><div class="teach-subjects">';
+  AREAS.forEach(function(a){ h+='<button class="teach-subj" onclick="teachBegin(\''+a.key+'\')">'+a.icon+'<span>'+escapeHtml(a.name)+'</span></button>'; });
+  h+='</div></div>';
+  ov.innerHTML=h; ov.style.display='flex';
+}
+function teachBegin(area){
+  try{ sfx('click'); }catch(e){}
+  var t=teachPickTopic(area);
+  _teach={ topic:t, phase:1, base:null, followKey:null };
+  var ch=areaCharOf(area);
+  var ov=document.getElementById('teach-ov');
+  ov.innerHTML='<div class="teach-card">'+
+    '<div class="teach-head"><b>'+t.icon+' '+escapeHtml(t.title)+'</b><button class="btn-sm" onclick="teachClose()">✖</button></div>'+
+    '<div class="teach-stage"><div class="teach-chara">'+_charArt(ch)+'</div>'+
+    '<div class="teach-bubble" id="teach-bubble">'+escapeHtml(t.q)+'</div></div>'+
+    '<textarea id="teach-input" class="teach-input" rows="4" placeholder="ここに せつめいを 書いてね'+(_teachMicAvail()?'（🎤マイクでもOK）':'')+'"></textarea>'+
+    '<div class="teach-btns">'+(_teachMicAvail()?'<button class="btn-sm" id="teach-mic" onclick="teachMic()">🎤 声で はなす</button>':'')+
+    '<button class="rpg-btn teach-go" onclick="teachSubmit()">これで せつめい おわり！</button></div></div>';
+  _char3dHydrateSafe(ov);
+  try{ speak(t.q); }catch(e){}
+}
+function teachMic(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return;
+  var btn=document.getElementById('teach-mic');
+  if(_teachRec){ try{ _teachRec.stop(); }catch(e){} return; }
+  try{
+    var rec=new SR(); rec.lang='ja-JP'; rec.interimResults=false; rec.continuous=true;
+    rec.onresult=function(e){ var ta=document.getElementById('teach-input'); if(!ta) return;
+      for(var i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) ta.value+=e.results[i][0].transcript; } };
+    rec.onend=function(){ _teachRec=null; if(btn) btn.textContent='🎤 声で はなす'; };
+    rec.onerror=function(){ _teachRec=null; if(btn) btn.textContent='🎤 声で はなす'; };
+    rec.start(); _teachRec=rec; if(btn) btn.textContent='⏹ ききとり中…（おすと停止）';
+  }catch(e){ _teachRec=null; }
+}
+function teachSubmit(){
+  var t=_teach.topic; if(!t) return;
+  try{ if(_teachRec) _teachRec.stop(); }catch(e){}
+  var ta=document.getElementById('teach-input'); var text=(ta&&ta.value)||'';
+  if(teachNormalize(text).length<5){
+    var b0=document.getElementById('teach-bubble');
+    if(b0) b0.textContent='もう すこし くわしく おしえて！（ヒント：「'+t.keys[0].w+'」について どうかな？）';
+    try{ speak('もうすこし くわしく おしえて！'); }catch(e){}
+    return;
+  }
+  var r=teachScore(text, t);
+  if(_teach.phase===1 && r.missing.length>0 && r.hits.length<t.keys.length){
+    _teach.phase=2; _teach.base=r; _teach.followKey=r.missing[0];   // キャラが1回だけ追い質問（対話）
+    var praise=r.hits.length? 'なるほど！「'+r.hits.join('」「')+'」が言えたのは すごい！ ' : 'うんうん、きいてるよ。';
+    var ask=praise+'じゃあ 先生から質問！ '+_teach.followKey.ask;
+    var b=document.getElementById('teach-bubble'); if(b) b.textContent=ask;
+    if(ta) ta.value='';
+    try{ sfx('click'); speak(ask); }catch(e){}
+    return;
+  }
+  teachFinish(text);
+}
+function teachFinish(text){
+  var t=_teach.topic; if(!t) return;
+  var r=teachScore(text, t);
+  var hitSet={}; r.hits.forEach(function(w){ hitSet[w]=1; });
+  if(_teach.base) _teach.base.hits.forEach(function(w){ hitSet[w]=1; });   // 1回目＋追い質問の答えを合算
+  var hits=Object.keys(hitSet);
+  var lenOk=(teachNormalize(text).length>=15)||!!_teach.base;
+  var score=Math.min(100, Math.round(80*hits.length/t.keys.length)+(lenOk?20:10));
+  var stars=score>=80?'★★★':(score>=50?'★★☆':'★☆☆');
+  var pts=10+hits.length*10;
+  try{ totalPoints+=pts; updateScoreBar(); saveStats(); }catch(e){}
+  var missing=t.keys.filter(function(k){ return !hitSet[k.w]; }).map(function(k){ return k.w; });
+  var msg=score>=80?'かんぺきな説明！先生より じょうずかも！':(score>=50?'いいね！ だいたい 教えられてるよ！':'教えようと がんばったね！「まとめ」も見てみよう');
+  var ov=document.getElementById('teach-ov');
+  ov.innerHTML='<div class="teach-card">'+
+    '<div class="teach-head"><b>'+t.icon+' '+escapeHtml(t.title)+'</b><button class="btn-sm" onclick="teachClose()">✖</button></div>'+
+    '<div class="teach-result"><div class="teach-stars">'+stars+'</div><div class="teach-msg">'+escapeHtml(msg)+'</div>'+
+    '<div class="teach-pts">🌺 +'+pts+'ポイント！</div>'+
+    (hits.length?('<div class="teach-hits">⭕ つかえた ことば：'+hits.map(escapeHtml).join('、')+'</div>'):'')+
+    (missing.length?('<div class="teach-miss">🔺 つぎは これも つかってみよう：'+missing.map(escapeHtml).join('、')+'</div>'):'')+
+    '<div class="teach-model">📖 先生のまとめ：'+escapeHtml(t.model)+'</div>'+
+    '<div class="teach-btns"><button class="btn-sm" onclick="teachBegin(\''+t.area+'\')">🔁 べつのお題</button>'+
+    '<button class="rpg-btn teach-go" onclick="teachClose()">おわる</button></div></div>';
+  if(score>=80){ try{ confetti(); }catch(e){} }
+  try{ sfx(score>=80?'fanfare':'correct'); speak(msg); }catch(e){}
+  _teach={ topic:null, phase:0, base:null, followKey:null };
+}
+function teachClose(){
+  try{ if(_teachRec) _teachRec.stop(); }catch(e){}
+  var ov=document.getElementById('teach-ov'); if(ov) ov.style.display='none';
+  _teach={ topic:null, phase:0, base:null, followKey:null };
+}
+
 // ===== もんだいカバレッジ（A2・管理者向け）＝単元マスター×実コンテンツの照合 =====
 function _covCollectItems(area, nGen){
   var items=[];

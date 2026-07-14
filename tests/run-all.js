@@ -29,6 +29,7 @@ const TESTS = [
   ['tests/unit-miss-types.js'],
   ['tests/unit-coverage.js'],
   ['tests/unit-rating.js'],
+  ['tests/unit-teach.js'],
   ['tests/unit-ranking-logic.js'],
   ['tests/unit-merge-cos.js'],
   ['tests/unit-users.js'],

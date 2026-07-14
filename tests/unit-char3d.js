@@ -21,7 +21,8 @@ c.ok('three.min.js が グローバル THREE を定義する', !!(THREE && THREE
 
 const api = (new Function('THREE', code +
   '\nreturn { CHAR3D_SPECS, char3dSpecOf, char3dTag, char3dBuild, char3dEnabled,' +
-  ' MON3D_SPECS, mon3dSpecOf, mon3dBuild, mon3dTag, C3D_GEAR, _c3dBuildGear, char3dEquip };'))(THREE);
+  ' MON3D_SPECS, mon3dSpecOf, mon3dBuild, mon3dTag, C3D_GEAR, _c3dBuildGear, char3dEquip,' +
+  ' _c3dBuildChest, _c3dChestClip, C3D_CHEST_TIERS };'))(THREE);
 
 // 3) CHARS の全キーに 3D 仕様がある
 const charsCode = fs.readFileSync(path.join(ROOT, 'js', 'chars.js'), 'utf8');
@@ -135,6 +136,25 @@ c.ok('装備アーケタイプ全 ' + archs.length + ' 型が組み立て可能'
   c.ok('ride:🚀 はロケットメッシュ（5個以上）', rocketMeshes >= 5);
 }
 
+// 7d) ガチャの3D宝箱：全ティアで組み立てられ、開封クリップでフタが開いたまま保持される
+{
+  c.ok('宝箱ティアは5段階', api.C3D_CHEST_TIERS.length === 5);
+  [0, 2, 4, 6, 7].forEach((rank) => {
+    const g = api._c3dBuildChest(rank);
+    c.ok('rank' + rank + ' の宝箱にフタと錠がある', !!g.userData.lid && !!g.userData.lock && g.userData.lid.name === 'c3dChestLid');
+  });
+  const g = api._c3dBuildChest(6);
+  const open = api._c3dChestClip({ char: g }, 'open');
+  const mixer = new THREE.AnimationMixer(g);
+  const a = mixer.clipAction(open);
+  a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.play();
+  mixer.update(2.0);
+  c.ok('開封後フタが開いたまま（rotation.x≈-2.1）', Math.abs(g.userData.lid.rotation.x - (-2.1)) < 1e-3);
+  c.ok('開封後は錠が消える（scale.x≈0）', g.userData.lock.scale.x < .01);
+  const rattle = api._c3dChestClip({ char: g }, 'phase3');
+  c.ok('ガタガタクリップが構築できる', rattle && rattle.name === 'c3dChestRattle' && rattle.duration > 0);
+}
+
 // 8) Node（localStorage 無し）でも char3dEnabled が例外を出さず true を返す
 try { c.ok('char3dEnabled は localStorage 無しで true', api.char3dEnabled() === true); }
 catch (e) { c.ok('char3dEnabled が例外: ' + e.message, false); }
@@ -146,4 +166,6 @@ c.ok('index.html は js/char3d.js を読み込む', html.indexOf('<script src="j
 c.ok('three.min.js は char3d.js より先', html.indexOf('js/three.min.js') < html.indexOf('js/char3d.js'));
 c.ok('setCharacter は _charArt を使う', html.indexOf('wrap.innerHTML = _charArt(charKey)') >= 0);
 c.ok('勇者アバターは _heroArt を使う', html.indexOf("+_heroArt()+") >= 0);
+c.ok('ガチャは3D宝箱（gacha3dBoxHtml）を使う', html.indexOf('gacha3dBoxHtml(') >= 0);
+c.ok('ガチャは宝箱フェーズ（_c3dTriggerChest）を呼ぶ', html.indexOf("_c3dTriggerChest(ov,'open')") >= 0 && html.indexOf("_c3dTriggerChest(ov,'charge')") >= 0);
 c.done();

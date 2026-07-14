@@ -1719,6 +1719,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
   .rpg-gacha-box{ font-size:64px; animation:rpgBoxShake .5s ease-in-out infinite; }
+  /* 3D宝箱：揺れはAnimationMixer側（_c3dTriggerChest）が担当＝CSSの揺れは切る */
+  .rpg-gacha-ov .rpg-gacha-box.c3d{ animation:none!important; width:132px; height:122px; margin:0 auto; }
+  .rpg-gacha-box.c3d .c3d-slot{ width:100%; height:100%; display:block; }
+  .rpg-gacha-box.c3d canvas{ width:100%; height:100%; }
   .rpg-gacha-item, .rpg-gacha-rar, .rpg-gacha-name, .rpg-gacha-new, .rpg-gacha-dup, .rpg-gacha-card .rpg-btn{ display:none; }
   .rpg-gacha-ov.open .rpg-gacha-box{ display:none; }
   .rpg-gacha-ov.open .rpg-gacha-item{ display:block; font-size:76px; animation:rpgItemPop .5s cubic-bezier(.2,1.4,.4,1); }
@@ -2319,7 +2323,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/duel.js?v=1"></script>
 <script src="js/ranking.js?v=3"></script>
 <script src="js/three.min.js?v=1"></script>
-<script src="js/char3d.js?v=4"></script>
+<script src="js/char3d.js?v=5"></script>
 <script>
 // =================== CHARACTER SVGs ===================
   // chars.js へ分離
@@ -6313,6 +6317,8 @@ function rpgGachaReveal(pick, dup, refund, opts){
   var it=pick.it, r=it.r||'N', rar=(COS_RARITY[r]||{}), rcls=(rar.cls||''), rank=_cosRank(r);
   var ov=document.getElementById('rpg-gacha-ov');
   if(!ov){ ov=document.createElement('div'); ov.id='rpg-gacha-ov'; document.body.appendChild(ov); }
+  // 3D宝箱（char3d）：使えるときだけ絵文字🎁を置き換える（3D不可/reduced-motion/演出なしは従来のまま）
+  var _ch3=null; try{ if(fxm!=='off' && typeof gacha3dBoxHtml==='function') _ch3=gacha3dBoxHtml(rank); }catch(e){}
   // ===== SR以上（rank>=4）は約10秒のエピック演出（レア度ほど豪華）=====
   if(rank>=4){
     var sp=''; for(var _i=0;_i<16;_i++){ sp+='<span class="rpg-gacha-spark" style="--a:'+(_i*23)+'deg;--d:'+(0.02+(_i%4)*0.05)+'s"></span>'; }
@@ -6324,7 +6330,7 @@ function rpgGachaReveal(pick, dup, refund, opts){
       '<div class="rpg-gacha-rays '+rcls+'"></div>'+
       (rank>=7?'<div class="rpg-epic-legend">LEGEND</div>':'')+
       '<div class="rpg-epic-cutin"><span class="rpg-epic-cutin-tx">✨ 高レア 確定！？ ✨</span></div>'+
-      '<div class="rpg-gacha-box">🎁</div>'+
+      '<div class="rpg-gacha-box'+(_ch3?' c3d':'')+'">'+(_ch3||'🎁')+'</div>'+
       '<div class="rpg-gacha-sparks">'+sp+'</div>'+
       '<div class="rpg-gacha-item">'+it.em+'</div>'+
       '<div class="rpg-gacha-rar '+rcls+'">'+rar.name+'</div>'+
@@ -6354,12 +6360,14 @@ function rpgGachaReveal(pick, dup, refund, opts){
     if(fxm==='off'){ _gEpicSkipFn=null; reveal(); return; }   // 「なし」＝即開封
     try{ sfx('charge'); }catch(e){}
     try{ if(window.gachaFx) gachaFx.charge(rank); }catch(e){}   // B：溜め粒子（青→金→レア色へ昇格）
+    if(_ch3){ try{ char3dHydrate(ov); _c3dTriggerChest(ov,'charge'); }catch(e){} }   // 3D宝箱：ゆっくりガタガタ
     // A：予兆→昇格→ドラムロール。フェーズごとに色と音が育つ（短縮時は尺を圧縮）
     var _T=(fxm==='short')?[700,1400,2100]:[2600,4800,6800];
-    var t1=setTimeout(function(){ if(!done){ ov.classList.add('phase2','hint'); try{ sfx('powerup'); if(window.gachaFx) gachaFx.pulse(rank); }catch(e){} } }, _T[0]);
-    var t2=setTimeout(function(){ if(!done){ ov.classList.add('phase3'); try{ sfx('drumroll'); if(window.gachaFx) gachaFx.pulse(rank); }catch(e){} } }, _T[1]);
+    var t1=setTimeout(function(){ if(!done){ ov.classList.add('phase2','hint'); try{ sfx('powerup'); if(window.gachaFx) gachaFx.pulse(rank); }catch(e){} if(_ch3) try{ _c3dTriggerChest(ov,'phase2'); }catch(e){} } }, _T[0]);
+    var t2=setTimeout(function(){ if(!done){ ov.classList.add('phase3'); try{ sfx('drumroll'); if(window.gachaFx) gachaFx.pulse(rank); }catch(e){} if(_ch3) try{ _c3dTriggerChest(ov,'phase3'); }catch(e){} } }, _T[1]);
+    var t2b=_ch3?setTimeout(function(){ if(!done) try{ _c3dTriggerChest(ov,'open'); }catch(e){} }, Math.max(0,_T[2]-320)):null;   // 開封の直前にフタが開く
     var t3=setTimeout(reveal, _T[2]);
-    _gEpicSkipFn=function(){ clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); reveal(); };
+    _gEpicSkipFn=function(){ clearTimeout(t1); clearTimeout(t2); if(t2b) clearTimeout(t2b); clearTimeout(t3); reveal(); };
     return;
   }
   ov.className='rpg-gacha-ov charging '+rcls;                 // 溜めフェーズから開始
@@ -6367,12 +6375,12 @@ function rpgGachaReveal(pick, dup, refund, opts){
   ov.innerHTML='<div class="rpg-gacha-card '+rcls+'">'+
     '<div class="rpg-gacha-pillar"></div>'+                   // 光の柱（色でレア度を示す）
     '<div class="rpg-gacha-rays '+rcls+'"></div>'+
-    '<div class="rpg-gacha-box">🎁</div>'+
+    '<div class="rpg-gacha-box'+(_ch3?' c3d':'')+'">'+(_ch3||'🎁')+'</div>'+
     '<div class="rpg-gacha-sparks">'+parts+'</div>'+
     '<div class="rpg-gacha-item">'+it.em+'</div>'+
     '<div class="rpg-gacha-rar '+rcls+'">'+rar.name+'</div>'+
     '<div class="rpg-gacha-name">'+it.name+'</div>'+
-    (dup?('<div class="rpg-gacha-dup">ダブり！ 🪙＋'+refund+' コインにかえたよ</div>'):'<div class="rpg-gacha-new">✨ ゲット！ ✨</div>')+
+    (pick.goodie?('<div class="rpg-gacha-new">'+(pick.it.fx||'✨ つかったよ！')+'</div>'):dup?('<div class="rpg-gacha-dup">ダブり！ 🪙＋'+refund+' コインにかえたよ</div>'):'<div class="rpg-gacha-new">✨ ゲット！ ✨</div>')+
     (opts.progress?('<div class="rpg-gacha-prog">'+opts.progress+'</div>'):'')+
     '<button class="rpg-btn" onclick="'+(opts.action||'rpgGachaClose()')+'">'+(opts.label||'つぎへ')+'</button></div>';
   ov.style.display='flex';
@@ -6380,7 +6388,9 @@ function rpgGachaReveal(pick, dup, refund, opts){
   var build=opts.quick?Math.round(_base*0.5):_base;          // 10連の1枚ずつはテンポよく（溜め短め）
   if(fxm==='off') build=0; else if(fxm==='short') build=Math.round(build*0.45);   // 演出量設定
   try{ sfx('charge'); }catch(e){}                            // 溜め音
-  setTimeout(function(){ ov.classList.add('hint'); try{ vibe(rank>=2?[10,30,10,30,10]:8); }catch(e){} }, Math.round(build*0.45));   // 色ヒントで“何が出る？”
+  if(_ch3){ try{ char3dHydrate(ov); _c3dTriggerChest(ov,'charge'); }catch(e){} }   // 3D宝箱：ガタガタ
+  setTimeout(function(){ ov.classList.add('hint'); try{ vibe(rank>=2?[10,30,10,30,10]:8); }catch(e){} if(_ch3) try{ _c3dTriggerChest(ov,'phase3'); }catch(e){} }, Math.round(build*0.45));   // 色ヒントで“何が出る？”
+  if(_ch3 && build>340){ setTimeout(function(){ try{ _c3dTriggerChest(ov,'open'); }catch(e){} }, build-300); }   // 開封直前にフタが開く
   setTimeout(function(){
     ov.classList.remove('charging','hint'); ov.classList.add('open');   // 開封！（rank<4＝N/HN/R/HR）
     try{

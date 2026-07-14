@@ -1104,6 +1104,72 @@ function _c3dTriggerCombat(el, kind){
   } catch(e){ return false; }
 }
 
+// =============== ガチャの3D宝箱（開封演出） ===============
+// レア度で材質が豪華になる：0-1木 / 2-3銀 / 4-5金 / 6虹(UR) / 7レジェンド(LR)
+var C3D_CHEST_TIERS=[
+  { body:'#8b5a2b', trim:'#a16207', lock:'#f2c94c' },
+  { body:'#94a3b8', trim:'#e2e8f0', lock:'#f2c94c' },
+  { body:'#d97706', trim:'#f2c94c', lock:'#fde047' },
+  { body:'#7c3aed', trim:'#f472b6', lock:'#38bdf8' },
+  { body:'#1f2937', trim:'#f2c94c', lock:'#fde047' }
+];
+function _c3dChestTier(rank){ return C3D_CHEST_TIERS[ rank>=7?4 : rank>=6?3 : rank>=4?2 : rank>=2?1 : 0 ]; }
+function _c3dBuildChest(rank){
+  var t=_c3dChestTier(rank||0), g=new THREE.Group(), M=_c3dMat;
+  var base=new THREE.Mesh(new THREE.BoxGeometry(1.0,.55,.7), M(t.body)); base.position.y=.28; g.add(base);
+  [-.3,.3].forEach(function(x){ var b=new THREE.Mesh(new THREE.BoxGeometry(.1,.57,.72), M(t.trim)); b.position.set(x,.28,0); g.add(b); });
+  // フタ：後ろの上辺をピボットにするGroup（開くときは rotation.x をマイナスへ倒す）
+  var lid=new THREE.Group(); lid.position.set(0,.55,-.35); lid.name='c3dChestLid';
+  var lm=new THREE.Mesh(new THREE.BoxGeometry(1.0,.22,.72), M(t.body)); lm.position.set(0,.1,.35); lid.add(lm);
+  [-.3,.3].forEach(function(x){ var b=new THREE.Mesh(new THREE.BoxGeometry(.1,.24,.74), M(t.trim)); b.position.set(x,.1,.35); lid.add(b); });
+  g.add(lid);
+  var lock=new THREE.Mesh(new THREE.SphereGeometry(.12,10,10), M(t.lock)); lock.position.set(0,.5,.37); lock.name='c3dChestLock'; g.add(lock);
+  g.userData.lid=lid; g.userData.lock=lock;
+  return g;
+}
+// ガチャUIが置く宝箱スロット。3D不可・reduced-motion時は null（呼び出し側が🎁にフォールバック）
+function gacha3dBoxHtml(rank){
+  try{ if(_c3dDead || _c3dReduced() || !char3dActive() || !_c3dCoreGet()) return null; }catch(e){ return null; }
+  return '<div class="c3d-slot c3d-chest-slot" data-c3d-chest="'+(parseInt(rank,10)||0)+'"></div>';
+}
+// 宝箱の演出クリップ。phase: charge(ゆっくりガタガタ)|phase2|phase3(はげしく)|open(フタが開いて錠が飛ぶ)
+function _c3dChestClip(v, phase){
+  var lock=v.char.userData.lock, tr;
+  if(phase==='open'){
+    tr=[ _c3dNT('c3dChestLid.rotation[x]', [0,.18,.5], [0, .06, -2.1]),
+         _c3dVT('.scale', [0,.16,.34,.5], [1,1,1, 1.12,1.12,1.12, .98,.98,.98, 1,1,1]) ];
+    if(lock){
+      tr.push(_c3dVT('c3dChestLock.position', [0,.12,.3], [0,.5,.37, 0,.66,.55, 0,1.5,1.2]));
+      tr.push(_c3dNT('c3dChestLock.scale[x]', [0,.26,.3], [1,1,.001]));   // 飛んだ錠は最後に消す
+    }
+    return new THREE.AnimationClip('c3dChestOpen', .5, tr);
+  }
+  var mag = phase==='phase3' ? .12 : phase==='phase2' ? .08 : .045;   // フェーズが進むほど激しく
+  var spd = phase==='phase3' ? .28 : phase==='phase2' ? .4 : .6;
+  tr=[ _c3dNT('.rotation[z]', [0, spd*.25, spd*.5, spd*.75, spd], [0, mag, 0, -mag, 0]),
+       _c3dNT('c3dChestLid.rotation[x]', [0, spd*.5, spd], [0, mag*.6, 0]) ];
+  return new THREE.AnimationClip('c3dChestRattle', spd, tr);
+}
+function _c3dTriggerChest(el, phase){
+  try{
+    if(_c3dDead || !el || _c3dReduced()) return false;
+    var slot=(el.classList&&el.classList.contains('c3d-slot'))?el:(el.querySelector?el.querySelector('.c3d-slot'):null);
+    if(!slot) return false;
+    var v=null; for(var i=0;i<_c3dViews.length;i++){ if(_c3dViews[i].slot===slot){ v=_c3dViews[i]; break; } }
+    if(!v || !v.char.userData.lid) return false;
+    var clip=_c3dChestClip(v, phase); if(!clip) return false;
+    if(v.mixer){ try{ v.mixer.stopAllAction(); }catch(e){} }
+    v.mixer=new THREE.AnimationMixer(v.char);
+    var a=v.mixer.clipAction(clip);
+    // ガタガタは次のフェーズが来るまで無限ループ、openはdefeatと同じ「保持」＝フタは開きっぱなし
+    if(phase==='open'){ a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished=true; v.animState='defeat'; }
+    else { a.setLoop(THREE.LoopRepeat, Infinity); v.animState='attack'; }
+    v.animUntil=Infinity;
+    a.play();
+    return true;
+  }catch(e){ return false; }
+}
+
 // =============== 描画コア（共有レンダラ1個＋転写） ===============
 var C3D_RW = 260, C3D_RH = 325; // 内部レンダリング解像度
 var _c3dCore = null;
@@ -1214,8 +1280,10 @@ function char3dMount(slot){
   if (!char3dActive() || !_c3dCoreGet()){ _c3dSlotFallback(slot); return false; }
   try {
     var monKey = slot.getAttribute('data-c3d-mon');
-    var group, isMon = false;
-    if (monKey){ group = mon3dBuild(mon3dSpecOf(monKey)); isMon = true; }
+    var chestRank = slot.getAttribute('data-c3d-chest');
+    var group, isMon = false, isChest = (chestRank != null);
+    if (isChest){ group = _c3dBuildChest(parseInt(chestRank, 10) || 0); }
+    else if (monKey){ group = mon3dBuild(mon3dSpecOf(monKey)); isMon = true; }
     else {
       var key = slot.getAttribute('data-c3d');
       group = char3dBuild(char3dSpecOf(key));
@@ -1236,7 +1304,7 @@ function char3dMount(slot){
       // 手続きアイドル（揺れ・呼吸・首かしげ）を止めてミキサーに姿勢の所有権を渡す
       animState: 'idle', mixer: null, animUntil: 0,
       monCat: isMon ? (_C3D_MON_CAT[mon3dSpecOf(monKey).plan] || 'limbed') : null,
-      heroKind: isMon ? null : char3dSpecOf(key).kind
+      heroKind: (isMon || isChest) ? null : char3dSpecOf(key).kind
     };
     canvas.addEventListener('pointerdown', function(){
       if (v.spinStart < 0 && v.animState === 'idle'){ v.spinStart = performance.now(); try { if (typeof sfx === 'function') sfx('click'); } catch(e){} }

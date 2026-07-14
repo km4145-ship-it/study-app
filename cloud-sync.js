@@ -128,9 +128,15 @@ window.FIREBASE_CONFIG = {
     var xs=x.stamina||{date:'',used:0}, ys=y.stamina||{date:'',used:0};
     if(xs.date===ys.date) stam={date:xs.date, used:Math.max(xs.used||0, ys.used||0)};
     else stam=(xs.date>ys.date)? xs : ys;   // 新しい日付の消費状況を採用
-    // まず全フィールドを引き継ぐ（cos/dailyBox 等の未知フィールドを捨てない。既定はクラウドy優先）。
+    // まず全フィールドを引き継ぐ（cos 等の未知フィールドを捨てない。既定はクラウドy優先）。
     // 以下でスマートマージすべきフィールドだけを上書きする。
     var o=Object.assign({}, x, y);
+    // デイリー宝箱の開封日は「新しい日付」を採用（y優先のままだと端末Bの古い値で巻き戻り、同じ日に二重受取できてしまう）。
+    // rpgToday()はゼロ埋め無し（例 2026-7-4）なので文字列比較は不可＝数値化して比べる。
+    o.dailyBox=(function(){ var p=function(s){ var m=/^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(s||'')); return m? (+m[1]*10000 + +m[2]*100 + +m[3]) : 0; };
+      var xb=x.dailyBox||'', yb=y.dailyBox||'';
+      return (p(xb)>=p(yb))? xb : yb; })();
+    if(!o.dailyBox) delete o.dailyBox;
     o.v=1;
     o.xp=Math.max(x.xp||0, y.xp||0);
     o.level=Math.max(x.level||1, y.level||1);

@@ -50,4 +50,19 @@ c.ok('装備称号保持', rc.cos.title === 't_wizard');
 
 c.ok('null: mergeRpg(null,x)=x', mergeRpg(null, local) === local);
 c.ok('null: mergeRpg(x,null)=x', mergeRpg(local, null) === local);
+
+// ===== dailyBox（デイリー宝箱の開封日）は「新しい日付」が勝つ（端末間の二重受取防止）=====
+const dbOld = JSON.stringify({ v: 1, dailyBox: '2026-7-9' });
+const dbNew = JSON.stringify({ v: 1, dailyBox: '2026-7-12' });
+c.ok('dailyBox: 新しい方が勝つ(x新)', JSON.parse(mergeRpg(dbNew, dbOld)).dailyBox === '2026-7-12');
+c.ok('dailyBox: 新しい方が勝つ(y新)', JSON.parse(mergeRpg(dbOld, dbNew)).dailyBox === '2026-7-12');
+// ゼロ埋め無し形式の月またぎ（文字列比較だと '2026-9-30' > '2026-10-2' で誤る）
+const dbSep = JSON.stringify({ v: 1, dailyBox: '2026-9-30' });
+const dbOct = JSON.stringify({ v: 1, dailyBox: '2026-10-2' });
+c.ok('dailyBox: 月またぎでも新しい方(x=9月, y=10月)', JSON.parse(mergeRpg(dbSep, dbOct)).dailyBox === '2026-10-2');
+c.ok('dailyBox: 月またぎでも新しい方(x=10月, y=9月)', JSON.parse(mergeRpg(dbOct, dbSep)).dailyBox === '2026-10-2');
+// 片方に無いときはある方を採用・両方無ければフィールド自体を作らない
+c.ok('dailyBox: 片方のみ(y)', JSON.parse(mergeRpg(JSON.stringify({ v: 1 }), dbNew)).dailyBox === '2026-7-12');
+c.ok('dailyBox: 片方のみ(x)', JSON.parse(mergeRpg(dbNew, JSON.stringify({ v: 1 }))).dailyBox === '2026-7-12');
+c.ok('dailyBox: 両方無しなら作らない', !('dailyBox' in JSON.parse(mergeRpg(JSON.stringify({ v: 1 }), JSON.stringify({ v: 1 })))));
 c.done();

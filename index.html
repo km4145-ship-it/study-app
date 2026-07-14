@@ -2087,7 +2087,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   body.story-open .mu-tabbar{ display:none!important; }
   .mu-tab{ flex:1; border:none; background:none; font-family:inherit; cursor:pointer; display:flex;
     flex-direction:column; align-items:center; gap:2px; padding:5px 2px; min-height:54px; color:#5a7883;
-    border-radius:13px; transition:color .15s, background .15s; }
+    border-radius:13px; transition:color .15s, background .15s; position:relative; }
+  /* 🎁 デイリー宝箱バッジ：きょうの無料ガチャが未開封のあいだガチャタブに出す */
+  .mt-badge{ position:absolute; top:1px; left:calc(50% + 7px); min-width:15px; height:15px; padding:0 3px; border-radius:9px;
+    background:#ef4444; color:#fff; font-size:9.5px; font-weight:900; line-height:15px; box-shadow:0 1px 4px rgba(239,68,68,.5); }
   .mu-tab:active{ background:#eef6fa; }
   .mt-i{ font-size:23px; line-height:1; transition:transform .15s; }
   .mt-l{ font-size:10.5px; font-weight:800; }
@@ -3985,8 +3988,22 @@ function setActiveTab(dest){
   var tabs=document.querySelectorAll('.mu-tab');
   for(var i=0;i<tabs.length;i++){ tabs[i].classList.toggle('on', tabs[i].getAttribute('data-tab')===_navTab); }
   try{ updateResBar(); }catch(e){}
+  try{ muGachaBadge(); }catch(e){}
 }
 function hideTabbar(){ var bar=document.getElementById('mu-tabbar'); if(bar) bar.classList.add('mu-hidden'); }
+// 🎁 デイリー宝箱のお知らせ：未開封ならガチャタブに赤ポチ＋（1ブート1回だけ）トーストで誘導（ログイン連動）
+var _dailyBoxHinted=false;
+function muGachaBadge(){
+  var tab=document.querySelector('.mu-tab.mt-gacha'); if(!tab) return;
+  var ready=false; try{ ready=rpgDailyBoxReady(); }catch(e){}
+  var b=tab.querySelector('.mt-badge');
+  if(ready && !b){ b=document.createElement('span'); b.className='mt-badge'; b.textContent='1'; tab.appendChild(b); }
+  else if(!ready && b){ b.parentNode.removeChild(b); }
+  if(ready && !_dailyBoxHinted && _navTab!=='gacha'){
+    _dailyBoxHinted=true;
+    setTimeout(function(){ try{ if(rpgDailyBoxReady() && _navTab!=='gacha') showToast('📦','きょうの 無料ガチャ','「🎁 ガチャ」タブで 1日1回 タダで ひけるよ！'); }catch(e){} }, 1200);
+  }
+}
 // 上部リソースバー（👤 / 🪙⭐🔥 / ⚙️）を最新化
 function updateResBar(){
   var u=(typeof muCurrentUser==='function' && muCurrentUser())||{};
@@ -6134,6 +6151,7 @@ function rpgOpenDailyBox(){
   var out=_gachaDrawInto(cos,1)[0];
   _pendingCollect=rpgCheckCollections(s);
   rpgSave(s);
+  try{ muGachaBadge(); }catch(e){}
   rpgGachaReveal(out.pick, out.dup, out.refund);
 }
 function rpgGachaDraw(){
@@ -7170,7 +7188,7 @@ function initKeyboard(){
 
 init();
 </script>
-<script src="cloud-sync.js?v=1106" defer></script>
+<script src="cloud-sync.js?v=1107" defer></script>
 <script>
 /* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
 (function(){ try{

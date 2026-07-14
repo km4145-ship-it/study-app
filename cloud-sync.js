@@ -25,7 +25,10 @@ window.FIREBASE_CONFIG = {
   function rset(k,v){ try{ _rawSetItem(k,v); }catch(e){} }
   function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
 
-  var SHARED = ['mu_users','mu_deleted','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_api_key','testdate','reward','line_endpoint','extra_questions','tts_voice','tts_rate','tts_pitch','el_voice_owners','sfx_on','vibe_on','rank_family_goal','family_duels'];
+  // el_api_key は同期しない（Phase 2でサーバー側 families/{code}/private/tts へ移動済み。
+  // 生の鍵をクライアント間で同期すると平文露出に逆戻りするため）。el_key_set は
+  // 「設定済みかどうか」の真偽値のみで、秘密情報を含まない。
+  var SHARED = ['mu_users','mu_deleted','mu_admin_pin','theme','fontsize','voice_hana','voice_loco','voice_kai','voice_owl','voice_shiba','voice_cat','voice_rabbit','voice_fox','voice_bear','voice_tiger','voice_panda','voice_dolphin','voice_penguin','el_key_set','testdate','reward','line_endpoint','extra_questions','tts_voice','tts_rate','tts_pitch','el_voice_owners','sfx_on','vibe_on','rank_family_goal','family_duels'];
   function isMemberKey(k){ return !!k && k.indexOf('u:')===0 && !/:q_log$/.test(k); }
   function uidOfKey(k){ var m=/^u:([^:]+):/.exec(k); return m? m[1] : null; }
   function fieldOfKey(k){ var m=/^u:[^:]+:(.+)$/.exec(k); return m? m[1] : null; }
@@ -351,7 +354,10 @@ window.FIREBASE_CONFIG = {
     return legacyRef().collection('members').get().then(function(qs){
       var dels=[]; qs.forEach(function(doc){ dels.push(doc.ref.delete()); });
       return Promise.all(dels);
-    }).then(function(){ return sharedRef().delete(); })
+    // families/{code}/private/tts（Phase 2でCloud Functionsが保存するElevenLabsキー）も削除。
+    // ここを忘れると「完全リセットしたのにサーバー上に鍵が残り続ける」という見落としバグになる。
+    }).then(function(){ return legacyRef().collection('private').doc('tts').delete().catch(function(){}); })
+      .then(function(){ return sharedRef().delete(); })
       .then(function(){ return legacyRef().set({ v2done:true, resetAt: epoch }); })  // merge無し＝旧v1のdataも消える
       .then(function(){ rset('mu_reset_at', String(epoch)); return true; });
   };

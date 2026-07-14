@@ -16,7 +16,7 @@ const THREE = JSON.stringify([
 ]);
 const store = {};
 store['families/0000'] = { v2done: true, data: { mu_users: THREE, 'u:u2:c_points': '400' } }; // v1バックアップ＝3人＋千咲の旧ポイント400
-store['families/0000/shared/settings'] = { data: { mu_users: JSON.stringify([{ id: 'u1', name: 'ユーザー1', char: 'shiba', admin: true, startYear: 2020 }]), el_api_key: 'sk_keep_me' } };
+store['families/0000/shared/settings'] = { data: { mu_users: JSON.stringify([{ id: 'u1', name: 'ユーザー1', char: 'shiba', admin: true, startYear: 2020 }]), custom_setting: 'keep_me' } };
 store['families/0000/members/u1'] = { data: { c_points: '100' } };
 store['families/0000/members/u2'] = { data: { c_points: '25' } };
 store['families/0000/members/u3'] = { data: { c_points: '300', rpg_state: JSON.stringify({ level: 4, cos: { owned: { h_crown: 1 } } }) } };
@@ -35,7 +35,7 @@ h.load(path.join(ROOT, 'cloud-sync.js'));
     c.ok('千咲のポイントがバックアップから回復 max(25,400)=400', g('u:u2:c_points') === '400');
     c.ok('クラウドのu2にも400が書き戻る', store['families/0000/members/u2'].data.c_points === '400');
     c.ok('クラウドshared一覧も3人に自己修復', JSON.parse(store['families/0000/shared/settings'].data.mu_users).length === 3);
-    c.ok('sharedの他キー(el_api_key)温存', store['families/0000/shared/settings'].data.el_api_key === 'sk_keep_me');
+    c.ok('sharedの他キー(custom_setting)温存', store['families/0000/shared/settings'].data.custom_setting === 'keep_me');
   } else if (MODE === 'parentfail') {
     c.ok('親doc読めない→sharedへ書き込みしていない', h.setCalls.indexOf('families/0000/shared/settings') < 0);
   } else { // noread

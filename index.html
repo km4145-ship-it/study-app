@@ -1899,8 +1899,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   /* ---- ずかん ---- */
   .rpg-dex-btn{ width:100%; margin-top:12px; background:var(--card2); color:var(--text); border:2px solid var(--primary-light); border-radius:14px; padding:12px; font-weight:800; cursor:pointer; font-family:inherit; }
   .rpg-dex-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; margin:8px 0; }
-  .rpg-dex-cell{ background:var(--card2); border:2px solid var(--primary-light); border-radius:12px; padding:6px 4px; text-align:center; }
+  .rpg-dex-cell{ background:var(--card2); border:2px solid var(--primary-light); border-radius:12px; padding:6px 4px; text-align:center; position:relative; }
   .rpg-dex-cell.unseen{ opacity:.7; }
+  /* あいぼう連携バッジ：なかまにいる種は 🤝ランク（×かず）を右上に出す。枠色は .rpg-aibou-bd* を流用 */
+  .rpg-dex-mate{ position:absolute; top:3px; right:3px; background:var(--card2); border:1.5px solid #94a3b8; border-radius:9px; font-size:9.5px; font-weight:900; padding:1px 4px; line-height:1.4; }
   .rpg-dex-svg{ width:56px; height:56px; margin:0 auto; display:flex; align-items:center; justify-content:center; } .rpg-dex-svg svg{ width:100%; height:100%; }
   .rpg-dex-cell.unseen .rpg-dex-svg{ background:#e2e8f0; border-radius:50%; } :root[data-theme="dark"] .rpg-dex-cell.unseen .rpg-dex-svg{ background:#334155; }
   .rpg-dex-q{ font-size:1.8rem; color:#94a3b8; font-weight:900; }
@@ -1917,7 +1919,9 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   body.combo-glow #quiz-box{ box-shadow:0 0 0 3px rgba(252,211,77,.5), 0 8px 26px rgba(252,211,77,.35)!important; }
   @media (prefers-reduced-motion:reduce){ .mon-svg,.rpg-enemy svg,.rpg-title-btn,.rpg-crystals svg,.rpg-node.open .rpg-node-face,.rpg-castle.ready,.rpg-title-stars,.rpg-story-next,.rpg-hit,.rpg-attack,.rpg-hurt,.rpg-enemy-attack,.rpg-enemy-attack-big,.rpg-hurt-big,.rpg-shake-big,.rpg-shake,.sparkle,.score-pop{ animation:none!important; }
     /* 撃破は回転・縮小をやめてフェードだけにする（動きなしでも「消えた」は伝える） */
-    .rpg-defeated,.rpg-defeated-3d{ animation:rpgDefeatFade 1s linear forwards!important; } }
+    .rpg-defeated,.rpg-defeated-3d{ animation:rpgDefeatFade 1s linear forwards!important; }
+    /* あいぼうスキル演出は動きが主体なので出さない（初期opacity:0のまま） */
+    .rpg-aibou-shot,.rpg-aibou-shield,.rpg-aibou-heal{ animation:none!important; } }
   @keyframes rpgDefeatFade{ to{opacity:0} }
   </style>
   <div id="rpg-screen" style="display:none">
@@ -2157,6 +2161,15 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-aibou-mini .rpg-aibou-art{ width:30px; height:30px; font-size:24px; }
   .rpg-aibou-cheer .rpg-aibou-mini{ animation:aibouHop .5s ease; }
   @keyframes aibouHop{ 30%{ transform:translateY(-9px) scale(1.15); } }
+  /* あいぼうスキル演出：発動した個体だけ大きく跳ね、種族の弾/たて/回復が飛ぶ（要素は #rpg-fx に一時挿入） */
+  .rpg-aibou-mini.rpg-aibou-act{ animation:aibouAct .55s ease-out; z-index:2; }
+  @keyframes aibouAct{ 0%{ transform:scale(1); } 35%{ transform:translateY(-12px) scale(1.4); } 100%{ transform:scale(1); } }
+  .rpg-aibou-shot{ position:absolute; left:24%; bottom:26%; font-size:23px; opacity:0; filter:drop-shadow(0 0 7px rgba(255,190,80,.9)); animation:aibouShot .5s ease-in forwards; }
+  @keyframes aibouShot{ 0%{ left:24%; bottom:26%; transform:scale(.6) rotate(0); opacity:0; } 18%{ opacity:1; } 100%{ left:66%; bottom:58%; transform:scale(1.35) rotate(220deg); opacity:1; } }
+  .rpg-aibou-shield{ position:absolute; left:14%; bottom:22%; font-size:36px; opacity:0; animation:aibouShield .8s ease-out forwards; }
+  @keyframes aibouShield{ 0%{ transform:scale(.3); opacity:0; } 30%{ transform:scale(1.2); opacity:1; } 70%{ transform:scale(1); opacity:1; } 100%{ transform:scale(1.3); opacity:0; } }
+  .rpg-aibou-heal{ position:absolute; font-size:20px; opacity:0; animation:aibouHeal 1.05s ease-out forwards; }
+  @keyframes aibouHeal{ 0%{ transform:translateY(0); opacity:0; } 25%{ opacity:1; } 100%{ transform:translateY(-72px); opacity:0; } }
   /* 一覧：ステータスチップ＋どの背景でも読めるセクションラベル */
   .rpg-aibou-bar{ display:flex; gap:8px; margin:8px 0; }
   .rpg-aibou-chip{ flex:1; min-width:0; white-space:nowrap; background:rgba(255,255,255,.96); border-radius:12px; padding:9px 6px; font-size:13px; font-weight:800; color:#334155; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 3px 10px rgba(0,0,0,.15); }
@@ -2250,7 +2263,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <!-- kuromoji(漢字読み)は一時無効化：確実な読み込みを最優先 -->
 <script src="js/rpg-assets.js?v=1"></script>
 <script src="js/rpg-world.js?v=1"></script>
-<script src="js/aibou.js?v=1"></script>
+<script src="js/aibou.js?v=2"></script>
 <script src="js/chars.js?v=1"></script>
 <script src="js/areas.js?v=1"></script>
 <script src="js/cos-data.js?v=1"></script>
@@ -5951,13 +5964,17 @@ function rpgShowDex(){
   document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
   document.getElementById('rpg-result-view').style.display='none';
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
-  var s=rpgState(), mons=rpgAllMonsters();
+  var s=rpgState(), mons=rpgAllMonsters(), ai=rpgAibouState(s);
   var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
   h+='<div class="rpg-world-title">📖 モンスターずかん（'+Object.keys(s.dex).length+' / '+mons.length+'）</div>';
   h+='<div class="rpg-dex-grid">';
   mons.forEach(function(m){ var got=!!s.dex[m.mon];
-    h+='<div class="rpg-dex-cell'+(got?'':' unseen')+'"><div class="rpg-dex-svg">'+(got?_monStill(m.mon):'<span class="rpg-dex-q">？</span>')+'</div><span class="rpg-dex-name">'+(got?escapeHtml(m.name):'？？？')+'</span></div>'; });
+    var mate=null; try{ mate=aibouBestOf(ai.roster, m.mon); }catch(e){}   // なかまにいる種はバッジ表示（図鑑れんけい）
+    h+='<div class="rpg-dex-cell'+(got?'':' unseen')+'"><div class="rpg-dex-svg">'+(got?_monStill(m.mon):'<span class="rpg-dex-q">？</span>')+'</div>'
+      +(mate?'<span class="rpg-dex-mate rpg-aibou-bd'+mate.rank+'" title="なかま '+mate.count+'ひき">🤝'+mate.rank+(mate.count>1?'×'+mate.count:'')+'</span>':'')
+      +'<span class="rpg-dex-name">'+(got?escapeHtml(m.name):'？？？')+'</span></div>'; });
   h+='</div>';
+  h+='<div class="rpg-map-hint">🤝は なかまに いるモンスターだよ（ランクと かず）。</div>';
   var sk=Object.keys(s.stickers);
   h+='<div class="rpg-world-title">🎁 ごほうびシール（'+sk.length+' / '+STICKERS.length+'）</div>';
   h+='<div class="rpg-sticker-grid">';
@@ -6513,6 +6530,31 @@ function rpgFloat(text, kind){
   fx.appendChild(el);
   setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 1100);
 }
+// あいぼうのスキル演出：発動した個体だけ跳ねさせ、種族の弾（おうえん）/たて（みがわり）/回復（いやし）を出す
+function rpgAibouSkillFx(kind, afx){
+  var fx=document.getElementById('rpg-fx');
+  var idx=(kind==='support'?afx.supportIdx : kind==='guard'?afx.guardIdx : afx.healIdx);
+  var row=document.getElementById('rpg-aibou-row');
+  if(row){
+    var minis=row.querySelectorAll('.rpg-aibou-mini');
+    var mel=(idx>=0 && minis[idx]) ? minis[idx] : null;
+    if(mel){ mel.classList.remove('rpg-aibou-act'); void mel.offsetWidth; mel.classList.add('rpg-aibou-act'); }
+    else { row.classList.remove('rpg-aibou-cheer'); void row.offsetWidth; row.classList.add('rpg-aibou-cheer'); }
+  }
+  if(!fx) return;
+  if(kind==='support'){
+    var b=document.createElement('div'); b.className='rpg-aibou-shot'; b.textContent=afx.supportEm||'🔥';
+    fx.appendChild(b); setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); }, 700);
+  } else if(kind==='guard'){
+    var g=document.createElement('div'); g.className='rpg-aibou-shield'; g.textContent='🛡️';
+    fx.appendChild(g); setTimeout(function(){ if(g.parentNode) g.parentNode.removeChild(g); }, 950);
+  } else if(kind==='heal'){
+    for(var i=0;i<3;i++){ (function(i){
+      var hl=document.createElement('div'); hl.className='rpg-aibou-heal'; hl.textContent=(i===1?'✨':'🌿');
+      hl.style.left=(15+i*7)+'%'; hl.style.bottom='24%'; hl.style.animationDelay=(i*120)+'ms';
+      fx.appendChild(hl); setTimeout(function(){ if(hl.parentNode) hl.parentNode.removeChild(hl); }, 1400+i*120); })(i); }
+  }
+}
 // 1問こたえるごと（handleAnswer からフック）
 function rpgAfterAnswer(correct){
   if(!rpgBattle) return;
@@ -6540,7 +6582,7 @@ function rpgAfterAnswer(correct){
       rpgBattle.enemyHp=Math.max(0, rpgBattle.enemyHp-afx.support);
       setTimeout(function(){
         if(!rpgBattle) return;
-        var row=document.getElementById('rpg-aibou-row'); if(row){ row.classList.remove('rpg-aibou-cheer'); void row.offsetWidth; row.classList.add('rpg-aibou-cheer'); }
+        try{ rpgAibouSkillFx('support', afx); }catch(e){}
         rpgFloat('🐾おうえん！ -'+afx.support, 'dmg');
         rpgUpdateGauges();
       }, 520);
@@ -6548,7 +6590,7 @@ function rpgAfterAnswer(correct){
     // 自然種族の いやし（3問正解ごと）
     if(afx.healPer3>0 && rpgBattle.correct%3===0 && rpgBattle.heroHp<rpgBattle.heroMax){
       rpgBattle.heroHp=Math.min(rpgBattle.heroMax, rpgBattle.heroHp+afx.healPer3);
-      setTimeout(function(){ if(rpgBattle){ rpgFloat('🌿 +'+afx.healPer3+' かいふく', 'crit'); rpgUpdateGauges(); } }, 760);
+      setTimeout(function(){ if(rpgBattle){ try{ rpgAibouSkillFx('heal', afx); }catch(e){} rpgFloat('🌿 +'+afx.healPer3+' かいふく', 'crit'); rpgUpdateGauges(); } }, 760);
     }
   } else {
     rpgBattle.combo=0;
@@ -6560,7 +6602,7 @@ function rpgAfterAnswer(correct){
       try{ _c3dTriggerCombat(enemy,'monAttack'); }catch(e){}
       sfx('swish'); vibe(30);
       setTimeout(function(){
-        var row=document.getElementById('rpg-aibou-row'); if(row){ row.classList.remove('rpg-aibou-cheer'); void row.offsetWidth; row.classList.add('rpg-aibou-cheer'); }
+        try{ rpgAibouSkillFx('guard', afx); }catch(e){}
         sfx('unlock');
         rpgFloat('🟢 みがわり！ 0 ダメージ', 'crit');
       }, 340);

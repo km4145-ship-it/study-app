@@ -82,20 +82,40 @@ function aibouFeed(a, n){
 }
 
 // ===== パーティ（3匹）の応援効果 =====
+// 種族ごとの「おうえん攻撃」の弾エフェクト（UI側が敵へ飛ばす絵文字）
+var AIBOU_SHOT_EM={ dragon:'🔥', beast:'⚡', slime:'💧', nature:'🍃', maou:'🌑', hero:'⭐' };
 // 返り値: support=正解時の追加ダメージ / critAt=会心に必要なコンボ数 / guard=みがわり回数 /
 //         healPer3=3問正解ごとのHP回復量 / xpMult=バトル後けいけんち倍率
+//         supportIdx/guardIdx/healIdx=発動を演出するパーティ内の個体（-1=いない）/ supportEm=弾の絵文字
 function aibouPartyFx(party){
-  var fx={ support:0, critAt:3, guard:0, healPer3:0, xpMult:1 };
-  (party||[]).forEach(function(a){
+  var fx={ support:0, critAt:3, guard:0, healPer3:0, xpMult:1, supportIdx:-1, supportEm:'🔥', guardIdx:-1, healIdx:-1 };
+  var best=-1;
+  (party||[]).forEach(function(a, i){
     if(!a) return;
     var p=aibouPower(a), sp=a.sp;
-    fx.support += p * (sp==='dragon' ? 1.6 : (sp==='maou' ? 1.8 : 1));
+    var contrib=p * (sp==='dragon' ? 1.6 : (sp==='maou' ? 1.8 : 1));
+    fx.support += contrib;
+    if(contrib>best){ best=contrib; fx.supportIdx=i; fx.supportEm=AIBOU_SHOT_EM[sp]||'🔥'; }   // いちばん強い子が撃つ
     if(sp==='beast') fx.critAt=2;
-    if(sp==='slime'||sp==='maou') fx.guard+=1;
-    if(sp==='nature') fx.healPer3+=3;
+    if(sp==='slime'||sp==='maou'){ fx.guard+=1; if(fx.guardIdx<0) fx.guardIdx=i; }
+    if(sp==='nature'){ fx.healPer3+=3; if(fx.healIdx<0) fx.healIdx=i; }
     if(sp==='hero') fx.xpMult+=0.15;
   });
   fx.support=Math.ceil(fx.support*0.25);
   fx.xpMult=Math.min(Math.round(fx.xpMult*100)/100, 1.45);   // 浮動小数点誤差を丸める（0.15×3=1.4499…対策）
   return fx;
+}
+
+// ===== 図鑑れんけい：そのアートキーのなかまで いちばん強い個体（ランク→Lvの順で比較） =====
+// 返り値: { rank, lv, count } / なかまに いなければ null
+function aibouBestOf(roster, art){
+  var best=null, n=0;
+  Object.keys(roster||{}).forEach(function(id){
+    var a=roster[id]; if(!a || a.art!==art) return;
+    n++;
+    if(!best){ best=a; return; }
+    var ri=AIBOU_RANKS.indexOf(a.rank||'F'), rb=AIBOU_RANKS.indexOf(best.rank||'F');
+    if(ri>rb || (ri===rb && (a.lv||1)>(best.lv||1))) best=a;
+  });
+  return best ? { rank:best.rank||'F', lv:best.lv||1, count:n } : null;
 }

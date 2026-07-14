@@ -13,7 +13,7 @@ const api = (new Function(assetsCode + '\n' + aibouCode + `
 return { RPG_SVG, AIBOU_SPECIES, AIBOU_ART_SPECIES, AIBOU_RANKS, AIBOU_RANK_LVMAX,
   aibouRankWeights, aibouRollRank, aibouJoinChance, aibouRollSpecies,
   aibouXpNeed, aibouPower, aibouLvMax, aibouFeed, aibouPartyFx,
-  aibouNextRank, aibouCanFuse };`))();
+  aibouNextRank, aibouCanFuse, AIBOU_SHOT_EM, aibouBestOf };`))();
 
 // ---- 種族マップが RPG_SVG の全モンスターを網羅（crystal は演出用で除外）----
 Object.keys(api.RPG_SVG).filter((k) => k !== 'crystal').forEach((k) => {
@@ -112,6 +112,47 @@ c.ok('ちからはLvが上がると強くなる', api.aibouPower({ rank: 'S', lv
   c.eq('英雄3匹でも上限1.45倍', h3.xpMult, 1.45);
   const mao = api.aibouPartyFx([{ sp: 'maou', rank: 'SSS', lv: 1 }]);
   c.ok('魔王種はみがわりも持つ', mao.guard === 1 && mao.support > 0);
+}
+
+// ---- スキル演出の発動個体（supportIdx/guardIdx/healIdx）と弾の絵文字（supportEm） ----
+{
+  Object.keys(api.AIBOU_SPECIES).forEach((sp) => {
+    c.ok('種族 ' + sp + ' に弾エフェクトがある', !!api.AIBOU_SHOT_EM[sp]);
+  });
+  const fx = api.aibouPartyFx([
+    { sp: 'slime', rank: 'F', lv: 1 },     // idx0: 弱い・みがわり役
+    { sp: 'dragon', rank: 'S', lv: 10 },   // idx1: いちばん強い＝おうえんの主役
+    { sp: 'nature', rank: 'C', lv: 1 },    // idx2: いやし役
+  ]);
+  c.eq('おうえんの主役はいちばん強い子（idx1）', fx.supportIdx, 1);
+  c.eq('ドラゴンの弾は🔥', fx.supportEm, '🔥');
+  c.eq('みがわり役はidx0', fx.guardIdx, 0);
+  c.eq('いやし役はidx2', fx.healIdx, 2);
+  const none = api.aibouPartyFx([]);
+  c.ok('パーティ0匹はidxすべて-1', none.supportIdx === -1 && none.guardIdx === -1 && none.healIdx === -1);
+  const mao = api.aibouPartyFx([{ sp: 'maou', rank: 'SSS', lv: 1 }, { sp: 'slime', rank: 'F', lv: 1 }]);
+  c.ok('魔王が主役なら弾は🌑・みがわり役は先頭の魔王', mao.supportEm === '🌑' && mao.guardIdx === 0);
+  // null穴あきパーティ（編成解除でnullが混じる）でも落ちず、idxはパーティ配列の位置を指す
+  const holed = api.aibouPartyFx([null, { sp: 'dragon', rank: 'A', lv: 3 }, null]);
+  c.eq('null混じりでもsupportIdxは実位置', holed.supportIdx, 1);
+}
+
+// ---- 図鑑れんけい：aibouBestOf（いちばん強い個体＝ランク→Lvの順） ----
+{
+  c.ok('空のrosterはnull', api.aibouBestOf({}, 'slime') === null);
+  c.ok('いないアートはnull', api.aibouBestOf({ a: { art: 'wolf', rank: 'B', lv: 2 } }, 'slime') === null);
+  const roster = {
+    a1: { art: 'slime', rank: 'B', lv: 9 },
+    a2: { art: 'slime', rank: 'S', lv: 2 },   // ランクが上＝こちらが勝つ（Lvは低くても）
+    a3: { art: 'slime', rank: 'S', lv: 7 },   // 同ランクならLvが上
+    a4: { art: 'wolf', rank: 'SSS', lv: 1 },
+  };
+  const best = api.aibouBestOf(roster, 'slime');
+  c.eq('最強はランクS', best.rank, 'S');
+  c.eq('同ランクはLvで比較（lv7）', best.lv, 7);
+  c.eq('かずは3ひき', best.count, 3);
+  c.eq('wolfはSSS', api.aibouBestOf(roster, 'wolf').rank, 'SSS');
+  c.ok('rank欠損はFあつかいで落ちない', api.aibouBestOf({ x: { art: 'bat' } }, 'bat').rank === 'F');
 }
 
 // ===== cloud-sync.js の mergeAibou / mergeRpg（同期でなかまが消えないこと）=====

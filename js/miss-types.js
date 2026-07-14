@@ -131,8 +131,9 @@ function missBump(t, sub){
     if (typeof todayKey === 'function'){
       var d = todayKey();
       m.days[d] = m.days[d] || {}; m.days[d][t] = (m.days[d][t] || 0) + 1;
-      var ks = Object.keys(m.days);                        // 35日より古い分は捨てる（肥大防止）
-      if (ks.length > 35){ ks.sort(); ks.slice(0, ks.length - 35).forEach(function(k){ delete m.days[k]; }); }
+      // 35日より古い分は捨てる（肥大防止）。日付はゼロ埋めなし形式なので文字列sort不可＝日付値でsort
+      var ks = Object.keys(m.days).sort(function(a, b){ return new Date(a) - new Date(b); });
+      if (ks.length > 35){ ks.slice(0, ks.length - 35).forEach(function(k){ delete m.days[k]; }); }
     }
   } catch(e){}
   if (sub){ var s = m.bySub[sub] = m.bySub[sub] || {}; s[t] = (s[t] || 0) + 1; }

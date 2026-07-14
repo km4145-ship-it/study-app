@@ -624,6 +624,13 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .cov-lv{ flex:0 0 12em; font-size:.7rem; opacity:.75; white-space:nowrap; }
   .cov-unm{ font-size:.74rem; opacity:.7; margin-top:4px; }
   @media (max-width:560px){ .cov-lv{ display:none; } .cov-u{ flex-basis:8em; } }
+  /* ⚡れんしゅう偏差値（実力メーター） */
+  .pr-card { background:linear-gradient(135deg,#eff6ff,#ecfeff); border:1.5px solid #7dd3fc; border-radius:14px; padding:11px 14px; margin:6px 0 10px; font-weight:800; font-size:.95rem; }
+  .pr-card.pr-empty { opacity:.85; font-weight:700; font-size:.86rem; }
+  .pr-big { font-size:1.5rem; margin:0 2px; color:#0369a1; }
+  .pr-subs { margin-top:5px; font-size:.85rem; font-weight:700; opacity:.9; }
+  .pr-note { margin-top:4px; font-size:.72rem; font-weight:600; opacity:.7; }
+  .result-rating { margin:6px auto 2px; font-size:.95rem; font-weight:700; background:#f0f9ff; border-radius:10px; padding:7px 12px; display:inline-block; }
   /* ミスの型分析（自動推定タグ＋コツ） */
   .miss-tag { display:inline-block; margin-top:7px; background:#fef3c7; color:#92400e; border-radius:9px; padding:3px 11px; font-size:.8rem; font-weight:800; }
   .miss-tip { margin-top:7px; background:#ecfeff; color:#155e75; border-radius:10px; padding:9px 12px; font-size:.86rem; font-weight:700; line-height:1.65; text-align:left; }
@@ -2176,6 +2183,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/questions-extra.js?v=1"></script>
 <script src="js/generators.js?v=1"></script>
 <script src="js/generators-hard.js?v=1"></script>
+<script src="js/generators-plus.js?v=1"></script>
 <script src="js/audio.js?v=1"></script>
 <script src="js/gacha-fx.js?v=1"></script>
 <script src="js/furigana.js?v=1"></script>
@@ -2186,6 +2194,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/util.js?v=1"></script>
 <script src="js/miss-types.js?v=1"></script>
 <script src="js/coverage.js?v=1"></script>
+<script src="js/rating.js?v=1"></script>
 <script src="js/ranking.js?v=1"></script>
 <script src="js/three.min.js?v=1"></script>
 <script src="js/char3d.js?v=1"></script>
@@ -2216,7 +2225,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1};
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1};
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -3211,7 +3220,10 @@ function findSimilarQuestion(q, missType){
 }
 
 function showQuestion(skipSpeak) {
-  if (currentIndex === 0) _missSess = {};   // 新しいセッション開始でミス型カウントをリセット
+  if (currentIndex === 0) {
+    _missSess = {};   // 新しいセッション開始でミス型カウントをリセット
+    try{ _ratingStart = (typeof ratingLoad === 'function') ? ratingOverall(ratingLoad()) : null; }catch(e){ _ratingStart = null; }   // 結果画面で「実力メーターの変動」を見せる基準
+  }
   if (currentIndex >= currentQuestions.length) { if (isExam) { finishExam(); } else if (isMistakePractice) { endMistakePractice(); } else { showResult(); } return; }
   const q = currentQuestions[currentIndex];
   try{ hideTabbar(); }catch(e){}   // 問題中は下タブを隠して集中（結果/ホームで再表示）
@@ -3318,6 +3330,7 @@ function checkFreeAnswer() {
 
 var lastChosen=null;      // 直前に選んだ/入力した答え（ミスの型分析用）
 var _missSess={};         // このセッション内のミス型カウント（2回目からコツ表示）
+var _ratingStart=null;    // セッション開始時の実力メーター（結果画面で変動を見せる）
 function handleAnswer(correct, correctAns) {
   onAnswered(currentQuestions[currentIndex], correct);
   const _qsec=(Date.now()-qStartTime)/1000; lastQSec=_qsec; addStudySeconds(_qsec);
@@ -3419,6 +3432,18 @@ function showResult() {
   result.classList.add('active');
   const pct = score / currentQuestions.length;
   document.getElementById('result-score').textContent = `${score} / ${currentQuestions.length}`;
+  // ⚡実力メーターの変動（このセッションで上がった？下がった？）
+  try{
+    var _prEl=document.getElementById('result-rating');
+    if(!_prEl){ _prEl=document.createElement('div'); _prEl.id='result-rating'; _prEl.className='result-rating';
+      var _rs=document.getElementById('result-score'); if(_rs&&_rs.parentNode) _rs.parentNode.insertBefore(_prEl,_rs.nextSibling); }
+    if(typeof _ratingStart==='number' && typeof ratingLoad==='function'){
+      var _nowR=ratingOverall(ratingLoad());
+      var _d=Math.round((_nowR-_ratingStart)*10)/10;
+      _prEl.innerHTML='⚡ 実力メーター '+_ratingStart.toFixed(1)+' → <b>'+_nowR.toFixed(1)+'</b> <span style="color:'+(_d>=0?'#10b981':'#ef4444')+';font-weight:800">('+(_d>=0?'+':'')+_d.toFixed(1)+')</span>';
+      _prEl.style.display='block';
+    } else { _prEl.style.display='none'; }
+  }catch(e){}
   let stars, msg, char;
   if (pct === 1) {
     stars = '★★★'; char = 'dolphin';
@@ -3981,7 +4006,7 @@ function hubPractice(area){
   setActiveTab('home');
   var a=AREAS.find(function(x){return x.key===area;})||{name:'',icon:'✏️'};
   document.getElementById('sp-title').textContent=a.icon+' '+a.name+'｜難易度をえらぼう';
-  var tiers=[['basic','🌱','基礎','かんたん・じっくり'],['std','📗','標準','ふつうのレベル'],['adv','🔥','応用','むずかしい問題'],['hard','👑','難関','入試レベル！'],['all','🎲','おまかせ','いろいろ混ぜて10問']];
+  var tiers=[['basic','🌱','基礎','かんたん・じっくり'],['std','📗','標準','ふつうのレベル'],['adv','🔥','応用','むずかしい問題'],['hard','👑','難関','入試レベル！'],['all','🎲','おまかせ','じぶんの実力に自動で合わせる（おすすめ）']];
   var h='';
   tiers.forEach(function(t){
     h+='<button class="hub-subj hs-diff hs-'+t[0]+'" onclick="startDifficulty(\''+area+'\',\''+t[0]+'\')">'+
@@ -4004,7 +4029,16 @@ function _tierLevels(tier){
 // 選んだ難易度で10問（genQuestion を level で絞る）。教科は正しく記録される。
 function startDifficulty(area, tier){
   var want=_tierLevels(tier);
-  if(!want){ startPractice(area, 'mid8'); return; }   // おまかせは通常練習
+  if(!want){
+    // 🎲おまかせ＝実力メーターに合わせた難易度（±1段のゆらぎ）。データが無ければ従来どおり
+    var _tr=null; try{ if(typeof ratingAreaR==='function' && typeof ratingTier==='function') _tr=ratingTier(ratingAreaR(area)); }catch(e){}
+    if(_tr){
+      var _ord=['basic','std','adv','hard'], _i=Math.max(0,_ord.indexOf(_tr));
+      if(Math.random()<0.3) _i=Math.max(0,Math.min(_ord.length-1,_i+(Math.random()<0.5?-1:1)));   // Math Garden流：適度に上下を混ぜる
+      want=_tierLevels(_ord[_i]);
+    }
+    if(!want){ startPractice(area, 'mid8'); return; }
+  }
   currentArea=area; currentMode='practice'; isExam=false; isGenPractice=true; stopExamTimer();
   currentSubject=area; currentPracticeLevel='mid8';
   var qs=[], seen={}, guard=0;
@@ -4641,6 +4675,8 @@ function onAnswered(q, correct){
   pushRecent(correct);
   bumpDaily();
   logQuestion(area, sub, correct);
+  // ⚡れんしゅう偏差値（実力メーター）：練習・バトルの全問で更新（模試は正式偏差値なので対象外）
+  if(!isExam){ try{ if(typeof ratingRecord==='function') ratingRecord(area, q, correct); }catch(e){} }
   if(correct) srsCorrect(q);
   else addMistake(q, area);
   checkQuests();
@@ -5223,7 +5259,7 @@ function showCoverage(){
   AREAS.forEach(function(a){
     var units=(typeof COV_CURRICULUM!=='undefined' && COV_CURRICULUM[a.key])||[];
     if(!units.length) return;
-    var res=covAnalyze(_covCollectItems(a.key,400), units);
+    var res=covAnalyze(_covCollectItems(a.key,800), units);   // 生成問題が増えたので取りこぼし防止に800回
     var mx=1; res.units.forEach(function(r){ if(r.count>mx) mx=r.count; });
     h+='<div class="cov-sec"><div class="cov-ttl">'+a.icon+' '+escapeHtml(a.name)+
        '<span class="cov-sum">単元 '+res.covered+'/'+res.units.length+' ・ 集計 '+res.total+'件</span></div>';
@@ -6715,11 +6751,27 @@ function renderParent(){
   '</div>';
 }
 // ---- 偏差値65への道（見える化） ----
+// ⚡れんしゅう偏差値カード（実力メーター）。模試の正式偏差値とは別に、練習から毎問更新
+function _practiceRatingHtml(){
+  try{
+    if(typeof ratingLoad!=='function') return '';
+    var st=ratingLoad(), n=0;
+    Object.keys(st.by||{}).forEach(function(k){ n+=(st.by[k].n||0); });
+    if(!n) return '<div class="pr-card pr-empty">⚡ れんしゅう偏差値：問題をとくと ここに「ふだんの実力」が出るよ（毎問うごく実力メーター）</div>';
+    var r=ratingOverall(st);
+    var d7=null; try{ d7=ratingDelta7(st.hist, (typeof todayKey==='function')?todayKey():''); }catch(e){}
+    var arrow = d7==null ? '' : (d7>0.3 ? ' <span style="color:#10b981">↗ +'+d7.toFixed(1)+'（7日）</span>' : (d7<-0.3 ? ' <span style="color:#ef4444">↘ '+d7.toFixed(1)+'（7日）</span>' : ' <span style="opacity:.7">→ よこばい</span>'));
+    var subs=AREAS.map(function(a){ var b=(st.by||{})[a.key]; return (b&&b.n>=5)? (a.icon+' '+b.r.toFixed(1)) : null; }).filter(Boolean).join('　');
+    return '<div class="pr-card">⚡ れんしゅう偏差値 <b class="pr-big">'+r.toFixed(1)+'</b>'+arrow+
+      (subs?('<div class="pr-subs">'+subs+'</div>'):'')+
+      '<div class="pr-note">練習・バトルの1問ごとに変動する実力メーター（'+n+'問ぶん）。正式な偏差値は模試でかくにん！</div></div>';
+  }catch(e){ return ''; }
+}
 function renderHensachiGoal(){
   const el=document.getElementById('rec-hensachi'); if(!el) return;
   const TARGET=65;
   const exams=loadLog().filter(e=>e.mode==='exam'&&typeof e.hensachi==='number');
-  if(exams.length===0){ el.innerHTML='<div class="rec-empty">模擬試験を受けると、偏差値65までの距離がここに出るよ。まずは1教科チャレンジ！</div>'; return; }
+  if(exams.length===0){ el.innerHTML=_practiceRatingHtml()+'<div class="rec-empty">模擬試験を受けると、偏差値65までの距離がここに出るよ。まずは1教科チャレンジ！</div>'; return; }
   function estOf(es){   // 直近3回の模試の移動平均±ばらつき（半範囲）
     const r=es.slice().sort((a,b)=>a.ts-b.ts).slice(-3).map(e=>e.hensachi);
     const avg=r.reduce((s,h)=>s+h,0)/r.length;
@@ -6741,7 +6793,7 @@ function renderHensachiGoal(){
   });
   const oAvg=estN?Math.round(estSum/estN):0, oSpread=estN?Math.max(1,Math.round(estSpread/estN)):3;
   const banner='<div class="hensachi-banner">📊 いまの偏差値の目安：<b>'+oAvg+'（±'+oSpread+'）</b>　🎯 目標65：'+reached+'/'+counted+'教科 到達</div>';
-  el.innerHTML=banner+rows+'<div class="hensachi-note">※「いま」は直近3回の模試の移動平均±ばらつき。テストを受けるほど幅が縮まり精度が上がります。</div>';
+  el.innerHTML=_practiceRatingHtml()+banner+rows+'<div class="hensachi-note">※「いま」は直近3回の模試の移動平均±ばらつき。テストを受けるほど幅が縮まり精度が上がります。</div>';
 }
 
 // ---- 学習記録の追加セクション描画 ----

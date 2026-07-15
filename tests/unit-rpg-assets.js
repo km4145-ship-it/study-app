@@ -18,4 +18,15 @@ c.ok('STICKERS 16種', Array.isArray(api.STICKERS) && api.STICKERS.length === 16
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は RPG_SVG を再定義しない', html.indexOf('var RPG_SVG = {') < 0);
 c.ok('index.html は js/rpg-assets.js を読み込む', html.indexOf('<script src="js/rpg-assets.js') >= 0);
+// ---- 亜種（RPG_VARIANTS）：hue-rotateフィルタ付きSVGとして生成されている ----
+{
+  const api3 = (new Function(code + '\nreturn { RPG_SVG, RPG_VARIANTS };'))();
+  c.ok('RPG_VARIANTSは10種', Object.keys(api3.RPG_VARIANTS).length === 10);
+  Object.keys(api3.RPG_VARIANTS).forEach((k) => {
+    const base = k.replace(/2$/, '');
+    c.ok('亜種 ' + k + ' がhue-rotate付きSVG', typeof api3.RPG_SVG[k] === 'string'
+      && api3.RPG_SVG[k].indexOf('hue-rotate(' + api3.RPG_VARIANTS[k] + 'deg)') >= 0
+      && api3.RPG_SVG[base].indexOf('hue-rotate') < 0);
+  });
+}
 c.done();

@@ -2431,9 +2431,9 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 
 <!-- 日本語形態素解析（漢字→正しい読み）用ライブラリ -->
 <!-- kuromoji(漢字読み)は一時無効化：確実な読み込みを最優先 -->
-<script src="js/rpg-assets.js?v=1"></script>
-<script src="js/rpg-world.js?v=2"></script>
-<script src="js/aibou.js?v=2"></script>
+<script src="js/rpg-assets.js?v=2"></script>
+<script src="js/rpg-world.js?v=3"></script>
+<script src="js/aibou.js?v=3"></script>
 <script src="js/chars.js?v=1"></script>
 <script src="js/areas.js?v=1"></script>
 <script src="js/cos-data.js?v=6"></script>
@@ -2463,7 +2463,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/duel.js?v=1"></script>
 <script src="js/ranking.js?v=3"></script>
 <script src="js/three.min.js?v=1"></script>
-<script src="js/char3d.js?v=7"></script>
+<script src="js/char3d.js?v=8"></script>
 <script>
 // =================== CHARACTER SVGs ===================
   // chars.js へ分離
@@ -5987,7 +5987,7 @@ function rpgBossTaunt(node){
           grammaro:'フフン、English は むずかしいぞ？ Are you ready？',
           voltdrake:'ビリビリ…！ 実験の ちからを あなどるな、勇者よ！',
           tokiou:'時は もどせぬ！ 歴史の おもみを 知るがよい！' };
-  return [{ who:node.name, char:'villain', text:(t[node.mon]||'いくぞ、勇者！') }];
+  return [{ who:node.name, char:'villain', text:(t[node.mon]||t[String(node.mon).replace(/2$/,'')]||'いくぞ、勇者！') }];   // 亜種は基本種の台詞を流用
 }
 
 // ---- 状態（rpg_state：ユーザー別・クラウド同期・完全リセット対応）----

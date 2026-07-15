@@ -93,9 +93,12 @@ var RPG_WORLD = (function(){
       var lv = ch.lv || (ci+1), names = ch.nodes || [], mons = (ch.mons && ch.mons.length) ? ch.mons : ['slime'];
       var nodes = [];
       for (var i=0;i<names.length;i++){
-        nodes.push({ id:'n'+(i+1), type:'zako', name:names[i], mon:mons[i%mons.length], count:4+Math.floor(lv/2), lv:lv, pos:_rpgPos(gi++, total) });
+        // 6章以降は亜種（色ちがい）が出る＝後半の新鮮味と図鑑の広がり（rpg-assets.jsのRPG_VARIANTS）
+        var _vm=function(m){ return (ci>=5 && typeof RPG_SVG!=='undefined' && RPG_SVG[m+'2'])? m+'2' : m; };
+        nodes.push({ id:'n'+(i+1), type:'zako', name:names[i], mon:_vm(mons[i%mons.length]), count:4+Math.floor(lv/2), lv:lv, pos:_rpgPos(gi++, total) });
       }
-      nodes.push({ id:'boss', type:'boss', name:ch.boss||'ボス', mon:ch.bossMon||'dragon', count:6+Math.floor(lv/2), lv:lv, pos:_rpgPos(gi++, total) });
+      var _vmb=function(m){ return (ci>=5 && typeof RPG_SVG!=='undefined' && RPG_SVG[m+'2'])? m+'2' : m; };
+      nodes.push({ id:'boss', type:'boss', name:ch.boss||'ボス', mon:_vmb(ch.bossMon||'dragon'), count:6+Math.floor(lv/2), lv:lv, pos:_rpgPos(gi++, total) });
       return { id:area.charAt(0)+(ci+1), title:ch.title||('第'+(ci+1)+'章'), story:area+'_ch'+(ci+1), lv:lv, topic:ch.topic||'', nodes:nodes };
     });
     world[area] = Object.assign({}, meta, { chapters:chapters });

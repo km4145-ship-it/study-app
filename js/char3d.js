@@ -55,6 +55,22 @@ var MON3D_SPECS = {
   villain:   { plan:'robe',    main:'#3b0764', inner:'#0b0219', trim:'#a78bfa', eye:'#f43f5e', pupil:'#0b0219', horns:'#a78bfa', demon:true },
   crystal:   { plan:'crystal', main:'#38f0e0', hi:'#7cf9ec' }
 };
+// 亜種の3D：基本の体型（plan）を流用して主色だけ変える（rpg-assets.jsのRPG_VARIANTSと対応）
+(function(){
+  var V={
+    slime2:{ main:'#f87171', hi:'#ffd0d0' },
+    goblin2:{ main:'#22c55e', belly:'#bbf7d0' },
+    bat2:{ main:'#f59e0b', hi:'#fde68a' },
+    wolf2:{ main:'#e2e8f0', hi:'#f8fafc' },
+    ghost2:{ main:'#86efac', hi:'#dcfce7' },
+    dragon2:{ main:'#334155', hi:'#f87171' },
+    trent2:{ leaf:'#f59e0b', trunk:'#92400e' },
+    flaskun2:{ main:'#a78bfa', hi:'#ddd6fe' },
+    haniwa2:{ main:'#94a3b8', hi:'#e2e8f0' },
+    voltdrake2:{ main:'#38bdf8', hi:'#bae6fd' }
+  };
+  Object.keys(V).forEach(function(k){ var b=MON3D_SPECS[k.replace(/2$/,'')]; if(b) MON3D_SPECS[k]=Object.assign({}, b, V[k]); });
+})();
 function mon3dSpecOf(key){ return MON3D_SPECS[key] || MON3D_SPECS.slime; }
 
 // =============== 純データ：装備アイテム（絵文字→3Dアーケタイプ）対応表 ===============

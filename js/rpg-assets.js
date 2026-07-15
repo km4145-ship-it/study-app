@@ -36,3 +36,16 @@ var PET_SVG=[
 var PET_STAGE_NAME=['たまご','ベビー','わかもの','せいたい'];
 var PET_WINS_FOR=[0,4,14,34];   // 累計勝利数で進化
 var STICKERS=['🌈','🍭','🎈','🏆','⚡','🌸','🚀','🦄','🍩','💎','🎃','⭐','🍓','🐣','🎵','🔥'];
+
+// ===== 亜種（色ちがいモンスター）：既存SVGにhue-rotateフィルタを重ねるだけで図鑑が広がる =====
+// 冒険の6章以降に出現（rpg-world.jsが割り当て）。3D側の色は char3d.js の同名エントリで指定。
+var RPG_VARIANTS={
+  slime2:140, goblin2:150, bat2:170, wolf2:120, ghost2:100,
+  dragon2:180, trent2:130, flaskun2:200, haniwa2:60, voltdrake2:90
+};
+(function(){
+  Object.keys(RPG_VARIANTS).forEach(function(k){
+    var base=RPG_SVG[k.replace(/2$/,'')]; if(!base) return;
+    RPG_SVG[k]=base.replace('<svg ', '<svg style="filter:hue-rotate('+RPG_VARIANTS[k]+'deg)" ');
+  });
+})();

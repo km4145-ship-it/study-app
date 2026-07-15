@@ -61,4 +61,19 @@ c.ok('index.html は js/rpg-world.js を読み込む', html.indexOf('<script src
     c.ok(area+'_ch2 は自動生成のまま', Array.isArray(auto) && auto.length === 1);
   });
 }
+// ---- 亜種の出現：assets込みで評価すると6章以降のノードに変種（〜2）が混ざる ----
+{
+  const apiV = (new Function(assets + '\n' + code + '\nreturn { RPG_WORLD, RPG_CONTINENTS, RPG_VARIANTS, RPG_SVG };'))();
+  let early2 = 0, late2 = 0;
+  apiV.RPG_CONTINENTS.forEach((a) => apiV.RPG_WORLD[a].chapters.forEach((ch, ci) => ch.nodes.forEach((n) => {
+    if (/2$/.test(n.mon)) { if (ci < 5) early2++; else late2++; }
+    c.ok || null;
+  })));
+  c.ok('1〜5章に亜種は出ない', early2 === 0);
+  c.ok('6章以降に亜種が出る（' + late2 + 'ノード）', late2 > 0);
+  // 亜種込みでも全ノードのmonがRPG_SVGに実在
+  let missing = 0;
+  apiV.RPG_CONTINENTS.forEach((a) => apiV.RPG_WORLD[a].chapters.forEach((ch) => ch.nodes.forEach((n) => { if (!apiV.RPG_SVG[n.mon]) missing++; })));
+  c.ok('亜種込みで全monがRPG_SVGに実在', missing === 0);
+}
 c.done();

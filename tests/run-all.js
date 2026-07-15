@@ -20,6 +20,7 @@ const TESTS = [
   ['tests/unit-generators.js'],
   ['tests/unit-generators-hard.js'],
   ['tests/unit-generators-plus.js'],
+  ['tests/unit-generators-listen.js'],
   ['tests/unit-revenge.js'],
   ['tests/unit-audio.js'],
   ['tests/unit-furigana.js'],

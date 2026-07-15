@@ -514,6 +514,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   /* 読解の本文 */
   .passage-area { background:var(--card2); border:1px solid var(--primary-light); border-radius:10px; padding:12px 14px; margin-bottom:12px; font-size:0.86rem; line-height:1.85; max-height:300px; overflow-y:auto; white-space:pre-wrap; color:var(--text); }
   .passage-label { font-size:0.72rem; font-weight:700; color:var(--primary-light); margin-bottom:6px; }
+  /* 🔊 リスニング問題の再生ボタン */
+  .listen-area{ text-align:center; margin-bottom:12px; }
+  .listen-btn{ font-family:inherit; font-size:1.05rem; font-weight:900; background:linear-gradient(135deg,#38bdf8,#0891b2); color:#fff; border:none; border-radius:14px; padding:12px 26px; cursor:pointer; box-shadow:0 3px 0 #0e7490; }
+  .listen-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #0e7490; }
+  .listen-hint{ display:block; font-size:.72rem; color:#64748b; margin-top:4px; }
   .hensachi-banner { background:linear-gradient(135deg,#0891b2,#ec4899); color:#fff; border-radius:12px; padding:10px 14px; font-weight:700; font-size:0.9rem; text-align:center; margin-bottom:10px; }
   .week-weak { margin-top:8px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:8px 12px; font-size:0.82rem; font-weight:700; color:#9a3412; }
   .hensachi-note { font-size:0.72rem; color:var(--primary-light); margin:4px 2px 0; }
@@ -1335,6 +1340,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
       <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
       <div class="revenge-banner" id="revenge-banner" style="display:none">🔥 リベンジ！ さっきと にた問題だよ。今度は とけるかな？</div>
       <div class="passage-area" id="passage-area" style="display:none"></div>
+      <div class="listen-area" id="listen-area" style="display:none"></div>
       <div class="question-text" id="question-text"></div>
       <div class="question-sub" id="question-sub"></div>
       <div class="figure-area" id="figure-area" style="display:none"></div>
@@ -2433,6 +2439,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/generators.js?v=1"></script>
 <script src="js/generators-hard.js?v=1"></script>
 <script src="js/generators-plus.js?v=1"></script>
+<script src="js/generators-listen.js?v=1"></script>
 <script src="js/audio.js?v=1"></script>
 <script src="js/gacha-fx.js?v=2"></script>
 <script src="js/furigana.js?v=1"></script>
@@ -3216,6 +3223,21 @@ function getCharVoiceId() {
 
 // speak: fire-and-forget
 function speak(text) { lastSpokenText = text; return speakAndWait(text); }
+// 🔊 リスニング用：英語を内蔵音声で読む。speakBuiltinはja-JP固定＋日本語読み変換（forTTS）が
+// かかるため流用せず、英語専用のユタランスを直接つくる（再生はユーザーのタップ起点＝iOS制約もクリア）
+var _listenText='';
+function speakEn(text){
+  try{
+    if(!('speechSynthesis' in window) || !text) return;
+    window.speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang='en-US'; u.rate=0.92;
+    var v=(window.speechSynthesis.getVoices()||[]).find(function(x){ return /^en(-|_|$)/i.test(x.lang); });
+    if(v) u.voice=v;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+function speakListen(){ try{ sfx('click'); }catch(e){} speakEn(_listenText); }
 // イントロ→最初の問題 を順番に読む（声の重なり防止）
 async function introThenQuestion(introText) {
   try { await speak(introText); } catch(e){}
@@ -3564,6 +3586,14 @@ function showQuestion(skipSpeak) {
   const passArea = document.getElementById('passage-area');
   if (q.passage) { passArea.style.display='block'; passArea.innerHTML = '<div class="passage-label">📖 本文</div>' + escapeHtml(q.passage).replace(/\n/g,'<br>'); }
   else { passArea.style.display='none'; passArea.innerHTML=''; }
+
+  // 🔊 リスニング問題：ボタンで英語を再生（自動再生しない＝タップが音声の再生許可にもなる）
+  const listenArea = document.getElementById('listen-area');
+  if (listenArea) {
+    if (q.listen) { _listenText=q.listen; listenArea.style.display='block';
+      listenArea.innerHTML='<button class="listen-btn" onclick="speakListen()">🔊 きく</button><span class="listen-hint">なんども きいて いいよ</span>'; }
+    else { _listenText=''; listenArea.style.display='none'; listenArea.innerHTML=''; }
+  }
 
   const figArea = document.getElementById('figure-area');
   if (q.figure) { figArea.style.display = 'flex'; figArea.innerHTML = q.figure; }
@@ -4581,7 +4611,7 @@ function doPrint(){
     let pool=allStaticQuestions().filter(function(q){ return (area==='all'||q.area===area) && (lvl==='all'||q.level===lvl); });
     const areas=(area==='all')?['math','japanese','english','science','social']:[area];
     let guard=0; const seen={}; pool.forEach(function(q){seen[q.q]=1;});
-    while(pool.length<cnt && guard<600){ guard++; const g=genQuestion(areas[guard%areas.length]); if(g&&g.q&&!seen[g.q]&&(lvl==='all'||g.level===lvl)){ seen[g.q]=1; pool.push(Object.assign({area:areas[guard%areas.length]},g)); } }
+    while(pool.length<cnt && guard<600){ guard++; const g=genQuestion(areas[guard%areas.length]); if(g&&g.q&&!g.listen&&!seen[g.q]&&(lvl==='all'||g.level===lvl)){ seen[g.q]=1; pool.push(Object.assign({area:areas[guard%areas.length]},g)); } }   // リスニングは紙に出さない
     if(!pool.length){ alert('条件に合う問題がありませんでした。'); return; }
     qs=shuffleArr(pool).slice(0,cnt);
   }
@@ -4804,7 +4834,7 @@ function buildExamInner(area){
   const quota=_examQuota(area);   // 実力上位は★★★★枠つきの4段階になる
   const seen={}; const buckets={}; Object.keys(quota).forEach(function(lv){ buckets[lv]=[]; });
   function add(q){
-    if(!q||!q.q||seen[q.q]||!inRange(q)) return false;
+    if(!q||!q.q||seen[q.q]||!inRange(q)||q.listen) return false;   // リスニングは模試に出さない（音が使えない紙印刷も共用）
     const lv=buckets[q.level]? q.level : '★★☆';
     if(buckets[lv].length>=quota[lv]) return false;
     seen[q.q]=1; buckets[lv].push(Object.assign({},q)); return true;

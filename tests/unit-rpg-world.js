@@ -47,4 +47,18 @@ c.ok('最終章はlv10（入試級）', api.RPG_CONTINENTS.every((a) => api.RPG_
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は RPG_WORLD を再定義しない', html.indexOf('var RPG_WORLD = {') < 0 && html.indexOf('var RPG_WORLD={') < 0);
 c.ok('index.html は js/rpg-world.js を読み込む', html.indexOf('<script src="js/rpg-world.js') >= 0);
+
+// ---- 大陸ストーリーアーク（手書き）：各大陸の1・5・10章が物語シーンで上書きされている ----
+{
+  ['math','japanese','english','science','social'].forEach((area) => {
+    [1,5,10].forEach((n) => {
+      const st = api.RPG_STORY[area+'_ch'+n];
+      c.ok(area+'_ch'+n+' が手書きアーク（2行以上・who/char/text）',
+        Array.isArray(st) && st.length >= 2 && st.every((l) => typeof l.text==='string' && l.text.length>0 && 'who' in l && 'char' in l));
+    });
+    // 手書き以外の章は自動生成の1行のまま
+    const auto = api.RPG_STORY[area+'_ch2'];
+    c.ok(area+'_ch2 は自動生成のまま', Array.isArray(auto) && auto.length === 1);
+  });
+}
 c.done();

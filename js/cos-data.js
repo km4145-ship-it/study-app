@@ -189,7 +189,13 @@ var COS_SETS=[
   { id:'set_galaxy', name:'ぎんが',       em:'🌌', items:['a_galaxy','pa_galaxy'],           coin:200, title:'t_galaxy' },
   { id:'set_sky',    name:'おおぞら',     em:'🕊️', items:['bk_angel','rd_cloud'],            coin:120, title:'t_sky' },
   { id:'set_speed',  name:'スピードスター', em:'🚀', items:['rd_skate','rd_rocket','bk_bolt'], coin:120, title:'t_speed' },
-  { id:'set_aibou',  name:'あいぼうコーデ', em:'🐾', items:['ah_ribbon','ah_grad'],            coin:80,  title:'t_aibou' }
+  { id:'set_aibou',  name:'あいぼうコーデ', em:'🐾', items:['ah_ribbon','ah_grad'],            coin:80,  title:'t_aibou' },
+  { id:'set_ninja',  name:'しのび',        em:'🥷', items:['hf_ninja','p_ninja','ah_ninja'],   coin:120, title:'t_ninja' },
+  { id:'set_ocean',  name:'うみ',          em:'🌊', items:['rd_ring','rd_wave','rd_dolphin'],  coin:100, title:'t_ocean' },
+  { id:'set_dragon', name:'りゅう',        em:'🐉', items:['bk_dragon','rd_dragonride','ah_dragon'], coin:250, title:'t_dragon' },
+  { id:'set_sweet',  name:'おかし',        em:'🍭', items:['hd_candy','hd_ice','fr_candy'],    coin:80,  title:'t_sweet' },
+  { id:'set_star',   name:'よぞら',        em:'⭐', items:['d_star','hh_star','hh_moon'],      coin:80,  title:'t_star' },
+  { id:'set_shine',  name:'ピカピカ',      em:'🥇', items:['fr_gold','fr_silver'],             coin:100, title:'t_shine' }
 ];
 var COS_TITLES={
   t_wizard:{ name:'だいまほうつかい', em:'🧙' },
@@ -201,6 +207,12 @@ var COS_TITLES={
   t_sky:{ name:'おおぞらの つばさ', em:'🕊️' },
   t_speed:{ name:'いなずまライダー', em:'🚀' },
   t_aibou:{ name:'あいぼうマイスター', em:'🐾' },
+  t_ninja:{ name:'かげの がくしゃ', em:'🥷' },
+  t_ocean:{ name:'うみの たんけんか', em:'🌊' },
+  t_dragon:{ name:'りゅうつかい', em:'🐉' },
+  t_sweet:{ name:'あまいもの はかせ', em:'🍭' },
+  t_star:{ name:'よぞらの ともだち', em:'⭐' },
+  t_shine:{ name:'ピカピカ コレクター', em:'🥇' },
   t_collector:{ name:'コレクター', em:'📦' },        // 所持アイテムが半分
   t_master:{ name:'きせかえマスター', em:'🌟' },      // 全アイテムコンプ
   t_first_ur:{ name:'にじいろの きせき', em:'✨' }    // URを初ゲット

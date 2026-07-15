@@ -31,7 +31,7 @@ Object.keys(api.COS_DATA).forEach((k) => Object.keys(api.COS_DATA[k]).forEach((s
 c.ok('8レア度すべてに装備がある', ['N', 'HN', 'R', 'HR', 'SR', 'SSR', 'UR', 'LR'].every((t) => tiers[t] > 0));
 c.ok('COS_RARITY に UR', !!api.COS_RARITY.UR);
 c.ok('COS_SLOTS に hero/pet', api.COS_SLOTS.hero && api.COS_SLOTS.pet);
-c.ok('COS_SETS 9セット', Array.isArray(api.COS_SETS) && api.COS_SETS.length === 9);
+c.ok('COS_SETS 15セット', Array.isArray(api.COS_SETS) && api.COS_SETS.length === 15);
 // セットが参照するアイテムidはすべて実在する（タイポでコンプ不能セットができるのを防ぐ）
 {
   const allIds = {};

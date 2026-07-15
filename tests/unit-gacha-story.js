@@ -44,7 +44,7 @@ cos.COS_SETS.forEach((set) => {
   const st = api.gsSetStory(set);
   c.ok('セット' + set.id + 'にストーリー（' + st.length + '行）', Array.isArray(st) && st.length >= 2 && st.every((l) => typeof l.text === 'string' && l.text.length > 0 && 'who' in l && 'char' in l));
 });
-c.ok('専用ストーリーは9セットぶん', Object.keys(api.GS_SET_STORIES).length === 9);
+c.ok('専用ストーリーは15セットぶん', Object.keys(api.GS_SET_STORIES).length === 15);
 c.ok('未知セットは汎用ストーリー', api.gsSetStory({ id: 'set_unknown', name: 'なぞ' }).length === 2);
 
 // ---- lore：参照アイテムidがすべて実在する（タイポで表示されないのを防ぐ）----

@@ -34,6 +34,7 @@ const TESTS = [
   ['tests/unit-rating.js'],
   ['tests/unit-teach.js'],
   ['tests/unit-duel.js'],
+  ['tests/unit-family-daily.js'],
   ['tests/unit-ranking-logic.js'],
   ['tests/unit-merge-cos.js'],
   ['tests/unit-users.js'],

@@ -1749,6 +1749,12 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
   .rpg-gacha-box{ font-size:64px; animation:rpgBoxShake .5s ease-in-out infinite; }
+  /* 📅 きょうの家族もんだい */
+  .fd-card{ background:linear-gradient(135deg,#ecfeff,#f0f9ff); border:2px solid #67e8f9; border-radius:14px; padding:11px 13px; margin-bottom:10px; }
+  :root[data-theme="dark"] .fd-card{ background:linear-gradient(135deg,#083344,#0c4a6e); border-color:#155e75; }
+  .fd-ttl{ font-weight:900; font-size:.92rem; } .fd-ttl small{ font-weight:700; color:#0e7490; font-size:.72rem; }
+  .fd-rows{ display:flex; flex-wrap:wrap; gap:6px 14px; margin:7px 0; font-size:.82rem; }
+  .fd-go{ width:100%; margin-top:2px; }
   /* ⚠️ エラーレポート */
   #err-report-ov{ position:fixed; inset:0; background:rgba(15,23,42,.8); z-index:9998; display:none; align-items:center; justify-content:center; padding:16px; }
   .err-card{ background:var(--card,#fff); border-radius:16px; padding:16px; max-width:440px; width:100%; max-height:80vh; overflow-y:auto; }
@@ -2432,6 +2438,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/areas.js?v=1"></script>
 <script src="js/cos-data.js?v=6"></script>
 <script src="js/gacha-story.js?v=4"></script>
+<script src="js/family-daily.js?v=1"></script>
 <script src="js/subjects.js?v=1"></script>
 <script src="js/questions-bank.js?v=1"></script>
 <script src="js/questions-extra.js?v=1"></script>
@@ -2483,7 +2490,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1};
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1};
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -3726,7 +3733,7 @@ function handleAnswer(correct, correctAns) {
   }
   // まちがい→その場で類題リベンジ（練習のみ。模試/バトル/まちがい直し/対戦中は除外・1問1回・1セッション3回まで）
   // ミスの型が分かっていれば「同じ型をためせる類題」を優先して出す（型別リベンジ）
-  if(!correct && !isExam && !rpgBattle && !isMistakePractice && !_duel
+  if(!correct && !isExam && !rpgBattle && !isMistakePractice && !_duel && !_familyDaily
      && currentQuestions[currentIndex] && !currentQuestions[currentIndex]._revenge && _revengeCount<3){
     var _rq=null; try{ _rq=findSimilarQuestion(currentQuestions[currentIndex], _mtNow); }catch(e){}
     if(_rq){
@@ -3784,6 +3791,7 @@ function showResult() {
   }catch(e){}
   // ⚔️ 対戦（きょうだい対戦）の結果記録と勝敗表示
   try{
+    try{ _familyDailyRecord(); }catch(e){}   // 📅 きょうの家族もんだいの成績を記録（ベスト更新のみ）
     var _dline=(typeof duelRecordResult==='function')?duelRecordResult():'';
     var _dEl=document.getElementById('result-duel');
     if(!_dEl){ _dEl=document.createElement('div'); _dEl.id='result-duel'; _dEl.className='result-rating result-duel';
@@ -5063,7 +5071,7 @@ function onAnswered(q, correct){
   bumpDaily();
   logQuestion(area, sub, correct);
   // ⚡れんしゅう偏差値（実力メーター）：練習・バトルの全問で更新（模試は正式偏差値なので対象外）
-  if(!isExam){ try{ if(typeof ratingRecord==='function') ratingRecord(area, q, correct); }catch(e){} }
+  if(!isExam && !_familyDaily){ try{ if(typeof ratingRecord==='function') ratingRecord(area, q, correct); }catch(e){} }   // 家族もんだいは教科混合＝currentAreaのレートを汚さない
   if(correct) srsCorrect(q);
   else addMistake(q, area);
   checkQuests();
@@ -5655,15 +5663,40 @@ var _duel=null;   // 対戦プレイ中 {id, t0}
 function duelsLoad(){ try{ return JSON.parse(safeLS.getItem('family_duels')||'{}'); }catch(e){ return {}; } }
 function duelsSave(m){ try{ safeLS.setItem('family_duels', JSON.stringify(m)); }catch(e){} }
 // 家族タブ（ランキング画面）にレイドカードと対戦コーナーを差し込む
+// 📅 きょうの家族もんだい：家族全員が同じ5問（日付シードで決定的＝同期不要）
+var _familyDaily=null;
+function startFamilyDaily(){
+  var qs=fdQuestions(todayKey());
+  _familyDaily=todayKey();
+  runQuestionSession(qs, '📅 きょうの家族もんだい', 'きょうの5問！ 家族みんな 同じもんだいだよ。何問できるかな？', 'owl');
+}
+function _familyDailyRecord(){
+  if(!_familyDaily) return;
+  try{
+    var cur=lsGetJSON('daily_family',{})||{};
+    var prev=(cur.date===_familyDaily)?(cur.correct||0):-1;
+    if(score>prev) lsSetJSON('daily_family', { date:_familyDaily, correct:score, total:currentQuestions.length });
+  }catch(e){}
+  _familyDaily=null;
+}
 function _familyExtras(){
   try{
     var body=document.getElementById('ranking-body'); if(!body || !_rankData) return;
     var roster=_rankData.roster||[], all=_rankData.allMembers||{};
+    // --- 📅 きょうの家族もんだい ---
+    var tk=todayKey(), mineFd=fdResultFor(JSON.stringify(lsGetJSON('daily_family',null)), tk);
+    var fdRows=roster.map(function(u){
+      var r=(u.id===muCurrentId()) ? mineFd : fdResultFor((all[u.id]||{}).daily_family, tk);
+      return '<span class="fd-row">'+escapeHtml(u.name)+'：<b>'+(r?(r.correct+' / '+r.total):'まだ')+'</b></span>';
+    }).join('');
+    var h='<div class="fd-card"><div class="fd-ttl">📅 きょうの家族もんだい <small>みんな同じ5問！</small></div>'+
+      '<div class="fd-rows">'+fdRows+'</div>'+
+      '<button class="rpg-btn fd-go" onclick="startFamilyDaily()">'+(mineFd?'🔁 もういちど（ベスト更新をねらう）':'▶ ちょうせんする')+'</button></div>';
     // --- 協力レイド（週間ボス） ---
     var members=roster.map(function(u){ var d=all[u.id]||{}; return { uid:u.id, name:u.name, hist:d.daily_hist }; });
     var raid=raidCompute(members, new Date());
     var claimed=(lsGetJSON('raid_claim',{})||{})[raid.weekId]===1;
-    var h='<div class="raid-card'+(raid.defeated?' beat':'')+'">'+
+    h+='<div class="raid-card'+(raid.defeated?' beat':'')+'">'+
       '<div class="raid-boss">'+_monStill(raid.boss.mon)+'</div>'+
       '<div class="raid-info"><div class="raid-ttl">⚔️ 今週のレイドボス：'+escapeHtml(raid.boss.name)+'</div>'+
       '<div class="raid-bar"><i style="width:'+(100-raid.pct)+'%"></i></div>'+
@@ -7842,7 +7875,7 @@ function initKeyboard(){
 
 init();
 </script>
-<script src="cloud-sync.js?v=1109" defer></script>
+<script src="cloud-sync.js?v=1110" defer></script>
 <script>
 /* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
 (function(){ try{

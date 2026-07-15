@@ -83,7 +83,7 @@ c.eq('ティア：65→難関', api.ratingTier(65), 'hard');
 // ---- index.html 統合 ----
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は js/rating.js を読み込む', html.indexOf('<script src="js/rating.js') >= 0);
-c.ok('onAnswered で更新（模試は除外）', /if\(!isExam\)\{ try\{ if\(typeof ratingRecord/.test(html));
+c.ok('onAnswered で更新（模試・家族もんだいは除外）', /if\(!isExam && !_familyDaily\)\{ try\{ if\(typeof ratingRecord/.test(html));
 c.ok('MU_PER_USER に practice_rating 登録（ユーザー別保存・同期）', html.indexOf('practice_rating:1') >= 0);
 c.ok('結果画面に変動表示', html.indexOf("id='result-rating'") >= 0 || html.indexOf('result-rating') >= 0);
 c.ok('記録画面に実力メーターカード', html.indexOf('_practiceRatingHtml') >= 0);

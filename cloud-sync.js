@@ -182,10 +182,16 @@ window.FIREBASE_CONFIG = {
       return JSON.stringify(out);
     }catch(e){ return b||a; }
   }
+  // きょうの家族もんだい（daily_family）：同じ日はcorrectの高い方（ベスト更新のみ）・別の日は新しい日付
+  function mergeDailyFamily(a,b){ try{ var x=JSON.parse(a||'null'),y=JSON.parse(b||'null');
+    if(!x) return b; if(!y) return a;
+    if(x.date===y.date) return JSON.stringify({ date:x.date, correct:Math.max(x.correct||0,y.correct||0), total:x.total||y.total||5 });
+    return x.date>y.date? a : b; }catch(e){ return b||a; } }
   function mergeKey(k,cur,inc){
     if(k==='mu_users') return mergeUsers(cur,inc);
     if(k==='family_duels') return mergeDuels(cur,inc);
     if(/:err_log$/.test(k)) return mergeErrLog(cur,inc);
+    if(/:daily_family$/.test(k)) return mergeDailyFamily(cur,inc);
     if(/:rpg_state$/.test(k)) return mergeRpg(cur,inc);
     if(isArr(k)) return mergeArr(cur,inc);
     if(isCounter(k)) return String(Math.max(parseInt(cur||'0',10)||0,parseInt(inc||'0',10)||0));

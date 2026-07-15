@@ -10,7 +10,7 @@ const code = fs.readFileSync(path.join(ROOT, 'js', 'content-data.js'), 'utf8');
 const api = (new Function(code + '\nreturn { FLASH_DECKS, STUDY_NOTES, WRITE_PROBLEMS };'))();
 
 // FLASH_DECKS：10デッキ、各デッキは id/name/cards を持つ。カードは [表, 裏] の配列
-c.eq('FLASH_DECKS は10デッキ', api.FLASH_DECKS.length, 10);
+c.eq('FLASH_DECKS は17デッキ', api.FLASH_DECKS.length, 17);
 c.ok('各デッキが id/name/cards を持つ', api.FLASH_DECKS.every((d) =>
   typeof d.id === 'string' && typeof d.name === 'string' && Array.isArray(d.cards)));
 c.ok('全カードが [表, 裏] の2要素配列', api.FLASH_DECKS.every((d) =>

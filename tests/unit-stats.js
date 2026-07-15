@@ -30,6 +30,22 @@ c.ok('装備: HP+4(SRペットオーラ=半分)', eq.hp === 4);
 c.ok('装備: MP+0', eq.mp === 0);
 c.ok('装備なし=全0', JSON.stringify(api.rpgEquipBonus({})) === JSON.stringify({ hp: 0, atk: 0, def: 0, mp: 0 }));
 
+// ---- 模試の出題枠（_examQuota）：実力上位の中学生には★★★★が3問混ざる ----
+{
+  const qa = src.indexOf('const EXAM_QUOTA=');
+  const qb = src.indexOf('function buildExam(');
+  const mk = (band, hensachi, rating) => (new Function('muGradeBand', 'rmHensachi', 'ratingAreaR',
+    src.slice(qa, qb) + '\nreturn _examQuota;'))(() => band, () => hensachi, () => rating)('math');
+  const base = JSON.stringify({ '★☆☆': 5, '★★☆': 12, '★★★': 8 });
+  c.ok('小学生は常に3段階', JSON.stringify(mk('elem', 70, 70)) === base);
+  c.ok('中学生・実力ふつうは3段階', JSON.stringify(mk('jhs', 52, 50)) === base);
+  const hard = mk('jhs', 60, 50);
+  c.ok('中学生・偏差値58+は★★★★3問', hard['★★★★'] === 3 && hard['★☆☆'] === 3);
+  c.ok('合計は25問のまま', Object.values(hard).reduce((s, n) => s + n, 0) === 25);
+  c.ok('練習レート60+でも★★★★', mk('jhs', null, 62)['★★★★'] === 3);
+  c.ok('模試未受験(null)・レート低は3段階', JSON.stringify(mk('jhs', null, 45)) === base);
+}
+
 c.ok('dmgTaken(10,4)=7', api.rpgDmgTaken(10, 4) === 7);
 c.ok('dmgTaken(4,4)=3', api.rpgDmgTaken(4, 4) === 3);
 c.ok('dmgTaken 最低1', api.rpgDmgTaken(1, 99) === 1);

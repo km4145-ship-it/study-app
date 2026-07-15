@@ -4770,6 +4770,17 @@ function examFormNo(area){ return loadLog().filter(function(e){ return e.mode===
 /* withSeed は js/scoring.js へ分離 */
 function examRange(){ return safeLS.getItem('exam_range')||'aug'; }
 const EXAM_QUOTA={ '★☆☆':5, '★★☆':12, '★★★':8 };
+// 実力上位（直近偏差値58以上 or 練習レート60以上）の中学生モードには★★★★難関を3問混ぜる。
+// せっかく全教科に作った★★★★が模試に出ない構成だったのを解消（合計25問は不変・配点は6点）
+function _examQuota(area){
+  try{
+    if(typeof muGradeBand==='function' && muGradeBand()==='elem') return EXAM_QUOTA;
+    var h=(typeof rmHensachi==='function')?rmHensachi(area):null;
+    var r=(typeof ratingAreaR==='function')?ratingAreaR(area):0;
+    if((h!=null && h>=58) || r>=60) return { '★☆☆':3, '★★☆':11, '★★★':8, '★★★★':3 };
+  }catch(e){}
+  return EXAM_QUOTA;
+}
 function buildExam(area, formNo){
   if(formNo==null) formNo=examFormNo(area);
   return withSeed(_seedOf('exam_'+area)+formNo*2654435761, function(){ return buildExamInner(area); });
@@ -4789,11 +4800,12 @@ function buildExamInner(area){
   }
   const useAug = examRange()==='aug';
   const inRange = function(q){ return useAug ? examInAug(area,q) : true; };
-  const seen={}; const buckets={ '★☆☆':[], '★★☆':[], '★★★':[] };
+  const quota=_examQuota(area);   // 実力上位は★★★★枠つきの4段階になる
+  const seen={}; const buckets={}; Object.keys(quota).forEach(function(lv){ buckets[lv]=[]; });
   function add(q){
     if(!q||!q.q||seen[q.q]||!inRange(q)) return false;
     const lv=buckets[q.level]? q.level : '★★☆';
-    if(buckets[lv].length>=EXAM_QUOTA[lv]) return false;
+    if(buckets[lv].length>=quota[lv]) return false;
     seen[q.q]=1; buckets[lv].push(Object.assign({},q)); return true;
   }
   // 模試専用プール（QUESTIONSやBANK.practiceは練習用として分離。覚えによる偏差値の上振れを防ぐ）
@@ -4804,21 +4816,21 @@ function buildExamInner(area){
   // 不足分は自動生成で補充（全範囲モードでは全ジェネレーターを使う）
   const gens = (area==='math') ? null : ((useAug && typeof mid8Gens!=='undefined') ? mid8Gens[area] : null);
   let g=0;
-  function need(){ return ['★☆☆','★★☆','★★★'].some(function(lv){ return buckets[lv].length<EXAM_QUOTA[lv]; }); }
+  function need(){ return Object.keys(quota).some(function(lv){ return buckets[lv].length<quota[lv]; }); }
   while(need() && g<1500){ g++;
     let q; if(area==='math'){ q = Math.random()<0.4 ? genFrom(mathBasicGens) : genQuestion('math'); }
     else { q = gens ? genFrom(gens) : genQuestion(area); }
     add(q);
   }
   // 埋まらない枠は他レベルからスライド（教科によって応用問題が少ないため）
-  let out=[].concat(buckets['★☆☆'],buckets['★★☆'],buckets['★★★']);
+  let out=[]; Object.keys(quota).forEach(function(lv){ out=out.concat(buckets[lv]); });
   g=0;
   while(out.length<25 && g<600){ g++;
     let q; if(area==='math'){ q=genQuestion('math'); } else { q = gens ? genFrom(gens) : genQuestion(area); }
     if(q&&q.q&&!seen[q.q]&&inRange(q)){ seen[q.q]=1; out.push(Object.assign({},q)); }
   }
-  // 配点（応用ほど高い）
-  out.forEach(function(q){ q.pts = q.level==='★★★'?5:(q.level==='★★☆'?3:2); });
+  // 配点（応用ほど高い・★★★★難関は6点）
+  out.forEach(function(q){ q.pts = q.level==='★★★★'?6:(q.level==='★★★'?5:(q.level==='★★☆'?3:2)); });
   return shuffleArr(out).slice(0,25);
 }
 var examFormCurrent=1;

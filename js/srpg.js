@@ -301,6 +301,67 @@ function srpgEnemyPlan(enemy, grid, units){
   return { moveTo:moveTo, targetId: canHit ? target.id : null };
 }
 
+// ===== 賢い敵AI（ボス）：とくぎ／賢い狙い／範囲の中心探索 =====
+// 狙う価値：回復役を最優先、次に瀕死（HP割合が低い）ほど高い
+function srpgTargetBonus(u){
+  if(!u) return -1;
+  return (u.role === 'healer' ? 300 : 0) + Math.round((1 - (u.hp / u.maxHp)) * 200);
+}
+// from(rng内)で狙える味方から、狙う価値→近さ→id で最良を返す
+function srpgEnemyPickTarget(fromX, fromY, rng, units){
+  var cand = (units || []).filter(function(u){ return u && u.side === 'ally' && !u.downed && srpgInRange(fromX, fromY, u.x, u.y, rng); });
+  cand.sort(function(a, b){
+    return (srpgTargetBonus(b) - srpgTargetBonus(a))
+      || (srpgDist(fromX, fromY, a.x, a.y) - srpgDist(fromX, fromY, b.x, b.y))
+      || (a.id < b.id ? -1 : 1);
+  });
+  return cand[0] || null;
+}
+// 敵の行動を決める（決定的）。返り値:
+//   { moveTo:{x,y}, kind:'skill'|'attack'|'none', skillId?, center?{x,y}, aoe?[], targetIds?[], targetId? }
+function srpgEnemyAction(enemy, grid, units){
+  var allies = (units || []).filter(function(u){ return u && u.side === 'ally' && !u.downed; });
+  if(!allies.length) return { moveTo:{ x:enemy.x, y:enemy.y }, kind:'none' };
+  var tiles = srpgMoveTiles(enemy, grid, units); tiles.push({ x:enemy.x, y:enemy.y, d:0 });
+  var skills = (enemy.skills || []).map(function(id){ return srpgSkill(id); })
+    .filter(function(s){ return s && s.kind === 'atk' && (enemy.mp || 0) >= s.mp; });
+  var best = null;
+  function consider(cand){ if(!best || cand.score > best.score) best = cand; }
+  tiles.forEach(function(t){
+    // --- とくぎ：射程内の中心マスで AoE に入る味方が最も多いところ ---
+    skills.forEach(function(sk){
+      var centers = srpgRangeTiles(t.x, t.y, sk.rng, grid); centers.push({ x:t.x, y:t.y });
+      centers.forEach(function(cc){
+        var aoe = srpgAoeTiles(sk.shape, cc.x, cc.y, grid, enemy);
+        var hits = [];
+        aoe.forEach(function(a){ var u = srpgUnitAt(units, a.x, a.y); if(u && u.side === 'ally' && !u.downed) hits.push(u); });
+        if(!hits.length) return;
+        var bonus = hits.reduce(function(s, u){ return s + srpgTargetBonus(u); }, 0);
+        var score = (hits.length >= 2 ? 2000 * hits.length : 650) + bonus - (t.d || 0);
+        consider({ score:score, moveTo:{ x:t.x, y:t.y }, kind:'skill', skillId:sk.id, center:{ x:cc.x, y:cc.y },
+          aoe:aoe, targetIds:hits.map(function(u){ return u.id; }) });
+      });
+    });
+    // --- 通常こうげき：最良ターゲットを狙う ---
+    var tgt = srpgEnemyPickTarget(t.x, t.y, enemy.rng, units);
+    if(tgt) consider({ score:700 + srpgTargetBonus(tgt) - (t.d || 0), moveTo:{ x:t.x, y:t.y }, kind:'attack', targetId:tgt.id });
+  });
+  if(best) return best;
+  // どこからも攻撃できない：最近接へ寄る
+  var plan = srpgEnemyPlan(enemy, grid, units);
+  return { moveTo:plan.moveTo, kind:plan.targetId ? 'attack' : 'none', targetId:plan.targetId };
+}
+
+// ===== 配置フェーズ：味方を置ける自陣ゾーン（下部エリア。敵の初期位置は除く） =====
+function srpgDeployZone(stage){
+  if(stage.deployZone) return stage.deployZone.slice();
+  var g = stage.grid, occ = {};
+  (stage.enemies || []).forEach(function(e){ occ[e.x + ',' + e.y] = 1; });
+  var z = [];
+  for(var y = Math.max(0, g.h - 3); y < g.h; y++) for(var x = 0; x < g.w; x++){ if(!occ[x + ',' + y]) z.push({ x:x, y:y }); }
+  return z;
+}
+
 // ===== ユニット生成 =====
 // spec: { id, side, name, art, role, weak, resist, lvl(1..), rankBase(atk基礎) }
 function srpgMakeUnit(spec){
@@ -318,7 +379,7 @@ function srpgMakeUnit(spec){
     gear: { hp:(b.hp||0), atk:(b.atk||0), def:(b.def||0), spd:(b.spd||0) },
     maxHp: hp, hp: hp, atk: atk, def: def, spd: spd,
     mov: role.mov, rng: role.rng, mp: 0, mpMax: 6,
-    skills: (spec.skills && spec.skills.length ? spec.skills : role.skills.slice(0, srpgSkillCount(lvl))),
+    skills: (spec.skills !== undefined ? spec.skills.slice() : role.skills.slice(0, srpgSkillCount(lvl))),
     lvl: lvl, awaken: srpgSkillCount(lvl),
     weak: spec.weak || null, resist: spec.resist || null, resists: spec.resists || null,
     onhit: spec.onhit || null,
@@ -334,19 +395,19 @@ var SRPG_ENEMY_TEMPLATES = {
   goblin: { art:'goblin',  name:'ゴブリン',   role:'attacker', rankBase:6,  weak:'math',     resist:'social',
     resists:{ math:'weak', social:'half' } },
   bat:    { art:'bat',     name:'いっかくばち',role:'mage',    rankBase:6,  weak:'english',  resist:'japanese',
-    resists:{ english:'weak', japanese:'half' }, onhit:{ kind:'poison', turns:2, chance:0.35 } },
+    resists:{ english:'weak', japanese:'half' }, onhit:{ kind:'poison', turns:2, chance:0.35 }, skills:['poisonbreath'] },
   wolf:   { art:'wolf',    name:'ウルフ',     role:'attacker', rankBase:8,  weak:'social',   resist:'science',
     resists:{ social:'weak', science:'half' }, onhit:{ kind:'paralyze', turns:1, chance:0.25 } },
   ghost:  { art:'ghost',   name:'ゴースト',   role:'mage',     rankBase:8,  weak:'japanese', resist:'english',
-    resists:{ japanese:'weak', english:'null' }, onhit:{ kind:'seal', turns:2, chance:0.3 } },
+    resists:{ japanese:'weak', english:'null' }, onhit:{ kind:'seal', turns:2, chance:0.3 }, skills:['lullaby'] },
   trent:  { art:'trent',   name:'トレント',   role:'tank',     rankBase:9,  weak:'science',  resist:'social',
     resists:{ science:'weak', social:'half', english:'half' } },
   voltdrake:{art:'voltdrake',name:'ボルトドレイク',role:'mage', rankBase:11, weak:'social', resist:'math',
-    resists:{ social:'weak', math:'null' }, onhit:{ kind:'paralyze', turns:1, chance:0.3 } },
+    resists:{ social:'weak', math:'null' }, onhit:{ kind:'paralyze', turns:1, chance:0.3 }, skills:['numbing'] },
   dragon: { art:'dragon',  name:'ドラゴン',   role:'attacker', rankBase:13, weak:'math',     resist:'english',
-    resists:{ math:'weak', english:'half', japanese:'drain' } },
+    resists:{ math:'weak', english:'half', japanese:'drain' }, skills:['line'] },
   villain:{ art:'villain', name:'魔王シグマ', role:'tank',     rankBase:16, weak:'math',     resist:'japanese', boss:true,
-    resists:{ math:'weak', japanese:'half', social:'null', english:'drain' }, onhit:{ kind:'poison', turns:3, chance:0.4 } }
+    resists:{ math:'weak', japanese:'half', social:'null', english:'drain' }, onhit:{ kind:'poison', turns:3, chance:0.4 }, skills:['burstball','poisonbreath'] }
 };
 function srpgEnemyTemplate(key){ return SRPG_ENEMY_TEMPLATES[key] || SRPG_ENEMY_TEMPLATES.slime; }
 
@@ -417,7 +478,7 @@ function srpgBuildUnits(stage, allySpecs){
     units.push(srpgMakeUnit({
       id:'enemy' + i, side:'enemy', name:t.name, art:t.art, role:t.role,
       rankBase:t.rankBase, lvl:e.lvl || 1, weak:t.weak, resist:t.resist,
-      resists:t.resists, onhit:t.onhit, x:e.x, y:e.y
+      resists:t.resists, onhit:t.onhit, skills:(t.skills || []), x:e.x, y:e.y
     }));
   });
   return units;
@@ -439,6 +500,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgMoveTiles: srpgMoveTiles, srpgRangeTiles: srpgRangeTiles, srpgAoeTiles: srpgAoeTiles,
     srpgDamage: srpgDamage, srpgHealAmount: srpgHealAmount, srpgTurnOrder: srpgTurnOrder,
     srpgSideDown: srpgSideDown, srpgOutcome: srpgOutcome, srpgEnemyPlan: srpgEnemyPlan,
+    srpgTargetBonus: srpgTargetBonus, srpgEnemyPickTarget: srpgEnemyPickTarget, srpgEnemyAction: srpgEnemyAction, srpgDeployZone: srpgDeployZone,
     srpgMakeUnit: srpgMakeUnit, srpgEnemyTemplate: srpgEnemyTemplate, srpgStage: srpgStage,
     srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits
   };

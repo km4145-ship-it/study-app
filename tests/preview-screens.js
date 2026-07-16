@@ -43,7 +43,8 @@ const SCREENS = [
   { name: 'g10',     drive: 'rpgGacha10Reveal(_gachaDrawInto(rpgCosState(rpgState()),10,rpgState()))' },  // タップ開封の選択画面
   { name: 'srpgteam',  drive: 'srpgOpen()' },                                                            // 出撃編成（③）
   { name: 'srpgstage', drive: 'srpgOpen(); setTimeout(function(){ srpgStageSelect(); }, 300)', wait: 1600 },  // 大陸クエスト＋訓練場
-  { name: 'srpgbtl',   drive: "srpgOpen(); setTimeout(function(){ srpgStart('q_science'); }, 60); setTimeout(function(){ for(var i=0;i<5;i++) srpgStoryStep(); }, 500)", wait: 2800 },  // 地形（毒沼）つき盤面
+  { name: 'srpgdeploy',drive: "srpgOpen(); setTimeout(function(){ srpgStart('arena1'); }, 60)", wait: 1500 },  // 配置フェーズ（自陣ゾーン）
+  { name: 'srpgbtl',   drive: "srpgOpen(); setTimeout(function(){ srpgStart('q_science'); }, 60); setTimeout(function(){ for(var i=0;i<6;i++) srpgStoryStep(); }, 500); setTimeout(function(){ try{ srpgBattleBegin(); }catch(e){} }, 950)", wait: 2900 },  // 地形（毒沼）つき盤面
 ];
 
 // 見ばえのするテストデータ：コイン・所持品・装備・あいぼう（ぼうし付き）・図鑑

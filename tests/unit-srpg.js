@@ -334,4 +334,71 @@ const grid = { w: 6, h: 7 };
   c.ok('装備＋バフが両方効く', S.srpgEffStat(geared, 'atk') > geared.atk);
 }
 
+// ================= 第5弾：敵ボスAI＋配置フェーズ =================
+const G = { w: 6, h: 7 };
+function mk(spec){ return S.srpgMakeUnit(spec); }
+
+// ---- 賢い標的選択：回復役＞瀕死＞近さ ----
+{
+  const enemy = mk({ id:'e', side:'enemy', name:'e', art:'slime', role:'attacker', rankBase:8, lvl:3, x:2, y:2 });
+  const atk = mk({ id:'atk', side:'ally', name:'a', art:'slime', role:'attacker', rankBase:8, lvl:3, x:2, y:1 });
+  const heal = mk({ id:'heal', side:'ally', name:'h', art:'slime', role:'healer', rankBase:8, lvl:3, x:3, y:2 });
+  c.ok('回復役の方が狙う価値が高い', S.srpgTargetBonus(heal) > S.srpgTargetBonus(atk));
+  const hurt = mk({ id:'hurt', side:'ally', name:'x', art:'slime', role:'attacker', rankBase:8, lvl:3, x:1, y:2 });
+  hurt.hp = Math.round(hurt.maxHp * 0.2);
+  c.ok('瀕死は健康な味方より価値が高い', S.srpgTargetBonus(hurt) > S.srpgTargetBonus(atk));
+  // 射程内に回復役が居れば回復役を狙う
+  const pick = S.srpgEnemyPickTarget(2, 2, 1, [enemy, atk, heal, hurt]);
+  c.ok('射程内の回復役を優先して狙う', pick && pick.id === 'heal');
+}
+
+// ---- ボスAI：AoEとくぎで固まった味方をまとめて狙う ----
+{
+  // villain（burstball 3x3 を持つ・MPを与える）＋固まった味方3体
+  const boss = mk({ id:'b', side:'enemy', name:'魔王', art:'villain', role:'tank', rankBase:16, lvl:8, skills:['burstball'], x:2, y:1 });
+  boss.mp = 6;
+  const a1 = mk({ id:'a1', side:'ally', name:'1', art:'slime', role:'attacker', rankBase:8, lvl:3, x:2, y:3 });
+  const a2 = mk({ id:'a2', side:'ally', name:'2', art:'slime', role:'attacker', rankBase:8, lvl:3, x:3, y:3 });
+  const a3 = mk({ id:'a3', side:'ally', name:'3', art:'slime', role:'attacker', rankBase:8, lvl:3, x:2, y:4 });
+  const act = S.srpgEnemyAction(boss, G, [boss, a1, a2, a3]);
+  c.ok('固まった味方にはとくぎを選ぶ', act.kind === 'skill' && act.skillId === 'burstball');
+  c.ok('とくぎは2体以上を巻き込む', act.targetIds && act.targetIds.length >= 2);
+  c.ok('AoEマスを予告用に返す', Array.isArray(act.aoe) && act.aoe.length > 0);
+  // MPが足りなければ通常攻撃にフォールバック
+  boss.mp = 0;
+  const act2 = S.srpgEnemyAction(boss, G, [boss, a1, a2, a3]);
+  c.ok('MP不足ならとくぎを使わない', act2.kind !== 'skill');
+}
+
+// ---- とくぎ持ちでない敵は通常攻撃のみ（暴発しない） ----
+{
+  const goblin = mk({ id:'g', side:'enemy', name:'g', art:'goblin', role:'attacker', rankBase:6, lvl:2, skills:[], x:2, y:2 });
+  goblin.mp = 6;
+  const ally = mk({ id:'a', side:'ally', name:'a', art:'slime', role:'attacker', rankBase:6, lvl:2, x:2, y:3 });
+  const act = S.srpgEnemyAction(goblin, G, [goblin, ally]);
+  c.ok('とくぎ無し敵はskillを選ばない', act.kind !== 'skill');
+  c.ok('隣接すれば通常攻撃を選ぶ', act.kind === 'attack' && act.targetId === 'a');
+}
+
+// ---- 敵テンプレ：ボス/術者にとくぎ、雑魚には無し ----
+{
+  c.ok('魔王はとくぎを持つ', (S.SRPG_ENEMY_TEMPLATES.villain.skills || []).length >= 1);
+  c.ok('ゴブリンはとくぎ無し', !(S.SRPG_ENEMY_TEMPLATES.goblin.skills && S.SRPG_ENEMY_TEMPLATES.goblin.skills.length));
+  const units = S.srpgBuildUnits(S.SRPG_STAGES.q_maou, [{ id:'h', name:'h', art:'shiba', role:'attacker', lvl:5, rankBase:8 }]);
+  const boss = units.filter((u) => u.art === 'villain')[0];
+  c.ok('組み立てた魔王はskillsを保持', boss && boss.skills.length >= 1);
+  const gob = S.srpgBuildUnits(S.SRPG_STAGES.arena1, [{ id:'h', name:'h', art:'shiba', role:'attacker', lvl:1, rankBase:8 }]).filter((u) => u.art === 'goblin')[0];
+  c.ok('組み立てたゴブリンはskills空', gob && gob.skills.length === 0);
+}
+
+// ---- 配置ゾーン：自陣（下部）・盤内・敵初期位置は除く ----
+{
+  const zone = S.srpgDeployZone(S.SRPG_STAGES.arena1);
+  c.ok('配置ゾーンが存在する', zone.length > 0);
+  c.ok('配置ゾーンは盤内', zone.every((z) => z.x >= 0 && z.x < 6 && z.y >= 0 && z.y < 7));
+  c.ok('配置ゾーンは下部（自陣側）', zone.every((z) => z.y >= 7 - 3));
+  const occ = {}; S.SRPG_STAGES.arena1.enemies.forEach((e) => { occ[e.x + ',' + e.y] = 1; });
+  c.ok('敵の初期位置は配置ゾーンに含まない', zone.every((z) => !occ[z.x + ',' + z.y]));
+}
+
 c.done();

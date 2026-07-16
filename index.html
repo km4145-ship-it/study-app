@@ -740,6 +740,22 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .cov-unm{ font-size:.74rem; opacity:.7; margin-top:4px; }
   @media (max-width:560px){ .cov-lv{ display:none; } .cov-u{ flex-basis:8em; } }
   /* ⚡れんしゅう偏差値（実力メーター） */
+  /* 解いている最中に常時見える偏差値（毎問更新・65へのゲージ・変動フラッシュ） */
+  .quiz-hensachi{ display:none; align-items:center; gap:8px; flex-wrap:wrap; position:relative; margin:8px 0 2px; padding:7px 11px; background:linear-gradient(135deg,#eff6ff,#ecfeff); border:1px solid var(--line); border-radius:var(--r-m); font-size:.78rem; font-weight:800; box-shadow:var(--sh-1); }
+  .qh-l{ color:var(--muted); white-space:nowrap; }
+  .qh-v{ font-size:1.2rem; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.5px; }
+  .qh-bar{ flex:1; min-width:64px; height:8px; background:rgba(10,60,80,.12); border-radius:99px; overflow:hidden; position:relative; }
+  .qh-bar i{ display:block; height:100%; border-radius:99px; transition:width .55s var(--spring); box-shadow:inset 0 1px 0 rgba(255,255,255,.4); }
+  .qh-bar::after{ content:''; position:absolute; left:83.3%; top:-2px; bottom:-2px; width:2px; background:#10b981; }  /* 目標65のゴールライン（偏差値40〜70の範囲で65の位置） */
+  .qh-goal{ font-size:.68rem; color:var(--muted); font-weight:800; white-space:nowrap; }
+  .quiz-hensachi.up .qh-v, .quiz-hensachi.down .qh-v{ animation:qhPop .5s var(--spring); }
+  @keyframes qhPop{ 0%,100%{ transform:scale(1); } 42%{ transform:scale(1.28); } }
+  .qh-delta{ position:absolute; right:10px; top:-6px; font-size:.85rem; font-weight:900; pointer-events:none; animation:qhFloat 1.2s ease-out forwards; }
+  .qh-delta.up{ color:#10b981; } .qh-delta.down{ color:#ef4444; }
+  @keyframes qhFloat{ 0%{ opacity:0; transform:translateY(6px); } 20%{ opacity:1; } 100%{ opacity:0; transform:translateY(-16px); } }
+  body.rpg-battle .quiz-hensachi{ background:rgba(255,255,255,.10); border-color:rgba(252,211,77,.28); }
+  body.rpg-battle .qh-l, body.rpg-battle .qh-goal{ color:#c4b5fd; }
+  body.rpg-battle .qh-bar{ background:rgba(0,0,0,.3); }
   .pr-card { background:linear-gradient(135deg,#eff6ff,#ecfeff); border:1.5px solid #7dd3fc; border-radius:14px; padding:11px 14px; margin:6px 0 10px; font-weight:800; font-size:.95rem; }
   .pr-card.pr-empty { opacity:.85; font-weight:700; font-size:.86rem; }
   .pr-big { font-size:1.5rem; margin:0 2px; color:#0369a1; }
@@ -1381,6 +1397,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
         <div class="quiz-progress" id="quiz-progress">1 / 6</div>
       </div>
       <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="quiz-hensachi" id="quiz-hensachi" style="display:none"></div>
       <div class="revenge-banner" id="revenge-banner" style="display:none">🔥 リベンジ！ さっきと にた問題だよ。今度は とけるかな？</div>
       <div class="passage-area" id="passage-area" style="display:none"></div>
       <div class="listen-area" id="listen-area" style="display:none"></div>
@@ -3765,6 +3782,7 @@ function showQuestion(skipSpeak) {
   try{ hideTabbar(); }catch(e){}   // 問題中は下タブを隠して集中（結果/ホームで再表示）
   answered = false;
   if (currentIndex === 0) _revengeCount = 0;   // セッション開始でリベンジ回数をリセット
+  try{ updateQuizHensachi(false); }catch(e){}   // 解いている最中の偏差値を表示（各問の表示時に反映・フラッシュなし）
   var _rvb=document.getElementById('revenge-banner');
   if(_rvb){
     _rvb.style.display = q._revenge ? 'block' : 'none';
@@ -5283,11 +5301,37 @@ function onAnswered(q, correct){
   logQuestion(area, sub, correct);
   // ⚡れんしゅう偏差値（実力メーター）：練習・バトルの全問で更新（模試は正式偏差値なので対象外）
   if(!isExam && !_familyDaily){ try{ if(typeof ratingRecord==='function') ratingRecord(area, q, correct); }catch(e){} }   // 家族もんだいは教科混合＝currentAreaのレートを汚さない
+  try{ updateQuizHensachi(true); }catch(e){}   // 解いている最中の偏差値を毎問リアルタイム更新（変動フラッシュ付き）
   if(correct) srsCorrect(q);
   else addMistake(q, area);
   checkQuests();
 }
 
+// ⚡ 解いている最中に常時見える「偏差値」（実力メーターを毎問リアルタイム表示）。
+//    模試・家族もんだいは別計算なので非表示。animate=true で変動フラッシュ（＋/−）。
+var _quizHensLast=null;
+function updateQuizHensachi(animate){
+  try{
+    var el=document.getElementById('quiz-hensachi'); if(!el) return;
+    if(isExam || _familyDaily || typeof ratingLoad!=='function' || typeof ratingOverall!=='function'){ el.style.display='none'; _quizHensLast=null; return; }
+    var st=ratingLoad(), n=0; Object.keys(st.by||{}).forEach(function(k){ n+=(st.by[k].n||0); });
+    if(!n){ el.style.display='flex'; el.innerHTML='<span class="qh-l">⚡偏差値</span><span class="qh-goal">問題をとくと 「ふだんの実力」が ここに出るよ</span>'; _quizHensLast=null; return; }
+    var r=ratingOverall(st);
+    var pct=Math.max(2,Math.min(100,Math.round((r-40)/(70-40)*100)));
+    var col = r>=65?'#10b981' : r>=55?'#0891b2' : r>=45?'#f59e0b' : '#ef4444';
+    var goal = r>=65 ? '🎉 目標65 とうたつ！' : ('目標65まで あと '+(65-r).toFixed(1));
+    var delta = (_quizHensLast!=null) ? (r-_quizHensLast) : 0;
+    el.style.display='flex';
+    el.innerHTML='<span class="qh-l">⚡偏差値</span><b class="qh-v" style="color:'+col+'">'+r.toFixed(1)+'</b>'+
+      '<span class="qh-bar"><i style="width:'+pct+'%;background:'+col+'"></i></span>'+
+      '<span class="qh-goal">'+goal+'</span>';
+    if(animate && _quizHensLast!=null && Math.abs(delta)>=0.05){
+      el.classList.remove('up','down'); void el.offsetWidth; el.classList.add(delta>0?'up':'down');
+      try{ var f=document.createElement('span'); f.className='qh-delta '+(delta>0?'up':'down'); f.textContent=(delta>0?'▲+':'▼')+Math.abs(delta).toFixed(1); el.appendChild(f); setTimeout(function(){ try{ el.removeChild(f); }catch(e2){} },1200); }catch(e){}
+    }
+    _quizHensLast=r;
+  }catch(e){}
+}
 // ---- 問題単位のログ（詳細分析用・端末内のみ） ----
 function logQuestion(area, sub, correct){
   try{

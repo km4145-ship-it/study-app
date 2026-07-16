@@ -1534,7 +1534,14 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-cont-bar{ width:100%; height:8px; background:rgba(0,0,0,.35); border-radius:99px; overflow:hidden; }
   .rpg-cont-bar i{ display:block; height:100%; background:linear-gradient(90deg,#fbbf24,#fde68a); border-radius:99px; box-shadow:inset 0 1px 0 rgba(255,255,255,.45); transition:width .5s var(--spring); }
   .rpg-cont-meta{ font-size:.74rem; opacity:.92; }
+  .rpg-cont-teacher{ font-size:.66rem; font-weight:700; color:#fde68a; opacity:.9; margin-top:-2px; }
   .rpg-cont-crystal{ color:#a5f3fc; font-weight:800; }
+  /* 🦉 ミミ学園長のハブ案内（大陸＝先生の国・魔王への道筋を毎回そっと示す） */
+  .rpg-guide{ display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:var(--r-m); padding:10px 12px; margin:12px 0 6px; box-shadow:var(--sh-1); }
+  .rpg-guide-face{ width:44px; height:44px; flex:0 0 auto; }
+  .rpg-guide-face svg{ width:100%; height:100%; }
+  .rpg-guide-tx{ flex:1; min-width:0; font-size:.82rem; font-weight:700; color:var(--text); line-height:1.4; }
+  .rpg-guide-tx b{ color:var(--primary-light); font-size:.74rem; }
   .rpg-cont-crystal svg{ width:14px; height:16px; vertical-align:-3px; }
   .rpg-party{ margin-top:14px; background:var(--card2); border-radius:14px; padding:10px 12px; }
   .rpg-party-ttl{ font-weight:800; font-size:.9rem; color:var(--text); margin-bottom:6px; }
@@ -1654,6 +1661,12 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-res-card.lose{ background:linear-gradient(180deg,#3b4658,#1e293b); color:#fff; border:1px solid rgba(148,163,184,.4); }
   .rpg-res-banner{ font-size:1.6rem; font-weight:900; letter-spacing:.12em; margin:14px 0 4px; background:linear-gradient(180deg,#fef3c7,#fcd34d 60%,#d97706); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 2px 0 #7c2d12); }
   .rpg-res-card.lose .rpg-res-banner{ background:none; -webkit-text-fill-color:#cbd5e1; filter:none; }
+  /* 🐬勝ち＝マリン祝福／🐼負け＝パンダ先生のなぐさめ（支援キャラの配役） */
+  .rpg-res-react{ display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); border-radius:var(--r-m); padding:9px 12px; margin:11px 2px; text-align:left; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+  .rpg-res-react-face{ width:48px; height:48px; flex:0 0 auto; filter:drop-shadow(0 2px 3px rgba(0,0,0,.35)); animation:rpgPop .5s var(--spring); }
+  .rpg-res-react-face svg{ width:100%; height:100%; }
+  .rpg-res-react-bubble{ flex:1; min-width:0; font-size:.84rem; font-weight:700; line-height:1.45; color:#fff; }
+  .rpg-res-react-bubble b{ font-size:.78rem; opacity:.9; }
   .rpg-res-mon{ width:96px; height:96px; margin:4px auto; }
   .rpg-res-mon svg{ width:100%; height:100%; filter:drop-shadow(0 4px 6px rgba(0,0,0,.4)); }
   .rpg-res-mon.beat svg{ filter:grayscale(.8) brightness(.7); opacity:.5; }
@@ -6464,7 +6477,12 @@ function rpgRenderContinents(){
     '<button class="rpg-qtile'+(_rc>0?' hot':'')+'" onclick="rpgStartReview()"><span class="rpg-qt-em">📕</span><span class="rpg-qt-l">ふくしゅう'+(_rc>0?'<span class="rpg-qt-b">'+_rc+'</span>':'')+'</span></button>'+
     '<button class="rpg-qtile" onclick="rpgShowDex()"><span class="rpg-qt-em">📖</span><span class="rpg-qt-l">ずかん</span></button>'+
     '</div>';
-  h+='<div class="rpg-world-title">🗺️ どの大陸に 行く？</div>';
+  // 🦉 ミミ学園長がハブで案内（大陸＝先生たちの国、5つのクリスタル→魔王、という世界観を毎回思い出させる）
+  var _gm = cc>=5 ? '5つの クリスタルが そろった！ いよいよ 魔王城へ…！'
+          : cc>0 ? ('クリスタルは あと '+(5-cc)+'こ。先生たちの 国を クリアして 集めよう！')
+                 : 'ようこそ、勇者！ まずは 先生たちの 国を めぐって、5つの クリスタルを あつめよう。';
+  h+='<div class="rpg-guide"><div class="rpg-guide-face">'+_charSVG('owl')+'</div><div class="rpg-guide-tx"><b>🦉 ミミ学園長</b><br>'+_gm+'</div></div>';
+  h+='<div class="rpg-world-title">🗺️ どの先生の国に 行く？</div>';
   h+='<div class="rpg-continents">';
   RPG_CONTINENTS.forEach(function(area){
     var w=RPG_WORLD[area], tot=rpgAreaTotalNodes(area), cl=rpgAreaClearedNodes(area);
@@ -6472,6 +6490,7 @@ function rpgRenderContinents(){
     h+='<button class="rpg-cont'+(got?' done':'')+'" onclick="rpgOpenMap(\''+area+'\')">'+
        '<span class="rpg-cont-emoji">'+w.emoji+'</span>'+
        '<span class="rpg-cont-name">'+escapeHtml(w.name)+'</span>'+
+       '<span class="rpg-cont-teacher">'+escapeHtml((CHARS[w.teacher]&&CHARS[w.teacher].name)||'')+'の国</span>'+
        '<span class="rpg-cont-bar"><i style="width:'+p+'%"></i></span>'+
        '<span class="rpg-cont-meta">'+(got?('<span class="rpg-cont-crystal">'+RPG_SVG.crystal+' クリア</span>'):(cl+'/'+tot+' マス'))+'</span>'+
        '</button>';
@@ -7577,6 +7596,11 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   L+='<div class="rpg-res-mon '+(victory?'beat':'')+'">'+_monStill(b.node.mon)+'</div>';
   L+='<div class="rpg-res-title">'+escapeHtml(victory?(b.node.name+' を たおした！'):(b.node.name+' に にげられた…'))+'</div>';
   L+='<div class="rpg-res-sub">正かい '+b.correct+' / '+b.total+'（'+acc+'%）</div>';
+  // 🐬勝ち＝マリンが祝福／🐼負け＝パンダ先生がなぐさめ（学習の支援キャラを冒険の節目に配役）
+  var _rk=victory?'dolphin':'panda';
+  var _rmsg=victory ? (acc>=100?'イェーイ！ ぜんもん せいかい！🎉 さいこうに かがやいてたよ！':'イェーイ！ かったね！🎉 その ちょうしで つぎも いこう！')
+                    : 'あせらなくて 大丈夫。まちがえた ところが 明日の のびしろ。すこし 休んで、また いっしょに いこうね。';
+  L+='<div class="rpg-res-react"><div class="rpg-res-react-face">'+_charSVG(_rk)+'</div><div class="rpg-res-react-bubble"><b>'+escapeHtml((CHARS[_rk]&&CHARS[_rk].name)||'')+'</b><br>'+_rmsg+'</div></div>';
   L+='<div class="rpg-res-xp">＋'+xp+' けいけんち'+(pt?('　＋'+pt+'pt🌺'):'')+'</div>';
   if(b.coinGain) L+='<div class="rpg-res-xp">🪙 ＋'+b.coinGain+' コイン（きせかえに使えるよ）</div>';
   if(b.gotTicket) L+='<div class="rpg-res-levelup">🎁 たからばこチケットを 1まい ゲット！</div>';

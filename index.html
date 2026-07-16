@@ -2255,7 +2255,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
     background:#ef4444; color:#fff; font-size:9.5px; font-weight:900; line-height:15px; box-shadow:0 1px 4px rgba(239,68,68,.5); }
   .mu-tab:active{ background:#eef6fa; }
   .mt-i{ font-size:23px; line-height:1; transition:transform .15s; }
-  .mt-l{ font-size:10.5px; font-weight:800; }
+  .mt-l{ font-size:11.5px; font-weight:800; letter-spacing:-.2px; }
   .mu-tab.on{ color:#0e7490; } .mu-tab.on .mt-i{ transform:translateY(-2px) scale(1.06); }
   .mu-tab.mt-adv.on{ color:#7c3aed; } .mu-tab.mt-gacha.on{ color:#db2777; } .mu-tab.mt-dress.on{ color:#f97316; }
   .container{ padding-bottom:80px; }
@@ -7803,9 +7803,13 @@ function renderMastery(){
     const ts=rows.filter(function(r){return r.area===a.key;}); if(!ts.length) return;
     ts.sort(function(x,y){return (x.correct/x.attempts)-(y.correct/y.attempts);});
     html+='<div class="mas-area">'+a.icon+a.name+'</div><div class="mas-grid">'+
-      ts.map(function(t){ const rate=Math.round(t.correct/t.attempts*100); const col=rate>=80?'#137a4f':rate>=60?'#36b37e':rate>=40?'#f59e0b':'#ef4444'; return '<span class="mas-cell" style="background:'+col+'" title="'+escapeHtml(t.sub)+'：'+rate+'%（'+t.correct+'/'+t.attempts+'）">'+escapeHtml(t.sub)+' '+rate+'%</span>'; }).join('')+'</div>';
+      ts.map(function(t){ const rate=Math.round(t.correct/t.attempts*100);
+        // 色だけに頼らないよう、習熟度の記号（◎○△×）も併記（色覚に配慮）
+        const col=rate>=80?'#137a4f':rate>=60?'#36b37e':rate>=40?'#f59e0b':'#ef4444';
+        const mk=rate>=80?'◎':rate>=60?'○':rate>=40?'△':'×';
+        return '<span class="mas-cell" style="background:'+col+'" title="'+escapeHtml(t.sub)+'：'+rate+'%（'+t.correct+'/'+t.attempts+'）">'+mk+' '+escapeHtml(t.sub)+' '+rate+'%</span>'; }).join('')+'</div>';
   });
-  el.innerHTML=html+'<div class="rec-empty" style="padding:4px">緑=得意／黄・赤=苦手。2回以上解いた単元を表示</div>';
+  el.innerHTML=html+'<div class="rec-empty" style="padding:4px">◎得意〜×にがて（緑＝得意／黄・赤＝にがて）。2回以上解いた単元を表示</div>';
 }
 function renderWeek(){
   const el=document.getElementById('rec-week'); if(!el) return;

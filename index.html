@@ -1882,6 +1882,46 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-res-line{ background:rgba(148,163,184,.14); border-radius:10px; padding:8px 10px; font-weight:800; font-size:.86rem; }
   .srpg-res-line.grow{ background:rgba(16,185,129,.18); color:#6ee7b7; }
   .srpg-res-line.scout{ background:rgba(251,191,36,.18); color:#fde047; animation:srpgStoryIn .4s var(--spring); }
+  /* ===== ユニットの生きた動き＝ドラクエタクト風の手応え ===== */
+  /* 足元プレート＆リング（地面の傾いた面に置く＝楕円のリングに見える） */
+  .srpg-foot{ position:absolute; left:50%; top:60%; transform:translate(-50%,-50%); width:40px; height:40px; border-radius:50%; z-index:2; pointer-events:none; background:radial-gradient(ellipse at center, rgba(0,0,0,.32), rgba(0,0,0,0) 68%); box-shadow:inset 0 0 0 2px rgba(56,189,248,.5); }
+  .srpg-foot.enemy{ box-shadow:inset 0 0 0 2px rgba(248,113,113,.55); }
+  .srpg-foot.isactor{ box-shadow:inset 0 0 0 2px #fde047, 0 0 12px rgba(253,224,71,.55); animation:srpgRing 1.1s ease-in-out infinite; }
+  .srpg-foot.done{ box-shadow:inset 0 0 0 2px rgba(148,163,184,.35); }
+  @keyframes srpgRing{ 0%,100%{ opacity:.65; } 50%{ opacity:1; } }
+  /* 行動済みはグレーアウト（タクトの手番管理表現） */
+  .srpg-unit.done{ filter:grayscale(.7) brightness(.66); }
+  .srpg-unit.done .srpg-sprite{ animation:none; }
+  /* 待機のぷるぷる（敵はscaleX(-1)を保つ別キーフレーム） */
+  .srpg-sprite{ animation:srpgBob 2.6s ease-in-out infinite; will-change:transform; }
+  @keyframes srpgBob{ 0%,100%{ transform:translateY(0) rotate(0deg); } 50%{ transform:translateY(-3px) rotate(-1.6deg); } }
+  .srpg-unit.enemy .srpg-sprite{ animation-name:srpgBobE; }
+  @keyframes srpgBobE{ 0%,100%{ transform:scaleX(-1) translateY(0); } 50%{ transform:scaleX(-1) translateY(-3px); } }
+  /* 登場フェード（戦闘開始の1回だけ） */
+  .srpg-field.entering .srpg-unit{ animation:srpgFadeUnit .5s var(--spring) backwards; }
+  @keyframes srpgFadeUnit{ from{ opacity:0; } to{ opacity:1; } }
+  /* 被弾・攻撃・回復のスプライトフラッシュ（filterのみ＝bob/scaleXと衝突しない） */
+  .srpg-sprite.fx-hit{ animation:srpgHitF .44s ease; }
+  @keyframes srpgHitF{ 0%{ filter:brightness(2.4) grayscale(1) sepia(1) hue-rotate(-35deg) saturate(6) drop-shadow(0 0 7px #f87171); } 100%{ filter:none; } }
+  .srpg-sprite.fx-heal{ animation:srpgHealF .55s ease; }
+  @keyframes srpgHealF{ 0%{ filter:brightness(1.6) drop-shadow(0 0 9px #6ee7b7); } 100%{ filter:none; } }
+  .srpg-sprite.fx-atk{ animation:srpgAtkF .32s ease; }
+  @keyframes srpgAtkF{ 0%,100%{ filter:none; } 50%{ filter:brightness(1.5) drop-shadow(0 0 7px #fde047); } }
+  /* タイルの揺れ（被弾） */
+  .srpg-tile.shake{ animation:srpgTileShake .32s ease; }
+  @keyframes srpgTileShake{ 0%,100%{ transform:none; } 20%{ transform:translateX(-3px); } 60%{ transform:translateX(3px); } }
+  /* オーバーレイ演出（斬撃・爆発・きらめき・矢印） */
+  .srpg-ov{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:16; font-size:22px; }
+  .fx-slash-l{ position:absolute; top:50%; left:50%; width:54px; height:6px; border-radius:6px; background:linear-gradient(90deg, transparent, var(--c), #fff, var(--c), transparent); box-shadow:0 0 12px var(--c); transform:translate(-50%,-50%) rotate(-32deg) scaleX(0); animation:srpgSlash .36s ease-out forwards; }
+  .srpg-ov.fx-slash.big .fx-slash-l{ height:9px; width:66px; }
+  @keyframes srpgSlash{ 0%{ transform:translate(-50%,-50%) rotate(-32deg) scaleX(0); opacity:0; } 30%{ opacity:1; } 65%{ transform:translate(-50%,-50%) rotate(-32deg) scaleX(1.1); opacity:1; } 100%{ transform:translate(-50%,-50%) rotate(-32deg) scaleX(1.1); opacity:0; } }
+  .srpg-ov.fx-poof{ animation:srpgPoofA .72s ease-out forwards; }
+  @keyframes srpgPoofA{ 0%{ transform:scale(.3); opacity:0; } 25%{ transform:scale(1.35); opacity:1; } 100%{ transform:scale(1.8); opacity:0; } }
+  .srpg-ov.fx-heal{ color:#6ee7b7; animation:srpgOvRise .72s ease-out forwards; }
+  .srpg-ov.fx-buff{ color:#fde047; font-weight:900; animation:srpgOvRise .72s ease-out forwards; }
+  .srpg-ov.fx-debuff{ color:#93c5fd; font-weight:900; animation:srpgOvRise .72s ease-out forwards; }
+  @keyframes srpgOvRise{ 0%{ transform:translateY(6px) scale(.6); opacity:0; } 30%{ opacity:1; } 100%{ transform:translateY(-12px) scale(1.2); opacity:0; } }
+  @media (prefers-reduced-motion: reduce){ .srpg-sprite{ animation:none!important; } .srpg-foot.isactor{ animation:none; } }
   /* ストーリー導入カード */
   .srpg-story-card{ width:100%; max-width:440px; background:linear-gradient(180deg,#0f1a2e,#1a1035); border:2px solid rgba(167,139,250,.5); border-radius:18px; padding:24px 20px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.6); cursor:pointer; animation:srpgStoryIn .3s var(--spring); }
   @keyframes srpgStoryIn{ from{ opacity:0; transform:scale(.9);} to{ opacity:1; transform:scale(1);} }

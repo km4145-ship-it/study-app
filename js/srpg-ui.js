@@ -233,7 +233,11 @@ function srpgRender(){
     if(terr) cls += ' terr-' + SRPG_TERRAIN_META[terr].cls;
     var inner = terr ? ('<span class="srpg-terr">'+SRPG_TERRAIN_META[terr].em+'</span>') : '';
     var u = byPos[key];
-    if(u) inner += srpgUnitPlate(u);
+    if(u){
+      var uAct = actor && actor.id===u.id;
+      var uDone = srpgB.acted && srpgB.acted[u.id] && !uAct;
+      inner += '<div class="srpg-foot '+u.side+(uAct?' isactor':'')+(uDone?' done':'')+'"></div>' + srpgUnitPlate(u);
+    }
     html += '<div class="'+cls+'" id="st-'+x+'-'+y+'" onclick="srpgTileTap('+x+','+y+')">'+inner+'</div>';
   }
   html += '</div></div>';
@@ -242,6 +246,10 @@ function srpgRender(){
   html += '<div class="srpg-cmd" id="srpg-cmd">'+srpgCmdHtml()+'</div>';
   document.getElementById('srpg-body').innerHTML = html;
   try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+  if(!srpgB._rendered){   // 戦闘開始の登場フェード（1回だけ）
+    srpgB._rendered = true;
+    try{ var f = document.querySelector('#srpg-body .srpg-field'); if(f){ f.classList.add('entering'); setTimeout(function(){ try{ f.classList.remove('entering'); }catch(e){} }, 900); } }catch(e){}
+  }
 }
 function srpgUnitPlate(u){
   var art = (u.side==='enemy') ? _monStill(u.art) : _charStill(u.art);
@@ -255,12 +263,17 @@ function srpgUnitPlate(u){
   ['poison','paralyze','sleep','seal'].forEach(function(k){ if(stt[k]>0) sIcons+=SRPG_STATUS_META[k].em; });
   var md=u.mods||{}, mUp=(md.atk>0||md.def>0||md.spd>0), mDn=(md.atk<0||md.def<0||md.spd<0);
   var stBar=(sIcons||mUp||mDn) ? ('<div class="srpg-stbar">'+sIcons+(mUp?'<span class="srpg-buf up">⬆</span>':'')+(mDn?'<span class="srpg-buf dn">⬇</span>':'')+'</div>') : '';
-  return '<div class="srpg-unit '+u.side+(u.side==='enemy'&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)]&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)].boss?' boss':'')+'" id="su-'+u.id+'">'
+  var isBoss = u.side==='enemy'&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)]&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)].boss;
+  var act = srpgActor();
+  var isActor = act && act.id===u.id;
+  var done = srpgB.acted && srpgB.acted[u.id] && !isActor;   // このラウンドで手番を終えた＝グレーアウト
+  var dly = (function(s){ var n=0, i; for(i=0;i<(s||'').length;i++) n+=s.charCodeAt(i); return (n%20)/10; })(u.id);   // 待機ゆれを個体ごとにずらす
+  return '<div class="srpg-unit '+u.side+(isBoss?' boss':'')+(done?' done':'')+(isActor?' isactor':'')+(u.isLeader?' leader':'')+'" id="su-'+u.id+'">'
     + (u.isLeader ? '<span class="srpg-crown">👑</span>' : '')
     + '<div class="srpg-hpbar"><i style="width:'+hpPct+'%"></i></div>'
     + (u.side==='ally' && u.mpMax ? '<div class="srpg-mpbar"><i style="width:'+mpPct+'%"></i></div>' : '')
     + stBar
-    + '<div class="srpg-sprite">'+art+'</div>'
+    + '<div class="srpg-sprite" style="animation-delay:-'+dly+'s">'+art+'</div>'
     + badge
     + '<div class="srpg-uname">'+escapeHtml(u.name)+'</div>'
     + '</div>';
@@ -333,8 +346,8 @@ function srpgNextTurn(){
   if(oc){ srpgEnd(oc); return; }
   srpgB.turnPtr++;
   if(srpgB.turnPtr >= srpgB.order.length){
-    // 次のラウンドへ：順番を組み直す
-    srpgB.round++; srpgB.order = srpgTurnOrder(srpgB.units); srpgB.turnPtr = 0;
+    // 次のラウンドへ：順番を組み直す＋行動済み（グレーアウト）をリセット
+    srpgB.round++; srpgB.order = srpgTurnOrder(srpgB.units); srpgB.turnPtr = 0; srpgB.acted = {};
   }
   var actor = srpgB.order[srpgB.turnPtr];
   if(!actor || actor.downed){ return srpgNextTurn(); }   // 死者は飛ばす
@@ -350,8 +363,8 @@ function srpgTurnStart(actor){
   var proceed = function(){
     if(actor.downed){ srpgRender(); setTimeout(srpgNextTurn, 480); return; }
     if(t.skip){
-      srpgPopupAt(actor.x, actor.y, wasSleep ? '💤 ねむり…' : '⚡ まひ！', 'status');
       srpgRender();
+      srpgPopupAt(actor.x, actor.y, wasSleep ? '💤 ねむり…' : '⚡ まひ！', 'status');
       setTimeout(function(){ srpgEndActorTurn(); }, 820);
       return;
     }
@@ -367,9 +380,11 @@ function srpgTurnStart(actor){
     if(d !== 0) events.push({ amt:d, cls:(d > 0 ? 'heal' : (terr === 'fire' ? 'dmg' : 'poison')), txt:(d > 0 ? '+' : '') + Math.abs(d) + ' ' + m.em });
   }
   if(events.length){
-    events.forEach(function(ev){ actor.hp = Math.max(0, Math.min(actor.maxHp, actor.hp + ev.amt)); srpgPopupAt(actor.x, actor.y, ev.txt, ev.cls); });
-    if(actor.hp <= 0){ actor.downed = true; srpgPopupAt(actor.x, actor.y, 'たおれた…', 'down'); }
-    srpgRender();
+    events.forEach(function(ev){ actor.hp = Math.max(0, Math.min(actor.maxHp, actor.hp + ev.amt)); });
+    var died = actor.hp <= 0; if(died) actor.downed = true;
+    srpgRender();   // 先に描画してから演出（renderで消えないように）
+    events.forEach(function(ev){ srpgPopupAt(actor.x, actor.y, ev.txt, ev.cls); if(ev.amt < 0) srpgFlashSprite(actor.id, ev.cls==='heal'?'heal':'hit'); else srpgFlashSprite(actor.id, 'heal'); });
+    if(died){ srpgPoof(actor.x, actor.y); srpgPopupAt(actor.x, actor.y, 'たおれた…', 'down'); }
     var oc = srpgOutcome(srpgB.units);
     if(oc){ setTimeout(function(){ srpgEnd(oc); }, 700); return; }
     setTimeout(proceed, 660);
@@ -525,7 +540,9 @@ function srpgResolveAttack(correct){
   if(sk) actor.mp = Math.max(0, (actor.mp||0) - sk.mp);
   if(!correct){
     srpgB.combo = 0;
+    srpgRender();
     srpgPopupAt(tgt.x, tgt.y, 'ミス！', 'miss');
+    try{ sfx('wrong'); }catch(e){}
     srpgAfterResolve();
     return;
   }
@@ -533,27 +550,29 @@ function srpgResolveAttack(correct){
   var crit = srpgB.combo >= 3;
   // デバフ（敵のステータス下げ）：ダメージ無し・単体・出題に正解で成立
   if(sk && sk.kind==='debuff'){
-    var d = srpgUnitAt(srpgB.units, tgt.x, tgt.y);
-    if(d && d.side==='enemy' && sk.buff){
-      srpgSetMod(d, sk.buff.stat, sk.buff.stage, sk.buff.turns);
-      srpgPopupAt(tgt.x, tgt.y, '⬇'+SRPG_STAT_JA[sk.buff.stat]+' ダウン', 'debuff');
-    }
-    srpgRender(); srpgAfterResolve(); return;
+    var d = srpgUnitAt(srpgB.units, tgt.x, tgt.y), okD = d && d.side==='enemy' && sk.buff;
+    if(okD) srpgSetMod(d, sk.buff.stat, sk.buff.stage, sk.buff.turns);
+    srpgRender();
+    srpgAtkAnim(actor);
+    if(okD){ srpgSlashAt(tgt.x, tgt.y, srpgB.subject, false); srpgPopupAt(tgt.x, tgt.y, '⬇'+SRPG_STAT_JA[sk.buff.stat]+' ダウン', 'debuff'); }
+    try{ sfx('correct'); }catch(e){}
+    srpgAfterResolve(); return;
   }
   if(!sk){ actor.mp = Math.min(actor.mpMax||6, (actor.mp||0) + 2); }   // 通常こうげき成功でMPチャージ
   var shape = sk ? sk.shape : 'single';
   var power = sk ? sk.power : 100;
   var cells = srpgAoeTiles(shape, tgt.x, tgt.y, srpgB.grid, actor);
+  var fx = [];   // 演出は「描画のあと」にまとめて再生（renderで消えないように）
   cells.forEach(function(c){
     srpgB.hiAoe[c.x+','+c.y] = 1;
     var e = srpgUnitAt(srpgB.units, c.x, c.y);
     if(!(e && e.side==='enemy')) return;
     var kind = srpgResistKind(srpgB.subject, e);
-    if(kind==='null'){ srpgPopupAt(c.x, c.y, 'きかない！', 'nullr'); return; }
+    if(kind==='null'){ fx.push({ x:c.x, y:c.y, text:'きかない！', cls:'nullr', hit:'guard', id:e.id }); return; }
     if(kind==='drain'){   // 吸収：ダメージ0＋敵HP回復（この教科は選んではいけない）
       var amt = srpgDamage(actor, e, power, 1, crit);
       e.hp = Math.min(e.maxHp, e.hp + amt);
-      srpgPopupAt(c.x, c.y, '+'+amt+' きゅうしゅう', 'drain');
+      fx.push({ x:c.x, y:c.y, text:'+'+amt+' きゅうしゅう', cls:'drain', hit:'heal', id:e.id });
       return;
     }
     var mult = srpgResistMult(kind);
@@ -561,17 +580,25 @@ function srpgResolveAttack(correct){
     srpgWakeOnHit(e);   // ねむっている敵は こうげきで目ざめる
     e.hp = Math.max(0, e.hp - dmg);
     var lab = srpgResistLabel(kind);
-    srpgPopupAt(c.x, c.y, (crit?'かいしん！ ':'') + dmg + (lab.txt?(' '+lab.txt):''), lab.cls==='weak'?'weak':(lab.cls==='resist'?'resist':'dmg'));
-    // とくぎの状態異常付与（確率）
-    if(sk && sk.inflict && e.hp>0 && Math.random() < sk.inflict.chance){
-      srpgApplyStatus(e, sk.inflict.kind, sk.inflict.turns);
-      var sm = SRPG_STATUS_META[sk.inflict.kind];
-      srpgPopupAt(c.x, c.y, sm.em+sm.name, 'status');
-    }
-    if(e.hp<=0){ e.downed = true; srpgPopupAt(c.x, c.y, 'たおした！', 'down'); }
+    var infl = null;
+    var down = e.hp <= 0; if(down) e.downed = true;
+    if(!down && sk && sk.inflict && Math.random() < sk.inflict.chance){ srpgApplyStatus(e, sk.inflict.kind, sk.inflict.turns); infl = sk.inflict.kind; }
+    fx.push({ x:c.x, y:c.y, text:(crit?'かいしん！ ':'')+dmg+(lab.txt?(' '+lab.txt):''), cls:(lab.cls==='weak'?'weak':(lab.cls==='resist'?'resist':'dmg')), hit:(crit?'crit':'hit'), id:e.id, down:down, infl:infl });
   });
   srpgRender();
+  // ここから演出（描画のあと＝消えない）
+  srpgAtkAnim(actor);
+  var anyHit = false;
+  fx.forEach(function(ev){
+    srpgSlashAt(ev.x, ev.y, srpgB.subject, ev.hit==='crit');
+    if(ev.hit==='hit' || ev.hit==='crit'){ srpgFlashSprite(ev.id, 'hit'); srpgShakeTile(ev.x, ev.y); anyHit = true; }
+    if(ev.hit==='heal') srpgFlashSprite(ev.id, 'heal');
+    srpgPopupAt(ev.x, ev.y, ev.text, ev.cls);
+    if(ev.infl){ var sm = SRPG_STATUS_META[ev.infl]; setTimeout(function(){ srpgPopupAt(ev.x, ev.y, sm.em+sm.name, 'status'); }, 280); }
+    if(ev.down){ srpgPoof(ev.x, ev.y); setTimeout(function(){ srpgPopupAt(ev.x, ev.y, 'たおした！', 'down'); }, 200); }
+  });
   if(crit){ try{ document.body.classList.add('srpg-flash'); setTimeout(function(){ document.body.classList.remove('srpg-flash'); }, 260); }catch(e){} }
+  try{ sfx(anyHit ? (crit?'levelup':'correct') : 'click'); vibe(anyHit?15:0); }catch(e){}
   srpgAfterResolve();
 }
 // なかま／自分へのバフ・デバフ（出題なしで即発動）
@@ -581,9 +608,11 @@ function srpgResolveBuff(tgt){
   actor.mp = Math.max(0, (actor.mp||0) - sk.mp);
   srpgSetMod(tgt, sk.buff.stat, sk.buff.stage, sk.buff.turns);
   var up = sk.buff.stage > 0;
+  srpgRender();
+  srpgFxOverlay(tgt.x, tgt.y, up?'fx-buff':'fx-debuff', up?'⬆':'⬇');
+  srpgFlashSprite(tgt.id, up?'heal':'hit');
   srpgPopupAt(tgt.x, tgt.y, (up?'⬆':'⬇')+SRPG_STAT_JA[sk.buff.stat]+(up?' アップ':' ダウン'), 'buff');
   try{ sfx('correct'); }catch(e){}
-  srpgRender();
   srpgAfterResolve();
 }
 function srpgResolveHeal(){
@@ -594,9 +623,11 @@ function srpgResolveHeal(){
   actor.mp = Math.max(0, (actor.mp||0) - sk.mp);
   var heal = srpgHealAmount(actor, sk.power);
   tgt.hp = Math.min(tgt.maxHp, tgt.hp + heal);
+  srpgRender();
+  srpgFxOverlay(t.x, t.y, 'fx-heal', '✨');
+  srpgFlashSprite(tgt.id, 'heal');
   srpgPopupAt(t.x, t.y, '+' + heal, 'heal');
   try{ sfx('correct'); }catch(e){}
-  srpgRender();
   srpgAfterResolve();
 }
 function srpgAfterResolve(){
@@ -628,16 +659,17 @@ function srpgEnemyTurn(enemy){
         var dmg = srpgDamage(enemy, tgt, 100, 1, false);
         srpgWakeOnHit(tgt);
         tgt.hp = Math.max(0, tgt.hp - dmg);
+        var infl = null;
+        if(enemy.onhit && tgt.hp>0 && Math.random() < enemy.onhit.chance){ srpgApplyStatus(tgt, enemy.onhit.kind, enemy.onhit.turns); infl = enemy.onhit.kind; }
+        var died = tgt.hp<=0; if(died) tgt.downed = true;
+        srpgRender();   // 先に描画してから演出
+        srpgAtkAnim(enemy);
+        srpgSlashAt(tgt.x, tgt.y, 'math', false);
+        srpgFlashSprite(tgt.id, 'hit'); srpgShakeTile(tgt.x, tgt.y);
         srpgPopupAt(tgt.x, tgt.y, dmg, 'dmg-e');
         try{ sfx('wrong'); vibe(20); }catch(e){}
-        // 状態異常つきのこうげき（毒・まひ・ふうじ など）
-        if(enemy.onhit && tgt.hp>0 && Math.random() < enemy.onhit.chance){
-          srpgApplyStatus(tgt, enemy.onhit.kind, enemy.onhit.turns);
-          var sm = SRPG_STATUS_META[enemy.onhit.kind];
-          srpgPopupAt(tgt.x, tgt.y, sm.em+sm.name, 'status');
-        }
-        if(tgt.hp<=0){ tgt.downed = true; srpgPopupAt(tgt.x, tgt.y, 'たおれた…', 'down'); }
-        srpgRender();
+        if(infl){ var sm = SRPG_STATUS_META[infl]; setTimeout(function(){ srpgPopupAt(tgt.x, tgt.y, sm.em+sm.name, 'status'); }, 280); }
+        if(died){ srpgPoof(tgt.x, tgt.y); srpgPopupAt(tgt.x, tgt.y, 'たおれた…', 'down'); }
       }
     }
     setTimeout(function(){
@@ -729,7 +761,8 @@ function srpgClose(){
   try{ muNav('home'); }catch(e){ try{ renderGameHub(); }catch(e2){} }
 }
 
-// ================= 小物：ダメージ表示・トースト =================
+// ================= 小物：ダメージ表示・演出・トースト =================
+// ★重要：これらは必ず srpgRender() の「あと」に呼ぶ（renderがタイルを作り直すと演出が消えるため）
 function srpgPopupAt(x, y, text, cls){
   var tile = document.getElementById('st-'+x+'-'+y); if(!tile) return;
   var pop = document.createElement('div');
@@ -738,6 +771,35 @@ function srpgPopupAt(x, y, text, cls){
   tile.appendChild(pop);
   setTimeout(function(){ try{ tile.removeChild(pop); }catch(e){} }, 1100);
 }
+// タイルに一時オーバーレイ（斬撃・爆発・きらめき等）を重ねる
+function srpgFxOverlay(x, y, cls, html, ms){
+  var tile = document.getElementById('st-'+x+'-'+y); if(!tile) return;
+  var d = document.createElement('div');
+  d.className = 'srpg-ov ' + cls;
+  if(html) d.innerHTML = html;
+  tile.appendChild(d);
+  setTimeout(function(){ try{ tile.removeChild(d); }catch(e){} }, ms || 640);
+}
+// 属性色の斬撃/魔法エフェクト
+function srpgSlashAt(x, y, subject, big){
+  var col = (srpgSubjectMeta(subject) || {}).color || '#fff';
+  srpgFxOverlay(x, y, 'fx-slash' + (big ? ' big' : ''), '<span class="fx-slash-l" style="--c:'+col+'"></span>', 560);
+}
+function srpgPoof(x, y){ srpgFxOverlay(x, y, 'fx-poof', '💥', 720); }
+// ユニットのスプライトに一時クラス（被弾フラッシュ・攻撃の気合い・回復の光）
+function srpgFlashSprite(id, cls){
+  var el = document.getElementById('su-'+id); if(!el) return;
+  var s = el.querySelector('.srpg-sprite'); if(!s) return;
+  s.classList.add('fx-'+cls);
+  setTimeout(function(){ try{ s.classList.remove('fx-'+cls); }catch(e){} }, 500);
+}
+function srpgShakeTile(x, y){
+  var tile = document.getElementById('st-'+x+'-'+y); if(!tile) return;
+  tile.classList.add('shake');
+  setTimeout(function(){ try{ tile.classList.remove('shake'); }catch(e){} }, 340);
+}
+// こうげき側の気合いモーション
+function srpgAtkAnim(actor){ if(actor) srpgFlashSprite(actor.id, 'atk'); }
 function srpgToast(t, s){
   try{ if(typeof showToast==='function'){ showToast('', t, s||''); return; } }catch(e){}
 }

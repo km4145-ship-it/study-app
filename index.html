@@ -367,16 +367,18 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   /* 設定モーダル */
   .settings-modal {
     display: none; position: fixed; inset: 0; z-index: 200;
-    background: rgba(14,58,77,0.45);
+    background: rgba(11,40,54,0.5);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     overflow-y: auto; padding: 24px 14px;
   }
   .settings-modal.open { display: flex; align-items: flex-start; justify-content: center; }
   .settings-panel {
     width: 100%; max-width: 560px;
-    background: var(--card); border: 1px solid var(--primary-light);
-    border-radius: 18px; padding: 22px;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r-xl); padding: 22px; box-shadow: var(--sh-4);
     display: flex; flex-direction: column; gap: 18px;
   }
+  .settings-modal.open .settings-panel { animation: rpgCardIn .32s var(--spring) both; }
   .settings-panel-head { display: flex; align-items: center; justify-content: space-between; }
   .settings-panel-head h2 { font-size: 1.4rem; color: var(--gold); }
   .settings-close {
@@ -518,15 +520,15 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 
   /* バッジ */
   .badge-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(94px,1fr)); gap:10px; }
-  .badge-chip { background:var(--card); border:2px solid var(--gold); border-radius:14px; padding:12px 6px; text-align:center; box-shadow:var(--shadow); }
-  .badge-chip.locked { border-color:#cbd5e1; opacity:0.55; filter:grayscale(0.7); box-shadow:none; }
+  .badge-chip { background:var(--card); border:1.5px solid var(--gold); border-radius:var(--r-m); padding:12px 6px; text-align:center; box-shadow:var(--sh-2); }
+  .badge-chip.locked { border:1px solid var(--line); opacity:0.55; filter:grayscale(0.7); box-shadow:var(--sh-1); }
   .badge-emoji { font-size:1.7rem; }
   .badge-title { font-size:0.7rem; font-weight:700; color:var(--text); margin-top:3px; line-height:1.2; }
   .badge-desc { font-size:0.6rem; color:var(--primary-light); margin-top:2px; line-height:1.2; }
 
   /* バッジ獲得トースト */
   .badge-toast-wrap { position:fixed; top:14px; left:0; right:0; z-index:200; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; }
-  .badge-toast { background:linear-gradient(135deg,#f59e0b,#ec4899); color:#fff; border-radius:14px; padding:10px 18px; box-shadow:0 8px 24px rgba(0,0,0,0.25); display:flex; align-items:center; gap:10px; font-weight:700; max-width:90vw; animation: toastIn .4s ease, toastOut .4s ease 3.0s forwards; }
+  .badge-toast { background:linear-gradient(135deg,#f59e0b,#ec4899); color:#fff; border-radius:var(--r-m); padding:11px 18px; box-shadow:0 12px 30px rgba(219,39,119,.3), inset 0 1px 0 rgba(255,255,255,.28); display:flex; align-items:center; gap:10px; font-weight:800; max-width:90vw; animation: toastIn .42s var(--spring), toastOut .4s var(--ease) 3.0s forwards; }
   .badge-toast .bt-emoji { font-size:1.6rem; }
   .badge-toast .bt-sub { font-size:0.7rem; opacity:0.92; font-weight:600; }
   @keyframes toastIn { from { transform:translateY(-26px); opacity:0; } to { transform:translateY(0); opacity:1; } }
@@ -1735,18 +1737,19 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   @keyframes rpgAuraFlicker{ 0%,100%{ opacity:.9; } 50%{ opacity:.4; } }
   /* きせかえプレビュー */
   /* スクロールしても「今のすがた」が見え続けるよう、リソースバーの下に貼り付く（そうび変更の反映を見ながら選べる） */
-  .rpg-cos-preview{ display:flex; gap:16px; justify-content:center; background:linear-gradient(135deg,#1e293b,#334155); border-radius:16px; padding:14px; margin:8px 0;
-    position:sticky; top:52px; z-index:90; box-shadow:0 8px 22px rgba(0,0,0,.4); }
+  .rpg-cos-preview{ display:flex; gap:16px; justify-content:center; background:linear-gradient(135deg,#243244,#334155); border-radius:var(--r-l); padding:14px; margin:8px 0;
+    position:sticky; top:52px; z-index:90; box-shadow:0 12px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08); border:1px solid rgba(148,163,184,.18); }
   .rpg-cos-pv{ display:flex; flex-direction:column; align-items:center; gap:4px; color:#e2e8f0; font-size:.78rem; font-weight:700; }
   .rpg-cos-pv-char{ width:70px; height:80px; display:flex; align-items:center; justify-content:center; }
   .rpg-cos-pv-char>svg{ width:100%; height:100%; }
   /* きせかえショップ */
-  .rpg-coin-bar{ background:linear-gradient(135deg,#f59e0b,#f97316); color:#fff; border-radius:14px; padding:10px 14px; font-weight:800; margin:8px 0 4px; }
+  .rpg-coin-bar{ background:linear-gradient(135deg,#f59e0b,#f97316); color:#fff; border-radius:var(--r-m); padding:11px 15px; font-weight:800; margin:8px 0 4px; box-shadow:0 5px 14px rgba(217,119,6,.28), inset 0 1px 0 rgba(255,255,255,.28); }
   .rpg-coin-hint{ font-size:.72rem; font-weight:600; opacity:.9; }
   .rpg-cos-slot-ttl{ font-weight:800; font-size:.82rem; color:#475569; margin:8px 2px 2px; }
   .rpg-cos-none{ font-weight:600; font-size:.72rem; color:#94a3b8; }
   .rpg-cos-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:8px; margin:2px 0 6px; }
-  .rpg-cos-cell{ position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; background:#fff7ed; border:2px solid #fed7aa; border-radius:14px; padding:11px 4px 7px; cursor:pointer; font-family:inherit; }
+  .rpg-cos-cell{ position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; background:#fff7ed; border:1.5px solid #fed7aa; border-radius:var(--r-m); padding:11px 4px 7px; cursor:pointer; font-family:inherit; box-shadow:var(--sh-1); transition:transform .15s var(--spring); }
+  .rpg-cos-cell:active{ transform:scale(.95); }
   .rpg-cos-cell.owned{ border-color:#38bdf8; background:#eff6ff; }
   .rpg-cos-cell.equipped{ border-color:#22c55e; background:#dcfce7; box-shadow:0 0 0 2px #22c55e inset; }
   .rpg-cos-cell.cos-r{ background:linear-gradient(135deg,#ede9fe,#ddd6fe); border-color:#a78bfa; }
@@ -2091,9 +2094,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-mission-pg{ font-weight:800; background:rgba(0,0,0,.2); border-radius:99px; padding:2px 9px; font-size:.8rem; }
   .rpg-mission-row.done{ opacity:.85; } .rpg-mission-row.done .rpg-mission-tx{ text-decoration:line-through; }
   /* ---- ずかん ---- */
-  .rpg-dex-btn{ width:100%; margin-top:12px; background:var(--card2); color:var(--text); border:2px solid var(--primary-light); border-radius:14px; padding:12px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .rpg-dex-btn{ width:100%; margin-top:12px; background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:var(--r-m); padding:12px; font-weight:800; cursor:pointer; font-family:inherit; box-shadow:var(--sh-1); transition:transform .15s var(--spring), box-shadow .15s var(--ease); }
+  .rpg-dex-btn:active{ transform:scale(.98); }
   .rpg-dex-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; margin:8px 0; }
-  .rpg-dex-cell{ background:var(--card2); border:2px solid var(--primary-light); border-radius:12px; padding:6px 4px; text-align:center; position:relative; }
+  .rpg-dex-cell{ background:#fff; border:1px solid var(--line); border-radius:var(--r-s); padding:6px 4px; text-align:center; position:relative; box-shadow:var(--sh-1); }
   .rpg-dex-cell.unseen{ opacity:.7; }
   /* あいぼう連携バッジ：なかまにいる種は 🤝ランク（×かず）を右上に出す。枠色は .rpg-aibou-bd* を流用 */
   .rpg-dex-mate{ position:absolute; top:3px; right:3px; background:var(--card2); border:1.5px solid #94a3b8; border-radius:9px; font-size:9.5px; font-weight:900; padding:1px 4px; line-height:1.4; }

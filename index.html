@@ -7379,7 +7379,7 @@ function rpgShowBattle(){
   try{ var _ar=document.getElementById('rpg-aibou-row'); if(_ar){ _ar.innerHTML=rpgAibouParty().map(function(a){
     return '<span class="rpg-aibou-mini rpg-aibou-bd'+a.rank+'" title="'+escapeHtml(a.name||'')+'"><span class="rpg-aibou-art">'+rpgAibouArt(a)+rpgAibouHatHtml(a)+'</span></span>'; }).join(''); } }catch(e){}
   // この大陸の担当先生を見守り役として表示（ボスは鬼コーチ ゴウ教官）＝学習の先生が冒険にも登場
-  try{ var _sk=(rpgBattle.node.type==='boss')?'tiger':((RPG_WORLD[rpgBattle.area]&&RPG_WORLD[rpgBattle.area].teacher)||'owl');
+  try{ var _sk = rpgBattle.review ? 'penguin' : rpgBattle.maou ? 'owl' : (rpgBattle.node.type==='boss') ? 'tiger' : ((RPG_WORLD[rpgBattle.area]&&RPG_WORLD[rpgBattle.area].teacher)||'owl');
     var _se=document.getElementById('rpg-sensei'); if(_se){ _se.className='rpg-sensei'; _se.innerHTML='<div class="rpg-sensei-face">'+_charSVG(_sk)+'</div><div class="rpg-sensei-nm">'+escapeHtml((CHARS[_sk]&&CHARS[_sk].name)||'先生')+'</div>'; } }catch(e){}
   var sky=document.getElementById('rpg-stage-sky'); if(sky){ sky.className='rpg-stage-sky '+rpgSkyClass(rpgBattle)+(rpgBattle.node.type!=='zako'?' boss':''); }
   var _sb=document.getElementById('rpg-special-btn'); if(_sb) _sb.style.display='block';   // 必殺技ボタンを表示
@@ -7656,9 +7656,9 @@ function rpgStartReview(){
   var pool=due.length? due : all;
   if(!pool.length){ showToast('🎉','ふくしゅう なし','まちがえた問題が ないよ！ よくできてる！'); return; }
   var lines=[
-    { who:'ミミ学園長', char:'owl', text:'ここは「ふくしゅうダンジョン」。まえに まちがえた問題が モンスターに なって あらわれるの。' },
-    { who:'ミミ学園長', char:'owl', text:'もう一度 とけば こくふくできる。しかも ここでしか 手に入らない「🌈にじのおまもり」が もらえるのよ。' },
-    { who:'ミミ学園長', char:'owl', text:'おまもりが あると、レアな なかまが ぐっと 出やすくなる。エサも 大サービス！ さあ、リベンジよ！' }
+    { who:'ペン太', char:'penguin', text:'やあ、ぼくは 復習がかりの ペン太。ここは「ふくしゅうダンジョン」だよ。まえに まちがえた問題が モンスターに なって あらわれるんだ。' },
+    { who:'ペン太', char:'penguin', text:'もう一度 とけば こくふくできる。ひとつずつ 確かめよう。ここでしか 手に入らない「🌈にじのおまもり」も もらえるよ。' },
+    { who:'ペン太', char:'penguin', text:'おまもりが あると、レアな なかまが ぐっと 出やすくなる。エサも 大サービス！ さあ、いっしょに リベンジしよう！' }
   ];
   rpgStoryPlay(lines, function(){ rpgBeginReview(pool); });
 }
@@ -7719,10 +7719,18 @@ function rpgBuildMixedQuestions(count){
 }
 function rpgStartMaou(){
   if(rpgCrystalCount()<5 && !rpgFamilyMaouFreed()){ showToast('🔒','まだ魔王に いどめない','5つのクリスタルを あつめよう'); return; }
-  var lines=[
-    { who:'魔王シグマ', char:'villain', text:'よくぞ ここまで来た、勇者よ。だが「偏差値65の壁」は こえられまい！' },
-    { who:'ミミ学園長', char:'owl', text:'だいじょうぶ。あなたは 5教科ぜんぶを のりこえてきた。今の力を ぶつけて！' }
-  ];
+  // 🏰 決戦の前に、救い出した先生たちが集結して力を貸す（★3：全員そろって最終決戦）
+  var s=rpgState();
+  var rescued=RPG_CONTINENTS.filter(function(a){ return s.crystals[a]; });
+  var powerLine={ math:'計算の力だ、いくぞ！', japanese:'ことばの力を こめたわ。', english:'ことばの ちからを！ Go！', science:'考える力を さずけよう。', social:'歴史に 学んだ 知恵を！' };
+  var lines=[ { who:'魔王シグマ', char:'villain', text:'よくぞ ここまで来た、勇者よ。だが「偏差値65の壁」は こえられまい！' } ];
+  if(rescued.length){
+    lines.push({ who:'ミミ学園長', char:'owl', text:'いいえ。あなたは ひとりじゃない。助けた 先生たちが みんな ついているわ！' });
+    rescued.forEach(function(a){ var w=RPG_WORLD[a]; lines.push({ who:w.teacherName+'先生', char:w.teacher, text:'わたしの「'+w.crystal+'」の力を きみに！ '+(powerLine[a]||'力を貸すよ！') }); });
+    lines.push({ who:'ミミ学園長', char:'owl', text:(rescued.length>=5?'5人の先生の力が ひとつに…！':'先生たちの 力が あつまった…！')+' さあ、今の あなたの すべてを ぶつけて！' });
+  } else {
+    lines.push({ who:'ミミ学園長', char:'owl', text:'かぞくの力で ふういんが とけた。あなたの すべてを ぶつけて！' });
+  }
   rpgStoryPlay(lines, function(){ rpgBeginMaou(); });
 }
 function rpgBeginMaou(){

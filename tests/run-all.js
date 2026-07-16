@@ -41,6 +41,7 @@ const TESTS = [
   ['tests/unit-users.js'],
   ['tests/unit-session.js'],
   ['tests/unit-account-model.js'],
+  ['tests/unit-account-ui.js'],
   ['tests/unit-gacha.js'],
   ['tests/unit-gacha-story.js'],
   ['tests/unit-legal.js'],

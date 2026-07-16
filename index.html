@@ -1013,32 +1013,9 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
     </div>
 
     <div class="settings-section">
-      <h3>🔑 アカウント（クラウド同期・保護者向け）</h3>
-      <p class="settings-hint" id="account-mode-disp">現在：確認中…</p>
-      <p class="settings-hint">メール＋パスワードでアカウントを作ると、複数の端末で学習データを同期できます。データは<b>アカウントの持ち主だけ</b>が読み書きでき、他人が推測してアクセスすることはできません。同じアカウントで各端末にログインすると、家族全員の進捗が同期します。</p>
-      <div class="settings-row">
-        <input type="email" id="account-email" placeholder="メールアドレス" autocomplete="email" style="flex:1;min-width:140px">
-      </div>
-      <div class="settings-row">
-        <input type="password" id="account-password" placeholder="パスワード（6文字以上）" autocomplete="current-password" style="flex:1;min-width:140px">
-      </div>
-      <div class="settings-row">
-        <button class="btn-sm" style="background:#0891b2" onclick="(window.cloudAccountSignUp||function(){alert('同期スクリプト読込中です。少し待って再度お試しください。');})(document.getElementById('account-email').value.trim(), document.getElementById('account-password').value)">🆕 アカウント作成</button>
-        <button class="btn-sm" style="background:#0891b2" onclick="(window.cloudAccountSignIn||function(){alert('同期スクリプト読込中です。少し待って再度お試しください。');})(document.getElementById('account-email').value.trim(), document.getElementById('account-password').value)">🔓 ログイン</button>
-        <button class="btn-sm" style="background:#64748b" onclick="(window.cloudAccountSignOut||function(){})()">ログアウト</button>
-      </div>
-      <div class="settings-row" id="account-delete-row" style="display:none">
-        <button class="btn-sm" style="background:#dc2626" onclick="accountDelete()">🗑️ アカウントを削除</button>
-        <span class="settings-hint">ログイン情報と、このアカウントの保存データを消します（取り消せません）</span>
-      </div>
-      <details style="margin-top:8px">
-        <summary class="settings-hint" style="cursor:pointer">レガシー：家族コードでの同期（非推奨）</summary>
-        <p class="settings-hint">古い方式です。家族コードを知っている人はデータにアクセスできるため、上のアカウント方式をおすすめします。</p>
-        <div class="settings-row">
-          <button class="btn-sm" style="background:#64748b" onclick="(window.cloudFamilySet||function(){alert('同期スクリプト読込中です。少し待って再度お試しください。');})()">☁️ 家族コードで同期</button>
-          <button class="btn-sm" style="background:#64748b" onclick="(window.cloudFamilyClear||function(){})()">同期オフ（端末内のみ）</button>
-        </div>
-      </details>
+      <h3>🔑 アカウント・クラウド同期 <span class="settings-hint" style="font-weight:normal">（保護者の方むけ）</span></h3>
+      <!-- いまの状態に応じて renderAccountPanel() が中身を描き替えます -->
+      <div id="account-panel"><p class="settings-hint">確認中…</p></div>
     </div>
 
     <div class="settings-section">
@@ -1766,6 +1743,14 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
   .rpg-gacha-box{ font-size:64px; animation:rpgBoxShake .5s ease-in-out infinite; }
+  /* 🔑 アカウント欄（状態カード） */
+  .acct-state{ display:flex; gap:10px; align-items:flex-start; background:var(--card2,#f8fafc); border:1px solid var(--primary-light,#bae6fd); border-radius:12px; padding:10px 13px; margin-bottom:6px; }
+  .acct-state.ok{ border-color:#34d399; background:#ecfdf5; } .acct-state.warn{ border-color:#fbbf24; background:#fffbeb; }
+  :root[data-theme="dark"] .acct-state{ background:#1e293b; } :root[data-theme="dark"] .acct-state.ok{ background:#052e2b; } :root[data-theme="dark"] .acct-state.warn{ background:#3b2f1e; }
+  .acct-ic{ font-size:22px; line-height:1.2; }
+  .acct-danger{ margin-top:12px; border:1px solid #fca5a5; border-radius:12px; padding:10px 13px; background:#fef2f2; }
+  :root[data-theme="dark"] .acct-danger{ background:#3b1d1d; border-color:#7f1d1d; }
+  .acct-danger b{ color:#b91c1c; } :root[data-theme="dark"] .acct-danger b{ color:#fca5a5; }
   /* 📅 きょうの家族もんだい */
   .fd-card{ background:linear-gradient(135deg,#ecfeff,#f0f9ff); border:2px solid #67e8f9; border-radius:14px; padding:11px 13px; margin-bottom:10px; }
   :root[data-theme="dark"] .fd-card{ background:linear-gradient(135deg,#083344,#0c4a6e); border-color:#155e75; }
@@ -3120,13 +3105,55 @@ function refreshSettingsDisp(){
   const ld=document.getElementById('line-disp'); if(ld) ld.textContent= lineEndpoint()?'（設定済み）':'（未設定）';
   const li=document.getElementById('line-endpoint'); if(li && !li.value) li.value=lineEndpoint();
   const eq=document.getElementById('extraq-disp'); if(eq) eq.textContent='（追加問題：'+getExtraQuestions().length+'問）';
-  const am=document.getElementById('account-mode-disp');
-  var _mode=(window.cloudMode && window.cloudMode())||'local';
-  var _acct=(_mode==='account');
-  if(am) am.textContent = _acct ? '現在：🔑 アカウントで同期中（安全）'
-      : (_mode==='family') ? '現在：☁️ 家族コードで同期中（レガシー）'
-      : '現在：📱 この端末だけに保存（同期オフ）';
-  var adr=document.getElementById('account-delete-row'); if(adr) adr.style.display=_acct?'flex':'none';   // 削除はアカウントモードのときだけ
+  try{ renderAccountPanel(); }catch(e){}
+}
+// 🔑 アカウント欄：いまの同期状態（端末内のみ / アカウント / 家族コード）に応じて、
+// 必要なボタンだけを分かりやすく出す。アカウント削除もここに（ログイン中のみ）まとめる。
+function renderAccountPanel(){
+  var panel=document.getElementById('account-panel'); if(!panel) return;
+  var mode=(window.cloudMode && window.cloudMode())||'local';
+  var email=(window.cloudAccountEmail && window.cloudAccountEmail())||'';
+  var loading=(typeof window.cloudMode!=='function');
+  var h='';
+  if(loading){ panel.innerHTML='<p class="settings-hint">同期スクリプトを読み込み中…</p>'; return; }
+  // 入力フォーム（未ログイン時に使う）
+  var form=''
+    +'<div class="settings-row"><input type="email" id="account-email" placeholder="メールアドレス" autocomplete="email" style="flex:1;min-width:150px"></div>'
+    +'<div class="settings-row"><input type="password" id="account-password" placeholder="パスワード（6文字以上）" autocomplete="current-password" style="flex:1;min-width:150px"></div>'
+    +'<div class="settings-row">'
+    +'<button class="btn-sm" style="background:#0891b2" onclick="_acctDo(\'up\')">🆕 アカウントを作る</button>'
+    +'<button class="btn-sm" style="background:#0891b2" onclick="_acctDo(\'in\')">🔓 ログイン</button>'
+    +'</div>';
+  if(mode==='account'){
+    // ── ログイン中：状態＋ログアウト＋削除 ──
+    h+='<div class="acct-state ok"><span class="acct-ic">✅</span><div><b>クラウド同期オン（安全）</b><br><span class="settings-hint">'+(email?escapeHtml(email):'アカウント')+' でログイン中。同じアカウントで各端末にログインすると、家族みんなの進捗が同期します。</span></div></div>';
+    h+='<div class="settings-row"><button class="btn-sm" style="background:#64748b" onclick="(window.cloudAccountSignOut||function(){})()">🚪 ログアウト</button></div>';
+    h+='<div class="acct-danger"><b>アカウントの削除</b><p class="settings-hint">ログイン情報と、このアカウントに保存された学習データを<b>すべて消します</b>（取り消せません）。</p>'
+      +'<button class="btn-sm" style="background:#dc2626" onclick="accountDelete()">🗑️ アカウントを削除する</button></div>';
+  } else if(mode==='family'){
+    // ── 家族コード同期（レガシー）──
+    h+='<div class="acct-state warn"><span class="acct-ic">☁️</span><div><b>家族コードで同期中（古い方式・非推奨）</b><br><span class="settings-hint">家族コードを知っている人はデータにアクセスできます。より安全な「アカウント」への切り替えをおすすめします。</span></div></div>';
+    h+='<p class="settings-hint" style="margin-top:8px"><b>アカウントに切り替える（おすすめ）：</b></p>'+form;
+    h+='<div class="settings-row"><button class="btn-sm" style="background:#64748b" onclick="(window.cloudFamilyClear||function(){})()">同期オフ（この端末だけに保存）</button></div>';
+  } else {
+    // ── 端末内のみ（既定・安全）──
+    h+='<div class="acct-state"><span class="acct-ic">📱</span><div><b>いまは この端末だけに保存（同期オフ）</b><br><span class="settings-hint">学習データは外部に送信されません。ほかの端末とも同期したいときは、下でアカウントを作ってください。</span></div></div>';
+    h+='<p class="settings-hint" style="margin-top:8px"><b>ほかの端末とも同期する（保護者の方が設定）：</b></p>'+form;
+    h+='<details style="margin-top:8px"><summary class="settings-hint" style="cursor:pointer">レガシー：家族コードで同期（非推奨）</summary>'
+      +'<p class="settings-hint">古い方式です。安全のため上のアカウント方式をおすすめします。</p>'
+      +'<div class="settings-row"><button class="btn-sm" style="background:#94a3b8" onclick="(window.cloudFamilySet||function(){})()">☁️ 家族コードで同期</button></div></details>';
+  }
+  panel.innerHTML=h;
+}
+// アカウント作成/ログインの共通ハンドラ（入力を読んで cloud-sync の関数を呼ぶ）
+function _acctDo(kind){
+  var em=(document.getElementById('account-email')||{}).value||'';
+  var pw=(document.getElementById('account-password')||{}).value||'';
+  em=em.trim();
+  if(!em || !pw){ showToast('🔑','入力してください','メールアドレスと パスワード（6文字以上）を入れてね'); return; }
+  var fn=(kind==='up')?window.cloudAccountSignUp:window.cloudAccountSignIn;
+  if(!fn){ alert('同期スクリプト読込中です。少し待って再度お試しください。'); return; }
+  fn(em, pw);
 }
 // 🗑️ アカウント削除（App Store必須要件）。二重確認のうえ cloudAccountDelete を呼ぶ
 function accountDelete(){
@@ -7916,7 +7943,7 @@ function initKeyboard(){
 
 init();
 </script>
-<script src="cloud-sync.js?v=1113" defer></script>
+<script src="cloud-sync.js?v=1114" defer></script>
 <script>
 /* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
 (function(){ try{

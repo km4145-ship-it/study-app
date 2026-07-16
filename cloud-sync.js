@@ -474,6 +474,7 @@ window.FIREBASE_CONFIG = {
     try{ (window.muLocalWipe ? window.muLocalWipe() : basicWipe()); }catch(e){ basicWipe(); }
   }
   window.cloudMode = function(){ return localOnly ? 'local' : mode; };
+  window.cloudAccountEmail = function(){ try{ return (firebase.auth().currentUser||{}).email || ''; }catch(e){ return ''; } };   // ログイン中アカウントのメール（設定画面の表示用）
   window.cloudAccountSignUp = function(email, password){
     return firebase.auth().createUserWithEmailAndPassword(email, password)
       .then(function(){ rset('mu_account_active','1'); clearSyncCacheForModeSwitch(); alert('アカウントを作成しました。'); location.reload(); })

@@ -41,6 +41,8 @@ const SCREENS = [
   { name: 'odds',    drive: 'gachaShowOdds()' },
   { name: 'reveal',  drive: 'rpgGachaDraw()', wait: 8200 },      // 単発開封（エピックでも開封後＝開いた宝箱＋3Dアイテムまで到達）
   { name: 'g10',     drive: 'rpgGacha10Reveal(_gachaDrawInto(rpgCosState(rpgState()),10,rpgState()))' },  // タップ開封の選択画面
+  { name: 'srpgsel', drive: 'srpgOpen()' },                                                             // タクトバトルのステージ選択
+  { name: 'srpgbtl', drive: "srpgOpen(); setTimeout(function(){ srpgStart('arena1'); }, 60)", wait: 2600 },  // 盤面（1ターン目のコマンド）
 ];
 
 // 見ばえのするテストデータ：コイン・所持品・装備・あいぼう（ぼうし付き）・図鑑

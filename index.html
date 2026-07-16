@@ -547,6 +547,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .gp-em{ font-size:1.9rem; line-height:1; }
   .gp-lb{ font-size:.86rem; font-weight:800; color:var(--text); }
   .gp-cancel{ display:block; width:100%; margin-top:14px; padding:11px; border:none; border-radius:var(--r-m); background:var(--card2); color:var(--muted); font-weight:800; font-size:.9rem; cursor:pointer; font-family:inherit; }
+
+  /* 🔄 新バージョン通知バー（自動更新の手動フォールバック） */
+  #upd-bar{ position:fixed; left:12px; right:12px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:9998; border:none; font-family:inherit; cursor:pointer; background:linear-gradient(135deg,#0aa0bd,#6366f1); color:#fff; border-radius:var(--r-m); padding:13px 16px; font-size:14px; font-weight:800; box-shadow:0 12px 28px rgba(59,110,232,.42), inset 0 1px 0 rgba(255,255,255,.28); animation:updBarIn .42s var(--spring); }
+  #upd-bar:active{ transform:scale(.98); }
+  @keyframes updBarIn{ from{ transform:translateY(24px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
   /* 読解の本文 */
   .passage-area { background:var(--card2); border:1px solid var(--primary-light); border-radius:10px; padding:12px 14px; margin-bottom:12px; font-size:0.86rem; line-height:1.85; max-height:300px; overflow-y:auto; white-space:pre-wrap; color:var(--text); }
   .passage-label { font-size:0.72rem; font-weight:700; color:var(--primary-light); margin-bottom:6px; }
@@ -8074,6 +8079,33 @@ init();
 (function(){ try{
   if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }).catch(function(){}); }
   if (window.caches && caches.keys) { caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }).catch(function(){}); }
+}catch(e){} })();
+
+/* 🔄 自動更新：配信された最新版を no-store で検知し、キャッシュに関係なく最新を読み込む
+   （＝手動キャッシュクリア不要に）。開発/ソース版（app.min.js無し）ではスキップ。 */
+(function(){ try{
+  var tag = document.querySelector('script[src*="app.min.js"]');
+  if (!tag) return;
+  var mm = (tag.src || '').match(/app\.min\.js\?([a-z0-9]+)/i);
+  var running = mm ? mm[1] : null;
+  if (!running) return;
+  var checking = false, barShown = false;
+  function busy(){ try{ if (document.body.classList.contains('rpg-battle')) return true; var q = document.getElementById('quiz-box'); if (q && q.offsetParent !== null) return true; }catch(e){} return false; }
+  function bar(nv){ if (barShown || document.getElementById('upd-bar')) return; barShown = true;
+    var b = document.createElement('button'); b.id = 'upd-bar'; b.type = 'button';
+    b.innerHTML = '🆕 あたらしい バージョンが あります　<b>タップして こうしん</b>';
+    b.onclick = function(){ go(nv); }; document.body.appendChild(b); }
+  function go(nv){ try{ sessionStorage.setItem('_verTo', nv); }catch(e){} location.replace(location.pathname + '?_v=' + nv); }
+  function check(auto){ if (checking) return; checking = true;
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(d){ checking = false;
+      if (!d || !d.v || d.v === running) return;
+      var already = false; try{ already = (sessionStorage.getItem('_verTo') === d.v); }catch(e){}
+      if (auto && !busy() && !already) go(d.v); else bar(d.v);
+    }).catch(function(){ checking = false; });
+  }
+  setTimeout(function(){ check(true); }, 3500);                                      // 起動直後＝最新へ自動更新
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) check(true); });  // アプリ復帰時
+  window.addEventListener('focus', function(){ check(true); });
 }catch(e){} })();
 </script>
 </body>

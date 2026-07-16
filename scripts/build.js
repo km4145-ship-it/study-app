@@ -72,6 +72,9 @@ html = html.replace(SCRIPT_RE, '');
 const crypto = require('crypto');
 const sha12 = (s) => 'h' + crypto.createHash('sha1').update(s).digest('hex').slice(0, 12);
 const ver = sha12(minJs);
+// 🔄 自動更新用：配信版のハッシュを version.json に出力。アプリが no-store で照合し、
+//    実行中の app.min.js?<ver> と違えば「新版あり」→キャッシュ回避で自動リロードする。
+fs.writeFileSync(path.join(DIST, 'version.json'), JSON.stringify({ v: ver }));
 // three チャンク（app.min.js より先に読む＝バンドル内の char3d が実行時に THREE を使う）
 let threeTag = '';
 if (threeSrc) {

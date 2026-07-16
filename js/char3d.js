@@ -1139,7 +1139,7 @@ function _c3dChestTier(rank){ return C3D_CHEST_TIERS[ rank>=7?4 : rank>=6?3 : ra
 // 開封シーンのカメラ枠。_c3dRenderIntoは初回のバウンディングボックスで枠をキャッシュするため、
 // 宝箱のままだと浮かび上がったアイテム（y≈1.1＋アイテムの高さ）が枠外＝見えなくなる。
 // フタが開く瞬間にこの広い枠へ差し替える（カメラが引くカット割りとして機能する）
-var C3D_CHEST_FRAME={ hgt:1.9, cy:.76 };
+var C3D_CHEST_FRAME={ hgt:2.15, cy:.86 };
 // PBRマテリアル（写実的な陰影：roughness/metalness）。トゥーンと違い光が滑らかに回り立体感が出る。
 // MeshToonMaterialはscene.environmentを無視するため、この宝箱だけがPBR化され他キャラに影響しない。
 function _c3dPbr(hex, rough, metal, emisF){
@@ -1148,18 +1148,37 @@ function _c3dPbr(hex, rough, metal, emisF){
   if(emisF) m.emissive=col.clone().multiplyScalar(emisF);
   return m;
 }
+// canvasからテクスチャ生成（documentなしのテスト環境ではnull＝mapなしで安全に動く）
+function _c3dCanvasTex(draw){
+  try{
+    var cv=document.createElement('canvas'); cv.width=cv.height=128;
+    draw(cv.getContext('2d'),128);
+    var tex=new THREE.CanvasTexture(cv);
+    if(THREE.SRGBColorSpace) tex.colorSpace=THREE.SRGBColorSpace;
+    return tex;
+  }catch(e){ return null; }
+}
 function _c3dBuildChest(rank){
   var t=_c3dChestTier(rank||0), g=new THREE.Group();
-  var wood=_c3dPbr(t.body,.82,.06), dark=_c3dPbr(t.dark,.88,.05), metal=_c3dPbr(t.metal,.34,.55,.10);
-  var gemMat=new THREE.MeshStandardMaterial({ color:new THREE.Color(t.gem), roughness:.1, metalness:0, emissive:new THREE.Color(t.gem), emissiveIntensity:.85 });
+  var wood=_c3dPbr(t.body,.78,.05), dark=_c3dPbr(t.dark,.9,.05), metal=_c3dPbr(t.metal,.28,.72,.08);
+  var gemMat=new THREE.MeshStandardMaterial({ color:new THREE.Color(t.gem), roughness:.08, metalness:0, emissive:new THREE.Color(t.gem), emissiveIntensity:.9 });
+  // 木目テクスチャ（横方向のうっすらした濃淡）＝白地に暗い線→材質色に乗算されて木肌のリアリティを出す
+  var woodMap=_c3dCanvasTex(function(x,S){
+    x.fillStyle='#ffffff'; x.fillRect(0,0,S,S);
+    for(var i=0;i<36;i++){ var y=Math.random()*S, a=.05+Math.random()*.13;
+      x.strokeStyle='rgba(46,30,14,'+a+')'; x.lineWidth=.5+Math.random()*1.7;
+      x.beginPath(); x.moveTo(0,y); for(var xx=0;xx<=S;xx+=12) x.lineTo(xx,y+(Math.random()-.5)*3.4); x.stroke(); }
+  });
+  if(woodMap){ wood.map=woodMap; }
   // ── 本体（下箱）＋木の板目（横みぞ）
   var base=new THREE.Mesh(new THREE.BoxGeometry(1.08,.5,.74), wood); base.position.y=.27; g.add(base);
   [.14,.30].forEach(function(y){ var groove=new THREE.Mesh(new THREE.BoxGeometry(1.092,.022,.752), dark); groove.position.set(0,y,0); g.add(groove); });   // 板の継ぎ目
   // 底の金属リム＋4本脚
   var rim=new THREE.Mesh(new THREE.BoxGeometry(1.16,.1,.82), metal); rim.position.y=.05; g.add(rim);
   [[-.46,-.3],[.46,-.3],[-.46,.3],[.46,.3]].forEach(function(f){ var ft=new THREE.Mesh(new THREE.BoxGeometry(.13,.08,.13), metal); ft.position.set(f[0],-.01,f[1]); g.add(ft); });
-  // 縦の金属帯×2（本体）
-  [-.34,.34].forEach(function(x){ var b=new THREE.Mesh(new THREE.BoxGeometry(.11,.54,.78), metal); b.position.set(x,.28,0); g.add(b); });
+  // 縦の金属帯×2（本体）＋鋲（リベット）
+  [-.34,.34].forEach(function(x){ var b=new THREE.Mesh(new THREE.BoxGeometry(.11,.54,.78), metal); b.position.set(x,.28,0); g.add(b);
+    [.09,.26,.43].forEach(function(ry){ var rv=new THREE.Mesh(new THREE.SphereGeometry(.028,10,10), metal); rv.position.set(x,ry,.4); g.add(rv); }); });
   // 四隅の金具
   [[-.51,-.35],[.51,-.35],[-.51,.35],[.51,.35]].forEach(function(c){ var k=new THREE.Mesh(new THREE.BoxGeometry(.1,.15,.1), metal); k.position.set(c[0],.13,c[1]); g.add(k); });
   // 側面の取っ手（半円リング）
@@ -1210,7 +1229,7 @@ function _c3dChestClip(v, phase){
 // 呼び出し側が chestGroup.add(item) してから再生する（テストしやすいようクリップ構築を分離）
 function _c3dChestRiseClip(chestGroup, em){
   // 宝箱から出るアイテムは「絵文字プレート」で明確に見せる（抽象的な3Dギアだと何が出たか分からない、という指摘に対応）
-  var inner=_c3dEmojiPlate(em,.92);
+  var inner=_c3dEmojiPlate(em,.84);
   // バウンディングボックスで視覚的中心を原点にそろえたラッパーGroupを動かす＝どのアイテムも同じ高さに浮かぶ
   var item=new THREE.Group(); item.add(inner);
   try{
@@ -1220,7 +1239,7 @@ function _c3dChestRiseClip(chestGroup, em){
   item.name='c3dChestItem';
   item.position.set(0,.3,0); item.scale.setScalar(.01);
   var tr=[
-    _c3dVT('c3dChestItem.position',[0,.5,.9],[0,.3,0, 0,1.18,.12, 0,1.08,.12]),       // 宝箱の上まで飛び出して少し沈む（縁に乗って見えない高さ）
+    _c3dVT('c3dChestItem.position',[0,.5,.9],[0,.4,.15, 0,1.58,.22, 0,1.45,.22]),      // 宝箱の“上”へしっかり浮かせる＝箱とアイテムが重ならず両方くっきり見える
     _c3dVT('c3dChestItem.scale',[0,.4,.68,.9],[.01,.01,.01, 1.18,1.18,1.18, .94,.94,.94, 1,1,1]),
     _c3dNT('c3dChestItem.rotation[y]',[0,.5,.9],[-.6,.18,0]),                         // 軽く回って正面を向いて着地（平面が横向きで消えないように）
     _c3dNT('c3dChestLid.rotation[x]',[0,.9],[-2.1,-2.1])                              // フタは開いたまま固定

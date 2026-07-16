@@ -171,7 +171,7 @@ c.ok('装備アーケタイプ全 ' + archs.length + ' 型が組み立て可能'
   const a = mixer.clipAction(rc.clip);
   a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.play();
   mixer.update(2.0);   // 終端超え＝clampで保持
-  c.ok('中身が浮かんだ位置で保持（y≈1.08）', Math.abs(rc.item.position.y - 1.08) < 1e-3);
+  c.ok('中身が宝箱の上に浮かんで保持（y≈1.45＝箱と重ならない高さ）', Math.abs(rc.item.position.y - 1.45) < 1e-3);
   c.ok('中身は等倍に戻って保持', Math.abs(rc.item.scale.x - 1) < 1e-3);
   c.ok('フタは開いたまま（-2.1）', Math.abs(g.userData.lid.rotation.x - (-2.1)) < 1e-3);
   c.ok('正面を向いて着地（rotation.y≈0）', Math.abs(rc.item.rotation.y) < 1e-2);

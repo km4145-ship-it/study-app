@@ -1154,7 +1154,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   <div class="score-bar">
     <div class="score-item"><div class="score-num" id="total-correct">0</div><div class="score-label">正解数</div></div>
     <div class="score-item"><div class="score-num" id="total-streak">0</div><div class="score-label">連続正解🔥</div></div>
-    <div class="score-item"><div class="score-num" id="total-points">0</div><div class="score-label">アロハPt🌺</div></div>
+    <div class="score-item"><div class="score-num" id="total-points">0</div><div class="score-label">⭐ポイント</div></div>
     <div class="score-item daily-item" onclick="setGoalPrompt()" title="今日の目標（タップで変更）"><div class="daily-ring" id="daily-ring" style="--pct:0"><div class="inner" id="daily-inner">0/20</div></div><div class="score-label">今日の目標🎯</div></div>
   </div>
 
@@ -2073,7 +2073,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   @keyframes rpgDefeatFade{ to{opacity:0} }
   </style>
   <div id="rpg-screen" style="display:none">
-    <div class="rpg-topbar"><button class="rpg-back" onclick="backToSubjects()">← 学習トップ</button><div class="rpg-topttl">🗡️ まなびの王国クエスト</div></div>
+    <div class="rpg-topbar" id="rpg-topbar" style="display:none"><button class="rpg-back" onclick="backToSubjects()">← 学習トップ</button><div class="rpg-topttl">🗡️ まなびの王国クエスト</div></div>
     <div id="rpg-map-view"></div>
     <div id="rpg-result-view" style="display:none"></div>
   </div>
@@ -3211,7 +3211,7 @@ function testLineNotify(){
   showToast('📨','テスト送信しました','数秒後にLINEに届けば設定OK！');
 }
 function setTestDate(){ const cur=safeLS.getItem('testdate')||''; var v=prompt('次のテストの日（例 2026-07-10）。消すなら空欄。', cur); if(v===null) return; v=(''+v).trim(); if(v===''){ safeLS.setItem('testdate',''); } else if(/^\d{4}-\d{2}-\d{2}$/.test(v)){ safeLS.setItem('testdate', v); } else { showToast('⚠️','日付の形がちがいます','YYYY-MM-DD で入力してね'); return; } refreshSettingsDisp(); renderDailyMenu(); }
-function setReward(){ const cur=lsGetJSON('reward',null); var text=prompt('ごほうびの内容（例：好きな本を1冊）。消すなら空欄。', cur?cur.text:''); if(text===null) return; text=(''+text).trim(); if(text===''){ safeLS.setItem('reward','null'); safeLS.setItem('reward_done','0'); refreshSettingsDisp(); renderDailyMenu(); return; } const p=prompt('何アロハポイントでごほうび？（例 1000）', cur?cur.points:'1000'); if(p===null) return; const pts=parseInt(p,10)||1000; lsSetJSON('reward',{text:text,points:pts}); safeLS.setItem('reward_done','0'); refreshSettingsDisp(); renderDailyMenu(); showToast('🎁','ごほうびを設定','がんばってためよう！'); }
+function setReward(){ const cur=lsGetJSON('reward',null); var text=prompt('ごほうびの内容（例：好きな本を1冊）。消すなら空欄。', cur?cur.text:''); if(text===null) return; text=(''+text).trim(); if(text===''){ safeLS.setItem('reward','null'); safeLS.setItem('reward_done','0'); refreshSettingsDisp(); renderDailyMenu(); return; } const p=prompt('何ポイントでごほうび？（例 1000）', cur?cur.points:'1000'); if(p===null) return; const pts=parseInt(p,10)||1000; lsSetJSON('reward',{text:text,points:pts}); safeLS.setItem('reward_done','0'); refreshSettingsDisp(); renderDailyMenu(); showToast('🎁','ごほうびを設定','がんばってためよう！'); }
 function checkReward(){ const rw=lsGetJSON('reward',null); if(!rw) return; if(totalPoints>=rw.points && safeLS.getItem('reward_done')!=='1'){ safeLS.setItem('reward_done','1'); confetti(); showToast('🎁','ごほうび達成！', rw.text+' をゲット！', 5000); } }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
 
@@ -4051,7 +4051,7 @@ var _rankPeriod = 'all';        // 'all'|'week'|'month'
 var _rankMetric = 'answered';   // 表示中の指標
 var _rankData = null;           // { allMembers, roster, cloud }
 function showRanking(){
-  hideMainScreens();
+  hideMainScreens(); setActiveTab('rec');   // 家族ランキングは「きろく」から＝きろくタブを点灯
   document.getElementById('ranking-screen').style.display='block';
   document.getElementById('ranking-body').innerHTML='<div class="rk-loading">家族のきろくを あつめています…⏳</div>';
   _rankLoad();
@@ -4168,6 +4168,7 @@ function hideMainScreens(){
   });
   const r=document.getElementById('result-screen'); if(r) r.classList.remove('active');
   try{ document.body.classList.remove('rpg-mode'); }catch(e){}
+  try{ var _tb=document.getElementById('rpg-topbar'); if(_tb) _tb.style.display='none'; }catch(e){}   // 「← 学習トップ/まなびの王国クエスト」ヘッダは冒険マップだけに（gacha/dress/aibou/dexでは隠す）
   try{ bgmStop(); }catch(e){}   // 画面を離れたらBGM停止（冒険画面側でまた再生する）
 }
 // ===== 学習記録 =====
@@ -4512,7 +4513,7 @@ function startDifficulty(area, tier){
 /* CHAR_INFO は js/ui-data.js へ分離 */
 function showCharacters(){
   stopExamTimer(); isExam=false;
-  hideMainScreens();
+  hideMainScreens(); setActiveTab('rec');   // キャラ紹介は「きろく」から＝きろくタブを点灯
   document.getElementById('characters-screen').style.display='block';
   setCharacter('owl');
   setLunaText('学園のなかまを紹介するね🦉 カードをタップすると自己紹介するよ！');
@@ -6268,6 +6269,7 @@ function showRpg(){
   setActiveTab('adv');
   document.getElementById('rpg-screen').style.display='block';
   document.body.classList.add('rpg-mode');
+  var _tb=document.getElementById('rpg-topbar'); if(_tb) _tb.style.display='flex';   // 冒険マップだけ「← 学習トップ」ヘッダを出す
   document.getElementById('rpg-result-view').style.display='none';
   document.getElementById('rpg-map-view').style.display='block';
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
@@ -6374,7 +6376,7 @@ function rpgPatPet(){
 // ずかん（あつめたモンスター＆シール）
 function rpgShowDex(){
   try{ sfx('click'); }catch(e){}
-  rpgBattle=null; rpgHideBattle(); hideMainScreens();
+  rpgBattle=null; rpgHideBattle(); hideMainScreens(); setActiveTab('adv');   // 図鑑は冒険の子画面＝ぼうけんタブを点灯
   document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
   document.getElementById('rpg-result-view').style.display='none';
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
@@ -6402,7 +6404,7 @@ function rpgShowDex(){
 // ================= あいぼう（なかまモンスター育成） =================
 function rpgShowAibou(){
   try{ sfx('click'); }catch(e){}
-  rpgBattle=null; rpgHideBattle(); hideMainScreens();
+  rpgBattle=null; rpgHideBattle(); hideMainScreens(); setActiveTab('adv');   // あいぼうは冒険の子画面＝ぼうけんタブを点灯
   document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
   document.getElementById('rpg-result-view').style.display='none';
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';

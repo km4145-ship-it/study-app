@@ -1246,6 +1246,14 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   /* ヒーローCTA */
   .hub-hero{ position:relative; overflow:hidden; display:flex; flex-direction:column; gap:8px; text-align:left; border:none; cursor:pointer; border-radius:var(--r-l); padding:17px 19px; color:#fff; background:linear-gradient(115deg,#0e9bc0 0%,#3f6ee8 55%,#c93a8f 100%); box-shadow:0 10px 26px rgba(59,110,232,.30), inset 0 1px 0 rgba(255,255,255,.28); transition:transform .18s var(--spring), box-shadow .18s var(--ease); }
   .hub-hero:active{ transform:scale(.975); box-shadow:0 4px 14px rgba(59,110,232,.26), inset 0 1px 0 rgba(255,255,255,.28); }
+  /* 🛡️ データを守ろう（アカウント作成の誘導・端末内のみのとき） */
+  .bk-cta{ display:flex; align-items:stretch; gap:6px; margin:10px 0 2px; }
+  .bk-main{ flex:1; display:flex; align-items:center; gap:11px; text-align:left; border:1px solid rgba(245,158,11,.35); background:linear-gradient(135deg,#fffbeb,#fff7ed); border-radius:var(--r-m); padding:11px 13px; cursor:pointer; font-family:inherit; box-shadow:var(--sh-1); transition:transform .15s var(--spring); }
+  .bk-main:active{ transform:scale(.985); }
+  .bk-ic{ font-size:24px; line-height:1; }
+  .bk-tx{ flex:1; min-width:0; color:#7c2d12; line-height:1.35; } .bk-tx b{ font-size:14px; } .bk-tx small{ font-size:11px; color:#9a6a3a; }
+  .bk-go{ background:linear-gradient(135deg,#f59e0b,#f97316); color:#fff; border-radius:var(--r-pill); padding:7px 15px; font-weight:900; font-size:13px; white-space:nowrap; box-shadow:inset 0 1px 0 rgba(255,255,255,.3); }
+  .bk-x{ flex:0 0 auto; width:34px; border:1px solid var(--line); background:#fff; color:var(--muted); border-radius:var(--r-s); cursor:pointer; font-size:13px; font-weight:800; font-family:inherit; }
   .hub-hero-k{ font-size:19px; font-weight:900; display:block; text-shadow:0 1px 3px rgba(0,0,0,.18); }
   .hub-hero-s{ font-size:12.5px; font-weight:600; opacity:.95; display:block; margin-top:2px; }
   .hub-hero-bar{ display:block; height:9px; background:rgba(255,255,255,.28); border-radius:6px; overflow:hidden; }
@@ -3259,6 +3267,12 @@ function _acctDo(kind){
   if(!fn){ alert('同期スクリプト読込中です。少し待って再度お試しください。'); return; }
   fn(em, pw);
 }
+// 🛡️ ホームの「データを守ろう」→設定のアカウント欄へ誘導（保護者が作成）
+function openAccountSetup(){
+  try{ openSettings(); }catch(e){}
+  setTimeout(function(){ try{ var p=document.getElementById('account-panel'); if(p){ p.scrollIntoView({behavior:'smooth',block:'center'}); var e=document.getElementById('account-email'); if(e) e.focus(); } }catch(e){} }, 320);
+}
+function dismissBackupCta(){ try{ safeLS.setItem('hide_backup_cta','1'); }catch(e){} try{ renderGameHub(); }catch(e){} }
 // 🗑️ アカウント削除（App Store必須要件）。二重確認のうえ cloudAccountDelete を呼ぶ
 function accountDelete(){
   if(!window.cloudAccountDelete){ alert('同期スクリプト読込中です。少し待って再度お試しください。'); return; }
@@ -4500,6 +4514,17 @@ function renderGameHub(){
      '<div class="hub-chips"><span class="hub-chip">⭐ '+pts+'</span><span class="hub-chip">🔥 '+st+'日</span><span class="hub-chip">Lv '+lv+'</span></div></div>'+
      '<div class="hub-ring" style="--p:'+pct+'"><div class="hub-ring-in">'+cnt+'<small>/'+goal+'</small></div></div>'+
      '</div>';
+  // 🛡️ データ保護のおすすめ（端末内のみ＝バックアップ無しのとき。アカウントで消えても復活・別端末でも遊べる）
+  try{
+    var _cm=(window.cloudMode && window.cloudMode())||'local';
+    var _hid=false; try{ _hid=(safeLS.getItem('hide_backup_cta')==='1'); }catch(e){}
+    if(_cm==='local' && !_hid){
+      h+='<div class="bk-cta"><button class="bk-main" onclick="openAccountSetup()"><span class="bk-ic">🛡️</span>'
+        +'<span class="bk-tx"><b>データを守ろう</b><br><small>アカウントを作ると、消えても復活・べつの端末でも あそべます</small></span>'
+        +'<span class="bk-go">作る</span></button>'
+        +'<button class="bk-x" onclick="dismissBackupCta()" title="あとで">✕</button></div>';
+    }
+  }catch(e){}
   // リボン（テスト・ごほうび）
   var rib='';
   if(td!==null) rib+='<span class="hub-rib rib-test">📅 テストまで '+(td<0?'おわり':'あと<b>'+td+'</b>日')+'</span>';

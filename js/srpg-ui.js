@@ -87,7 +87,7 @@ function srpgTeamScreen(){
     var gear = sp.bonus ? srpgGearTotal(sp.bonus) : 0;
     return '<div class="srpg-tm-card'+(on?' on':'')+(isLeader?' leader':'')+'">'
       + (isLeader?'<span class="srpg-tm-crown">👑</span>':'')
-      + '<div class="srpg-tm-ava">'+_charStill(sp.art)+'</div>'
+      + '<div class="srpg-tm-ava">'+((typeof srpgMonArt==='function'&&srpgMonArt(sp.art))||_charStill(sp.art))+'</div>'
       + '<div class="srpg-tm-nm">'+escapeHtml(sp.name)+'</div>'
       + '<div class="srpg-tm-meta">'+r.em+r.name+' <small>Lv'+sp.lvl+(sp.rank?' ('+sp.rank+')':'')+'</small></div>'
       + '<div class="srpg-tm-sk">とくぎ×'+nSk+(gear>0?' <span class="srpg-tm-gear">🎽そうび+'+gear+'</span>':'')+'</div>'
@@ -135,7 +135,7 @@ function srpgOpen(){
 function srpgStageCard(id, locked){
   var st = SRPG_STAGES[id], cleared = srpgClearedSet(), done = cleared[id];
   var cont = (typeof RPG_WORLD!=='undefined' && RPG_WORLD[st.continent]) || { emoji:'⚔️', name:'' };
-  var faces = st.enemies.map(function(e){ return '<span class="srpg-sc-mon">'+_monStill(SRPG_ENEMY_TEMPLATES[e.key].art)+'</span>'; }).join('');
+  var faces = st.enemies.map(function(e){ var a=SRPG_ENEMY_TEMPLATES[e.key].art; return '<span class="srpg-sc-mon">'+((typeof srpgMonArt==='function'&&srpgMonArt(a))||_monStill(a))+'</span>'; }).join('');
   var terr = (st.terrain||[]).reduce(function(m,t){ m[t.kind]=1; return m; }, {});
   var terrIcons = Object.keys(terr).map(function(k){ return SRPG_TERRAIN_META[k].em; }).join('');
   var foot = locked ? '前を クリアで 解放' : ('敵'+st.enemies.length+'体'+(st.boss?' ・ ボス「'+st.boss+'」':'')+(terrIcons?' ・ 地形'+terrIcons:''));
@@ -251,8 +251,14 @@ function srpgRender(){
     try{ var f = document.querySelector('#srpg-body .srpg-field'); if(f){ f.classList.add('entering'); setTimeout(function(){ try{ f.classList.remove('entering'); }catch(e){} }, 900); } }catch(e){}
   }
 }
+// ユニットの絵：モンスターは新オリジナルアート、勇者などキャラは従来の3D/SVG
+function srpgUnitArt(u){
+  var a = (typeof srpgMonArt==='function') ? srpgMonArt(u.art) : null;
+  if(a) return a;
+  return (u.side==='enemy') ? _monStill(u.art) : _charStill(u.art);
+}
 function srpgUnitPlate(u){
-  var art = (u.side==='enemy') ? _monStill(u.art) : _charStill(u.art);
+  var art = srpgUnitArt(u);
   var hpPct = Math.max(0, Math.round(u.hp / u.maxHp * 100));
   var mpPct = u.mpMax ? Math.round((u.mp||0) / u.mpMax * 100) : 0;
   var badge = (u.side==='enemy' && u.weak)
@@ -289,7 +295,7 @@ function srpgTurnbarHtml(){
   var alive = order.filter(function(u){ return u && !u.downed; });
   var actor = srpgActor();
   return '<div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
-    var art = (u.side==='enemy') ? _monStill(u.art) : _charStill(u.art);
+    var art = srpgUnitArt(u);
     return '<span class="srpg-tb-face '+u.side+(actor&&u.id===actor.id?' now':'')+'">'+art+'</span>';
   }).join('<span class="srpg-tb-arrow">›</span>');
 }

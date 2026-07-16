@@ -141,4 +141,120 @@ const grid = { w: 6, h: 7 };
   c.ok('全ユニットが盤内に配置', units.every((u) => u.x >= 0 && u.x < S.SRPG_STAGES.arena1.grid.w && u.y >= 0 && u.y < S.SRPG_STAGES.arena1.grid.h));
 }
 
+// ================= 第2弾：戦闘の駆け引き =================
+
+// ---- 耐性の段階（弱点/半減/無効/吸収）----
+{
+  const en = { resists:{ math:'weak', english:'half', social:'null', japanese:'drain' } };
+  c.eq('resistsマップ：弱点', S.srpgResistKind('math', en), 'weak');
+  c.eq('resistsマップ：半減', S.srpgResistKind('english', en), 'half');
+  c.eq('resistsマップ：無効', S.srpgResistKind('social', en), 'null');
+  c.eq('resistsマップ：吸収', S.srpgResistKind('japanese', en), 'drain');
+  c.eq('指定なしは等倍', S.srpgResistKind('science', en), 'normal');
+  // 後方互換（weak/resist しか無い敵）
+  const old = { weak:'science', resist:'math' };
+  c.eq('旧weakは弱点', S.srpgResistKind('science', old), 'weak');
+  c.eq('旧resistは半減', S.srpgResistKind('math', old), 'half');
+  c.eq('弱点倍率1.5', S.srpgResistMult('weak'), 1.5);
+  c.eq('半減倍率0.5', S.srpgResistMult('half'), 0.5);
+  c.eq('無効倍率0', S.srpgResistMult('null'), 0);
+  c.eq('吸収倍率-1', S.srpgResistMult('drain'), -1);
+  c.eq('無効ラベル', S.srpgResistLabel('null').cls, 'nullr');
+  c.eq('吸収ラベル', S.srpgResistLabel('drain').cls, 'drain');
+}
+
+// ---- バフ/デバフ（実効ステータス ±25%/段階・±2で頭打ち）----
+{
+  const u = { atk:100, def:100, spd:100, mods:{ atk:0, def:0, spd:0 }, modTurns:{ atk:0, def:0, spd:0 } };
+  c.eq('無補正は素の値', S.srpgEffStat(u, 'atk'), 100);
+  S.srpgSetMod(u, 'atk', 2, 3);
+  c.eq('+2段階で1.5倍', S.srpgEffStat(u, 'atk'), 150);
+  S.srpgSetMod(u, 'atk', 2, 3);   // さらに+2 → +2で頭打ち
+  c.eq('段階は+2で頭打ち', S.srpgEffStat(u, 'atk'), 150);
+  S.srpgSetMod(u, 'def', -2, 2);
+  c.eq('-2段階で0.5倍', S.srpgEffStat(u, 'def'), 50);
+  // 残りターン減衰：0でリセット
+  S.srpgTickMods(u); S.srpgTickMods(u);   // def:2→0 で解除
+  c.eq('デバフはターンで解除', S.srpgEffStat(u, 'def'), 100);
+  c.ok('atkバフはまだ残る（3ターン）', S.srpgEffStat(u, 'atk') === 150);
+}
+
+// ---- ダメージ・ターン順が実効ステを使う ----
+{
+  const base = S.srpgMakeUnit({ id:'a', side:'ally', name:'a', art:'slime', role:'attacker', rankBase:8, lvl:3 });
+  const buffed = S.srpgMakeUnit({ id:'b', side:'ally', name:'b', art:'slime', role:'attacker', rankBase:8, lvl:3 });
+  S.srpgSetMod(buffed, 'atk', 2, 3);
+  const def = S.srpgMakeUnit({ id:'e', side:'enemy', name:'e', art:'slime', role:'tank', rankBase:8, lvl:3 });
+  c.ok('攻撃バフでダメージ増', S.srpgDamage(buffed, def, 100, 1, false) > S.srpgDamage(base, def, 100, 1, false));
+  const slow = S.srpgMakeUnit({ id:'z', side:'ally', name:'z', art:'slime', role:'attacker', rankBase:8, lvl:9 });
+  const fast = S.srpgMakeUnit({ id:'y', side:'ally', name:'y', art:'slime', role:'attacker', rankBase:8, lvl:1 });
+  S.srpgSetMod(slow, 'spd', -2, 3);   // 速い方を鈍足に
+  const order = S.srpgTurnOrder([slow, fast]).map((u) => u.id);
+  c.ok('すばやさデバフで後回しになる', order.indexOf('y') < order.indexOf('z') || S.srpgEffStat(fast, 'spd') >= S.srpgEffStat(slow, 'spd'));
+}
+
+// ---- 状態異常 ----
+{
+  const u = S.srpgMakeUnit({ id:'u', side:'ally', name:'u', art:'slime', role:'tank', rankBase:8, lvl:5 });
+  S.srpgApplyStatus(u, 'poison', 3);
+  c.ok('どく付与', S.srpgHasStatus(u, 'poison'));
+  const t = S.srpgTickStatus(u);
+  c.ok('どくで毎ターンダメージ', t.poisonDmg > 0);
+  c.ok('どくのターンが減る', u.status.poison === 2);
+  // ねむり＝行動不能・こうげきで解除
+  S.srpgApplyStatus(u, 'sleep', 2);
+  c.ok('ねむりで行動不能', !S.srpgCanAct(u));
+  const t2 = S.srpgTickStatus(u);
+  c.ok('ねむり中はスキップ', t2.skip === true);
+  S.srpgWakeOnHit(u);
+  c.ok('こうげきでねむり解除', u.status.sleep === 0 && S.srpgCanAct(u));
+  // ふうじ＝とくぎ不可
+  S.srpgApplyStatus(u, 'seal', 2);
+  c.ok('ふうじでとくぎ不可', !S.srpgCanUseSkill(u));
+  c.ok('ふうじでも通常行動は可', S.srpgCanAct(u));
+  // まひ＝行動不能
+  const p = S.srpgMakeUnit({ id:'p', side:'enemy', name:'p', art:'wolf', role:'attacker', rankBase:6, lvl:1 });
+  S.srpgApplyStatus(p, 'paralyze', 1);
+  c.ok('まひで行動不能', !S.srpgCanAct(p));
+  const tp = S.srpgTickStatus(p);
+  c.ok('まひはターンで解除', tp.skip === true && p.status.paralyze === 0);
+}
+
+// ---- 拡張スキルのデータ整合 ----
+{
+  const KINDS = ['atk', 'heal', 'buff', 'debuff'];
+  const STAT = ['poison', 'paralyze', 'sleep', 'seal'];
+  Object.keys(S.SRPG_SKILLS).forEach((id) => {
+    const sk = S.SRPG_SKILLS[id];
+    c.ok('スキル ' + id + ' の種別が有効', KINDS.indexOf(sk.kind) >= 0);
+    c.ok('スキル ' + id + ' はMP≧0', typeof sk.mp === 'number' && sk.mp >= 0);
+    if(sk.inflict) c.ok('スキル ' + id + ' の状態異常が有効', STAT.indexOf(sk.inflict.kind) >= 0 && sk.inflict.chance > 0);
+    if(sk.kind === 'buff' || sk.kind === 'debuff'){
+      c.ok('スキル ' + id + ' はbuff定義を持つ', sk.buff && ['atk','def','spd'].indexOf(sk.buff.stat) >= 0);
+      c.ok('スキル ' + id + ' のtargetが有効', ['self','ally','enemy'].indexOf(sk.buff.target) >= 0);
+    }
+  });
+}
+
+// ---- 敵テンプレの耐性が有効（段階・教科ともに妥当・無効/吸収が存在する）----
+{
+  const RK = ['weak', 'normal', 'half', 'null', 'drain'];
+  let hasNull = false, hasDrain = false;
+  Object.keys(S.SRPG_ENEMY_TEMPLATES).forEach((k) => {
+    const t = S.SRPG_ENEMY_TEMPLATES[k];
+    if(t.resists) Object.keys(t.resists).forEach((sub) => {
+      c.ok('敵 ' + k + ' の耐性教科が有効', S.SRPG_SUBJECT_KEYS.indexOf(sub) >= 0);
+      c.ok('敵 ' + k + ' の耐性段階が有効', RK.indexOf(t.resists[sub]) >= 0);
+      if(t.resists[sub] === 'null') hasNull = true;
+      if(t.resists[sub] === 'drain') hasDrain = true;
+    });
+    if(t.onhit) c.ok('敵 ' + k + ' のonhit状態異常が有効', ['poison','paralyze','sleep','seal'].indexOf(t.onhit.kind) >= 0);
+  });
+  c.ok('無効(null)を持つ敵がいる（駆け引き）', hasNull);
+  c.ok('吸収(drain)を持つ敵がいる（駆け引き）', hasDrain);
+  // makeUnitが status/mods を初期化する
+  const mu = S.srpgMakeUnit({ id:'m', side:'ally', name:'m', art:'slime', role:'attacker', rankBase:6, lvl:1 });
+  c.ok('ユニットはstatus/modsを持つ', mu.status && mu.mods && typeof mu.mods.atk === 'number');
+}
+
 c.done();

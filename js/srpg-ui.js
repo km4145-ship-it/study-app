@@ -7,6 +7,7 @@
        → 正解＝発動（弱点教科なら つよめ×1.5）／不正解＝ミス → ターン終了 */
 
 var srpgB = null;   // 現在の戦闘状態（null＝非戦闘）
+var SRPG_STAT_JA = { atk:'こうげき', def:'まもり', spd:'すばやさ' };
 
 // ---- 味方編成：勇者＋あいぼうパーティ（最大5・足りなければ既定の仲間で補う） ----
 function srpgAllyRoster(){
@@ -126,9 +127,15 @@ function srpgUnitPlate(u){
   var badge = (u.side==='enemy' && u.weak)
     ? '<span class="srpg-weak" title="弱点">'+srpgSubjectMeta(u.weak).em+'</span>'
     : '<span class="srpg-role">'+u.roleEm+'</span>';
+  // 状態異常アイコン＋バフ/デバフ矢印
+  var stt=u.status||{}, sIcons='';
+  ['poison','paralyze','sleep','seal'].forEach(function(k){ if(stt[k]>0) sIcons+=SRPG_STATUS_META[k].em; });
+  var md=u.mods||{}, mUp=(md.atk>0||md.def>0||md.spd>0), mDn=(md.atk<0||md.def<0||md.spd<0);
+  var stBar=(sIcons||mUp||mDn) ? ('<div class="srpg-stbar">'+sIcons+(mUp?'<span class="srpg-buf up">⬆</span>':'')+(mDn?'<span class="srpg-buf dn">⬇</span>':'')+'</div>') : '';
   return '<div class="srpg-unit '+u.side+(u.side==='enemy'&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)]&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)].boss?' boss':'')+'" id="su-'+u.id+'">'
     + '<div class="srpg-hpbar"><i style="width:'+hpPct+'%"></i></div>'
     + (u.side==='ally' && u.mpMax ? '<div class="srpg-mpbar"><i style="width:'+mpPct+'%"></i></div>' : '')
+    + stBar
     + '<div class="srpg-sprite">'+art+'</div>'
     + badge
     + '<div class="srpg-uname">'+escapeHtml(u.name)+'</div>'
@@ -155,12 +162,15 @@ function srpgCmdHtml(){
   if(!actor || actor.side!=='ally') return '<div class="srpg-cmd-wait">'+(actor?escapeHtml(actor.name)+' の ターン…':'…')+'</div>';
   if(srpgB.phase==='pick-subject'){
     var tgt = srpgUnitAt(srpgB.units, srpgB.targetTile.x, srpgB.targetTile.y);
+    var TAG = { weak:'<b>弱点！</b>', half:'<span>半減</span>', 'null':'<span class="x">無効</span>', drain:'<span class="x">吸収!</span>', normal:'' };
+    var CLS = { weak:'weak', half:'resist', 'null':'nullr', drain:'drain', normal:'' };
     var subs = SRPG_SUBJECT_KEYS.map(function(k){
-      var m = srpgSubjectMeta(k), isWeak = tgt && tgt.weak===k, isRes = tgt && tgt.resist===k;
-      return '<button class="srpg-sub'+(isWeak?' weak':'')+(isRes?' resist':'')+'" onclick="srpgPickSubject(\''+k+'\')">'
-        + m.em+' '+m.label+(isWeak?'<b>弱点！</b>':'')+(isRes?'<span>耐性</span>':'')+'</button>';
+      var m = srpgSubjectMeta(k), kind = srpgResistKind(k, tgt);
+      return '<button class="srpg-sub '+(CLS[kind]||'')+'" onclick="srpgPickSubject(\''+k+'\')">'
+        + m.em+' '+m.label+(TAG[kind]||'')+'</button>';
     }).join('');
-    return '<div class="srpg-cmd-head">どの教科で こうげきする？</div><div class="srpg-subs">'+subs+'</div>'
+    var isDebuff = srpgB.chosenSkill && (srpgSkill(srpgB.chosenSkill)||{}).kind==='debuff';
+    return '<div class="srpg-cmd-head">'+(isDebuff?'どの教科で しかける？':'どの教科で こうげきする？')+'</div><div class="srpg-subs">'+subs+'</div>'
       + '<button class="srpg-mini" onclick="srpgCancel()">← もどる</button>';
   }
   if(srpgB.phase==='move'){
@@ -172,13 +182,15 @@ function srpgCmdHtml(){
   }
   // phase 'select'：コマンド一覧
   var mp = actor.mp || 0;
+  var sealed = !srpgCanUseSkill(actor);
+  var SKEM = { heal:'✨', buff:'⬆️', debuff:'⬇️', atk:'🌟' };
   var skills = actor.skills.map(function(id){
     var s = srpgSkill(id); if(!s) return '';
-    var ok = mp >= s.mp;
+    var ok = mp >= s.mp && !sealed;
     return '<button class="srpg-cmd-btn skill'+(ok?'':' off')+'" '+(ok?'onclick="srpgCmdSkill(\''+id+'\')"':'disabled')+' title="'+escapeHtml(s.desc)+'">'
-      + (s.kind==='heal'?'✨':'🌟')+' '+s.name+' <small>MP'+s.mp+'</small></button>';
+      + (SKEM[s.kind]||'🌟')+' '+s.name+' <small>'+(sealed?'ふうじ':'MP'+s.mp)+'</small></button>';
   }).join('');
-  return '<div class="srpg-cmd-actor">'+actor.roleEm+' '+escapeHtml(actor.name)+' <small>Lv後 HP'+actor.hp+'/'+actor.maxHp+' MP'+mp+'</small></div>'
+  return '<div class="srpg-cmd-actor">'+actor.roleEm+' '+escapeHtml(actor.name)+' <small>HP'+actor.hp+'/'+actor.maxHp+' MP'+mp+'</small></div>'
     + '<div class="srpg-cmd-row">'
     + '<button class="srpg-cmd-btn'+(srpgB.moved?' off':'')+'" '+(srpgB.moved?'disabled':'onclick="srpgCmdMove()"')+'>👣 いどう</button>'
     + '<button class="srpg-cmd-btn atk" onclick="srpgCmdAttack()">⚔️ こうげき</button>'
@@ -204,8 +216,33 @@ function srpgNextTurn(){
   if(!actor || actor.downed){ return srpgNextTurn(); }   // 死者は飛ばす
   srpgB.actorId = actor.id; srpgB.moved = false; srpgB.chosenSkill = null; srpgB.targetTile = null;
   srpgClearHi();
-  if(actor.side === 'enemy'){ srpgB.phase = 'enemy'; srpgRender(); setTimeout(function(){ srpgEnemyTurn(actor); }, 520); }
-  else { srpgSelectActor(); }
+  srpgTurnStart(actor);
+}
+// ターン開始：バフ経過・毒ダメージ・行動不能（まひ/ねむり）を処理してから操作へ
+function srpgTurnStart(actor){
+  var wasSleep = srpgHasStatus(actor, 'sleep'), wasPara = srpgHasStatus(actor, 'paralyze');
+  srpgTickMods(actor);
+  var t = srpgTickStatus(actor);
+  var proceed = function(){
+    if(actor.downed){ srpgRender(); setTimeout(srpgNextTurn, 480); return; }
+    if(t.skip){
+      srpgPopupAt(actor.x, actor.y, wasSleep ? '💤 ねむり…' : '⚡ まひ！', 'status');
+      srpgRender();
+      setTimeout(function(){ srpgEndActorTurn(); }, 820);
+      return;
+    }
+    if(actor.side === 'enemy'){ srpgB.phase = 'enemy'; srpgRender(); setTimeout(function(){ srpgEnemyTurn(actor); }, 480); }
+    else { srpgSelectActor(); }
+  };
+  if(t.poisonDmg > 0){
+    actor.hp = Math.max(0, actor.hp - t.poisonDmg);
+    srpgPopupAt(actor.x, actor.y, '☠️' + t.poisonDmg, 'poison');
+    if(actor.hp <= 0){ actor.downed = true; srpgPopupAt(actor.x, actor.y, 'たおれた…', 'down'); }
+    srpgRender();
+    var oc = srpgOutcome(srpgB.units);
+    if(oc){ setTimeout(function(){ srpgEnd(oc); }, 700); return; }
+    setTimeout(proceed, 640);
+  } else { proceed(); }
 }
 function srpgSelectActor(){
   srpgB.phase = 'select'; srpgB.chosenSkill = null; srpgB.targetTile = null;
@@ -228,27 +265,31 @@ function srpgCmdAttack(){
   var actor = srpgActor(); if(!actor) return;
   try{ sfx('click'); }catch(e){}
   srpgB.chosenSkill = null; srpgB.phase = 'action';
-  srpgShowTargets(actor, actor.rng, 'atk');
+  srpgShowTargets(actor, actor.rng, 'enemy');
 }
 function srpgCmdSkill(id){
   var actor = srpgActor(); if(!actor) return;
-  var s = srpgSkill(id); if(!s || (actor.mp||0) < s.mp) return;
+  var s = srpgSkill(id); if(!s) return;
+  if(!srpgCanUseSkill(actor)) return;          // ふうじ中は使えない
+  if((actor.mp||0) < s.mp) return;
   try{ sfx('click'); }catch(e){}
-  srpgB.chosenSkill = id; srpgB.phase = 'action';
-  srpgShowTargets(actor, s.rng, s.kind);
+  srpgB.chosenSkill = id;
+  if(s.kind==='buff' && s.buff && s.buff.target==='self'){ srpgResolveBuff(actor); return; }  // 自分バフ＝出題なしで即発動
+  srpgB.phase = 'action';
+  var mode = (s.kind==='heal' || (s.kind==='buff' && s.buff && s.buff.target==='ally')) ? 'ally-support' : 'enemy';
+  srpgShowTargets(actor, s.rng, mode);
 }
 function srpgCmdWait(){
   try{ sfx('click'); }catch(e){}
   var actor = srpgActor(); if(actor) srpgB.acted[actor.id] = 1;
   srpgEndActorTurn();
 }
-function srpgShowTargets(actor, rng, kind){
+function srpgShowTargets(actor, rng, mode){
   srpgB.hiTarget = {};
-  var want = (kind==='heal') ? 'ally' : 'enemy';
+  var want = (mode==='ally-support') ? 'ally' : 'enemy';
   srpgRangeTiles(actor.x, actor.y, rng, srpgB.grid).forEach(function(t){
     var u = srpgUnitAt(srpgB.units, t.x, t.y);
-    if(u && u.side===want && (kind!=='heal' || u.hp < u.maxHp)) srpgB.hiTarget[t.x+','+t.y] = 1;
-    if(kind==='heal' && u && u.side==='ally') srpgB.hiTarget[t.x+','+t.y] = 1;   // 満タンでも選べる
+    if(u && u.side===want && !u.downed) srpgB.hiTarget[t.x+','+t.y] = 1;
   });
   srpgRender();
 }
@@ -267,8 +308,9 @@ function srpgTileTap(x, y){
   if(srpgB.phase==='action' && srpgB.hiTarget[key]){
     srpgB.targetTile = { x:x, y:y };
     var sk = srpgB.chosenSkill ? srpgSkill(srpgB.chosenSkill) : null;
-    if(sk && sk.kind==='heal'){ srpgResolveHeal(); return; }   // 回復は出題なしで即発動
-    srpgB.phase = 'pick-subject'; srpgRender();
+    if(sk && sk.kind==='heal'){ srpgResolveHeal(); return; }                         // 回復は出題なしで即発動
+    if(sk && sk.kind==='buff'){ srpgResolveBuff(srpgUnitAt(srpgB.units, x, y)); return; }  // なかまバフも即発動
+    srpgB.phase = 'pick-subject'; srpgRender();   // こうげき／デバフは 教科えらび→出題
     return;
   }
 }
@@ -358,26 +400,59 @@ function srpgResolveAttack(correct){
   }
   srpgB.combo++;
   var crit = srpgB.combo >= 3;
+  // デバフ（敵のステータス下げ）：ダメージ無し・単体・出題に正解で成立
+  if(sk && sk.kind==='debuff'){
+    var d = srpgUnitAt(srpgB.units, tgt.x, tgt.y);
+    if(d && d.side==='enemy' && sk.buff){
+      srpgSetMod(d, sk.buff.stat, sk.buff.stage, sk.buff.turns);
+      srpgPopupAt(tgt.x, tgt.y, '⬇'+SRPG_STAT_JA[sk.buff.stat]+' ダウン', 'debuff');
+    }
+    srpgRender(); srpgAfterResolve(); return;
+  }
   if(!sk){ actor.mp = Math.min(actor.mpMax||6, (actor.mp||0) + 2); }   // 通常こうげき成功でMPチャージ
   var shape = sk ? sk.shape : 'single';
   var power = sk ? sk.power : 100;
   var cells = srpgAoeTiles(shape, tgt.x, tgt.y, srpgB.grid, actor);
-  var hitAny = false;
   cells.forEach(function(c){
     srpgB.hiAoe[c.x+','+c.y] = 1;
     var e = srpgUnitAt(srpgB.units, c.x, c.y);
-    if(e && e.side==='enemy'){
-      var mult = srpgElemMult(srpgB.subject, e);
-      var dmg = srpgDamage(actor, e, power, mult, crit);
-      e.hp = Math.max(0, e.hp - dmg);
-      var lab = srpgMultLabel(mult);
-      srpgPopupAt(c.x, c.y, (crit?'かいしん！ ':'') + dmg + (lab.txt?(' '+lab.txt):''), lab.cls==='weak'?'weak':(lab.cls==='resist'?'resist':'dmg'));
-      if(e.hp<=0){ e.downed = true; srpgPopupAt(c.x, c.y, 'たおした！', 'down'); }
-      hitAny = true;
+    if(!(e && e.side==='enemy')) return;
+    var kind = srpgResistKind(srpgB.subject, e);
+    if(kind==='null'){ srpgPopupAt(c.x, c.y, 'きかない！', 'nullr'); return; }
+    if(kind==='drain'){   // 吸収：ダメージ0＋敵HP回復（この教科は選んではいけない）
+      var amt = srpgDamage(actor, e, power, 1, crit);
+      e.hp = Math.min(e.maxHp, e.hp + amt);
+      srpgPopupAt(c.x, c.y, '+'+amt+' きゅうしゅう', 'drain');
+      return;
     }
+    var mult = srpgResistMult(kind);
+    var dmg = srpgDamage(actor, e, power, mult, crit);
+    srpgWakeOnHit(e);   // ねむっている敵は こうげきで目ざめる
+    e.hp = Math.max(0, e.hp - dmg);
+    var lab = srpgResistLabel(kind);
+    srpgPopupAt(c.x, c.y, (crit?'かいしん！ ':'') + dmg + (lab.txt?(' '+lab.txt):''), lab.cls==='weak'?'weak':(lab.cls==='resist'?'resist':'dmg'));
+    // とくぎの状態異常付与（確率）
+    if(sk && sk.inflict && e.hp>0 && Math.random() < sk.inflict.chance){
+      srpgApplyStatus(e, sk.inflict.kind, sk.inflict.turns);
+      var sm = SRPG_STATUS_META[sk.inflict.kind];
+      srpgPopupAt(c.x, c.y, sm.em+sm.name, 'status');
+    }
+    if(e.hp<=0){ e.downed = true; srpgPopupAt(c.x, c.y, 'たおした！', 'down'); }
   });
   srpgRender();
   if(crit){ try{ document.body.classList.add('srpg-flash'); setTimeout(function(){ document.body.classList.remove('srpg-flash'); }, 260); }catch(e){} }
+  srpgAfterResolve();
+}
+// なかま／自分へのバフ・デバフ（出題なしで即発動）
+function srpgResolveBuff(tgt){
+  var actor = srpgActor(), sk = srpgSkill(srpgB.chosenSkill);
+  if(!tgt || !sk || !sk.buff){ srpgEndActorTurn(); return; }
+  actor.mp = Math.max(0, (actor.mp||0) - sk.mp);
+  srpgSetMod(tgt, sk.buff.stat, sk.buff.stage, sk.buff.turns);
+  var up = sk.buff.stage > 0;
+  srpgPopupAt(tgt.x, tgt.y, (up?'⬆':'⬇')+SRPG_STAT_JA[sk.buff.stat]+(up?' アップ':' ダウン'), 'buff');
+  try{ sfx('correct'); }catch(e){}
+  srpgRender();
   srpgAfterResolve();
 }
 function srpgResolveHeal(){
@@ -420,9 +495,16 @@ function srpgEnemyTurn(enemy){
       var tgt = srpgUnitById(plan.targetId);
       if(tgt && !tgt.downed){
         var dmg = srpgDamage(enemy, tgt, 100, 1, false);
+        srpgWakeOnHit(tgt);
         tgt.hp = Math.max(0, tgt.hp - dmg);
         srpgPopupAt(tgt.x, tgt.y, dmg, 'dmg-e');
         try{ sfx('wrong'); vibe(20); }catch(e){}
+        // 状態異常つきのこうげき（毒・まひ・ふうじ など）
+        if(enemy.onhit && tgt.hp>0 && Math.random() < enemy.onhit.chance){
+          srpgApplyStatus(tgt, enemy.onhit.kind, enemy.onhit.turns);
+          var sm = SRPG_STATUS_META[enemy.onhit.kind];
+          srpgPopupAt(tgt.x, tgt.y, sm.em+sm.name, 'status');
+        }
         if(tgt.hp<=0){ tgt.downed = true; srpgPopupAt(tgt.x, tgt.y, 'たおれた…', 'down'); }
         srpgRender();
       }

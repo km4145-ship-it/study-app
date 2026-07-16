@@ -35,12 +35,79 @@ function srpgMultLabel(mult){
   return { txt:'', cls:'normal' };
 }
 
+// ===== 耐性の段階（弱点/等倍/半減/無効/吸収）＝ドラクエの耐性表 =====
+//   enemy.resists[subject] を優先。無ければ後方互換で weak/resist から導く。
+//   drain（吸収）は倍率 -1（＝ダメージ0＋その分HP回復）を意味し、呼び出し側で回復に変換する。
+var SRPG_RESIST_MULT = { weak:1.5, normal:1, half:0.5, 'null':0, drain:-1 };
+function srpgResistKind(subjectKey, enemy){
+  if(!enemy) return 'normal';
+  if(enemy.resists && enemy.resists[subjectKey]) return enemy.resists[subjectKey];
+  if(enemy.weak === subjectKey) return 'weak';
+  if(enemy.resist === subjectKey) return 'half';
+  return 'normal';
+}
+function srpgResistMult(kind){ return SRPG_RESIST_MULT[kind] !== undefined ? SRPG_RESIST_MULT[kind] : 1; }
+function srpgResistLabel(kind){
+  var T = { weak:{txt:'つよめ！',cls:'weak'}, half:{txt:'よわめ…',cls:'resist'},
+    'null':{txt:'きかない！',cls:'nullr'}, drain:{txt:'きゅうしゅう！',cls:'drain'}, normal:{txt:'',cls:'normal'} };
+  return T[kind] || T.normal;
+}
+
+// ===== バフ/デバフ（攻・守・速の段階。-2..+2、各段階 ±25%） =====
+function srpgClampStage(v){ return Math.max(-2, Math.min(2, v || 0)); }
+function srpgEffStat(unit, stat){
+  var b = (unit && unit[stat]) || 0;
+  var st = srpgClampStage(unit && unit.mods && unit.mods[stat]);
+  return Math.round(b * (1 + 0.25 * st));
+}
+// バフ/デバフを積む（段階は累積し ±2 で頭打ち・残りターンを更新）
+function srpgSetMod(unit, stat, stage, turns){
+  if(!unit.mods) unit.mods = { atk:0, def:0, spd:0 };
+  if(!unit.modTurns) unit.modTurns = { atk:0, def:0, spd:0 };
+  unit.mods[stat] = srpgClampStage((unit.mods[stat] || 0) + stage);
+  unit.modTurns[stat] = Math.max(unit.modTurns[stat] || 0, turns || 0);
+}
+// ターン開始時：バフ/デバフの残りターンを減らし、0になった段階は解除
+function srpgTickMods(unit){
+  if(!unit.modTurns) return;
+  ['atk','def','spd'].forEach(function(s){
+    if(unit.modTurns[s] > 0){ unit.modTurns[s]--; if(unit.modTurns[s] <= 0) unit.mods[s] = 0; }
+  });
+}
+
+// ===== 状態異常（どく/まひ/ねむり/ふうじ） =====
+var SRPG_STATUS_META = {
+  poison:  { key:'poison',   em:'☠️', name:'どく',   desc:'毎ターン じわじわ ダメージ' },
+  paralyze:{ key:'paralyze', em:'⚡', name:'まひ',   desc:'うごけない ことがある' },
+  sleep:   { key:'sleep',    em:'💤', name:'ねむり', desc:'うごけない（こうげきで 目ざめる）' },
+  seal:    { key:'seal',     em:'🚫', name:'ふうじ', desc:'とくぎが つかえない' }
+};
+function srpgApplyStatus(unit, kind, turns){
+  if(!unit.status) unit.status = {};
+  unit.status[kind] = Math.max(unit.status[kind] || 0, turns || 1);
+}
+function srpgHasStatus(unit, kind){ return !!(unit.status && unit.status[kind] > 0); }
+// ターン開始時の状態異常処理。返り値: { poisonDmg, skip(行動不能か), cleared[] }
+function srpgTickStatus(unit){
+  var out = { poisonDmg:0, skip:false, cleared:[] };
+  if(!unit.status) return out;
+  if(unit.status.poison > 0){ out.poisonDmg = Math.max(1, Math.ceil(unit.maxHp * 0.10)); unit.status.poison--; if(unit.status.poison <= 0) out.cleared.push('poison'); }
+  if(unit.status.sleep > 0){ out.skip = true; unit.status.sleep--; if(unit.status.sleep <= 0) out.cleared.push('sleep'); }
+  else if(unit.status.paralyze > 0){ out.skip = true; unit.status.paralyze--; if(unit.status.paralyze <= 0) out.cleared.push('paralyze'); }
+  if(unit.status.seal > 0){ unit.status.seal--; if(unit.status.seal <= 0) out.cleared.push('seal'); }
+  return out;
+}
+function srpgCanAct(unit){ return !(unit.status && (unit.status.sleep > 0 || unit.status.paralyze > 0)); }
+function srpgCanUseSkill(unit){ return !(unit.status && unit.status.seal > 0); }
+// こうげきを受けたら ねむりは解除
+function srpgWakeOnHit(unit){ if(unit.status && unit.status.sleep > 0) unit.status.sleep = 0; }
+
 // ===== 役割（アタッカー/まほう/かいふく/ぼうぎょ）。ステータス倍率と初期とくぎ =====
 var SRPG_ROLES = {
-  attacker:{ key:'attacker', name:'アタッカー', em:'⚔️', hp:1.0, atk:1.25, def:0.9,  spd:1.15, mov:3, rng:1, skills:['slash'] },
-  mage:    { key:'mage',     name:'まほう',     em:'🔮', hp:0.85,atk:1.15, def:0.8,  spd:1.0,  mov:2, rng:2, skills:['burstball'] },
-  healer:  { key:'healer',   name:'かいふく',   em:'✨', hp:0.95,atk:0.8,  def:0.95, spd:1.05, mov:2, rng:2, skills:['heal'] },
-  tank:    { key:'tank',     name:'ぼうぎょ',   em:'🛡️', hp:1.4, atk:0.9,  def:1.4,  spd:0.8,  mov:2, rng:1, skills:['taunt'] }
+  attacker:{ key:'attacker', name:'アタッカー', em:'⚔️', hp:1.0, atk:1.25, def:0.9,  spd:1.15, mov:3, rng:1, skills:['slash','powerup'] },
+  mage:    { key:'mage',     name:'まほう',     em:'🔮', hp:0.85,atk:1.15, def:0.8,  spd:1.0,  mov:2, rng:2, skills:['burstball','poisonbreath'] },
+  healer:  { key:'healer',   name:'かいふく',   em:'✨', hp:0.95,atk:0.8,  def:0.95, spd:1.05, mov:2, rng:2, skills:['heal','bikilt'] },
+  tank:    { key:'tank',     name:'ぼうぎょ',   em:'🛡️', hp:1.4, atk:0.9,  def:1.4,  spd:0.8,  mov:2, rng:1, skills:['taunt','rukani'] }
 };
 
 // ===== とくぎ（スキル）。elem/属性は「使うとき選んだ教科」で決まるのでここには持たない =====
@@ -51,7 +118,27 @@ var SRPG_SKILLS = {
   burstball:{ id:'burstball',name:'ばくれつ',     mp:4, shape:'burst',  power:120, kind:'atk',  rng:2, desc:'3×3の範囲を巻きこむ大魔法' },
   heal:     { id:'heal',     name:'ホイミ',       mp:3, shape:'single', power:130, kind:'heal', rng:2, desc:'なかま1体のHPを回復' },
   taunt:    { id:'taunt',    name:'みがわり突撃', mp:3, shape:'single', power:150, kind:'atk',  rng:1, desc:'みがわりになりつつ重い一撃' },
-  line:     { id:'line',     name:'つらぬき',     mp:4, shape:'line3',  power:130, kind:'atk',  rng:1, desc:'奥へ直線3マスを貫く' }
+  line:     { id:'line',     name:'つらぬき',     mp:4, shape:'line3',  power:130, kind:'atk',  rng:1, desc:'奥へ直線3マスを貫く' },
+  // 状態異常つきのこうげき（教科をえらんで正解で発動）
+  poisonbreath:{ id:'poisonbreath', name:'どくのいき', mp:4, shape:'burst', power:60, kind:'atk', rng:2,
+    inflict:{ kind:'poison', turns:3, chance:0.9 }, desc:'3×3にダメージ＋どく（じわじわ削る）' },
+  numbing: { id:'numbing',  name:'しびれこうげき', mp:3, shape:'single', power:75, kind:'atk', rng:2,
+    inflict:{ kind:'paralyze', turns:2, chance:0.7 }, desc:'まひで うごきを止める（2ターン）' },
+  lullaby: { id:'lullaby',  name:'こもりうた',   mp:4, shape:'cross', power:0, kind:'atk', rng:2,
+    inflict:{ kind:'sleep', turns:2, chance:0.65 }, desc:'十字の敵を ねむらせる（こうげきで起きる）' },
+  sealing: { id:'sealing',  name:'とくぎふうじ', mp:3, shape:'single', power:55, kind:'atk', rng:2,
+    inflict:{ kind:'seal', turns:3, chance:0.8 }, desc:'とくぎを ふうじる（3ターン）' },
+  // バフ／デバフ（味方は出題なしで即・敵デバフは教科をえらんで正解で発動）
+  powerup: { id:'powerup',  name:'ちからため',   mp:3, shape:'single', kind:'buff', rng:0,
+    buff:{ stat:'atk', stage:2, turns:3, target:'self' }, desc:'自分の こうげきを 大きく上げる' },
+  bikilt:  { id:'bikilt',   name:'バイキルト',   mp:4, shape:'single', kind:'buff', rng:2,
+    buff:{ stat:'atk', stage:1, turns:3, target:'ally' }, desc:'なかま1体の こうげきを上げる' },
+  ranban:  { id:'ranban',   name:'スクルト',     mp:3, shape:'single', kind:'buff', rng:2,
+    buff:{ stat:'def', stage:1, turns:3, target:'ally' }, desc:'なかま1体の まもりを上げる' },
+  rukani:  { id:'rukani',   name:'ルカニ',       mp:3, shape:'single', kind:'debuff', rng:2,
+    buff:{ stat:'def', stage:-2, turns:3, target:'enemy' }, desc:'敵の まもりを 下げる（ダメージUP）' },
+  rariho:  { id:'rariho',   name:'すばやさダウン', mp:3, shape:'single', kind:'debuff', rng:2,
+    buff:{ stat:'spd', stage:-1, turns:3, target:'enemy' }, desc:'敵の すばやさを 下げて 後回しに' }
 };
 function srpgSkill(id){ return SRPG_SKILLS[id] || null; }
 
@@ -131,7 +218,7 @@ function srpgAoeTiles(shape, tx, ty, grid, attacker){
 // ===== ダメージ計算（決定的：crit は呼び出し側＝コンボ等が渡す） =====
 // dmg = max(1, round((atk*power/100 - def*0.4) * elemMult * crit))
 function srpgDamage(attacker, defender, power, elemMult, crit){
-  var atk = (attacker && attacker.atk) || 1, def = (defender && defender.def) || 0;
+  var atk = srpgEffStat(attacker, 'atk') || 1, def = srpgEffStat(defender, 'def') || 0;
   var base = atk * ((power || 100) / 100) - def * 0.4;
   var raw = base * (elemMult || 1) * (crit ? 1.5 : 1);
   return Math.max(1, Math.round(raw));
@@ -144,7 +231,7 @@ function srpgHealAmount(caster, power){
 // ===== ターン順（すばやさ降順・同値は id 昇順で安定） =====
 function srpgTurnOrder(units){
   return (units || []).filter(function(u){ return u && !u.downed; })
-    .slice().sort(function(a, b){ return (b.spd - a.spd) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0); });
+    .slice().sort(function(a, b){ return (srpgEffStat(b, 'spd') - srpgEffStat(a, 'spd')) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0); });
 }
 
 // ===== 勝敗（side の全員が downed か） =====
@@ -201,22 +288,33 @@ function srpgMakeUnit(spec){
     maxHp: hp, hp: hp, atk: atk, def: def, spd: spd,
     mov: role.mov, rng: role.rng, mp: 0, mpMax: 6,
     skills: (spec.skills && spec.skills.length ? spec.skills : role.skills).slice(),
-    weak: spec.weak || null, resist: spec.resist || null,
+    weak: spec.weak || null, resist: spec.resist || null, resists: spec.resists || null,
+    onhit: spec.onhit || null,
+    status: {}, mods: { atk:0, def:0, spd:0 }, modTurns: { atk:0, def:0, spd:0 },
     x: spec.x || 0, y: spec.y || 0, acted: false, downed: false
   };
 }
 
 // ===== 敵テンプレ（art は RPG_SVG に存在するもの＝テストで検証） =====
 var SRPG_ENEMY_TEMPLATES = {
-  slime:  { art:'slime',   name:'スライム',   role:'attacker', rankBase:5,  weak:'science',  resist:'math' },
-  goblin: { art:'goblin',  name:'ゴブリン',   role:'attacker', rankBase:6,  weak:'math',     resist:'social' },
-  bat:    { art:'bat',     name:'いっかくばち',role:'mage',    rankBase:6,  weak:'english',  resist:'japanese' },
-  wolf:   { art:'wolf',    name:'ウルフ',     role:'attacker', rankBase:8,  weak:'social',   resist:'science' },
-  ghost:  { art:'ghost',   name:'ゴースト',   role:'mage',     rankBase:8,  weak:'japanese', resist:'english' },
-  trent:  { art:'trent',   name:'トレント',   role:'tank',     rankBase:9,  weak:'science',  resist:'social' },
-  voltdrake:{art:'voltdrake',name:'ボルトドレイク',role:'mage', rankBase:11, weak:'social', resist:'math' },
-  dragon: { art:'dragon',  name:'ドラゴン',   role:'attacker', rankBase:13, weak:'math',     resist:'english' },
-  villain:{ art:'villain', name:'魔王シグマ', role:'tank',     rankBase:16, weak:'math',     resist:'japanese', boss:true }
+  slime:  { art:'slime',   name:'スライム',   role:'attacker', rankBase:5,  weak:'science',  resist:'math',
+    resists:{ science:'weak', math:'half' } },
+  goblin: { art:'goblin',  name:'ゴブリン',   role:'attacker', rankBase:6,  weak:'math',     resist:'social',
+    resists:{ math:'weak', social:'half' } },
+  bat:    { art:'bat',     name:'いっかくばち',role:'mage',    rankBase:6,  weak:'english',  resist:'japanese',
+    resists:{ english:'weak', japanese:'half' }, onhit:{ kind:'poison', turns:2, chance:0.35 } },
+  wolf:   { art:'wolf',    name:'ウルフ',     role:'attacker', rankBase:8,  weak:'social',   resist:'science',
+    resists:{ social:'weak', science:'half' }, onhit:{ kind:'paralyze', turns:1, chance:0.25 } },
+  ghost:  { art:'ghost',   name:'ゴースト',   role:'mage',     rankBase:8,  weak:'japanese', resist:'english',
+    resists:{ japanese:'weak', english:'null' }, onhit:{ kind:'seal', turns:2, chance:0.3 } },
+  trent:  { art:'trent',   name:'トレント',   role:'tank',     rankBase:9,  weak:'science',  resist:'social',
+    resists:{ science:'weak', social:'half', english:'half' } },
+  voltdrake:{art:'voltdrake',name:'ボルトドレイク',role:'mage', rankBase:11, weak:'social', resist:'math',
+    resists:{ social:'weak', math:'null' }, onhit:{ kind:'paralyze', turns:1, chance:0.3 } },
+  dragon: { art:'dragon',  name:'ドラゴン',   role:'attacker', rankBase:13, weak:'math',     resist:'english',
+    resists:{ math:'weak', english:'half', japanese:'drain' } },
+  villain:{ art:'villain', name:'魔王シグマ', role:'tank',     rankBase:16, weak:'math',     resist:'japanese', boss:true,
+    resists:{ math:'weak', japanese:'half', social:'null', english:'drain' }, onhit:{ kind:'poison', turns:3, chance:0.4 } }
 };
 function srpgEnemyTemplate(key){ return SRPG_ENEMY_TEMPLATES[key] || SRPG_ENEMY_TEMPLATES.slime; }
 
@@ -248,7 +346,8 @@ function srpgBuildUnits(stage, allySpecs){
     var t = srpgEnemyTemplate(e.key);
     units.push(srpgMakeUnit({
       id:'enemy' + i, side:'enemy', name:t.name, art:t.art, role:t.role,
-      rankBase:t.rankBase, lvl:e.lvl || 1, weak:t.weak, resist:t.resist, x:e.x, y:e.y
+      rankBase:t.rankBase, lvl:e.lvl || 1, weak:t.weak, resist:t.resist,
+      resists:t.resists, onhit:t.onhit, x:e.x, y:e.y
     }));
   });
   return units;
@@ -260,6 +359,10 @@ if(typeof module !== 'undefined' && module.exports){
     SRPG_SUBJECTS: SRPG_SUBJECTS, SRPG_SUBJECT_KEYS: SRPG_SUBJECT_KEYS, SRPG_ROLES: SRPG_ROLES,
     SRPG_SKILLS: SRPG_SKILLS, SRPG_ENEMY_TEMPLATES: SRPG_ENEMY_TEMPLATES, SRPG_STAGES: SRPG_STAGES,
     srpgSubjectMeta: srpgSubjectMeta, srpgElemMult: srpgElemMult, srpgMultLabel: srpgMultLabel,
+    SRPG_RESIST_MULT: SRPG_RESIST_MULT, srpgResistKind: srpgResistKind, srpgResistMult: srpgResistMult, srpgResistLabel: srpgResistLabel,
+    SRPG_STATUS_META: SRPG_STATUS_META, srpgApplyStatus: srpgApplyStatus, srpgHasStatus: srpgHasStatus,
+    srpgTickStatus: srpgTickStatus, srpgCanAct: srpgCanAct, srpgCanUseSkill: srpgCanUseSkill, srpgWakeOnHit: srpgWakeOnHit,
+    srpgEffStat: srpgEffStat, srpgSetMod: srpgSetMod, srpgTickMods: srpgTickMods, srpgClampStage: srpgClampStage,
     srpgDist: srpgDist, srpgInRange: srpgInRange, srpgOccupied: srpgOccupied, srpgUnitAt: srpgUnitAt,
     srpgMoveTiles: srpgMoveTiles, srpgRangeTiles: srpgRangeTiles, srpgAoeTiles: srpgAoeTiles,
     srpgDamage: srpgDamage, srpgHealAmount: srpgHealAmount, srpgTurnOrder: srpgTurnOrder,

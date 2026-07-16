@@ -12,8 +12,9 @@ const api = (new Function(code +
 ['escapeHtml', 'topicKey', 'dateKeyOffset', 'todayKey', 'fmtTime', '_toDate']
   .forEach((f) => c.ok(f + ' が関数', typeof api[f] === 'function'));
 
-// escapeHtml：& < > のみエスケープ（引用符はしない＝現行仕様）／非文字列も String 化
-c.eq('escapeHtml(<a>&"x)', api.escapeHtml('<a>&"x'), '&lt;a&gt;&amp;"x');
+// escapeHtml：& < > " ' をエスケープ（属性値XSS対策・引用符も含む）／非文字列も String 化
+c.eq('escapeHtml(<a>&"x)', api.escapeHtml('<a>&"x'), '&lt;a&gt;&amp;&quot;x');
+c.eq("escapeHtml(引用符')", api.escapeHtml("a'b"), 'a&#39;b');
 c.eq('escapeHtml(数値)', api.escapeHtml(5), '5');
 c.eq('escapeHtml(通常文字)', api.escapeHtml('あいう'), 'あいう');
 

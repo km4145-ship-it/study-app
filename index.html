@@ -533,6 +533,20 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .badge-toast .bt-sub { font-size:0.7rem; opacity:0.92; font-weight:600; }
   @keyframes toastIn { from { transform:translateY(-26px); opacity:0; } to { transform:translateY(0); opacity:1; } }
   @keyframes toastOut { to { transform:translateY(-26px); opacity:0; } }
+
+  /* 🎓 学年ピッカー（子どもが絵で学年をえらぶ・数字プロンプトの置き換え） */
+  .gp-ov{ display:none; position:fixed; inset:0; z-index:250; background:rgba(11,40,54,.5); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:20px 14px; }
+  .gp-ov.open{ display:flex; }
+  .gp-card{ width:100%; max-width:400px; background:var(--card); border:1px solid var(--line); border-radius:var(--r-xl); padding:20px 18px; box-shadow:var(--sh-4); animation:rpgCardIn .32s var(--spring) both; }
+  .gp-ttl{ text-align:center; font-size:1.15rem; font-weight:900; color:var(--text); margin-bottom:14px; }
+  .gp-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+  .gp-cell{ display:flex; flex-direction:column; align-items:center; gap:3px; padding:12px 4px; border:1.5px solid var(--line); border-radius:var(--r-m); background:#fff; cursor:pointer; font-family:inherit; box-shadow:var(--sh-1); transition:transform .15s var(--spring), border-color .15s, box-shadow .15s; }
+  @media (hover:hover){ .gp-cell:hover{ transform:translateY(-2px); border-color:var(--primary-vivid); box-shadow:var(--sh-2); } }
+  .gp-cell:active{ transform:scale(.94); }
+  .gp-cell.on{ border-color:var(--primary-vivid); background:#eefbfe; box-shadow:0 0 0 3px rgba(6,182,212,.16); }
+  .gp-em{ font-size:1.9rem; line-height:1; }
+  .gp-lb{ font-size:.86rem; font-weight:800; color:var(--text); }
+  .gp-cancel{ display:block; width:100%; margin-top:14px; padding:11px; border:none; border-radius:var(--r-m); background:var(--card2); color:var(--muted); font-weight:800; font-size:.9rem; cursor:pointer; font-family:inherit; }
   /* 読解の本文 */
   .passage-area { background:var(--card2); border:1px solid var(--primary-light); border-radius:10px; padding:12px 14px; margin-bottom:12px; font-size:0.86rem; line-height:1.85; max-height:300px; overflow-y:auto; white-space:pre-wrap; color:var(--text); }
   .passage-label { font-size:0.72rem; font-weight:700; color:var(--primary-light); margin-bottom:6px; }
@@ -2822,6 +2836,20 @@ function muCurrentGrade(){ return muGradeLevel(muCurrentUser()); }
 function muGradeBand(l){ l=l||muCurrentGrade(); return l<=6 ? 'elem' : 'jhs'; }
 function muSetUserGrade(id,l){ l=Math.max(1,Math.min(9,parseInt(l,10)||7)); var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.startYear=muStartYearForGrade(l); }); muSaveUsers(us); }
 function muAskGrade(cur){ var s=prompt('学年を数字で入力してください：\n小1=1 小2=2 小3=3 小4=4 小5=5 小6=6\n中1=7 中2=8 中3=9\n（例）小4→4、中1→7', String(cur||7)); if(s===null) return null; var l=parseInt((''+s).trim(),10); if(!l||l<1||l>9){ showToast('⚠️','学年は1〜9で','小1=1〜中3=9で入力してね'); return null; } return l; }
+// 🎓 学年ピッカー：数字プロンプトの代わりに「絵で学年をえらぶ」モーダル。cb(grade) で確定
+function muGradePicker(cur, cb){
+  var GR=[['小1',1,'🐣'],['小2',2,'🐤'],['小3',3,'🐥'],['小4',4,'🐰'],['小5',5,'🦊'],['小6',6,'🦉'],['中1',7,'🐯'],['中2',8,'🐺'],['中3',9,'🦁']];
+  var ov=document.getElementById('grade-picker-ov');
+  if(!ov){ ov=document.createElement('div'); ov.id='grade-picker-ov'; ov.className='gp-ov'; document.body.appendChild(ov); }
+  var h='<div class="gp-card"><div class="gp-ttl">🎓 学年をえらんでね</div><div class="gp-grid">';
+  GR.forEach(function(g){ h+='<button class="gp-cell'+(cur===g[1]?' on':'')+'" data-g="'+g[1]+'"><span class="gp-em">'+g[2]+'</span><span class="gp-lb">'+g[0]+'</span></button>'; });
+  h+='</div><button class="gp-cancel">とじる</button></div>';
+  ov.innerHTML=h; ov.classList.add('open');
+  var close=function(){ ov.classList.remove('open'); };
+  ov.querySelectorAll('.gp-cell').forEach(function(b){ b.onclick=function(){ close(); try{ sfx('click'); }catch(e){} try{ cb(parseInt(b.getAttribute('data-g'),10)); }catch(e){} }; });
+  ov.querySelector('.gp-cancel').onclick=close;
+  ov.onclick=function(e){ if(e.target===ov) close(); };
+}
 function muSetUserAdmin(id,on){ var us=muGetUsers(); us.forEach(function(u){ if(u.id===id) u.admin=!!on; }); if(!us.some(function(u){return u.admin;})) { us[0].admin=true; } muSaveUsers(us); }
 function muSetCurrent(id){ sessionStorage.setItem('mu_enter','1'); sessionStorage.removeItem('mu_admin_ok'); _rawSet('mu_current', id); try{ location.reload(); }catch(e){} }
 // ===== 顔・指紋認証（WebAuthn：端末のFace ID/Touch ID/Windows Hello等でユーザーをまもる）=====
@@ -3123,7 +3151,7 @@ function renderUserAdmin(){
     var nm=document.createElement('span'); nm.className='ua-name'; nm.textContent=u.name+'（'+muGradeLabel(muGradeLevel(u))+'）'; row.appendChild(nm);
     function btn(label,bg,fn){ var b=document.createElement('button'); b.className='btn-sm'; b.textContent=label; if(bg) b.style.background=bg; b.addEventListener('click',fn); row.appendChild(b); }
     btn('名前','',function(){ var n=prompt('名前（8文字まで）',u.name); if(n===null) return; muRenameUser(u.id,(''+n).trim()||u.name); renderUserAdmin(); muUpdateHeader(); });
-    btn('学年','',function(){ var l=muAskGrade(muGradeLevel(u)); if(l===null) return; muSetUserGrade(u.id,l); renderUserAdmin(); muUpdateHeader(); });
+    btn('学年','',function(){ muGradePicker(muGradeLevel(u), function(l){ muSetUserGrade(u.id,l); renderUserAdmin(); muUpdateHeader(); showToast('🎓','学年をかえたよ', muGradeLabel(l)+' にしたよ'); }); });
     btn('キャラ','',function(){ var i=MU_CHARS.indexOf(u.char); muSetUserChar(u.id, MU_CHARS[(i+1)%MU_CHARS.length]); renderUserAdmin(); });
     btn(u.admin?'管理者':'一般', u.admin?'#059669':'#94a3b8', function(){ muSetUserAdmin(u.id,!u.admin); renderUserAdmin(); });
     btn(u.bio?'🔒顔/指紋':'🔓認証なし', u.bio?'#7c3aed':'#94a3b8', function(){
@@ -3138,7 +3166,7 @@ function renderUserAdmin(){
     btn('削除','#ef4444', function(){ if(muGetUsers().length<=1){ showToast('⚠️','削除できません','最後の1人は残してね'); return; } if(!confirm('このユーザーの学習データも消えます。削除しますか？')) return; Object.keys(MU_PER_USER).forEach(function(k){ _rawDel('u:'+u.id+':'+k); }); muRemoveUser(u.id); renderUserAdmin(); muUpdateHeader(); });
     el.appendChild(row);
   });
-  if(users.length<5){ var add=document.createElement('button'); add.className='btn-sm'; add.style.marginTop='6px'; add.style.background='var(--primary)'; add.textContent='＋ ユーザーを追加'; add.addEventListener('click',function(){ var n=prompt('追加するユーザーの名前（8文字まで）'); if(n===null) return; n=(''+n).trim(); if(!n) return; var g=muAskGrade(7); if(g===null) g=7; if(!muAddUser(n,'shiba',false,g)){ showToast('⚠️','ふやせません','ユーザーは最大5人です'); return; } renderUserAdmin(); }); el.appendChild(add); }
+  if(users.length<5){ var add=document.createElement('button'); add.className='btn-sm'; add.style.marginTop='6px'; add.style.background='var(--primary)'; add.textContent='＋ ユーザーを追加'; add.addEventListener('click',function(){ var n=prompt('追加するユーザーの名前（8文字まで）'); if(n===null) return; n=(''+n).trim(); if(!n) return; muGradePicker(7,function(g){ if(!muAddUser(n,'shiba',false,g)){ showToast('⚠️','ふやせません','ユーザーは最大5人です'); return; } renderUserAdmin(); showToast('🎉','ユーザーを追加',n+'（'+muGradeLabel(g)+'）'); }); }); el.appendChild(add); }
   else { var h=document.createElement('div'); h.className='settings-hint'; h.textContent='ユーザーは最大5人です。'; el.appendChild(h); }
 }
 function muChangeAdminPin(){ var p=prompt('新しい管理者の合言葉(PIN)（3文字以上）'); if(p===null) return; p=(''+p).trim(); if(p.length<3){ alert('短すぎます。'); return; } var p2=prompt('確認のためもう一度'); if(p2===null) return; if((''+p2).trim()!==p){ alert('一致しませんでした。'); return; } muSetAdminPin(p); muUnlockAdmin(); showToast('🔑','変更しました','新しい合言葉になりました'); }

@@ -155,10 +155,10 @@ c.ok('装備アーケタイプ全 ' + archs.length + ' 型が組み立て可能'
   c.ok('ガタガタクリップが構築できる', rattle && rattle.name === 'c3dChestRattle' && rattle.duration > 0);
 }
 
-// 7e) 宝箱から中身が浮かび上がる（_c3dChestRiseClip）：C3D_GEARメッシュが回転しながら出現し保持される
+// 7e) 宝箱から中身が浮かび上がる（_c3dChestRiseClip）：絵文字プレートが正面を向いて出現し保持される
 {
   const g = api._c3dBuildChest(4);
-  const rc = api._c3dChestRiseClip(g, '👑');   // 👑はC3D_GEARにある＝メッシュ経路（documentスタブ不要）
+  const rc = api._c3dChestRiseClip(g, '👑');   // 出現アイテムは絵文字プレート（canvas不可環境では白プレートにフォールバック）
   c.ok('中身はメッシュのグループ（c3dChestItem）', rc.item.name === 'c3dChestItem' && rc.item.children.length >= 1);
   c.ok('初期はほぼ不可視（scale.01）', rc.item.scale.x === .01);
   {
@@ -174,7 +174,7 @@ c.ok('装備アーケタイプ全 ' + archs.length + ' 型が組み立て可能'
   c.ok('中身が浮かんだ位置で保持（y≈1.08）', Math.abs(rc.item.position.y - 1.08) < 1e-3);
   c.ok('中身は等倍に戻って保持', Math.abs(rc.item.scale.x - 1) < 1e-3);
   c.ok('フタは開いたまま（-2.1）', Math.abs(g.userData.lid.rotation.x - (-2.1)) < 1e-3);
-  c.ok('回転しながら出現（rotation.y≈2.5π）', Math.abs(rc.item.rotation.y - Math.PI * 2.5) < 1e-2);
+  c.ok('正面を向いて着地（rotation.y≈0）', Math.abs(rc.item.rotation.y) < 1e-2);
   // 開封シーンのカメラ枠が浮かんだ中身までカバーする（枠外で見えなくなる回帰の防止）
   c.ok('C3D_CHEST_FRAMEが出現位置をカバー', api.C3D_CHEST_FRAME && (api.C3D_CHEST_FRAME.cy + api.C3D_CHEST_FRAME.hgt / 2) > 1.4);
 }

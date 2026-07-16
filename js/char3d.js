@@ -811,16 +811,21 @@ function _c3dBuildGear(arch, slot){
 }
 // 絵文字プレート（表に無いアイテム用）。アンカーに寄り添う板＝v1の浮きスプライトよりフィット
 function _c3dEmojiPlate(em, size){
-  var cv = document.createElement('canvas'); cv.width = cv.height = 128;
-  var ctx = cv.getContext('2d');
-  ctx.font = '100px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(em, 64, 72);
-  var tex = new THREE.CanvasTexture(cv);
-  if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
-  var m = new THREE.Mesh(new THREE.PlaneGeometry(size, size),
-    new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
-  return m;
+  var mat;
+  try {
+    var cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    var ctx = cv.getContext('2d');
+    ctx.font = '100px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(em, 64, 72);
+    var tex = new THREE.CanvasTexture(cv);
+    if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+    mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+  } catch(e){
+    // canvas不可（テスト等のdocumentなし環境）でも有効なMeshを返す＝クリップ/アニメが機能する
+    mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, side: THREE.DoubleSide });
+  }
+  return new THREE.Mesh(new THREE.PlaneGeometry(size, size), mat);
 }
 // 装備をキャラ/モンスターに装着（アンカー式）。equip={hat:item,face:item,hand:item,back:item,ride:item}（itemは{em}を持つ）
 function char3dEquip(charGroup, equip){
@@ -1122,48 +1127,57 @@ function _c3dTriggerCombat(el, kind){
 
 // =============== ガチャの3D宝箱（開封演出） ===============
 // レア度で材質が豪華になる：0-1木 / 2-3銀 / 4-5金 / 6虹(UR) / 7レジェンド(LR)
-// 宝箱のレア度別マテリアル。body＝木/地の色、metal＝金具（リム・帯・四隅・錠）、gem＝正面の宝石（発光）
+// 宝箱のレア度別マテリアル。body＝木/地、dark＝板目/影、metal＝金具、gem＝発光する宝石
 var C3D_CHEST_TIERS=[
-  { body:'#6f4a2b', metal:'#caa14e', gem:'#ffd45e' },   // 木＋真鍮（N/HN）
-  { body:'#6b7280', metal:'#e6edf5', gem:'#9be8ff' },   // 銀（R/HR）
-  { body:'#8a5312', metal:'#ffd24a', gem:'#fff0a8' },   // 金（SR/SSR）
-  { body:'#4c1d95', metal:'#f0abfc', gem:'#67e8f9' },   // 虹・紫（UR）
-  { body:'#131a2b', metal:'#fbbf24', gem:'#fde047' }    // レジェンド黒金（LR）
+  { body:'#6a4426', dark:'#40260f', metal:'#c99a44', gem:'#ffd45e' },   // 木＋真鍮（N/HN）
+  { body:'#68738a', dark:'#3c4759', metal:'#e4ebf4', gem:'#9be8ff' },   // 銀（R/HR）
+  { body:'#7c4a12', dark:'#472a08', metal:'#ffcf47', gem:'#fff0a8' },   // 金（SR/SSR）
+  { body:'#3f1d7a', dark:'#25104a', metal:'#eaa6ff', gem:'#67e8f9' },   // 紫（UR）
+  { body:'#111a2c', dark:'#070b14', metal:'#fbbf24', gem:'#fde047' }    // 黒金（LR）
 ];
 function _c3dChestTier(rank){ return C3D_CHEST_TIERS[ rank>=7?4 : rank>=6?3 : rank>=4?2 : rank>=2?1 : 0 ]; }
 // 開封シーンのカメラ枠。_c3dRenderIntoは初回のバウンディングボックスで枠をキャッシュするため、
 // 宝箱のままだと浮かび上がったアイテム（y≈1.1＋アイテムの高さ）が枠外＝見えなくなる。
 // フタが開く瞬間にこの広い枠へ差し替える（カメラが引くカット割りとして機能する）
-var C3D_CHEST_FRAME={ hgt:1.8, cy:.74 };
-// 宝石（発光）マテリアル：トゥーン＋emissiveでキラッとした高級感を出す
-function _c3dGemMat(hex){ return new THREE.MeshToonMaterial({ color:new THREE.Color(hex), emissive:new THREE.Color(hex), emissiveIntensity:.6, gradientMap:_c3dGrad() }); }
-// 色を暗くしたマテリアル（正面の彫り込みパネル用）
-function _c3dShadeMat(hex,f){ var c=new THREE.Color(hex); c.multiplyScalar(f); return _c3dMat('#'+c.getHexString()); }
+var C3D_CHEST_FRAME={ hgt:1.9, cy:.76 };
+// PBRマテリアル（写実的な陰影：roughness/metalness）。トゥーンと違い光が滑らかに回り立体感が出る。
+// MeshToonMaterialはscene.environmentを無視するため、この宝箱だけがPBR化され他キャラに影響しない。
+function _c3dPbr(hex, rough, metal, emisF){
+  var col=new THREE.Color(hex);
+  var m=new THREE.MeshStandardMaterial({ color:col, roughness:(rough==null?.7:rough), metalness:(metal==null?0:metal) });
+  if(emisF) m.emissive=col.clone().multiplyScalar(emisF);
+  return m;
+}
 function _c3dBuildChest(rank){
-  var t=_c3dChestTier(rank||0), g=new THREE.Group(), M=_c3dMat;
-  var body=M(t.body), metal=M(t.metal);
-  // ── 本体（下箱）
-  var base=new THREE.Mesh(new THREE.BoxGeometry(1.06,.5,.72), body); base.position.y=.27; g.add(base);
-  // 正面の一段くぼんだ木パネル（クラフト感）
-  var panel=new THREE.Mesh(new THREE.BoxGeometry(.78,.32,.05), _c3dShadeMat(t.body,.66)); panel.position.set(0,.26,.37); g.add(panel);
-  // 底の金属リム（脚）
-  var rim=new THREE.Mesh(new THREE.BoxGeometry(1.14,.11,.8), metal); rim.position.y=.055; g.add(rim);
-  // 縦の金属ストラップ×2（本体をぐるり）
-  [-.33,.33].forEach(function(x){ var b=new THREE.Mesh(new THREE.BoxGeometry(.1,.54,.76), metal); b.position.set(x,.28,0); g.add(b); });
-  // 四隅の金具（リベット風の立方体）
-  [[-.5,-.34],[.5,-.34],[-.5,.34],[.5,.34]].forEach(function(c){ var k=new THREE.Mesh(new THREE.BoxGeometry(.12,.13,.12), metal); k.position.set(c[0],.1,c[1]); g.add(k); });
-  // ── フタ：かまぼこ型（バレル）。後ろの上辺をピボットにするGroup（開くときは rotation.x をマイナスへ倒す）
+  var t=_c3dChestTier(rank||0), g=new THREE.Group();
+  var wood=_c3dPbr(t.body,.82,.06), dark=_c3dPbr(t.dark,.88,.05), metal=_c3dPbr(t.metal,.34,.55,.10);
+  var gemMat=new THREE.MeshStandardMaterial({ color:new THREE.Color(t.gem), roughness:.1, metalness:0, emissive:new THREE.Color(t.gem), emissiveIntensity:.85 });
+  // ── 本体（下箱）＋木の板目（横みぞ）
+  var base=new THREE.Mesh(new THREE.BoxGeometry(1.08,.5,.74), wood); base.position.y=.27; g.add(base);
+  [.14,.30].forEach(function(y){ var groove=new THREE.Mesh(new THREE.BoxGeometry(1.092,.022,.752), dark); groove.position.set(0,y,0); g.add(groove); });   // 板の継ぎ目
+  // 底の金属リム＋4本脚
+  var rim=new THREE.Mesh(new THREE.BoxGeometry(1.16,.1,.82), metal); rim.position.y=.05; g.add(rim);
+  [[-.46,-.3],[.46,-.3],[-.46,.3],[.46,.3]].forEach(function(f){ var ft=new THREE.Mesh(new THREE.BoxGeometry(.13,.08,.13), metal); ft.position.set(f[0],-.01,f[1]); g.add(ft); });
+  // 縦の金属帯×2（本体）
+  [-.34,.34].forEach(function(x){ var b=new THREE.Mesh(new THREE.BoxGeometry(.11,.54,.78), metal); b.position.set(x,.28,0); g.add(b); });
+  // 四隅の金具
+  [[-.51,-.35],[.51,-.35],[-.51,.35],[.51,.35]].forEach(function(c){ var k=new THREE.Mesh(new THREE.BoxGeometry(.1,.15,.1), metal); k.position.set(c[0],.13,c[1]); g.add(k); });
+  // 側面の取っ手（半円リング）
+  [-.57,.57].forEach(function(x){ var h=new THREE.Mesh(new THREE.TorusGeometry(.11,.022,8,18,Math.PI), metal); h.rotation.set(0,Math.PI/2,Math.PI); h.position.set(x,.3,0); g.add(h); });
+  // 背面のちょうつがい×2
+  [-.3,.3].forEach(function(x){ var hg=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.18,12), metal); hg.rotation.z=Math.PI/2; hg.position.set(x,.5,-.37); g.add(hg); });
+  // ── フタ：かまぼこ型（バレル・木）＋板目リング＋金属ふち。後ろ上辺がピボット
   var lid=new THREE.Group(); lid.position.set(0,.5,-.36); lid.name='c3dChestLid';
-  var dome=new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,1.06,24), body); dome.rotation.z=Math.PI/2; dome.position.set(0,.05,.36); lid.add(dome);
-  // フタ両端の金属リング（円い側面のふち）＋帯
-  [-.53,.53].forEach(function(x){ var r=new THREE.Mesh(new THREE.TorusGeometry(.36,.045,10,22), metal); r.rotation.y=Math.PI/2; r.position.set(x,.05,.36); lid.add(r); });
-  [-.28,.28].forEach(function(x){ var band=new THREE.Mesh(new THREE.TorusGeometry(.365,.03,8,22,Math.PI), metal); band.rotation.y=Math.PI/2; band.position.set(x,.05,.36); lid.add(band); });
+  var dome=new THREE.Mesh(new THREE.CylinderGeometry(.37,.37,1.08,28), wood); dome.rotation.z=Math.PI/2; dome.position.set(0,.05,.36); lid.add(dome);
+  [-.18,.18].forEach(function(x){ var pl=new THREE.Mesh(new THREE.TorusGeometry(.372,.013,8,26), dark); pl.rotation.y=Math.PI/2; pl.position.set(x,.05,.36); lid.add(pl); });   // 板目
+  [-.55,.55].forEach(function(x){ var r=new THREE.Mesh(new THREE.TorusGeometry(.37,.045,10,26), metal); r.rotation.y=Math.PI/2; r.position.set(x,.05,.36); lid.add(r); });        // 端の金属ふち
+  [-.3,.3].forEach(function(x){ var band=new THREE.Mesh(new THREE.TorusGeometry(.378,.028,8,26,Math.PI), metal); band.rotation.y=Math.PI/2; band.position.set(x,.05,.36); lid.add(band); });   // 天面の帯
   g.add(lid);
   // ── 錠（プレート＋鍵穴＋発光ジュエル）Groupごと飛ぶ。開封クリップが (0,.5,.37) 起点で参照
   var lock=new THREE.Group(); lock.position.set(0,.5,.37); lock.name='c3dChestLock';
-  var plate=new THREE.Mesh(new THREE.BoxGeometry(.26,.32,.08), metal); lock.add(plate);
-  var gem=new THREE.Mesh(new THREE.OctahedronGeometry(.11,0), _c3dGemMat(t.gem)); gem.position.set(0,.04,.07); gem.scale.set(1,1.25,.75); lock.add(gem);
-  var hole=new THREE.Mesh(new THREE.BoxGeometry(.055,.1,.04), M('#241b12')); hole.position.set(0,-.1,.05); lock.add(hole);
+  var plate=new THREE.Mesh(new THREE.BoxGeometry(.28,.34,.09), metal); lock.add(plate);
+  var gem=new THREE.Mesh(new THREE.OctahedronGeometry(.12,0), gemMat); gem.position.set(0,.05,.08); gem.scale.set(1,1.25,.7); lock.add(gem);
+  var hole=new THREE.Mesh(new THREE.BoxGeometry(.055,.11,.05), dark); hole.position.set(0,-.1,.06); lock.add(hole);
   g.add(lock);
   g.userData.lid=lid; g.userData.lock=lock;
   return g;
@@ -1195,10 +1209,9 @@ function _c3dChestClip(v, phase){
 // アイテムはC3D_GEARのメッシュ（既知の絵文字）か絵文字プレート。返り値 {item, clip}＝
 // 呼び出し側が chestGroup.add(item) してから再生する（テストしやすいようクリップ構築を分離）
 function _c3dChestRiseClip(chestGroup, em){
-  var arch=C3D_GEAR[em];
-  var inner=arch? _c3dBuildGear(arch,'hat') : _c3dEmojiPlate(em,.62);
-  // アーケタイプは内部に原点オフセットを持つもの（crown等）があるため、バウンディングボックスで
-  // 視覚的中心を原点にそろえたラッパーGroupを動かす＝どのアイテムも同じ高さに浮かぶ
+  // 宝箱から出るアイテムは「絵文字プレート」で明確に見せる（抽象的な3Dギアだと何が出たか分からない、という指摘に対応）
+  var inner=_c3dEmojiPlate(em,.92);
+  // バウンディングボックスで視覚的中心を原点にそろえたラッパーGroupを動かす＝どのアイテムも同じ高さに浮かぶ
   var item=new THREE.Group(); item.add(inner);
   try{
     var bb=new THREE.Box3().setFromObject(inner);
@@ -1209,7 +1222,7 @@ function _c3dChestRiseClip(chestGroup, em){
   var tr=[
     _c3dVT('c3dChestItem.position',[0,.5,.9],[0,.3,0, 0,1.18,.12, 0,1.08,.12]),       // 宝箱の上まで飛び出して少し沈む（縁に乗って見えない高さ）
     _c3dVT('c3dChestItem.scale',[0,.4,.68,.9],[.01,.01,.01, 1.18,1.18,1.18, .94,.94,.94, 1,1,1]),
-    _c3dNT('c3dChestItem.rotation[y]',[0,.9],[0, Math.PI*2.5]),                       // 回りながら現れる
+    _c3dNT('c3dChestItem.rotation[y]',[0,.5,.9],[-.6,.18,0]),                         // 軽く回って正面を向いて着地（平面が横向きで消えないように）
     _c3dNT('c3dChestLid.rotation[x]',[0,.9],[-2.1,-2.1])                              // フタは開いたまま固定
   ];
   return { item:item, clip:new THREE.AnimationClip('c3dChestRise', .9, tr) };
@@ -1266,6 +1279,18 @@ function _c3dCoreGet(){
     var scene = new THREE.Scene();
     scene.add(new THREE.HemisphereLight(0xffffff, 0xb8c4d8, 1.4));
     var dir = new THREE.DirectionalLight(0xffffff, 1.7); dir.position.set(1.5, 2.5, 2.5); scene.add(dir);
+    // 環境マップ（PBRの金属反射用）。上が明るく下が暗いグラデ＝金具に自然なツヤが乗る。
+    // MeshToonMaterialは environment を無視するので、宝箱のPBRだけに効く（他キャラは不変）。
+    try {
+      var envCv = document.createElement('canvas'); envCv.width = 16; envCv.height = 64;
+      var ectx = envCv.getContext('2d');
+      var eg = ectx.createLinearGradient(0, 0, 0, 64);
+      eg.addColorStop(0, '#eef4ff'); eg.addColorStop(.42, '#c2cee2'); eg.addColorStop(.58, '#8b96ab'); eg.addColorStop(1, '#333a4b');
+      ectx.fillStyle = eg; ectx.fillRect(0, 0, 16, 64);
+      var envTex = new THREE.CanvasTexture(envCv); envTex.mapping = THREE.EquirectangularReflectionMapping;
+      if (THREE.PMREMGenerator){ var pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromEquirectangular(envTex).texture; envTex.dispose(); pmrem.dispose(); }
+      else { scene.environment = envTex; }
+    } catch(e){}
     var camera = new THREE.PerspectiveCamera(30, C3D_RW / C3D_RH, .1, 20);
     renderer.domElement.addEventListener('webglcontextlost', function(ev){
       try { ev.preventDefault(); } catch(e){}

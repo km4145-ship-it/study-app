@@ -35,26 +35,45 @@
   :root {
     --primary: #0891b2;
     --primary-light: #0e7490;   /* 明るい背景でも読める濃いめのシアン */
+    --primary-vivid: #06b6d4;   /* アクセントの効いた明るいシアン */
     --secondary: #f97316;
     --gold: #d97706;
     --pink: #db2777;
-    --bg: #eaf7ff;              /* 明るい空色の背景 */
+    --bg: #eef7fb;              /* 明るい空色の背景 */
     --card: #ffffff;
-    --card2: #e6f4fc;
+    --card2: #f1f8fc;
     --text: #0e3a4d;           /* 濃いティールの文字色 */
+    --muted: #5b7a88;          /* 補助テキスト */
     --success: #059669;
     --error: #ef4444;
-    --shadow: 0 8px 24px rgba(8,145,178,0.18);
+    --line: rgba(10,60,80,.09);/* ヘアライン境界（色付き2px枠の置き換え） */
+    /* --- 階層的な柔らか影（elevation）：モダンな多層シャドウ --- */
+    --sh-1: 0 1px 2px rgba(12,74,110,.05), 0 1px 3px rgba(12,74,110,.06);
+    --sh-2: 0 2px 6px rgba(12,74,110,.06), 0 6px 16px rgba(12,74,110,.09);
+    --sh-3: 0 4px 12px rgba(12,74,110,.08), 0 14px 30px rgba(12,74,110,.13);
+    --sh-4: 0 10px 26px rgba(12,74,110,.14), 0 26px 56px rgba(12,74,110,.18);
+    --shadow: var(--sh-2);     /* 後方互換：既存の var(--shadow) を階層影へ */
+    /* --- 角丸スケール（統一） --- */
+    --r-s: 12px; --r-m: 16px; --r-l: 22px; --r-xl: 28px; --r-pill: 999px;
+    /* --- イージング（質感のある動き） --- */
+    --ease: cubic-bezier(.22,1,.36,1);
+    --spring: cubic-bezier(.34,1.4,.5,1);
+    --ease-io: cubic-bezier(.65,0,.35,1);
+    /* --- グラス（浮遊するクロームに使用） --- */
+    --glass: rgba(255,255,255,.62);
+    --glass-brd: rgba(255,255,255,.75);
+    --glass-blur: saturate(1.6) blur(18px);
     --kai-bg: #140309;         /* カイ教官は怖く：暗い背景のまま */
     --kai-card: #2c0a0f;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Segoe UI', 'Hiragino Kaku Gothic Pro', sans-serif;
-    background: linear-gradient(160deg, #eafaff 0%, #fff7ec 55%, #ffeef6 100%);
+    font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Maru Gothic Pro', 'Rounded Mplus 1c', 'M PLUS Rounded 1c', 'Segoe UI', 'Hiragino Kaku Gothic Pro', system-ui, sans-serif;
+    background: linear-gradient(165deg, #eef9ff 0%, #fbf6ef 58%, #fdeef6 100%);
     -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
     -webkit-overflow-scrolling: touch;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     color: var(--text);
     min-height: 100vh;
     overflow-x: hidden;
@@ -67,9 +86,9 @@
     content: '';
     position: fixed; inset: 0;
     background:
-      radial-gradient(ellipse 90% 50% at 50% 0%, rgba(125,211,252,0.25) 0%, transparent 70%),
-      radial-gradient(ellipse 70% 40% at 90% 100%, rgba(251,191,36,0.18) 0%, transparent 70%),
-      radial-gradient(ellipse 70% 40% at 10% 90%, rgba(236,72,153,0.12) 0%, transparent 70%);
+      radial-gradient(ellipse 120% 60% at 50% -8%, rgba(56,189,248,0.20) 0%, transparent 72%),
+      radial-gradient(ellipse 90% 55% at 100% 108%, rgba(251,191,36,0.14) 0%, transparent 72%),
+      radial-gradient(ellipse 90% 55% at 0% 96%, rgba(236,72,153,0.10) 0%, transparent 72%);
     pointer-events: none; z-index: 0;
     transition: background 0.5s;
   }
@@ -121,12 +140,13 @@
 
   /* Score */
   .score-bar {
-    display: flex; justify-content: center; gap: 20px;
-    padding: 10px; background: var(--card); border-radius: 12px; margin-bottom: 12px;
+    display: flex; justify-content: space-around; gap: 12px;
+    padding: 12px 14px; background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r-l); margin-bottom: 12px; box-shadow: var(--sh-1);
   }
-  .score-item { text-align: center; }
-  .score-num { font-size: 1.35rem; font-weight: 700; color: var(--gold); }
-  .score-label { font-size: 0.68rem; color: var(--primary-light); }
+  .score-item { text-align: center; flex: 1; }
+  .score-num { font-size: 1.4rem; font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
+  .score-label { font-size: 0.68rem; font-weight: 700; color: var(--muted); margin-top: 1px; }
 
   /* Character area */
   .character-area { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 16px; min-height: 140px; }
@@ -1203,8 +1223,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rib-test{ background:#fef3c7; color:#92400e; }
   .rib-rew{ background:#fce7f3; color:#9d174d; }
   /* ヒーローCTA */
-  .hub-hero{ display:flex; flex-direction:column; gap:8px; text-align:left; border:none; cursor:pointer; border-radius:20px; padding:16px 18px; color:#fff; background:linear-gradient(120deg,#0891b2,#6366f1 60%,#db2777); box-shadow:0 8px 22px rgba(99,102,241,.32); }
-  .hub-hero:active{ transform:scale(.985); }
+  .hub-hero{ position:relative; overflow:hidden; display:flex; flex-direction:column; gap:8px; text-align:left; border:none; cursor:pointer; border-radius:var(--r-l); padding:17px 19px; color:#fff; background:linear-gradient(115deg,#0e9bc0 0%,#3f6ee8 55%,#c93a8f 100%); box-shadow:0 10px 26px rgba(59,110,232,.30), inset 0 1px 0 rgba(255,255,255,.28); transition:transform .18s var(--spring), box-shadow .18s var(--ease); }
+  .hub-hero:active{ transform:scale(.975); box-shadow:0 4px 14px rgba(59,110,232,.26), inset 0 1px 0 rgba(255,255,255,.28); }
   .hub-hero-k{ font-size:19px; font-weight:900; display:block; text-shadow:0 1px 3px rgba(0,0,0,.18); }
   .hub-hero-s{ font-size:12.5px; font-weight:600; opacity:.95; display:block; margin-top:2px; }
   .hub-hero-bar{ display:block; height:9px; background:rgba(255,255,255,.28); border-radius:6px; overflow:hidden; }
@@ -1213,11 +1233,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .hub-sec{ font-size:14px; font-weight:900; color:var(--text); letter-spacing:.02em; margin:4px 2px -4px; }
   /* ゲームカードのグリッド */
   .hub-grid{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
-  .hub-card{ position:relative; display:flex; align-items:center; gap:11px; text-align:left; border:none; cursor:pointer; border-radius:18px; padding:14px; min-height:78px; color:#fff; box-shadow:0 5px 14px rgba(15,23,42,.16); transition:transform .12s; overflow:hidden; }
-  .hub-card:active{ transform:scale(.96); }
-  .hub-card-ic{ font-size:30px; flex:0 0 auto; width:46px; height:46px; border-radius:14px; background:rgba(255,255,255,.22); display:flex; align-items:center; justify-content:center; }
+  .hub-card{ position:relative; display:flex; align-items:center; gap:11px; text-align:left; border:none; cursor:pointer; border-radius:var(--r-m); padding:14px; min-height:78px; color:#fff; box-shadow:0 6px 16px rgba(12,74,110,.15), inset 0 1px 0 rgba(255,255,255,.24); transition:transform .16s var(--spring), box-shadow .16s var(--ease); overflow:hidden; }
+  .hub-card:active{ transform:scale(.955); }
+  .hub-card-ic{ font-size:30px; flex:0 0 auto; width:46px; height:46px; border-radius:13px; background:rgba(255,255,255,.20); border:1px solid rgba(255,255,255,.26); display:flex; align-items:center; justify-content:center; }
   .hub-card-tx{ display:flex; flex-direction:column; min-width:0; }
-  .hub-card-nm{ font-size:16px; font-weight:900; text-shadow:0 1px 2px rgba(0,0,0,.16); }
+  .hub-card-nm{ font-size:16px; font-weight:900; text-shadow:0 1px 2px rgba(0,0,0,.10); }
   .hub-card-ds{ font-size:11.5px; font-weight:600; opacity:.95; margin-top:1px; line-height:1.3; }
   .hub-card.hc-big{ grid-column:1 / -1; min-height:104px; padding:18px; background:linear-gradient(125deg,#7c3aed,#db2777); }
   .hc-big .hub-card-ic{ font-size:44px; width:64px; height:64px; border-radius:18px; }
@@ -1741,8 +1761,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-bar-l{ font-size:.9rem; line-height:1.3; }
   .rpg-gacha-btn{ flex:0 0 auto; background:#fde047; color:#7c2d12; border:none; border-radius:12px; padding:10px 16px; font-weight:900; font-size:.9rem; font-family:inherit; cursor:pointer; box-shadow:0 3px 0 #ca8a04; }
   .rpg-gacha-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #ca8a04; }
-  .rpg-gacha-ov{ position:fixed; inset:0; background:rgba(15,23,42,.86); z-index:9999; display:none; align-items:center; justify-content:center; overflow-y:auto; padding:12px 0; box-sizing:border-box; }
-  .rpg-gacha-card{ position:relative; background:linear-gradient(160deg,#1e293b,#0f172a); border:3px solid #475569; border-radius:20px; padding:26px 30px; text-align:center; color:#fff; min-width:230px; }
+  .rpg-gacha-ov{ position:fixed; inset:0; background:radial-gradient(ellipse 80% 60% at 50% 40%, rgba(38,48,92,.62) 0%, rgba(11,15,32,.93) 68%), rgba(8,11,25,.92); z-index:9999; display:none; align-items:center; justify-content:center; overflow-y:auto; padding:12px 0; box-sizing:border-box; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+  .rpg-gacha-card{ position:relative; background:linear-gradient(160deg,rgba(30,41,59,.72),rgba(15,23,42,.66)); border:1.5px solid rgba(148,163,184,.35); border-radius:var(--r-l); padding:26px 30px; text-align:center; color:#fff; min-width:230px; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); box-shadow:0 20px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.10); }
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
   .rpg-gacha-box{ font-size:64px; animation:rpgBoxShake .5s ease-in-out infinite; }
@@ -1858,21 +1878,26 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-item, .rpg-gacha-rar, .rpg-gacha-name, .rpg-gacha-new, .rpg-gacha-dup, .rpg-gacha-card .rpg-btn{ display:none; }
   .rpg-gacha-ov.open .rpg-gacha-box{ display:none; }
   .rpg-gacha-ov.open .rpg-gacha-item{ display:block; font-size:76px; animation:rpgItemPop .5s cubic-bezier(.2,1.4,.4,1); }
-  .rpg-gacha-ov.open .rpg-gacha-rar{ display:inline-block; margin-top:4px; font-weight:900; font-size:.8rem; padding:2px 10px; border-radius:10px; background:#64748b; }
+  .rpg-gacha-ov.open .rpg-gacha-rar{ display:inline-block; margin-top:5px; font-weight:900; font-size:.78rem; letter-spacing:.06em; padding:3px 13px; border-radius:999px; background:#64748b; box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 3px 10px rgba(0,0,0,.32); }
   .rpg-gacha-ov.open .rpg-gacha-rar.cos-r{ background:#8b5cf6; }
   .rpg-gacha-ov.open .rpg-gacha-rar.cos-s{ background:#f59e0b; }
   .rpg-gacha-ov.open .rpg-gacha-name{ display:block; font-weight:800; font-size:1.05rem; margin-top:6px; }
   .rpg-gacha-ov.open .rpg-gacha-new{ display:block; color:#fde047; font-weight:900; margin-top:6px; }
   .rpg-gacha-ov.open .rpg-gacha-dup{ display:block; color:#fbbf24; font-weight:700; font-size:.85rem; margin-top:6px; }
   .rpg-gacha-ov.open .rpg-gacha-card .rpg-btn{ display:inline-block; margin-top:14px; }
-  @keyframes rpgBoxShake{ 0%,100%{ transform:rotate(-8deg); } 50%{ transform:rotate(8deg); } }
+  @keyframes rpgBoxShake{ 0%,100%{ transform:rotate(-5deg) translateY(0); } 25%{ transform:rotate(3deg) translateY(-2px); } 50%{ transform:rotate(5deg) translateY(0); } 75%{ transform:rotate(-3deg) translateY(-2px); } }
   @keyframes rpgItemPop{ 0%{ transform:scale(0); } 100%{ transform:scale(1); } }
   /* ガチャ演出：放射光・粒子・ヒント・フラッシュ */
   .rpg-gacha-item{ position:relative; z-index:2; }
-  .rpg-gacha-rays{ position:absolute; inset:0; margin:auto; width:280px; height:280px; border-radius:50%; z-index:0; opacity:0; pointer-events:none; background:repeating-conic-gradient(from 0deg, rgba(255,255,255,.5) 0deg 7deg, transparent 7deg 18deg); }
-  .rpg-gacha-rays.cos-r{ background:repeating-conic-gradient(from 0deg, rgba(167,139,250,.6) 0deg 7deg, transparent 7deg 18deg); }
-  .rpg-gacha-rays.cos-s{ background:repeating-conic-gradient(from 0deg, rgba(253,224,71,.75) 0deg 6deg, transparent 6deg 16deg); }
-  .rpg-gacha-ov.open .rpg-gacha-rays{ opacity:.6; animation:rpgRaysSpin 7s linear infinite; }
+  .rpg-gacha-rays{ position:absolute; inset:0; margin:auto; width:340px; height:340px; border-radius:50%; z-index:0; opacity:0; pointer-events:none;
+    background:repeating-conic-gradient(from 0deg, rgba(255,255,255,.40) 0deg 2.5deg, transparent 2.5deg 19deg);
+    filter:blur(1.5px);
+    -webkit-mask:radial-gradient(circle, #000 6%, rgba(0,0,0,.55) 42%, transparent 74%);
+    mask:radial-gradient(circle, #000 6%, rgba(0,0,0,.55) 42%, transparent 74%); }
+  .rpg-gacha-rays::before{ content:''; position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,.5) 0%, rgba(255,255,255,.12) 32%, transparent 62%); filter:blur(2px); }
+  .rpg-gacha-rays.cos-r{ background:repeating-conic-gradient(from 0deg, rgba(167,139,250,.5) 0deg 2.5deg, transparent 2.5deg 19deg); }
+  .rpg-gacha-rays.cos-s{ background:repeating-conic-gradient(from 0deg, rgba(253,224,71,.6) 0deg 2.5deg, transparent 2.5deg 17deg); }
+  .rpg-gacha-ov.open .rpg-gacha-rays{ opacity:.72; animation:rpgRaysSpin 12s linear infinite; }
   @keyframes rpgRaysSpin{ from{ transform:rotate(0); } to{ transform:rotate(360deg); } }
   .rpg-gacha-sparks{ position:absolute; top:42%; left:50%; width:0; height:0; z-index:1; }
   .rpg-gacha-spark{ position:absolute; width:9px; height:9px; border-radius:50%; background:#fde047; opacity:0; box-shadow:0 0 6px #fde047; }
@@ -1902,6 +1927,12 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   /* アイテム登場：バウンド＋光 */
   .rpg-gacha-ov.open .rpg-gacha-item{ animation:rpgItemBig .6s cubic-bezier(.2,1.5,.35,1); filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
   @keyframes rpgItemBig{ 0%{ transform:scale(.2) rotate(-25deg); opacity:0;} 55%{ transform:scale(1.28) rotate(6deg); opacity:1;} 100%{ transform:scale(1) rotate(0);} }
+  /* 開封の瞬間に広がるインパクトリング（モダンな衝撃波） */
+  .rpg-gacha-ov.open .rpg-gacha-item::before{ content:''; position:absolute; left:50%; top:50%; width:52px; height:52px; border-radius:50%; border:2.5px solid rgba(255,255,255,.85); box-shadow:0 0 18px rgba(255,255,255,.6); z-index:-1; transform:translate(-50%,-50%); animation:rpgHalo .85s var(--ease) .04s forwards; }
+  .rpg-gacha-ov.open .rpg-gacha-card.cos-s .rpg-gacha-item::before{ border-color:rgba(253,224,71,.9); box-shadow:0 0 22px rgba(253,224,71,.7); }
+  .rpg-gacha-ov.open .rpg-gacha-card.cos-ssr .rpg-gacha-item::before{ border-color:rgba(245,158,11,.9); box-shadow:0 0 22px rgba(245,158,11,.7); }
+  .rpg-gacha-ov.open .rpg-gacha-card.cos-ur .rpg-gacha-item::before, .rpg-gacha-ov.open .rpg-gacha-card.cos-lr .rpg-gacha-item::before{ border-color:rgba(244,114,182,.9); box-shadow:0 0 26px rgba(56,189,248,.7); }
+  @keyframes rpgHalo{ 0%{ opacity:.95; transform:translate(-50%,-50%) scale(.3);} 100%{ opacity:0; transform:translate(-50%,-50%) scale(4.6);} }
   .rpg-gacha-ov.open .rpg-gacha-card.cos-s .rpg-gacha-item{ filter:drop-shadow(0 0 16px #fde047); }
   .rpg-gacha-ov.open .rpg-gacha-card.cos-ur .rpg-gacha-item{ filter:drop-shadow(0 0 16px #f472b6) drop-shadow(0 0 30px #38bdf8); }
   /* レア度スタンプが叩き込まれる */
@@ -1911,7 +1942,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-ov.shake .rpg-gacha-card{ animation:rpgGShake .5s ease-in-out; }
   @keyframes rpgGShake{ 0%,100%{transform:translateX(0)} 15%{transform:translateX(-9px) rotate(-1deg)} 30%{transform:translateX(9px) rotate(1deg)} 45%{transform:translateX(-7px)} 60%{transform:translateX(7px)} 78%{transform:translateX(-4px)} }
   /* UR：虹の全画面 */
-  .rpg-gacha-ov.ultra::before{ content:''; position:fixed; inset:-20%; z-index:98; pointer-events:none; background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(244,114,182,.28) 0deg 10deg, rgba(167,139,250,.22) 10deg 20deg, rgba(56,189,248,.24) 20deg 30deg, transparent 30deg 46deg); animation:rpgUltraSpin 3s linear, rpgUltraFade 1.8s ease-out forwards; }
+  .rpg-gacha-ov.ultra::before{ content:''; position:fixed; inset:-20%; z-index:98; pointer-events:none; filter:blur(10px); background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(244,114,182,.24) 0deg 6deg, rgba(167,139,250,.18) 6deg 14deg, rgba(56,189,248,.20) 14deg 22deg, transparent 22deg 40deg); -webkit-mask:radial-gradient(circle at 50% 50%, transparent 8%, #000 55%); mask:radial-gradient(circle at 50% 50%, transparent 8%, #000 55%); animation:rpgUltraSpin 4.5s linear, rpgUltraFade 1.8s ease-out forwards; }
   @keyframes rpgUltraSpin{ from{transform:rotate(0)} to{transform:rotate(130deg)} }
   @keyframes rpgUltraFade{ 0%{opacity:.95} 100%{opacity:0} }
   .rpg-gacha-ov.ultra .rpg-gacha-rays{ animation:rpgRaysSpin 2.4s linear infinite!important; opacity:.9!important; }
@@ -1951,11 +1982,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-ov.open .rpg-gacha-rar.cos-hn{ background:#10b981; } .rpg-gacha-ov.open .rpg-gacha-rar.cos-hr{ background:#8b5cf6; }
   .rpg-gacha-ov.open .rpg-gacha-rar.cos-sr{ background:#ec4899; } .rpg-gacha-ov.open .rpg-gacha-rar.cos-ssr{ background:#f59e0b; }
   .rpg-gacha-ov.open .rpg-gacha-rar.cos-lr{ background:linear-gradient(90deg,#f472b6,#fbbf24,#38bdf8); }
-  .rpg-gacha-rays.cos-hn{ background:repeating-conic-gradient(from 0deg, rgba(52,211,153,.6) 0 7deg, transparent 7deg 18deg); }
-  .rpg-gacha-rays.cos-hr{ background:repeating-conic-gradient(from 0deg, rgba(139,92,246,.6) 0 7deg, transparent 7deg 18deg); }
-  .rpg-gacha-rays.cos-sr{ background:repeating-conic-gradient(from 0deg, rgba(236,72,153,.65) 0 6deg, transparent 6deg 16deg); }
-  .rpg-gacha-rays.cos-ssr{ background:repeating-conic-gradient(from 0deg, rgba(245,158,11,.75) 0 6deg, transparent 6deg 15deg); }
-  .rpg-gacha-rays.cos-lr{ background:repeating-conic-gradient(from 0deg, rgba(244,114,182,.7) 0 5deg, rgba(251,191,36,.6) 5deg 10deg, rgba(56,189,248,.6) 10deg 15deg, transparent 15deg 22deg); }
+  .rpg-gacha-rays.cos-hn{ background:repeating-conic-gradient(from 0deg, rgba(52,211,153,.5) 0 2.5deg, transparent 2.5deg 19deg); }
+  .rpg-gacha-rays.cos-hr{ background:repeating-conic-gradient(from 0deg, rgba(139,92,246,.5) 0 2.5deg, transparent 2.5deg 19deg); }
+  .rpg-gacha-rays.cos-sr{ background:repeating-conic-gradient(from 0deg, rgba(236,72,153,.55) 0 2.5deg, transparent 2.5deg 17deg); }
+  .rpg-gacha-rays.cos-ssr{ background:repeating-conic-gradient(from 0deg, rgba(245,158,11,.62) 0 2.5deg, transparent 2.5deg 16deg); }
+  .rpg-gacha-rays.cos-lr{ background:repeating-conic-gradient(from 0deg, rgba(244,114,182,.6) 0 3deg, rgba(251,191,36,.5) 3deg 6deg, rgba(56,189,248,.5) 6deg 9deg, transparent 9deg 20deg); }
   .rpg-gacha-card.cos-hn .rpg-gacha-pillar{ background:linear-gradient(#6ee7b7,transparent); }
   .rpg-gacha-card.cos-hr .rpg-gacha-pillar{ background:linear-gradient(#c4b5fd,transparent); }
   .rpg-gacha-card.cos-sr .rpg-gacha-pillar{ background:linear-gradient(#f9a8d4,transparent); }
@@ -2240,22 +2271,23 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 </nav>
 <style>
   .mu-tabbar{ position:fixed; left:0; right:0; bottom:0; z-index:900; display:flex; gap:2px;
-    background:rgba(255,255,255,.97); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
-    border-top:1px solid #dcecf3; padding:5px 4px calc(6px + env(safe-area-inset-bottom));
-    box-shadow:0 -5px 18px rgba(8,110,140,.12); }
+    background:var(--glass); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+    border-top:1px solid var(--glass-brd); padding:6px 5px calc(7px + env(safe-area-inset-bottom));
+    box-shadow:0 -6px 22px rgba(12,74,110,.10); }
   .mu-tabbar.mu-hidden{ display:none; }
   /* ストーリー表示中はタブバーを必ず隠す（setActiveTab の再表示にも勝つ） */
   body.story-open .mu-tabbar{ display:none!important; }
   .mu-tab{ flex:1; border:none; background:none; font-family:inherit; cursor:pointer; display:flex;
-    flex-direction:column; align-items:center; gap:2px; padding:5px 2px; min-height:54px; color:#5a7883;
-    border-radius:13px; transition:color .15s, background .15s; position:relative; }
+    flex-direction:column; align-items:center; gap:3px; padding:6px 2px; min-height:54px; color:#5a7883;
+    border-radius:var(--r-m); transition:color .18s, background .25s var(--ease); position:relative; }
   /* 🎁 デイリー宝箱バッジ：きょうの無料ガチャが未開封のあいだガチャタブに出す */
   .mt-badge{ position:absolute; top:1px; left:calc(50% + 7px); min-width:15px; height:15px; padding:0 3px; border-radius:9px;
     background:#ef4444; color:#fff; font-size:9.5px; font-weight:900; line-height:15px; box-shadow:0 1px 4px rgba(239,68,68,.5); }
-  .mu-tab:active{ background:#eef6fa; }
-  .mt-i{ font-size:23px; line-height:1; transition:transform .15s; }
+  .mu-tab:active{ background:rgba(8,145,178,.08); transform:scale(.95); }
+  .mt-i{ font-size:23px; line-height:1; transition:transform .3s var(--spring); }
   .mt-l{ font-size:11.5px; font-weight:800; letter-spacing:-.2px; }
-  .mu-tab.on{ color:#0e7490; } .mu-tab.on .mt-i{ transform:translateY(-2px) scale(1.06); }
+  .mu-tab.on{ color:#0e7490; background:rgba(8,145,178,.10); } .mu-tab.on .mt-i{ transform:translateY(-2px) scale(1.12); }
+  .mu-tab.mt-adv.on{ background:rgba(124,58,237,.10); } .mu-tab.mt-gacha.on{ background:rgba(219,39,119,.10); } .mu-tab.mt-dress.on{ background:rgba(249,115,22,.10); }
   .mu-tab.mt-adv.on{ color:#7c3aed; } .mu-tab.mt-gacha.on{ color:#db2777; } .mu-tab.mt-dress.on{ color:#f97316; }
   .container{ padding-bottom:80px; }
   body.rpg-mode .mu-tabbar{ box-shadow:0 -5px 18px rgba(0,0,0,.25); }
@@ -2405,19 +2437,22 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-qt-b{ background:#ef4444; color:#fff; font-size:10px; font-weight:900; border-radius:999px; padding:0 6px; min-width:16px; text-align:center; }
   /* 上部リソースバー（常設・スクロールしても上に固定） */
   .resbar{ position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:8px;
-    padding:8px 12px; margin:-16px -16px 12px; background:rgba(240,250,255,.92);
-    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); box-shadow:0 3px 14px rgba(8,145,178,.13); }
-  body.rpg-mode .resbar{ background:rgba(24,18,52,.86); }
+    padding:9px 12px; margin:-16px -16px 14px; background:var(--glass);
+    -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+    border-bottom:1px solid var(--glass-brd); box-shadow:0 6px 20px rgba(12,74,110,.10); }
+  body.rpg-mode .resbar{ background:rgba(24,18,52,.72); border-bottom-color:rgba(167,139,250,.22); }
   /* 冗長な大見出し・装飾は非表示（上部はリソースバーに集約） */
   .header, .wave-deco{ display:none; }
-  .rb-user{ display:flex; align-items:center; gap:6px; border:none; background:#fff; font-family:inherit; cursor:pointer; border-radius:999px; padding:4px 13px 4px 5px; box-shadow:0 3px 10px rgba(8,110,140,.14); font-weight:800; font-size:13px; color:#0e3a4d; max-width:44%; }
+  .rb-user{ display:flex; align-items:center; gap:6px; border:1px solid var(--line); background:#fff; font-family:inherit; cursor:pointer; border-radius:var(--r-pill); padding:4px 13px 4px 5px; box-shadow:var(--sh-1); font-weight:800; font-size:13px; color:#0e3a4d; max-width:44%; transition:transform .15s var(--spring), box-shadow .15s; }
+  .rb-user:active{ transform:scale(.96); }
   .rb-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .rb-ava{ width:28px; height:28px; flex:0 0 28px; border-radius:50%; background:linear-gradient(135deg,#e0f2fe,#fce7f3); display:grid; place-items:center; overflow:hidden; font-size:15px; }
   .rb-ava svg{ width:24px; height:24px; }
   .rb-res{ margin-left:auto; display:flex; gap:5px; }
-  .rb-chip{ display:inline-flex; align-items:center; gap:2px; background:#fff; border-radius:999px; padding:4px 9px; font-size:12px; font-weight:800; color:#0e3a4d; box-shadow:0 3px 10px rgba(8,110,140,.14); font-variant-numeric:tabular-nums; }
+  .rb-chip{ display:inline-flex; align-items:center; gap:3px; background:#fff; border:1px solid var(--line); border-radius:var(--r-pill); padding:4px 10px; font-size:12px; font-weight:800; color:#0e3a4d; box-shadow:var(--sh-1); font-variant-numeric:tabular-nums; }
   .rb-chip b{ font-weight:900; }
-  .rb-gear{ width:34px; height:34px; flex:0 0 34px; border-radius:50%; border:none; background:#fff; cursor:pointer; box-shadow:0 3px 10px rgba(8,110,140,.14); font-size:16px; }
+  .rb-gear{ width:34px; height:34px; flex:0 0 34px; border-radius:50%; border:1px solid var(--line); background:#fff; cursor:pointer; box-shadow:var(--sh-1); font-size:16px; transition:transform .2s var(--spring); }
+  .rb-gear:active{ transform:rotate(35deg) scale(.94); }
   .resbar .nb-badge{ position:absolute; }
   /* タブレット・大画面の最適化 */
   @media (min-width:700px){

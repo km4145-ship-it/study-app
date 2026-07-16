@@ -29,6 +29,20 @@ Object.keys(M.SRPG_MON_ART).forEach((art) => {
   c.ok('主要モンスター ' + k + ' が定義済み', !!M.SRPG_MON_ART[k]);
 });
 
+// 冒険RPGへの横展開：RPG_SVG の全モンスター（crystal と亜種を除く）に 新アートがある＝混在しない
+const acode = require('fs').readFileSync(path.join(ROOT, 'js', 'rpg-assets.js'), 'utf8');
+const RPG_SVG = (new Function(acode + '\nreturn RPG_SVG;'))();
+const baseMons = Object.keys(RPG_SVG).filter((k) => k !== 'crystal' && !/2$/.test(k));
+c.ok('冒険モンスターは20種以上', baseMons.length >= 20);
+baseMons.forEach((k) => c.ok('冒険モンスター ' + k + ' に新アートがある（混在しない）', !!M.SRPG_MON_ART[k]));
+// RPG_VARIANTS の全亜種も色相ラッパで出せる
+const RPG_VARIANTS = (new Function(acode + '\nreturn RPG_VARIANTS;'))();
+Object.keys(RPG_VARIANTS).forEach((v) => c.ok('亜種 ' + v + ' も新アートで出せる', typeof M.srpgMonArt(v) === 'string' && M.srpgMonArt(v).indexOf('hue-rotate') >= 0));
+
+// _monStill が新アートを優先する（冒険の静止表示に反映）
+const html2 = require('fs').readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+c.ok('_monStill は srpgMonArt を優先する', /function _monStill\([^)]*\)\{[^}]*srpgMonArt/.test(html2.replace(/\n/g, ' ')));
+
 // 亜種：ベースの絵を hue-rotate で包む
 Object.keys(M.SRPG_MON_VARIANT).forEach((v) => {
   const base = v.replace(/2$/, '');

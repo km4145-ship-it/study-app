@@ -140,10 +140,141 @@ var SRPG_MON_ART = {
     + _mEyeSharp(50, 58, 9, 1, '#ef4444') + _mEyeSharp(70, 58, 9, -1, '#ef4444')
     + '<path d="M50 70 Q60 66 70 70" stroke="#0b0b1e" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
     + '<circle cx="20" cy="52" r="3" fill="#a78bfa" opacity=".8"/><circle cx="100" cy="52" r="3" fill="#a78bfa" opacity=".8"/><circle cx="96" cy="80" r="2.4" fill="#a78bfa" opacity=".7"/>'
+    + '</svg>',
+  // スラッグキング：ゼリーの王（冠つきの大きなスライム＝数の大陸ボス）
+  slugking:
+    _mHead() + _mShadow(33)
+    + '<path d="M40 46 L37 28 L48 39 L60 25 L72 39 L83 28 L80 46 Q60 39 40 46 Z" fill="#fbbf24" stroke="#a16207" stroke-width="2.4"/>'
+    + '<circle cx="48" cy="31" r="2.4" fill="#ef4444"/><circle cx="60" cy="27" r="2.8" fill="#f87171"/><circle cx="72" cy="31" r="2.4" fill="#ef4444"/>'
+    + '<path d="M22 94 Q14 52 60 48 Q106 52 98 94 Q98 106 60 106 Q22 106 22 94 Z" fill="#2bb6a6" stroke="#0b5952" stroke-width="3.8"/>'
+    + '<path d="M36 66 Q48 56 60 56 Q72 56 84 66 Q70 60 60 60 Q50 60 36 66 Z" fill="#bff6ee" opacity=".5"/>'
+    + _mEye(50, 82, 9, 1) + _mEye(73, 82, 9, 1) + _mCheek(43, 94) + _mCheek(80, 94)
+    + '<path d="M50 94 Q60 101 70 94" stroke="#0b5952" stroke-width="3" fill="none" stroke-linecap="round"/>'
+    + '</svg>',
+  // インクブロブ：墨のかたまり（国語）
+  inkblob:
+    _mHead() + _mShadow(28)
+    + '<path d="M30 92 Q22 54 60 50 Q98 54 90 92 Q90 104 60 104 Q30 104 30 92 Z" fill="#3f3aa8" stroke="#1e1b4b" stroke-width="3.6"/>'
+    + '<path d="M40 66 Q48 58 60 58 Q72 58 80 66 Q68 62 60 62 Q52 62 40 66 Z" fill="#a5b4fc" opacity=".5"/>'
+    + '<path d="M32 100 Q32 111 28 114 Q24 109 30 100 Z" fill="#3f3aa8" stroke="#1e1b4b" stroke-width="1.4"/>'
+    + '<path d="M88 100 Q88 110 92 112 Q96 108 90 100 Z" fill="#3f3aa8" stroke="#1e1b4b" stroke-width="1.4"/>'
+    + '<text x="60" y="48" font-size="12" text-anchor="middle" fill="#1e1b4b" font-weight="bold">あ</text>'
+    + _mEye(50, 82, 8, 1) + _mEye(72, 82, 8, 1)
+    + '<path d="M52 93 Q60 98 68 93" stroke="#c7d2fe" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+    + '</svg>',
+  // フデバード：筆の鳥（国語）
+  fudebird:
+    _mHead() + _mShadow(26)
+    + '<path d="M84 84 Q106 90 110 108 Q99 103 92 108 Q90 96 80 92 Z" fill="#1f2937" stroke="#0b0f19" stroke-width="1.6"/>'
+    + '<path d="M105 106 Q109 113 104 117" stroke="#1f2937" stroke-width="2" fill="none"/>'
+    + '<path d="M34 92 Q28 58 60 56 Q88 58 84 88 Q84 100 60 104 Q34 104 34 92 Z" fill="#f8fafc" stroke="#334155" stroke-width="3.4"/>'
+    + '<path d="M40 74 L27 78 L40 82 Z" fill="#f59e0b" stroke="#b45309" stroke-width="1.6"/>'
+    + '<path d="M52 80 Q64 74 76 82 Q64 86 52 84 Z" fill="#cbd5e1" opacity=".7"/>'
+    + '<text x="66" y="70" font-size="12" text-anchor="middle" fill="#334155" font-weight="bold">書</text>'
+    + _mEye(48, 72, 7, -1)
+    + '</svg>',
+  // カンジオニ：漢字の鬼（国語）
+  kanjioni:
+    _mHead() + _mShadow(30)
+    + '<path d="M46 42 L50 25 L56 42 Z" fill="#fde68a" stroke="#92400e" stroke-width="2"/>'
+    + '<path d="M74 42 L70 25 L64 42 Z" fill="#fde68a" stroke="#92400e" stroke-width="2"/>'
+    + '<path d="M34 54 Q40 42 48 48 Q52 40 60 46 Q68 40 72 48 Q80 42 86 54 Z" fill="#111827"/>'
+    + '<path d="M32 92 Q28 52 60 50 Q92 52 88 92 Q88 104 60 104 Q32 104 32 92 Z" fill="#e0483a" stroke="#7f1d1d" stroke-width="3.6"/>'
+    + '<text x="60" y="66" font-size="15" text-anchor="middle" fill="#fff" font-weight="bold">字</text>'
+    + '<path d="M40 78 L52 82" stroke="#7f1d1d" stroke-width="2.6" stroke-linecap="round"/><path d="M80 78 L68 82" stroke="#7f1d1d" stroke-width="2.6" stroke-linecap="round"/>'
+    + _mEyeSharp(49, 86, 7, 1, '#fde047') + _mEyeSharp(71, 86, 7, -1, '#fde047')
+    + '<path d="M50 98 L53 103 L56 98 Z" fill="#fff"/><path d="M64 98 L67 103 L70 98 Z" fill="#fff"/>'
+    + '</svg>',
+  // ABキューブ：文字の箱（英語）
+  abcube:
+    _mHead() + _mShadow(26)
+    + '<path d="M36 58 L84 58 L84 100 L36 100 Z" fill="#38bdf8" stroke="#075985" stroke-width="3.4"/>'
+    + '<path d="M36 58 L48 46 L96 46 L84 58 Z" fill="#7dd3fc" stroke="#075985" stroke-width="3"/>'
+    + '<path d="M84 58 L96 46 L96 88 L84 100 Z" fill="#0ea5e9" stroke="#075985" stroke-width="3"/>'
+    + '<text x="60" y="94" font-size="22" text-anchor="middle" fill="#fff" font-weight="bold">A</text>'
+    + '<text x="90" y="78" font-size="12" text-anchor="middle" fill="#e0f2fe" font-weight="bold">B</text>'
+    + _mEye(50, 70, 6, 1) + _mEye(70, 70, 6, 1)
+    + '<path d="M46 100 L46 106 M74 100 L74 106" stroke="#075985" stroke-width="4" stroke-linecap="round"/>'
+    + '</svg>',
+  // クエスバード：はてなの鳥（英語）
+  qbird:
+    _mHead() + _mShadow(26)
+    + '<circle cx="60" cy="76" r="28" fill="#34d399" stroke="#065f46" stroke-width="3.6"/>'
+    + '<ellipse cx="50" cy="66" rx="10" ry="6" fill="#a7f3d0" opacity=".6"/>'
+    + '<text x="60" y="42" font-size="22" text-anchor="middle" fill="#fbbf24" font-weight="bold">?</text>'
+    + '<path d="M60 82 L52 90 L68 90 Z" fill="#f59e0b" stroke="#b45309" stroke-width="1.6"/>'
+    + '<path d="M34 76 Q26 80 30 88 Z" fill="#10b981" stroke="#065f46" stroke-width="2"/>'
+    + '<path d="M86 76 Q94 80 90 88 Z" fill="#10b981" stroke="#065f46" stroke-width="2"/>'
+    + _mEye(50, 72, 7, 1) + _mEye(70, 72, 7, -1)
+    + '</svg>',
+  // グラマロ：文法の本（英語）
+  grammaro:
+    _mHead() + _mShadow(30)
+    + '<path d="M60 56 Q40 50 28 56 L28 100 Q40 94 60 100 Z" fill="#fef3c7" stroke="#92400e" stroke-width="3.2"/>'
+    + '<path d="M60 56 Q80 50 92 56 L92 100 Q80 94 60 100 Z" fill="#fffbeb" stroke="#92400e" stroke-width="3.2"/>'
+    + '<rect x="57" y="55" width="6" height="45" fill="#b45309"/>'
+    + '<path d="M36 74 L50 76 M36 82 L50 84 M70 76 L84 74 M70 84 L84 82" stroke="#d6a760" stroke-width="2" stroke-linecap="round"/>'
+    + '<text x="60" y="94" font-size="11" text-anchor="middle" fill="#92400e" font-weight="bold">ABC</text>'
+    + _mEye(48, 62, 6, 1) + _mEye(72, 62, 6, 1)
+    + '</svg>',
+  // フラスクン：フラスコ（理科）
+  flaskun:
+    _mHead() + _mShadow(24)
+    + '<rect x="50" y="38" width="20" height="8" rx="2" fill="#b45309" stroke="#7c3a12" stroke-width="2"/>'
+    + '<rect x="53" y="45" width="14" height="16" fill="#e0f2fe" stroke="#0369a1" stroke-width="2.6"/>'
+    + '<path d="M53 60 L38 96 Q38 104 60 104 Q82 104 82 96 L67 60 Z" fill="#dff1ff" stroke="#0369a1" stroke-width="3.4"/>'
+    + '<path d="M44 84 Q60 80 76 84 L80 96 Q80 104 60 104 Q40 104 40 96 Z" fill="#22c55e" opacity=".85"/>'
+    + '<circle cx="52" cy="92" r="2.6" fill="#bbf7d0"/><circle cx="66" cy="88" r="2" fill="#bbf7d0"/><circle cx="60" cy="96" r="1.8" fill="#bbf7d0"/>'
+    + _mEye(52, 78, 6, 1) + _mEye(68, 78, 6, 1)
+    + '<path d="M55 88 Q60 91 65 88" stroke="#0369a1" stroke-width="2" fill="none" stroke-linecap="round"/>'
+    + '</svg>',
+  // マイクローブ：微生物（理科）
+  microbe:
+    _mHead() + _mShadow(27)
+    + '<path d="M30 62 L22 58 M90 62 L98 58 M34 90 L28 96 M86 90 L92 96 M60 52 L60 44 M46 54 L42 47 M74 54 L78 47" stroke="#9d174d" stroke-width="3" stroke-linecap="round"/>'
+    + '<path d="M32 88 Q24 56 60 54 Q96 56 88 88 Q88 100 60 100 Q32 100 32 88 Z" fill="#f472b6" stroke="#9d174d" stroke-width="3.4"/>'
+    + '<circle cx="70" cy="84" r="8" fill="#9d174d" opacity=".45"/><circle cx="44" cy="70" r="4" fill="#fbcfe8" opacity=".7"/>'
+    + _mEye(50, 76, 8, 1) + _mEye(72, 74, 7, 1) + _mCheek(44, 88) + _mCheek(78, 88)
+    + '<path d="M52 88 Q60 94 68 88" stroke="#9d174d" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+    + '</svg>',
+  // マップモス：地図の蛾（社会）
+  mapmoth:
+    _mHead() + _mShadow(30)
+    + '<path d="M58 74 Q28 50 14 68 Q24 74 22 86 Q36 94 58 84 Z" fill="#a3b18a" stroke="#4b5320" stroke-width="3.2"/>'
+    + '<path d="M62 74 Q92 50 106 68 Q96 74 98 86 Q84 94 62 84 Z" fill="#a3b18a" stroke="#4b5320" stroke-width="3.2"/>'
+    + '<path d="M30 66 Q40 70 36 78 M84 66 Q80 70 84 78" stroke="#6b7a3a" stroke-width="1.8" fill="none"/>'
+    + '<ellipse cx="60" cy="80" rx="9" ry="19" fill="#6b705c" stroke="#3f4238" stroke-width="2.8"/>'
+    + '<path d="M54 52 Q46 40 40 42 M66 52 Q74 40 80 42" stroke="#3f4238" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+    + '<circle cx="40" cy="42" r="2.6" fill="#3f4238"/><circle cx="80" cy="42" r="2.6" fill="#3f4238"/>'
+    + _mEye(56, 74, 5, 1) + _mEye(64, 74, 5, 1)
+    + '</svg>',
+  // ハニワ：埴輪（社会）
+  haniwa:
+    _mHead() + _mShadow(28)
+    + '<path d="M42 46 Q60 33 78 46 L74 57 Q60 51 46 57 Z" fill="#e0a256" stroke="#8a5a2b" stroke-width="3"/>'
+    + '<path d="M43 58 Q43 54 60 54 Q77 54 77 58 L82 100 Q60 107 38 100 Z" fill="#d99a54" stroke="#8a5a2b" stroke-width="3.4"/>'
+    + '<path d="M40 70 Q26 72 24 84" stroke="#8a5a2b" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    + '<path d="M80 70 Q94 72 96 84" stroke="#8a5a2b" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    + '<ellipse cx="51" cy="74" rx="4.5" ry="6" fill="#5b3a1a"/><ellipse cx="69" cy="74" rx="4.5" ry="6" fill="#5b3a1a"/>'
+    + '<ellipse cx="60" cy="90" rx="6" ry="7" fill="#5b3a1a"/>'
+    + '</svg>',
+  // トキオウ：時計の王（社会）
+  tokiou:
+    _mHead() + _mShadow(30)
+    + '<path d="M42 46 L39 30 L50 40 L60 28 L70 40 L81 30 L78 46 Q60 40 42 46 Z" fill="#fbbf24" stroke="#a16207" stroke-width="2.4"/>'
+    + '<circle cx="60" cy="78" r="30" fill="#fef9c3" stroke="#a16207" stroke-width="3.8"/>'
+    + '<circle cx="60" cy="78" r="24" fill="none" stroke="#d6a760" stroke-width="1.5"/>'
+    + '<text x="60" y="62" font-size="9" text-anchor="middle" fill="#a16207" font-weight="bold">12</text>'
+    + '<text x="84" y="82" font-size="9" text-anchor="middle" fill="#a16207" font-weight="bold">3</text>'
+    + '<text x="60" y="100" font-size="9" text-anchor="middle" fill="#a16207" font-weight="bold">6</text>'
+    + '<text x="37" y="82" font-size="9" text-anchor="middle" fill="#a16207" font-weight="bold">9</text>'
+    + '<path d="M60 78 L60 64 M60 78 L72 82" stroke="#7c3a12" stroke-width="3" stroke-linecap="round"/>'
+    + '<circle cx="60" cy="78" r="3" fill="#7c3a12"/>'
+    + _mEye(51, 72, 5, 1) + _mEye(69, 72, 5, 1)
     + '</svg>'
 };
 // 亜種（色ちがい）：ベースの絵に hue-rotate をかける（RPG_VARIANTS と同じ角度体系）
-var SRPG_MON_VARIANT = { slime2:140, goblin2:150, bat2:170, wolf2:120, ghost2:100, dragon2:180, trent2:130, voltdrake2:90 };
+var SRPG_MON_VARIANT = { slime2:140, goblin2:150, bat2:170, wolf2:120, ghost2:100, dragon2:180, trent2:130, voltdrake2:90, flaskun2:200, haniwa2:60 };
 
 // アートキー→オリジナルSVG（無ければ null＝呼び出し側が従来アートへフォールバック）
 function srpgMonArt(art){

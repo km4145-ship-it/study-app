@@ -2918,7 +2918,8 @@ function _charArt(ch){ try{ if(typeof char3dActive==='function' && char3dActive(
 function _char3dHydrateSafe(el){ try{ if(typeof char3dHydrate==='function') char3dHydrate(el); }catch(e){} }
 // 一覧・アイコン用の3D静止画（キャッシュ）。3D不可なら従来SVG/絵文字
 function _charStill(k){ try{ if(typeof char3dStillHtml==='function'){ var h=char3dStillHtml(k); if(h) return h; } }catch(e){} return _charSVG(k); }
-function _monStill(k){ try{ if(typeof mon3dStillHtml==='function'){ var h=mon3dStillHtml(k); if(h) return h; } }catch(e){} return (typeof RPG_SVG!=='undefined'&&RPG_SVG[k])||'👾'; }
+function _monStill(k){ try{ if(typeof srpgMonArt==='function'){ var a=srpgMonArt(k); if(a) return a; } }catch(e){}   // 新オリジナルアート優先（静止表示：冒険マップ/図鑑/あいぼう等）
+  try{ if(typeof mon3dStillHtml==='function'){ var h=mon3dStillHtml(k); if(h) return h; } }catch(e){} return (typeof RPG_SVG!=='undefined'&&RPG_SVG[k])||'👾'; }
 // バトル敵などの動く3D。3D不可なら従来SVG
 function _monLive(k){ try{ if(typeof char3dActive==='function' && char3dActive() && typeof MON3D_SPECS!=='undefined' && MON3D_SPECS[k]) return mon3dTag(k); }catch(e){} return (typeof RPG_SVG!=='undefined'&&RPG_SVG[k])||'👾'; }
 function setCharacter(charKey, animate = true) {

@@ -257,4 +257,67 @@ const grid = { w: 6, h: 7 };
   c.ok('ユニットはstatus/modsを持つ', mu.status && mu.mods && typeof mu.mods.atk === 'number');
 }
 
+// ================= 第3弾：育成（覚醒/リーダー）＋地形＋大陸クエスト =================
+
+// ---- 覚醒：レベルで とくぎ習得数（1〜3） ----
+{
+  c.eq('Lv1は とくぎ1つ', S.srpgSkillCount(1), 1);
+  c.eq('Lv5も1つ', S.srpgSkillCount(5), 1);
+  c.eq('Lv6で2つ', S.srpgSkillCount(6), 2);
+  c.eq('Lv11で3つ', S.srpgSkillCount(11), 3);
+  c.eq('3つで頭打ち', S.srpgSkillCount(50), 3);
+  const low = S.srpgMakeUnit({ id:'a', side:'ally', name:'a', art:'slime', role:'attacker', rankBase:6, lvl:1 });
+  const high = S.srpgMakeUnit({ id:'b', side:'ally', name:'b', art:'slime', role:'attacker', rankBase:6, lvl:12 });
+  c.eq('低Lvは1とくぎ', low.skills.length, 1);
+  c.eq('高Lvは3とくぎ（覚醒）', high.skills.length, 3);
+  c.ok('覚醒段階を持つ', high.awaken === 3);
+}
+
+// ---- リーダー特性：先頭の役割で味方全体に開始時パッシブ ----
+{
+  ['attacker','mage','tank','healer'].forEach((r) => {
+    const t = S.srpgLeaderTrait(r);
+    c.ok('リーダー特性 ' + r + ' が定義済み', t && ['atk','def','spd'].indexOf(t.stat) >= 0 && t.stage > 0);
+  });
+  const units = S.srpgBuildUnits(S.SRPG_STAGES.arena1, [
+    { id:'lead', name:'隊長', art:'shiba', role:'tank', lvl:5, rankBase:8 },   // ぼうぎょリーダー→守り+1
+    { id:'m', name:'仲間', art:'slime', role:'attacker', lvl:5, rankBase:6 }
+  ]);
+  const allies = units.filter((u) => u.side === 'ally');
+  c.ok('先頭がリーダー', allies[0].isLeader === true);
+  c.ok('リーダー特性で味方全員に守りバフ', allies.every((u) => u.mods.def > 0));
+  c.ok('敵にはリーダー特性がかからない', units.filter((u) => u.side === 'enemy').every((u) => u.mods.def === 0));
+}
+
+// ---- 地形（マス効果） ----
+{
+  const st = { terrain:[{ x:2, y:3, kind:'heal' }, { x:1, y:1, kind:'poison' }] };
+  c.eq('地形あり：回復', S.srpgTerrainAt(st, 2, 3), 'heal');
+  c.eq('地形あり：毒', S.srpgTerrainAt(st, 1, 1), 'poison');
+  c.eq('地形なしはnull', S.srpgTerrainAt(st, 0, 0), null);
+  const u = { maxHp:100 };
+  c.ok('回復マスは＋', S.srpgTerrainDelta('heal', u) > 0);
+  c.ok('毒沼は－', S.srpgTerrainDelta('poison', u) < 0);
+  c.ok('炎は－', S.srpgTerrainDelta('fire', u) < 0);
+  c.eq('不明な地形は0', S.srpgTerrainDelta('none', u), 0);
+}
+
+// ---- 大陸クエスト：ストーリー・地形・ボスの整合 ----
+{
+  const KIND = Object.keys(S.SRPG_TERRAIN_META);
+  const quests = Object.keys(S.SRPG_STAGES).filter((id) => S.SRPG_STAGES[id].type === 'quest');
+  c.ok('大陸クエストが5つ以上ある', quests.length >= 5);
+  quests.forEach((id) => {
+    const st = S.SRPG_STAGES[id];
+    c.ok(id + ' の大陸が有効教科', S.SRPG_SUBJECT_KEYS.indexOf(st.continent) >= 0);
+    c.ok(id + ' はストーリーを持つ', Array.isArray(st.story) && st.story.length > 0);
+    (st.terrain || []).forEach((t) => {
+      c.ok(id + ' の地形種別が有効', KIND.indexOf(t.kind) >= 0);
+      c.ok(id + ' の地形が盤内', t.x >= 0 && t.x < st.grid.w && t.y >= 0 && t.y < st.grid.h);
+    });
+    // ボスは最後の敵として存在する
+    c.ok(id + ' は敵（ボス含む）を持つ', st.enemies.length > 0 && st.enemies.every((e) => !!S.SRPG_ENEMY_TEMPLATES[e.key]));
+  });
+}
+
 c.done();

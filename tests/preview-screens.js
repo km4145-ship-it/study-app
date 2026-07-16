@@ -41,8 +41,9 @@ const SCREENS = [
   { name: 'odds',    drive: 'gachaShowOdds()' },
   { name: 'reveal',  drive: 'rpgGachaDraw()', wait: 8200 },      // 単発開封（エピックでも開封後＝開いた宝箱＋3Dアイテムまで到達）
   { name: 'g10',     drive: 'rpgGacha10Reveal(_gachaDrawInto(rpgCosState(rpgState()),10,rpgState()))' },  // タップ開封の選択画面
-  { name: 'srpgsel', drive: 'srpgOpen()' },                                                             // タクトバトルのステージ選択
-  { name: 'srpgbtl', drive: "srpgOpen(); setTimeout(function(){ srpgStart('arena1'); }, 60)", wait: 2600 },  // 盤面（1ターン目のコマンド）
+  { name: 'srpgteam',  drive: 'srpgOpen()' },                                                            // 出撃編成（③）
+  { name: 'srpgstage', drive: 'srpgOpen(); setTimeout(function(){ srpgStageSelect(); }, 300)', wait: 1600 },  // 大陸クエスト＋訓練場
+  { name: 'srpgbtl',   drive: "srpgOpen(); setTimeout(function(){ srpgStart('q_science'); }, 60); setTimeout(function(){ for(var i=0;i<5;i++) srpgStoryStep(); }, 500)", wait: 2800 },  // 地形（毒沼）つき盤面
 ];
 
 // 見ばえのするテストデータ：コイン・所持品・装備・あいぼう（ぼうし付き）・図鑑

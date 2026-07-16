@@ -9,29 +9,100 @@
 var srpgB = null;   // 現在の戦闘状態（null＝非戦闘）
 var SRPG_STAT_JA = { atk:'こうげき', def:'まもり', spd:'すばやさ' };
 
-// ---- 味方編成：勇者＋あいぼうパーティ（最大5・足りなければ既定の仲間で補う） ----
-function srpgAllyRoster(){
-  var out = [];
+// ===== 味方編成（③スカウト連動：集めたあいぼうを タクトに 出撃させる）=====
+var SRPG_ROLE_BY_SP = { dragon:'attacker', beast:'attacker', slime:'tank', nature:'healer', maou:'mage', hero:'attacker' };
+var srpgTeamSel = null;   // 編成画面の作業中の選択 {ids:[...], leader}
+function srpgHeroSpec(){
   var u = (typeof muCurrentUser === 'function' && muCurrentUser()) || {};
   var lv = 1; try{ lv = (rpgState().level) || 1; }catch(e){}
   var hname = 'ゆうしゃ'; try{ hname = rpgHeroName(); }catch(e){}
-  out.push({ id:'hero', name:hname, art:(u.char || (typeof currentChar!=='undefined'&&currentChar) || 'shiba'), role:'attacker', lvl:lv, rankBase:8 });
-  var roleBySp = { dragon:'attacker', beast:'attacker', slime:'tank', nature:'healer', maou:'mage', hero:'attacker' };
-  var party = []; try{ party = rpgAibouParty() || []; }catch(e){}
-  party.forEach(function(a, i){
-    if(!a || out.length >= 5) return;
-    var spName = (typeof AIBOU_SPECIES!=='undefined' && AIBOU_SPECIES[a.sp] && AIBOU_SPECIES[a.sp].name) || 'なかま';
-    var base = (typeof AIBOU_RANK_BASE!=='undefined' && AIBOU_RANK_BASE[a.rank||'C']) || 6;
-    out.push({ id:a.id || ('m'+i), name:a.name || spName, art:a.art || 'slime', role:roleBySp[a.sp] || 'attacker', lvl:a.lv || 1, rankBase:base });
-  });
-  // 最低2体は確保（回復役を1体入れて仕組みを体験させる）
-  var fallbacks = [
-    { id:'buddy_heal', name:'ヒーラン', art:'trent',  role:'healer',   lvl:Math.max(1,lv), rankBase:6 },
-    { id:'buddy_tank', name:'ガードン', art:'slime',  role:'tank',     lvl:Math.max(1,lv), rankBase:6 },
-    { id:'buddy_mage', name:'メラゾ',   art:'bat',    role:'mage',     lvl:Math.max(1,lv), rankBase:6 }
+  return { id:'hero', name:hname, art:(u.char || (typeof currentChar!=='undefined'&&currentChar) || 'shiba'), role:'attacker', lvl:lv, rankBase:8 };
+}
+function srpgAibouSpec(a){
+  var spName = (typeof AIBOU_SPECIES!=='undefined' && AIBOU_SPECIES[a.sp] && AIBOU_SPECIES[a.sp].name) || 'なかま';
+  var base = (typeof AIBOU_RANK_BASE!=='undefined' && AIBOU_RANK_BASE[a.rank||'C']) || 6;
+  return { id:a.id, name:a.name || spName, art:a.art || 'slime', role:SRPG_ROLE_BY_SP[a.sp] || 'attacker', lvl:a.lv || 1, rankBase:base, rank:a.rank, sp:a.sp };
+}
+function srpgAibouRosterList(){
+  try{ var ai = rpgAibouState(rpgState()); return Object.keys(ai.roster).map(function(id){ return ai.roster[id]; }); }catch(e){ return []; }
+}
+// 出撃メンバー（勇者＋選んだあいぼう最大4・リーダー先頭・足りなければ既定仲間で補完）
+function srpgAllyRoster(){
+  var team = null; try{ team = lsGetJSON('srpg_team', null); }catch(e){}
+  var hero = srpgHeroSpec();
+  var list = srpgAibouRosterList(), byId = {}; list.forEach(function(a){ byId[a.id] = a; });
+  var out = [hero];
+  if(team && team.ids && team.ids.length){
+    team.ids.forEach(function(id){ if(out.length < 5 && byId[id]) out.push(srpgAibouSpec(byId[id])); });
+  } else {
+    var party = []; try{ party = rpgAibouParty() || []; }catch(e){}
+    party.forEach(function(a){ if(a && out.length < 5) out.push(srpgAibouSpec(a)); });
+  }
+  var fb = [
+    { id:'buddy_heal', name:'ヒーラン', art:'trent', role:'healer', lvl:Math.max(1,hero.lvl), rankBase:6 },
+    { id:'buddy_tank', name:'ガードン', art:'slime', role:'tank',   lvl:Math.max(1,hero.lvl), rankBase:6 },
+    { id:'buddy_mage', name:'メラゾ',   art:'bat',   role:'mage',   lvl:Math.max(1,hero.lvl), rankBase:6 }
   ];
-  for(var k=0; out.length < 3 && k < fallbacks.length; k++) out.push(fallbacks[k]);
-  return out.slice(0, 5);
+  for(var k=0; out.length < 3 && k < fb.length; k++) out.push(fb[k]);
+  out = out.slice(0, 5);
+  var leader = (team && team.leader) || 'hero', li = -1;
+  for(var i=0;i<out.length;i++){ if(out[i].id === leader){ li = i; break; } }
+  if(li > 0){ var l = out.splice(li, 1)[0]; out.unshift(l); }
+  return out;
+}
+
+// ---- 編成画面 ----
+function srpgTeamScreen(){
+  srpgB = null;
+  var list = srpgAibouRosterList();
+  var team = null; try{ team = lsGetJSON('srpg_team', null); }catch(e){}
+  if(!srpgTeamSel){
+    var initIds = (team && team.ids) ? team.ids.slice() : list.slice(0, 4).map(function(a){ return a.id; });
+    srpgTeamSel = { ids:initIds.filter(function(id){ return list.some(function(a){ return a.id === id; }); }), leader:(team && team.leader) || 'hero' };
+  }
+  document.getElementById('srpg-title').textContent = 'しゅつげき編成';
+  var hero = srpgHeroSpec();
+  var roleMeta = SRPG_ROLES;
+  var card = function(sp, on, selectable){
+    var r = roleMeta[sp.role] || roleMeta.attacker;
+    var isLeader = srpgTeamSel.leader === sp.id;
+    var nSk = srpgSkillCount(sp.lvl);
+    return '<div class="srpg-tm-card'+(on?' on':'')+(isLeader?' leader':'')+'">'
+      + (isLeader?'<span class="srpg-tm-crown">👑</span>':'')
+      + '<div class="srpg-tm-ava">'+_charStill(sp.art)+'</div>'
+      + '<div class="srpg-tm-nm">'+escapeHtml(sp.name)+'</div>'
+      + '<div class="srpg-tm-meta">'+r.em+r.name+' <small>Lv'+sp.lvl+(sp.rank?' ('+sp.rank+')':'')+'</small></div>'
+      + '<div class="srpg-tm-sk">とくぎ×'+nSk+'</div>'
+      + (on ? '<button class="srpg-tm-lead" onclick="srpgTeamSetLeader(\''+sp.id+'\')">'+(isLeader?'★リーダー':'リーダーにする')+'</button>' : '')
+      + (selectable ? '<button class="srpg-tm-toggle'+(on?' rm':'')+'" onclick="srpgTeamToggle(\''+sp.id+'\')">'+(on?'はずす':'えらぶ')+'</button>' : '<div class="srpg-tm-fixed">必ず出撃</div>')
+      + '</div>';
+  };
+  var h = '<div class="srpg-team">';
+  var trait = srpgLeaderTrait((srpgTeamSel.leader==='hero'?hero:(function(){ var a=list.filter(function(x){return x.id===srpgTeamSel.leader;})[0]; return a?srpgAibouSpec(a):hero; })()).role);
+  h += '<div class="srpg-team-lead">👑 リーダー特性：<b>'+(trait?trait.name:'—')+'</b><br><small>'+(trait?trait.desc:'')+'</small></div>';
+  h += '<div class="srpg-tm-count">出撃：'+(1+srpgTeamSel.ids.length)+' / 5（勇者＋あいぼう最大4）</div>';
+  h += '<div class="srpg-tm-grid">';
+  h += card(hero, true, false);
+  list.forEach(function(a){ h += card(srpgAibouSpec(a), srpgTeamSel.ids.indexOf(a.id) >= 0, true); });
+  if(!list.length) h += '<div class="srpg-tm-empty">まだ あいぼうが いないよ。<br>「🗡️ぼうけん」で バトルに かつと なかまが ふえる！</div>';
+  h += '</div>';
+  h += '<button class="rpg-btn srpg-team-go" onclick="srpgTeamConfirm()">この編成で 出撃！ →</button>';
+  h += '</div>';
+  document.getElementById('srpg-body').innerHTML = h;
+  try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+function srpgTeamToggle(id){
+  try{ sfx('click'); }catch(e){}
+  var i = srpgTeamSel.ids.indexOf(id);
+  if(i >= 0){ srpgTeamSel.ids.splice(i, 1); if(srpgTeamSel.leader === id) srpgTeamSel.leader = 'hero'; }
+  else { if(srpgTeamSel.ids.length >= 4){ try{ showToast('⚠️','これ以上 えらべないよ','あいぼうは 4体まで（勇者と合わせて5体）'); }catch(e){} return; } srpgTeamSel.ids.push(id); }
+  srpgTeamScreen();
+}
+function srpgTeamSetLeader(id){ try{ sfx('click'); }catch(e){} srpgTeamSel.leader = id; srpgTeamScreen(); }
+function srpgTeamConfirm(){
+  try{ sfx('click'); }catch(e){}
+  try{ lsSetJSON('srpg_team', { ids:srpgTeamSel.ids.slice(), leader:srpgTeamSel.leader }); }catch(e){}
+  srpgStageSelect();
 }
 
 // ================= 起動・ステージ選択 =================
@@ -40,30 +111,44 @@ function srpgOpen(){
   try{ hideTabbar(); }catch(e){}
   var sc = document.getElementById('srpg-screen'); if(!sc) return;
   sc.style.display = 'block';
-  srpgStageSelect();
+  srpgTeamSel = null;
+  srpgTeamScreen();
+}
+function srpgStageCard(id, locked){
+  var st = SRPG_STAGES[id], cleared = srpgClearedSet(), done = cleared[id];
+  var cont = (typeof RPG_WORLD!=='undefined' && RPG_WORLD[st.continent]) || { emoji:'⚔️', name:'' };
+  var faces = st.enemies.map(function(e){ return '<span class="srpg-sc-mon">'+_monStill(SRPG_ENEMY_TEMPLATES[e.key].art)+'</span>'; }).join('');
+  var terr = (st.terrain||[]).reduce(function(m,t){ m[t.kind]=1; return m; }, {});
+  var terrIcons = Object.keys(terr).map(function(k){ return SRPG_TERRAIN_META[k].em; }).join('');
+  var foot = locked ? '前を クリアで 解放' : ('敵'+st.enemies.length+'体'+(st.boss?' ・ ボス「'+st.boss+'」':'')+(terrIcons?' ・ 地形'+terrIcons:''));
+  return '<button class="srpg-stage-card'+(locked?' locked':'')+(done?' done':'')+(st.type==='quest'?' quest':'')+'" '+(locked?'disabled':'onclick="srpgStart(\''+id+'\')"')+'>'
+    + '<div class="srpg-sc-head"><b>'+cont.emoji+' '+escapeHtml(st.name)+'</b>'+(done?'<span class="srpg-sc-clear">クリア済</span>':'')+(locked?'<span class="srpg-sc-lock">🔒</span>':'')+'</div>'
+    + '<div class="srpg-sc-mons">'+faces+'</div>'
+    + '<div class="srpg-sc-foot">'+foot+'</div>'
+    + '</button>';
 }
 function srpgStageSelect(){
   srpgB = null;
   var cleared = srpgClearedSet();
-  var cards = Object.keys(SRPG_STAGES).map(function(id, i){
-    var st = SRPG_STAGES[id];
-    var prev = Object.keys(SRPG_STAGES)[i-1];
-    var locked = i > 0 && !cleared[prev];
-    var done = cleared[id];
-    var cont = (typeof RPG_WORLD!=='undefined' && RPG_WORLD[st.continent]) || { emoji:'⚔️', name:'' };
-    var enemyFaces = st.enemies.map(function(e){ return '<span class="srpg-sc-mon">'+_monStill(SRPG_ENEMY_TEMPLATES[e.key].art)+'</span>'; }).join('');
-    return '<button class="srpg-stage-card'+(locked?' locked':'')+(done?' done':'')+'" '+(locked?'disabled':'onclick="srpgStart(\''+id+'\')"')+'>'
-      + '<div class="srpg-sc-head"><b>'+cont.emoji+' '+escapeHtml(st.name)+'</b>'+(done?'<span class="srpg-sc-clear">クリア済</span>':'')+(locked?'<span class="srpg-sc-lock">🔒</span>':'')+'</div>'
-      + '<div class="srpg-sc-mons">'+enemyFaces+'</div>'
-      + '<div class="srpg-sc-foot">'+(locked?'前のステージをクリアで解放':'敵'+st.enemies.length+'体 ・ '+st.grid.w+'×'+st.grid.h+'マス')+'</div>'
-      + '</button>';
+  var quests = Object.keys(SRPG_STAGES).filter(function(id){ return SRPG_STAGES[id].type === 'quest'; });
+  var trains = Object.keys(SRPG_STAGES).filter(function(id){ return SRPG_STAGES[id].type !== 'quest'; });
+  var questCards = quests.map(function(id, i){
+    var locked = i > 0 && !cleared[quests[i-1]];
+    return srpgStageCard(id, locked);
+  }).join('');
+  var trainCards = trains.map(function(id, i){
+    var locked = i > 0 && !cleared[trains[i-1]];
+    return srpgStageCard(id, locked);
   }).join('');
   document.getElementById('srpg-body').innerHTML =
     '<div class="srpg-select">'
-    + '<div class="srpg-select-lead">⚔️ タクトバトル<br><small>マスを えらんで うごき、教科を えらんで こうげき！ 敵の弱点を つけば 大ダメージ。</small></div>'
-    + '<div class="srpg-stage-list">'+cards+'</div>'
+    + '<div class="srpg-select-top"><button class="srpg-mini2" onclick="srpgTeamScreen()">🛡️ 編成を かえる</button></div>'
+    + '<div class="srpg-sec">🗺️ 大陸クエスト <small>各大陸の 主を たおそう</small></div>'
+    + '<div class="srpg-stage-list">'+questCards+'</div>'
+    + '<div class="srpg-sec">⚔️ 訓練場 <small>自由に れんしゅう</small></div>'
+    + '<div class="srpg-stage-list">'+trainCards+'</div>'
     + '</div>';
-  document.getElementById('srpg-title').textContent = 'タクトバトル';
+  document.getElementById('srpg-title').textContent = 'ステージ選択';
 }
 function srpgClearedSet(){ try{ return lsGetJSON('srpg_cleared', {}) || {}; }catch(e){ return {}; } }
 function srpgMarkCleared(id){ try{ var s = srpgClearedSet(); s[id] = 1; lsSetJSON('srpg_cleared', s); }catch(e){} }
@@ -83,9 +168,27 @@ function srpgStart(stageId){
   srpgRender();
   srpgB.order = srpgTurnOrder(units);
   srpgB.turnPtr = -1;
-  try{ if(typeof bgmPlay==='function') bgmPlay(stageId==='arena3'?'boss':'battle'); }catch(e){}
-  srpgToast('⚔️ ' + stage.name, 'せんとう かいし！');
-  setTimeout(srpgNextTurn, 700);
+  try{ if(typeof bgmPlay==='function') bgmPlay((stage.type==='quest' && stage.boss) ? 'boss' : 'battle'); }catch(e){}
+  var begin = function(){
+    var lead = units.filter(function(u){ return u.side==='ally' && u.isLeader; })[0];
+    if(lead && lead.leaderTrait){ try{ showToast('👑', 'リーダー特性 発動！', lead.leaderTrait.name+'：'+lead.leaderTrait.desc); }catch(e){} }
+    setTimeout(srpgNextTurn, lead && lead.leaderTrait ? 900 : 550);
+  };
+  if(stage.story && stage.story.length){ srpgStoryIntro(stage.story, begin); }
+  else { srpgToast('⚔️ ' + stage.name, 'せんとう かいし！'); begin(); }
+}
+// ステージ導入の物語（タップで送る）
+var srpgStoryLines = null, srpgStoryIdx = 0, srpgStoryCb = null;
+function srpgStoryIntro(lines, cb){
+  if(!lines || !lines.length){ if(cb) cb(); return; }
+  srpgStoryLines = lines; srpgStoryIdx = 0; srpgStoryCb = cb || null; srpgStoryStep();
+}
+function srpgStoryStep(){
+  var ov = document.getElementById('srpg-ask'); if(!ov) return;
+  if(srpgStoryIdx >= srpgStoryLines.length){ ov.style.display = 'none'; var cb = srpgStoryCb; srpgStoryCb = null; if(cb) cb(); return; }
+  var line = srpgStoryLines[srpgStoryIdx++];
+  ov.innerHTML = '<div class="srpg-story-card" onclick="srpgStoryStep()"><div class="srpg-story-em">📜</div><div class="srpg-story-tx">'+escapeHtml(line)+'</div><div class="srpg-story-go">タップで つづき ▶</div></div>';
+  ov.style.display = 'flex';
 }
 
 // ================= 描画 =================
@@ -108,9 +211,11 @@ function srpgRender(){
     if(srpgB.hiAoe[key]) cls += ' hi-aoe';
     var actor = srpgActor();
     if(actor && actor.x===x && actor.y===y && !actor.downed) cls += ' actor';
-    var inner = '';
+    var terr = srpgTerrainAt(srpgB.stage, x, y);
+    if(terr) cls += ' terr-' + SRPG_TERRAIN_META[terr].cls;
+    var inner = terr ? ('<span class="srpg-terr">'+SRPG_TERRAIN_META[terr].em+'</span>') : '';
     var u = byPos[key];
-    if(u) inner = srpgUnitPlate(u);
+    if(u) inner += srpgUnitPlate(u);
     html += '<div class="'+cls+'" id="st-'+x+'-'+y+'" onclick="srpgTileTap('+x+','+y+')">'+inner+'</div>';
   }
   html += '</div></div>';
@@ -133,6 +238,7 @@ function srpgUnitPlate(u){
   var md=u.mods||{}, mUp=(md.atk>0||md.def>0||md.spd>0), mDn=(md.atk<0||md.def<0||md.spd<0);
   var stBar=(sIcons||mUp||mDn) ? ('<div class="srpg-stbar">'+sIcons+(mUp?'<span class="srpg-buf up">⬆</span>':'')+(mDn?'<span class="srpg-buf dn">⬇</span>':'')+'</div>') : '';
   return '<div class="srpg-unit '+u.side+(u.side==='enemy'&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)]&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)].boss?' boss':'')+'" id="su-'+u.id+'">'
+    + (u.isLeader ? '<span class="srpg-crown">👑</span>' : '')
     + '<div class="srpg-hpbar"><i style="width:'+hpPct+'%"></i></div>'
     + (u.side==='ally' && u.mpMax ? '<div class="srpg-mpbar"><i style="width:'+mpPct+'%"></i></div>' : '')
     + stBar
@@ -218,9 +324,9 @@ function srpgNextTurn(){
   srpgClearHi();
   srpgTurnStart(actor);
 }
-// ターン開始：バフ経過・毒ダメージ・行動不能（まひ/ねむり）を処理してから操作へ
+// ターン開始：バフ経過・毒/地形のHP変化・行動不能（まひ/ねむり）を処理してから操作へ
 function srpgTurnStart(actor){
-  var wasSleep = srpgHasStatus(actor, 'sleep'), wasPara = srpgHasStatus(actor, 'paralyze');
+  var wasSleep = srpgHasStatus(actor, 'sleep');
   srpgTickMods(actor);
   var t = srpgTickStatus(actor);
   var proceed = function(){
@@ -234,14 +340,21 @@ function srpgTurnStart(actor){
     if(actor.side === 'enemy'){ srpgB.phase = 'enemy'; srpgRender(); setTimeout(function(){ srpgEnemyTurn(actor); }, 480); }
     else { srpgSelectActor(); }
   };
-  if(t.poisonDmg > 0){
-    actor.hp = Math.max(0, actor.hp - t.poisonDmg);
-    srpgPopupAt(actor.x, actor.y, '☠️' + t.poisonDmg, 'poison');
+  // ターン開始時のHP変化：毒（状態異常）＋地形マス（回復の泉/毒沼/炎）
+  var events = [];
+  if(t.poisonDmg > 0) events.push({ amt:-t.poisonDmg, cls:'poison', txt:'☠️' + t.poisonDmg });
+  var terr = srpgTerrainAt(srpgB.stage, actor.x, actor.y);
+  if(terr){
+    var d = srpgTerrainDelta(terr, actor), m = SRPG_TERRAIN_META[terr];
+    if(d !== 0) events.push({ amt:d, cls:(d > 0 ? 'heal' : (terr === 'fire' ? 'dmg' : 'poison')), txt:(d > 0 ? '+' : '') + Math.abs(d) + ' ' + m.em });
+  }
+  if(events.length){
+    events.forEach(function(ev){ actor.hp = Math.max(0, Math.min(actor.maxHp, actor.hp + ev.amt)); srpgPopupAt(actor.x, actor.y, ev.txt, ev.cls); });
     if(actor.hp <= 0){ actor.downed = true; srpgPopupAt(actor.x, actor.y, 'たおれた…', 'down'); }
     srpgRender();
     var oc = srpgOutcome(srpgB.units);
     if(oc){ setTimeout(function(){ srpgEnd(oc); }, 700); return; }
-    setTimeout(proceed, 640);
+    setTimeout(proceed, 660);
   } else { proceed(); }
 }
 function srpgSelectActor(){
@@ -546,6 +659,7 @@ function srpgEnd(outcome){
     + '</div></div>';
   body.insertAdjacentHTML('beforeend', '<div class="srpg-result-wrap">'+card+'</div>');
   try{ sfx(win?'levelup':'wrong'); }catch(e){}
+  if(win){ try{ if(typeof confetti==='function') confetti(); }catch(e){} }
 }
 function srpgClose(){
   srpgB = null;

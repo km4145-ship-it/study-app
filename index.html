@@ -1652,6 +1652,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-aura-shadow{ background:radial-gradient(circle, rgba(100,116,139,.85), rgba(15,23,42,.45) 55%, transparent 72%); }
   /* 未入手アイテムは？で隠す（個人ごと・何があるかは分からない） */
   .rpg-cos-cell.rpg-cos-locked{ align-items:center; justify-content:center; background:#eef2f7; border:1.5px dashed #cbd5e1; box-shadow:none; cursor:default; min-height:66px; }
+  .rpg-cos-cell.rpg-cos-more{ align-items:center; justify-content:center; background:#fff7ed; border:1.5px dashed #fdba74; box-shadow:none; cursor:default; }
+  .rpg-cos-cell.rpg-cos-more .rpg-cos-name{ color:#c2410c; font-weight:800; }
+  .rpg-dex-cell.rpg-dex-more{ display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .rpg-dex-cell.rpg-dex-more .rpg-dex-name{ color:#0e7490; font-weight:800; }
   .rpg-cos-q{ font-size:1.7rem; font-weight:900; color:#9aa7b8; line-height:1; }
   .rpg-cos-prog{ font-size:.7rem; color:#64748b; font-weight:700; margin-left:8px; }
   /* 冒険画面の上バー（ホーム＋ユーザー表示・切替）※rpg-modeはヘッダーを隠すので、ここに出す */
@@ -6384,13 +6388,19 @@ function rpgShowDex(){
   var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
   h+='<div class="rpg-world-title">📖 モンスターずかん（'+Object.keys(s.dex).length+' / '+mons.length+'）</div>';
   h+='<div class="rpg-dex-grid">';
-  mons.forEach(function(m){ var got=!!s.dex[m.mon];
+  // 出会ったモンスターを前に集める。未発見の？は少数だけ出して「＋ほか◯たい」に圧縮
+  var _dgot=mons.filter(function(m){ return !!s.dex[m.mon]; });
+  var _dnot=mons.filter(function(m){ return !s.dex[m.mon]; });
+  _dgot.forEach(function(m){
     var mate=null; try{ mate=aibouBestOf(ai.roster, m.mon); }catch(e){}   // なかまにいる種はバッジ表示（図鑑れんけい）
-    h+='<div class="rpg-dex-cell'+(got?'':' unseen')+'"><div class="rpg-dex-svg">'+(got?_monStill(m.mon):'<span class="rpg-dex-q">？</span>')+'</div>'
+    h+='<div class="rpg-dex-cell"><div class="rpg-dex-svg">'+_monStill(m.mon)+'</div>'
       +(mate?'<span class="rpg-dex-mate rpg-aibou-bd'+mate.rank+'" title="なかま '+mate.count+'ひき">🤝'+mate.rank+(mate.count>1?'×'+mate.count:'')+'</span>':'')
-      +'<span class="rpg-dex-name">'+(got?escapeHtml(m.name):'？？？')+'</span></div>'; });
+      +'<span class="rpg-dex-name">'+escapeHtml(m.name)+'</span></div>'; });
+  var _dshow=Math.min(_dnot.length, 5);
+  for(var _di=0;_di<_dshow;_di++){ h+='<div class="rpg-dex-cell unseen"><div class="rpg-dex-svg"><span class="rpg-dex-q">？</span></div><span class="rpg-dex-name">？？？</span></div>'; }
+  if(_dnot.length>_dshow){ h+='<div class="rpg-dex-cell unseen rpg-dex-more"><div class="rpg-dex-svg">🗺️</div><span class="rpg-dex-name">＋ほか '+(_dnot.length-_dshow)+'たい</span></div>'; }
   h+='</div>';
-  h+='<div class="rpg-map-hint">🤝は なかまに いるモンスターだよ（ランクと かず）。</div>';
+  h+='<div class="rpg-map-hint">まだ 会っていないモンスターは 冒険で さがそう！ 🤝は なかまに いるモンスター（ランクと かず）。</div>';
   var sk=Object.keys(s.stickers);
   h+='<div class="rpg-world-title">🎁 ごほうびシール（'+sk.length+' / '+STICKERS.length+'）</div>';
   h+='<div class="rpg-sticker-grid">';
@@ -7071,10 +7081,11 @@ function showCosmetics(){
       var ownedN=items.filter(function(it){ return !!cos.owned[it.id]; }).length;
       h+='<div class="rpg-cos-slot-ttl">'+sd[1]+(equippedId||kind==='aibou'?'':'　<span class="rpg-cos-none">なし</span>')+'<span class="rpg-cos-prog">あつめた '+ownedN+'/'+items.length+'</span></div>';
       h+='<div class="rpg-cos-grid">';
-      items.forEach(function(it){
-        var owned=!!cos.owned[it.id], equipped=(equippedId===it.id);
-        if(!owned){ h+='<div class="rpg-cos-cell rpg-cos-locked" title="まだ手に入れていないよ（ガチャであつめよう）"><span class="rpg-cos-q">？</span></div>'; return; }  // 未入手＝？で隠す
-        var rc=(COS_RARITY[it.r||'N']||{}).cls||'';
+      // 入手済みを前に集めて達成感を見せ、未入手の？は少数だけ出して「＋ほか◯こ」に圧縮する
+      var _owned=items.filter(function(it){ return !!cos.owned[it.id]; });
+      var _locked=items.filter(function(it){ return !cos.owned[it.id]; });
+      _owned.forEach(function(it){
+        var equipped=(equippedId===it.id), rc=(COS_RARITY[it.r||'N']||{}).cls||'';
         if(kind==='aibou'){
           // なかまモンスターのぼうしは個体ごとに装備する（あいぼう詳細画面）＝ここはコレクション表示のみ
           h+='<div class="rpg-cos-cell '+rc+' owned">'+
@@ -7092,6 +7103,10 @@ function showCosmetics(){
            '<span class="rpg-cos-name">'+it.name+'</span>'+
            '<span class="rpg-cos-act">'+label+'</span></button>';
       });
+      var _lshow=Math.min(_locked.length, 6);
+      for(var _li=0;_li<_lshow;_li++){ h+='<div class="rpg-cos-cell rpg-cos-locked" title="まだ手に入れていないよ（ガチャであつめよう）"><span class="rpg-cos-q">？</span></div>'; }
+      if(_locked.length>_lshow){ h+='<div class="rpg-cos-cell rpg-cos-more"><span class="rpg-cos-em">🎁</span><span class="rpg-cos-name">＋ほか '+(_locked.length-_lshow)+'こ</span><span class="rpg-cos-act">ガチャで あつめよう</span></div>'; }
+      if(!_owned.length && !_locked.length){ h+=''; }
       h+='</div>';
     });
   });

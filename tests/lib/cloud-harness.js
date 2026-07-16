@@ -77,8 +77,20 @@ function createHarness(opts) {
   // 匿名ユーザーで再発火する、という実際の流れを再現する。
   let authUser = (opts.authUser !== undefined) ? opts.authUser : null;
   let authCb = null;
+  // user.delete()（アカウント削除）を全ユーザーオブジェクトに付与。opts.requireRecentLogin=true で
+  // Firebaseの「最近のログインが必要」エラーを再現できる。
+  function withDelete(u) {
+    if (u && !u.delete) {
+      u.delete = () => {
+        if (opts.requireRecentLogin) { const e = new Error('recent login required'); e.code = 'auth/requires-recent-login'; return Promise.reject(e); }
+        fireAuthState(null); return Promise.resolve();
+      };
+    }
+    return u;
+  }
+  authUser = withDelete(authUser);
   function fireAuthState(u) {
-    authUser = u;
+    authUser = withDelete(u);
     if (authCb) { const cb = authCb; Promise.resolve().then(() => cb(authUser)); }
   }
   let anonSeq = 0;

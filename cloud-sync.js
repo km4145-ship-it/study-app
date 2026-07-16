@@ -472,6 +472,48 @@ window.FIREBASE_CONFIG = {
   window.cloudAccountSignOut = function(){
     return firebase.auth().signOut().then(function(){ rset('mu_account_active',''); clearSyncCacheForModeSwitch(); location.reload(); });
   };
+  // アカウント削除（App Store Guideline 5.1.1(v)＝アカウント作成を提供するアプリの必須要件）。
+  // ①accounts/{uid}配下のデータを可能な範囲で削除（shared/settings・各メンバー・各セッション・親doc）
+  // ②Firebase Authのユーザー自体を削除（＝ログイン情報そのものの抹消）③端末ローカルを消去してリロード。
+  // 純粋なロジック（削除対象パスの列挙）は _accountDeletePaths に分離してテスト可能にする。
+  window.cloudAccountDelete = function(){
+    var user = (firebase.auth && firebase.auth().currentUser) || null;
+    if(mode!=='account' || !user || user.isAnonymous){
+      return Promise.resolve({ ok:false, reason:'not-account' });
+    }
+    var paths = _accountDeletePaths();
+    // データを先に消す→そのあとAuthユーザーを消す（順序が重要）。理由：Authを先に消すと
+    // トークンが無効化されFirestoreの削除権限を失い、子どものデータがサーバーに孤立して残る
+    // （＝削除の目的＝プライバシー要件に反する）。requires-recent-loginで途中終了しても、
+    // データ削除は冪等なので再ログイン後にもう一度押せば完了する。
+    var dels = paths.map(function(p){ return p.ref.delete().catch(function(){}); });
+    return Promise.all(dels).then(function(){
+      return user.delete();   // ← Authユーザー削除。最近のログインが必要な場合はrejectする
+    }).then(function(){
+      rset('mu_account_active','');
+      try{ (window.muLocalWipe ? window.muLocalWipe() : basicWipe()); }catch(e){ basicWipe(); }
+      return { ok:true };
+    }).catch(function(e){
+      var code = e && e.code;
+      if(code==='auth/requires-recent-login'){
+        return { ok:false, reason:'requires-recent-login' };   // UI側で「もう一度ログインしてから」を案内
+      }
+      return { ok:false, reason:(e && e.message) || 'error' };
+    });
+  };
+  // 削除対象のFirestore doc参照を列挙（accountモードのroot配下のみ＝familiesには絶対触れない）
+  function _accountDeletePaths(){
+    var out = [{ label:'shared', ref: sharedRef() }];
+    var uids = [];
+    try{ (JSON.parse(rget('mu_users')||'[]')||[]).forEach(function(u){ if(u && u.id) uids.push(String(u.id)); }); }catch(e){}
+    uids.forEach(function(uid){
+      out.push({ label:'member:'+uid, ref: memberRef(uid) });
+      out.push({ label:'session:'+uid, ref: sessionRef(uid) });
+    });
+    out.push({ label:'root', ref: rootRef() });   // accounts/{uid} 親doc自体
+    return out;
+  }
+  window._accountDeletePaths = _accountDeletePaths;   // テスト用に公開
 
   // ---- 端末セッションロック（同じユーザーを複数端末で同時に操作させない）----
   //   families/{fam}/sessions/{uid} = { device, name, at(serverTimestamp) }

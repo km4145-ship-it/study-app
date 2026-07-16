@@ -1032,6 +1032,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
         <button class="btn-sm" style="background:#0891b2" onclick="(window.cloudAccountSignIn||function(){alert('同期スクリプト読込中です。少し待って再度お試しください。');})(document.getElementById('account-email').value.trim(), document.getElementById('account-password').value)">🔓 ログイン</button>
         <button class="btn-sm" style="background:#64748b" onclick="(window.cloudAccountSignOut||function(){})()">ログアウト</button>
       </div>
+      <div class="settings-row" id="account-delete-row" style="display:none">
+        <button class="btn-sm" style="background:#dc2626" onclick="accountDelete()">🗑️ アカウントを削除</button>
+        <span class="settings-hint">ログイン情報と、このアカウントの保存データを消します（取り消せません）</span>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -3104,7 +3108,21 @@ function refreshSettingsDisp(){
   const li=document.getElementById('line-endpoint'); if(li && !li.value) li.value=lineEndpoint();
   const eq=document.getElementById('extraq-disp'); if(eq) eq.textContent='（追加問題：'+getExtraQuestions().length+'問）';
   const am=document.getElementById('account-mode-disp');
-  if(am) am.textContent = (window.cloudMode && window.cloudMode()==='account') ? '現在：🔑 アカウントで同期中' : '現在：☁️ 家族コードで同期中';
+  var _acct=(window.cloudMode && window.cloudMode()==='account');
+  if(am) am.textContent = _acct ? '現在：🔑 アカウントで同期中' : '現在：☁️ 家族コードで同期中';
+  var adr=document.getElementById('account-delete-row'); if(adr) adr.style.display=_acct?'flex':'none';   // 削除はアカウントモードのときだけ
+}
+// 🗑️ アカウント削除（App Store必須要件）。二重確認のうえ cloudAccountDelete を呼ぶ
+function accountDelete(){
+  if(!window.cloudAccountDelete){ alert('同期スクリプト読込中です。少し待って再度お試しください。'); return; }
+  if(!confirm('本当に アカウントを削除しますか？\nログイン情報と、このアカウントに保存された学習データが すべて消えます。\nこの操作は 取り消せません。')) return;
+  if(!confirm('最終確認：削除すると もとに もどせません。よろしいですか？')) return;
+  window.cloudAccountDelete().then(function(r){
+    if(r && r.ok){ alert('アカウントを削除しました。'); try{ location.reload(); }catch(e){} return; }
+    if(r && r.reason==='requires-recent-login'){ alert('安全のため、もう一度ログインしてから削除してください。（一度ログアウト→ログインし直してから お試しください）'); return; }
+    if(r && r.reason==='not-account'){ alert('アカウントでログイン中のときだけ削除できます。'); return; }
+    alert('削除できませんでした：'+((r&&r.reason)||'不明なエラー'));
+  }).catch(function(e){ alert('削除できませんでした：'+(e&&e.message)); });
 }
 // ---- 実模試の結果入力（偏差値の校正用） ----
 function addRealExam(){
@@ -7882,7 +7900,7 @@ function initKeyboard(){
 
 init();
 </script>
-<script src="cloud-sync.js?v=1110" defer></script>
+<script src="cloud-sync.js?v=1111" defer></script>
 <script>
 /* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
 (function(){ try{

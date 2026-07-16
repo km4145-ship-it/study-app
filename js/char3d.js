@@ -1122,28 +1122,49 @@ function _c3dTriggerCombat(el, kind){
 
 // =============== ガチャの3D宝箱（開封演出） ===============
 // レア度で材質が豪華になる：0-1木 / 2-3銀 / 4-5金 / 6虹(UR) / 7レジェンド(LR)
+// 宝箱のレア度別マテリアル。body＝木/地の色、metal＝金具（リム・帯・四隅・錠）、gem＝正面の宝石（発光）
 var C3D_CHEST_TIERS=[
-  { body:'#8b5a2b', trim:'#a16207', lock:'#f2c94c' },
-  { body:'#94a3b8', trim:'#e2e8f0', lock:'#f2c94c' },
-  { body:'#d97706', trim:'#f2c94c', lock:'#fde047' },
-  { body:'#7c3aed', trim:'#f472b6', lock:'#38bdf8' },
-  { body:'#1f2937', trim:'#f2c94c', lock:'#fde047' }
+  { body:'#6f4a2b', metal:'#caa14e', gem:'#ffd45e' },   // 木＋真鍮（N/HN）
+  { body:'#6b7280', metal:'#e6edf5', gem:'#9be8ff' },   // 銀（R/HR）
+  { body:'#8a5312', metal:'#ffd24a', gem:'#fff0a8' },   // 金（SR/SSR）
+  { body:'#4c1d95', metal:'#f0abfc', gem:'#67e8f9' },   // 虹・紫（UR）
+  { body:'#131a2b', metal:'#fbbf24', gem:'#fde047' }    // レジェンド黒金（LR）
 ];
 function _c3dChestTier(rank){ return C3D_CHEST_TIERS[ rank>=7?4 : rank>=6?3 : rank>=4?2 : rank>=2?1 : 0 ]; }
 // 開封シーンのカメラ枠。_c3dRenderIntoは初回のバウンディングボックスで枠をキャッシュするため、
-// 宝箱（高さ0.77）のままだと浮かび上がったアイテム（y≈1.0＋アイテムの高さ）が枠外＝見えなくなる。
+// 宝箱のままだと浮かび上がったアイテム（y≈1.1＋アイテムの高さ）が枠外＝見えなくなる。
 // フタが開く瞬間にこの広い枠へ差し替える（カメラが引くカット割りとして機能する）
-var C3D_CHEST_FRAME={ hgt:1.7, cy:.72 };
+var C3D_CHEST_FRAME={ hgt:1.8, cy:.74 };
+// 宝石（発光）マテリアル：トゥーン＋emissiveでキラッとした高級感を出す
+function _c3dGemMat(hex){ return new THREE.MeshToonMaterial({ color:new THREE.Color(hex), emissive:new THREE.Color(hex), emissiveIntensity:.6, gradientMap:_c3dGrad() }); }
+// 色を暗くしたマテリアル（正面の彫り込みパネル用）
+function _c3dShadeMat(hex,f){ var c=new THREE.Color(hex); c.multiplyScalar(f); return _c3dMat('#'+c.getHexString()); }
 function _c3dBuildChest(rank){
   var t=_c3dChestTier(rank||0), g=new THREE.Group(), M=_c3dMat;
-  var base=new THREE.Mesh(new THREE.BoxGeometry(1.0,.55,.7), M(t.body)); base.position.y=.28; g.add(base);
-  [-.3,.3].forEach(function(x){ var b=new THREE.Mesh(new THREE.BoxGeometry(.1,.57,.72), M(t.trim)); b.position.set(x,.28,0); g.add(b); });
-  // フタ：後ろの上辺をピボットにするGroup（開くときは rotation.x をマイナスへ倒す）
-  var lid=new THREE.Group(); lid.position.set(0,.55,-.35); lid.name='c3dChestLid';
-  var lm=new THREE.Mesh(new THREE.BoxGeometry(1.0,.22,.72), M(t.body)); lm.position.set(0,.1,.35); lid.add(lm);
-  [-.3,.3].forEach(function(x){ var b=new THREE.Mesh(new THREE.BoxGeometry(.1,.24,.74), M(t.trim)); b.position.set(x,.1,.35); lid.add(b); });
+  var body=M(t.body), metal=M(t.metal);
+  // ── 本体（下箱）
+  var base=new THREE.Mesh(new THREE.BoxGeometry(1.06,.5,.72), body); base.position.y=.27; g.add(base);
+  // 正面の一段くぼんだ木パネル（クラフト感）
+  var panel=new THREE.Mesh(new THREE.BoxGeometry(.78,.32,.05), _c3dShadeMat(t.body,.66)); panel.position.set(0,.26,.37); g.add(panel);
+  // 底の金属リム（脚）
+  var rim=new THREE.Mesh(new THREE.BoxGeometry(1.14,.11,.8), metal); rim.position.y=.055; g.add(rim);
+  // 縦の金属ストラップ×2（本体をぐるり）
+  [-.33,.33].forEach(function(x){ var b=new THREE.Mesh(new THREE.BoxGeometry(.1,.54,.76), metal); b.position.set(x,.28,0); g.add(b); });
+  // 四隅の金具（リベット風の立方体）
+  [[-.5,-.34],[.5,-.34],[-.5,.34],[.5,.34]].forEach(function(c){ var k=new THREE.Mesh(new THREE.BoxGeometry(.12,.13,.12), metal); k.position.set(c[0],.1,c[1]); g.add(k); });
+  // ── フタ：かまぼこ型（バレル）。後ろの上辺をピボットにするGroup（開くときは rotation.x をマイナスへ倒す）
+  var lid=new THREE.Group(); lid.position.set(0,.5,-.36); lid.name='c3dChestLid';
+  var dome=new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,1.06,24), body); dome.rotation.z=Math.PI/2; dome.position.set(0,.05,.36); lid.add(dome);
+  // フタ両端の金属リング（円い側面のふち）＋帯
+  [-.53,.53].forEach(function(x){ var r=new THREE.Mesh(new THREE.TorusGeometry(.36,.045,10,22), metal); r.rotation.y=Math.PI/2; r.position.set(x,.05,.36); lid.add(r); });
+  [-.28,.28].forEach(function(x){ var band=new THREE.Mesh(new THREE.TorusGeometry(.365,.03,8,22,Math.PI), metal); band.rotation.y=Math.PI/2; band.position.set(x,.05,.36); lid.add(band); });
   g.add(lid);
-  var lock=new THREE.Mesh(new THREE.SphereGeometry(.12,10,10), M(t.lock)); lock.position.set(0,.5,.37); lock.name='c3dChestLock'; g.add(lock);
+  // ── 錠（プレート＋鍵穴＋発光ジュエル）Groupごと飛ぶ。開封クリップが (0,.5,.37) 起点で参照
+  var lock=new THREE.Group(); lock.position.set(0,.5,.37); lock.name='c3dChestLock';
+  var plate=new THREE.Mesh(new THREE.BoxGeometry(.26,.32,.08), metal); lock.add(plate);
+  var gem=new THREE.Mesh(new THREE.OctahedronGeometry(.11,0), _c3dGemMat(t.gem)); gem.position.set(0,.04,.07); gem.scale.set(1,1.25,.75); lock.add(gem);
+  var hole=new THREE.Mesh(new THREE.BoxGeometry(.055,.1,.04), M('#241b12')); hole.position.set(0,-.1,.05); lock.add(hole);
+  g.add(lock);
   g.userData.lid=lid; g.userData.lock=lock;
   return g;
 }

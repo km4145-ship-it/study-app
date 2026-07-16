@@ -1762,7 +1762,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-btn{ flex:0 0 auto; background:#fde047; color:#7c2d12; border:none; border-radius:12px; padding:10px 16px; font-weight:900; font-size:.9rem; font-family:inherit; cursor:pointer; box-shadow:0 3px 0 #ca8a04; }
   .rpg-gacha-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #ca8a04; }
   .rpg-gacha-ov{ position:fixed; inset:0; background:radial-gradient(ellipse 80% 60% at 50% 40%, rgba(38,48,92,.62) 0%, rgba(11,15,32,.93) 68%), rgba(8,11,25,.92); z-index:9999; display:none; align-items:center; justify-content:center; overflow-y:auto; padding:12px 0; box-sizing:border-box; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
-  .rpg-gacha-card{ position:relative; background:linear-gradient(160deg,rgba(30,41,59,.72),rgba(15,23,42,.66)); border:1.5px solid rgba(148,163,184,.35); border-radius:var(--r-l); padding:26px 30px; text-align:center; color:#fff; min-width:230px; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); box-shadow:0 20px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.10); }
+  .rpg-gacha-card{ position:relative; background:linear-gradient(160deg,rgba(30,41,59,.72),rgba(15,23,42,.66)); border:1.5px solid rgba(148,163,184,.35); border-radius:var(--r-l); padding:26px 30px; text-align:center; color:#fff; min-width:230px; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); box-shadow:0 20px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.10); animation:rpgCardIn .4s var(--spring) both; }
+  @keyframes rpgCardIn{ 0%{ transform:scale(.86) translateY(10px); opacity:0; } 100%{ transform:scale(1) translateY(0); opacity:1; } }
   .rpg-gacha-card.cos-r{ border-color:#a78bfa; box-shadow:0 0 30px rgba(167,139,250,.6); }
   .rpg-gacha-card.cos-s{ border-color:#f59e0b; box-shadow:0 0 42px rgba(245,158,11,.75); }
   .rpg-gacha-box{ font-size:64px; animation:rpgBoxShake .5s ease-in-out infinite; }
@@ -1906,8 +1907,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-ov.hint .rpg-gacha-box{ animation-duration:.22s; }
   .rpg-gacha-ov.hint .rpg-gacha-card.cos-r .rpg-gacha-box{ filter:drop-shadow(0 0 18px #a78bfa); }
   .rpg-gacha-ov.hint .rpg-gacha-card.cos-s .rpg-gacha-box{ filter:drop-shadow(0 0 22px #fde047); }
-  .rpg-gacha-ov.flash::after{ content:''; position:fixed; inset:0; background:#fff; z-index:99; pointer-events:none; animation:rpgFlash .42s ease-out; }
-  @keyframes rpgFlash{ from{ opacity:.92; } to{ opacity:0; } }
+  .rpg-gacha-ov.flash::after{ content:''; position:fixed; inset:0; background:radial-gradient(circle at 50% 42%, #ffffff 28%, rgba(255,255,255,.55) 54%, rgba(255,255,255,0) 78%); z-index:99; pointer-events:none; animation:rpgFlash .5s ease-out; }
+  @keyframes rpgFlash{ from{ opacity:.95; } to{ opacity:0; } }
   /* ===== ガチャ演出 強化（溜め→色でレア度を示す期待感→レア度ほど派手）===== */
   /* 溜め（build-up）：箱がふるえて光る。レア度ほど強く */
   .rpg-gacha-ov.charging .rpg-gacha-box{ animation:rpgBoxCharge .5s ease-in-out infinite; }
@@ -1937,6 +1938,14 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-ov.open .rpg-gacha-card.cos-ur .rpg-gacha-item{ filter:drop-shadow(0 0 16px #f472b6) drop-shadow(0 0 30px #38bdf8); }
   /* レア度スタンプが叩き込まれる */
   .rpg-gacha-ov.open .rpg-gacha-rar{ animation:rpgStamp .45s cubic-bezier(.2,1.6,.4,1) .12s both; }
+  /* ★レア度スター：開封時にひとつずつ弾んで並ぶ */
+  .rpg-gacha-stars{ display:none; }
+  .rpg-gacha-ov.open .rpg-gacha-stars{ display:flex; justify-content:center; gap:2px; margin-top:6px; font-size:1.05rem; line-height:1; }
+  .rpg-gacha-ov.open .rpg-gacha-stars span{ color:#fbbf24; text-shadow:0 0 8px rgba(251,191,36,.7); animation:rpgStarPop .42s var(--spring) calc(.18s + var(--si,0)*.08s) both; }
+  .rpg-gacha-ov.open .rpg-gacha-stars.cos-sr span{ color:#f9a8d4; text-shadow:0 0 8px rgba(236,72,153,.7); }
+  .rpg-gacha-ov.open .rpg-gacha-stars.cos-ur span, .rpg-gacha-ov.open .rpg-gacha-stars.cos-lr span{ color:#fde68a; text-shadow:0 0 6px rgba(244,114,182,.8), 0 0 12px rgba(56,189,248,.6); animation:rpgStarPop .42s var(--spring) calc(.18s + var(--si,0)*.08s) both, rpgStarRainbow 2.2s linear infinite; }
+  @keyframes rpgStarPop{ 0%{ transform:scale(0) rotate(-40deg); opacity:0; } 65%{ transform:scale(1.35) rotate(8deg); opacity:1; } 100%{ transform:scale(1) rotate(0); } }
+  @keyframes rpgStarRainbow{ 0%{ filter:hue-rotate(0deg); } 100%{ filter:hue-rotate(360deg); } }
   @keyframes rpgStamp{ 0%{ transform:scale(2.5); opacity:0;} 60%{ transform:scale(.85); opacity:1;} 100%{ transform:scale(1);} }
   /* 画面シェイク（S/UR） */
   .rpg-gacha-ov.shake .rpg-gacha-card{ animation:rpgGShake .5s ease-in-out; }
@@ -2489,7 +2498,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/generators-listen.js?v=1"></script>
 <script src="js/generators-graph.js?v=1"></script>
 <script src="js/audio.js?v=1"></script>
-<script src="js/gacha-fx.js?v=2"></script>
+<script src="js/gacha-fx.js?v=3"></script>
 <script src="js/furigana.js?v=1"></script>
 <script src="js/reading-ja.js?v=1"></script>
 <script src="js/content-data.js?v=2"></script>
@@ -6756,6 +6765,8 @@ function rpgGachaReveal(pick, dup, refund, opts){
   var _wishHit=false;
   try{ var _wid=safeLS.getItem('gacha_wish'); if(_wid && !pick.goodie){ var _ws=null; COS_SETS.forEach(function(x){ if(x.id===_wid) _ws=x; }); _wishHit=!!(_ws && _ws.items.indexOf(it.id)>=0); } }catch(e){}
   var _wishHtml=_wishHit?'<div class="rpg-gacha-wishhit">⭐ ねがいの セットの アイテム！</div>':'';
+  // ★レア度スター（1〜6）。開封時にスタッガーでポップ。UR/LRは虹色に。
+  var _ns=Math.max(1,Math.min(6,rank+1)), _starHtml='<div class="rpg-gacha-stars '+rcls+'">'; for(var _si=0;_si<_ns;_si++){ _starHtml+='<span style="--si:'+_si+'">★</span>'; } _starHtml+='</div>';
   // ===== SR以上（rank>=4）は約10秒のエピック演出（レア度ほど豪華）=====
   if(rank>=4){
     var sp=''; for(var _i=0;_i<16;_i++){ sp+='<span class="rpg-gacha-spark" style="--a:'+(_i*23)+'deg;--d:'+(0.02+(_i%4)*0.05)+'s"></span>'; }
@@ -6771,7 +6782,7 @@ function rpgGachaReveal(pick, dup, refund, opts){
       '<div class="rpg-gacha-box'+(_ch3?' c3d':'')+'">'+(_ch3||'🎁')+'</div>'+
       '<div class="rpg-gacha-sparks">'+sp+'</div>'+
       '<div class="rpg-gacha-item">'+it.em+'</div>'+
-      '<div class="rpg-gacha-rar '+rcls+'">'+rar.name+'</div>'+
+      '<div class="rpg-gacha-rar '+rcls+'">'+rar.name+'</div>'+_starHtml+
       '<div class="rpg-gacha-name">'+it.name+'</div>'+
       (typeof gsCheer==='function'?('<div class="rpg-gacha-cheer">🦝「'+gsCheer(rank, it.id)+'」</div>'):'')+
       (typeof GS_LORE!=='undefined'&&GS_LORE[it.id]?('<div class="rpg-gacha-lore">'+GS_LORE[it.id]+'</div>'):'')+
@@ -6816,7 +6827,7 @@ function rpgGachaReveal(pick, dup, refund, opts){
     if(_ch3){ try{ char3dHydrate(ov); _c3dTriggerChest(ov,'charge'); }catch(e){} }   // 3D宝箱：ゆっくりガタガタ
     // A：予兆→昇格→ドラムロール。フェーズごとに色と音が育つ（短縮時は尺を圧縮）
     var _T=(fxm==='short')?[700,1400,2100]:[2600,4800,6800];
-    var t1=setTimeout(function(){ if(!done){ ov.classList.add('phase2','hint'); try{ sfx('powerup'); if(window.gachaFx) gachaFx.pulse(rank); }catch(e){} if(_ch3) try{ _c3dTriggerChest(ov,'phase2'); }catch(e){} } }, _T[0]);
+    var t1=setTimeout(function(){ if(!done){ ov.classList.add('phase2','hint'); try{ sfx('powerup'); if(window.gachaFx){ gachaFx.pulse(rank); if(gachaFx.streak) gachaFx.streak(rank); } }catch(e){} if(_ch3) try{ _c3dTriggerChest(ov,'phase2'); }catch(e){} } }, _T[0]);
     var t2=setTimeout(function(){ if(!done){ ov.classList.add('phase3'); try{ sfx('drumroll'); if(window.gachaFx){ gachaFx.pulse(rank); if(gachaFx.vortex) gachaFx.vortex(rank); } }catch(e){} if(_ch3) try{ _c3dTriggerChest(ov,'phase3'); }catch(e){} } }, _T[1]);
     var t2b=_ch3?setTimeout(function(){ if(!done) try{ _c3dTriggerChest(ov,'open'); }catch(e){} }, Math.max(0,_T[2]-320)):null;   // 開封の直前にフタが開く
     var t3=setTimeout(reveal, _T[2]);
@@ -6831,7 +6842,7 @@ function rpgGachaReveal(pick, dup, refund, opts){
     '<div class="rpg-gacha-box'+(_ch3?' c3d':'')+'">'+(_ch3||'🎁')+'</div>'+
     '<div class="rpg-gacha-sparks">'+parts+'</div>'+
     '<div class="rpg-gacha-item">'+it.em+'</div>'+
-    '<div class="rpg-gacha-rar '+rcls+'">'+rar.name+'</div>'+
+    '<div class="rpg-gacha-rar '+rcls+'">'+rar.name+'</div>'+_starHtml+
     '<div class="rpg-gacha-name">'+it.name+'</div>'+
     (typeof GS_LORE!=='undefined'&&GS_LORE[it.id]?('<div class="rpg-gacha-lore">'+GS_LORE[it.id]+'</div>'):'')+
     _wishHtml+

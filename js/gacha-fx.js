@@ -9,6 +9,7 @@
   var motes=[];         // 上昇する光の粒（溜め中の環境）
   var flares=[];        // レンズフレア（中心の光球）
   var swirls=[];        // 渦巻き吸い込み（最終フェーズ：光が宝箱へ吸い込まれる）
+  var streaks=[];       // レア度予告の流れ星（画面を横切る彗星・色でレア度を示唆）
   var drops=[];         // 星の雨（UR/LR開封後：画面上から流れ星が降りそそぐ）
   var rainState=null;   // {rank, until} 星の雨の生成期間
   var charge=null;      // {rank, until} 溜め中の状態
@@ -91,6 +92,17 @@
              s:rnd(1.4,3.4), life:1, dec:rnd(0.003,0.007), col:tone(rank, seed) };
   }
 
+  // ===== レア度予告の流れ星：画面を斜めに横切る彗星。色でレア度を先に示唆する“来るぞ”の瞬間 =====
+  function startStreak(rank){
+    ensure(); show();
+    var dir=(_r()<0.5)?1:-1;
+    var y0=H*rnd(0.06,0.20);
+    var sx=dir>0?-W*0.14:W*1.14;
+    var ex=dir>0?W*1.14:-W*0.14;
+    streaks.push({ x0:sx, y0:y0, x1:ex, y1:H*0.42, t:0, dur:rnd(0.5,0.62), col:tone(rank, rank*7+3) });
+    loop();
+  }
+
   // ===== 星の雨：開封後、画面の上から流れ星がしばらく降りそそぐ（UR/LRのごほうび感）=====
   function startRain(rank){
     ensure(); show();
@@ -170,6 +182,8 @@
       p.a+=p.sp*dt*2.2; p.r*=(1-1.35*dt); p.life-=p.dec;
       if(p.life<=0 || p.r<14) swirls.splice(i,1);
     }
+    // レア度予告の流れ星（媒介変数 t を進める）
+    for(i=streaks.length-1;i>=0;i--){ p=streaks[i]; p.t+=dt/p.dur; if(p.t>=1) streaks.splice(i,1); }
     // 星の雨（期間中は毎フレーム生成→落下）
     if(rainState){
       var nowT=(performance.now?performance.now():Date.now());
@@ -232,6 +246,21 @@
       ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(sx,sy); ctx.stroke();
       dot(sx,sy,p.s,p.col,p.life*0.85);
     }
+    // レア度予告の流れ星（彗星：色のしっぽ＋白コア＋光る頭）
+    for(i=0;i<streaks.length;i++){ p=streaks[i];
+      var e=1-Math.pow(1-p.t,2);                                 // ease-out
+      var hx=p.x0+(p.x1-p.x0)*e, hy=p.y0+(p.y1-p.y0)*e;         // 頭（先端）
+      var te=Math.max(0,e-0.18), tx2=p.x0+(p.x1-p.x0)*te, ty2=p.y0+(p.y1-p.y0)*te;   // しっぽ端
+      var sf=(p.t<0.85)?1:Math.max(0,1-(p.t-0.85)/0.15);         // 終端でフェード
+      var slg=ctx.createLinearGradient(tx2,ty2,hx,hy);
+      slg.addColorStop(0,'rgba(0,0,0,0)'); slg.addColorStop(1,hexA(p.col,0.85*sf));
+      ctx.strokeStyle=slg; ctx.lineWidth=4.5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(tx2,ty2); ctx.lineTo(hx,hy); ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,'+(0.7*sf)+')'; ctx.lineWidth=1.6;   // 白い芯
+      ctx.beginPath(); ctx.moveTo((tx2+hx)/2,(ty2+hy)/2); ctx.lineTo(hx,hy); ctx.stroke();
+      dot(hx,hy,6,p.col,sf);
+      ctx.fillStyle='rgba(255,255,255,'+(0.95*sf)+')'; ctx.beginPath(); ctx.arc(hx,hy,2.6,0,6.2832); ctx.fill();
+    }
     // 星の雨（縦のすじ＋コア）
     for(i=0;i<drops.length;i++){ p=drops[i];
       var da=Math.max(0,Math.min(1,p.life));
@@ -270,7 +299,7 @@
       if(!lastT) lastT=ts;
       var dt=Math.min(0.05,(ts-lastT)/1000); lastT=ts;
       step(dt); draw();
-      if(charge || rainState || sparks.length || beams.length || motes.length || flares.length || swirls.length || drops.length){
+      if(charge || rainState || sparks.length || beams.length || motes.length || flares.length || swirls.length || streaks.length || drops.length){
         raf=requestAnimationFrame(tick);
       } else {
         hide();
@@ -284,7 +313,7 @@
     // 余韻を残しつつ穏やかに消す（バーストは自然フェード）
     setTimeout(function(){ motes.length=0; }, 60);
   }
-  function reset(){ charge=null; rainState=null; sparks.length=0; beams.length=0; motes.length=0; flares.length=0; swirls.length=0; drops.length=0; if(raf){ cancelAnimationFrame(raf); raf=null; } hide(); }
+  function reset(){ charge=null; rainState=null; sparks.length=0; beams.length=0; motes.length=0; flares.length=0; swirls.length=0; streaks.length=0; drops.length=0; if(raf){ cancelAnimationFrame(raf); raf=null; } hide(); }
 
-  window.gachaFx={ charge:startCharge, pulse:pulse, burst:burst, vortex:startVortex, rain:startRain, stop:stop, reset:reset };
+  window.gachaFx={ charge:startCharge, pulse:pulse, burst:burst, vortex:startVortex, streak:startStreak, rain:startRain, stop:stop, reset:reset };
 })();

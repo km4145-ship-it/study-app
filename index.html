@@ -1819,15 +1819,21 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-wishhit{ display:none; }
   .rpg-gacha-ov.open .rpg-gacha-wishhit{ display:block; margin-top:6px; font-size:.9rem; font-weight:900; color:#facc15; animation:rpgItemPop .5s cubic-bezier(.2,1.4,.4,1); }
   /* バナー選択 */
-  .gc-banners{ display:flex; flex-direction:column; gap:6px; margin:8px 0 2px; }
+  /* 🪙 コイン/チケットは上部バーと重複しないよう、静かなチップ行に（大きな橙バーをやめて視認性UP） */
+  .gc-coinbar{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0 2px; }
+  .gc-cchip{ background:#fff; border:1px solid var(--line); border-radius:var(--r-pill); padding:5px 13px; font-weight:800; font-size:14px; color:var(--text); box-shadow:var(--sh-1); }
+  .gc-cchip b{ font-weight:900; color:var(--gold); }
+  .gc-chint{ font-size:11.5px; color:var(--muted); font-weight:700; }
+  .gc-banners{ display:flex; flex-direction:column; gap:7px; margin:10px 0 2px; }
   .gc-banner{ display:flex; align-items:center; gap:10px; width:100%; font-family:inherit; cursor:pointer; text-align:left;
-    background:var(--card2,#fff); border:2px solid #e2e8f0; border-radius:13px; padding:8px 12px; opacity:.85; }
-  .gc-banner.on{ border-color:#db2777; opacity:1; box-shadow:0 0 0 2px rgba(219,39,119,.18); }
+    background:#fff; border:1px solid var(--line); border-radius:var(--r-m); padding:9px 13px; box-shadow:var(--sh-1); transition:transform .15s var(--spring), border-color .15s, box-shadow .15s; }
+  .gc-banner:active{ transform:scale(.98); }
+  .gc-banner.on{ border-color:#db2777; box-shadow:0 0 0 2px rgba(219,39,119,.2), var(--sh-2); }
   .gc-bn-em{ font-size:24px; }
   .gc-bn-tx{ flex:1; line-height:1.35; } .gc-bn-tx small{ color:#64748b; font-size:.72rem; }
   .gc-bn-on{ color:#db2777; font-weight:900; }
   /* 🎫 スタンプカード */
-  .gc-stampcard{ background:var(--card2,#fff); border:1.5px solid #a5b4fc; border-radius:12px; padding:8px 12px; margin-top:8px; }
+  .gc-stampcard{ background:#fff; border:1px solid var(--line); border-radius:var(--r-m); padding:9px 13px; margin-top:9px; box-shadow:var(--sh-1); }
   .gc-stamp-l{ display:flex; align-items:center; justify-content:space-between; font-size:.82rem; font-weight:800; }
   .gc-stamp-l small{ color:#64748b; font-weight:600; }
   .gc-stamp-claim{ border:none; background:linear-gradient(90deg,#818cf8,#6366f1); color:#fff; border-radius:10px; padding:5px 11px; font-weight:900; font-family:inherit; cursor:pointer; box-shadow:0 2px 0 #4338ca; }
@@ -1866,9 +1872,9 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   /* 行商人たぬすけ＋ピックアップ（gacha-story.js） */
   .gc-merchant{ display:flex; align-items:flex-start; gap:8px; margin:8px 0 2px; }
   .gc-m-face{ font-size:30px; line-height:1.1; filter:drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
-  .gc-m-bubble{ position:relative; flex:1; background:var(--card2,#fff); border:2px solid #f59e0b; border-radius:13px; padding:8px 11px; font-size:.85rem; font-weight:700; color:var(--ink,#334155); }
-  .gc-m-bubble::before{ content:''; position:absolute; left:-8px; top:12px; border:5px solid transparent; border-right-color:#f59e0b; }
-  .gc-pickup{ background:linear-gradient(90deg,#fef3c7,#fde68a); border:1.5px solid #f59e0b; color:#7c2d12; border-radius:11px; padding:6px 10px; margin:6px 0 2px; font-size:.82rem; font-weight:800; }
+  .gc-m-bubble{ position:relative; flex:1; background:#fff; border:1px solid var(--line); border-radius:var(--r-m); padding:9px 12px; font-size:.85rem; font-weight:700; color:var(--ink,#334155); box-shadow:var(--sh-1); }
+  .gc-m-bubble::before{ content:''; position:absolute; left:-7px; top:13px; border:5px solid transparent; border-right-color:#fff; filter:drop-shadow(-1px 0 0 rgba(10,60,80,.09)); }
+  .gc-pickup{ background:#fffbeb; border:1px solid rgba(245,158,11,.28); color:#92400e; border-radius:var(--r-m); padding:7px 11px; margin:6px 0 2px; font-size:.82rem; font-weight:800; }
   /* 開封カードの ひとこと＆いいつたえ（開封後だけ見せる） */
   .rpg-gacha-cheer,.rpg-gacha-lore{ display:none; }
   .rpg-gacha-ov.open .rpg-gacha-cheer{ display:block; margin-top:7px; font-size:.85rem; font-weight:800; color:#fbbf24; }
@@ -2323,19 +2329,22 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   body.rpg-mode .mu-tabbar{ box-shadow:0 -5px 18px rgba(0,0,0,.25); }
   /* 🎁 ガチャタブ */
   .gc-free{ display:flex; align-items:center; gap:11px; width:100%; font-family:inherit; cursor:pointer;
-    background:linear-gradient(135deg,#fef3c7,#fff); border:2px solid #fcd34d; border-radius:16px; padding:13px 15px; margin-top:10px; box-shadow:0 4px 12px rgba(217,119,6,.18); text-align:left; }
-  .gc-free.done{ background:#f1f5f9; border-color:#e2e8f0; opacity:.9; }
+    background:linear-gradient(135deg,#fef3c7,#fffdf5); border:1px solid #fcd34d; border-radius:var(--r-l); padding:13px 15px; margin-top:10px; box-shadow:0 6px 16px rgba(217,119,6,.16), inset 0 1px 0 rgba(255,255,255,.5); text-align:left; transition:transform .15s var(--spring); }
+  .gc-free:active{ transform:scale(.985); }
+  .gc-free.done{ background:#f1f5f9; border-color:var(--line); opacity:.9; box-shadow:var(--sh-1); }
   .gc-free-ic{ font-size:32px; } .gc-free-tx{ flex:1; color:#7c4a03; font-size:12px; } .gc-free-tx b{ font-size:15px; color:#92400e; }
   .gc-free-go{ background:#f59e0b; color:#fff; border-radius:999px; padding:8px 16px; font-weight:900; font-size:13px; white-space:nowrap; }
   .gc-free.done .gc-free-go{ background:#94a3b8; }
-  .gc-pulls{ display:flex; gap:10px; margin-top:11px; }
-  .gc-pull{ flex:1; border:none; font-family:inherit; cursor:pointer; border-radius:16px; padding:16px 10px; color:#fff; display:flex; flex-direction:column; align-items:center; gap:3px; box-shadow:0 5px 14px rgba(15,23,42,.16); }
-  .gc-pull.one{ background:linear-gradient(135deg,#0891b2,#22d3ee); } .gc-pull.ten{ background:linear-gradient(135deg,#7c3aed,#db2777); }
-  .gc-pt{ font-size:16px; font-weight:900; text-shadow:0 1px 2px rgba(0,0,0,.15); } .gc-pp{ font-size:12px; font-weight:800; opacity:.96; }
-  .gc-pity{ margin-top:13px; background:#fff; border-radius:14px; padding:12px 15px; box-shadow:0 4px 12px rgba(8,110,140,.12); }
+  .gc-pulls{ display:flex; gap:10px; margin-top:12px; }
+  .gc-pull{ flex:1; border:none; font-family:inherit; cursor:pointer; border-radius:var(--r-l); padding:16px 10px; color:#fff; display:flex; flex-direction:column; align-items:center; gap:3px; box-shadow:0 8px 20px rgba(12,74,110,.18), inset 0 1px 0 rgba(255,255,255,.25); transition:transform .15s var(--spring), box-shadow .15s var(--ease); }
+  .gc-pull:active{ transform:scale(.97); }
+  @media (hover:hover){ .gc-pull:hover{ transform:translateY(-2px); } }
+  .gc-pull.one{ background:linear-gradient(135deg,#0aa0bd,#22d3ee); } .gc-pull.ten{ background:linear-gradient(135deg,#7c3aed,#db2777); }
+  .gc-pt{ font-size:16px; font-weight:900; text-shadow:0 1px 2px rgba(0,0,0,.12); } .gc-pp{ font-size:12px; font-weight:800; opacity:.96; }
+  .gc-pity{ margin-top:13px; background:#fff; border:1px solid var(--line); border-radius:var(--r-m); padding:12px 15px; box-shadow:var(--sh-1); }
   .gc-pity-l{ display:flex; justify-content:space-between; font-size:12.5px; font-weight:800; color:#0e3a4d; }
-  .gc-pity-b{ height:9px; background:#eee6fb; border-radius:5px; overflow:hidden; margin-top:6px; }
-  .gc-pity-b i{ display:block; height:100%; background:linear-gradient(90deg,#a78bfa,#7c3aed); }
+  .gc-pity-b{ height:9px; background:#eee6fb; border-radius:99px; overflow:hidden; margin-top:6px; }
+  .gc-pity-b i{ display:block; height:100%; background:linear-gradient(90deg,#a78bfa,#7c3aed); box-shadow:inset 0 1px 0 rgba(255,255,255,.4); transition:width .5s var(--spring); }
   /* 📊 きろくハブ行 */
   .rec-hub{ display:flex; flex-wrap:wrap; gap:8px; padding:2px 2px 8px; margin-bottom:6px; }   /* 折り返して全ボタンを見せる（横スクロールで家族ランキング等が見切れるのを防ぐ） */
   .rec-hub::-webkit-scrollbar{ height:0; }
@@ -6988,7 +6997,7 @@ function showGacha(){
       if(_pk) h+='<div class="gc-pickup">🎪 こんしゅうのピックアップ：<b>'+_pk.em+' '+escapeHtml(_pk.name)+'セット</b>（ピックアップ宝箱で 3ばい！）</div>';
     }
   }catch(e){}
-  h+='<div class="rpg-coin-bar">🪙 コイン：<b>'+cos.coin+'</b>　🎫 チケット：<b>'+tickets+'</b>　<span class="rpg-coin-hint">バトルに かつと コインがたまる</span></div>';
+  h+='<div class="gc-coinbar"><span class="gc-cchip">🪙 <b>'+cos.coin+'</b></span><span class="gc-cchip">🎫 <b>'+tickets+'</b></span><span class="gc-chint">バトルに かつと コインが たまる</span></div>';
   h+='<button class="gc-free'+(box?' ready':' done')+'" onclick="rpgOpenDailyBox()"><span class="gc-free-ic">📦</span><span class="gc-free-tx"><b>きょうの 無料ガチャ</b><br><small>'+(box?'1日1回 タダで ひける！ タップして あけよう':'また あした ひけるよ')+'</small></span><span class="gc-free-go">'+(box?'ひく':'✓')+'</span></button>';
   // ⭐ ねがい（セット単位の目標）の進捗
   var _wi=_gachaWishInfo();

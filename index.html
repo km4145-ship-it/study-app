@@ -223,19 +223,19 @@
   .subject-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
   @media (max-width: 540px) { .subject-grid { grid-template-columns: repeat(2, 1fr); } }
   .subject-card {
-    background: var(--card); border: 2px solid transparent;
-    border-radius: 14px; padding: 14px 8px;
-    text-align: center; cursor: pointer; transition: all 0.22s;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r-m); padding: 14px 8px; box-shadow: var(--sh-1);
+    text-align: center; cursor: pointer; transition: transform 0.2s var(--spring), box-shadow 0.2s var(--ease), border-color 0.2s;
     position: relative; overflow: hidden;
   }
-  @media (hover:hover) and (pointer:fine){ .subject-card:hover { border-color: var(--primary-light); transform: translateY(-3px); box-shadow: var(--shadow); } }
+  @media (hover:hover) and (pointer:fine){ .subject-card:hover { border-color: var(--primary-light); transform: translateY(-3px); box-shadow: var(--sh-3); } }
   .subject-icon { font-size: 1.85rem; margin-bottom: 5px; }
   .subject-name { font-size: 0.8rem; font-weight: 600; }
   .subject-count { font-size: 0.68rem; color: var(--primary-light); margin-top: 2px; }
   .subject-badge { position: absolute; top: 7px; right: 7px; background: var(--gold); color: #000; font-size: 0.6rem; font-weight: 700; padding: 2px 6px; border-radius: 99px; }
 
   /* Quiz */
-  .quiz-area { background: var(--card); border: 2px solid var(--primary); border-radius: 18px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); transition: border-color 0.3s; }
+  .quiz-area { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-l); padding: 20px; margin-bottom: 16px; box-shadow: var(--sh-2); transition: border-color 0.3s; }
   .quiz-area.kai-border { border-color: #ef4444; }
   .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .quiz-title { font-size: 0.97rem; font-weight: 700; color: var(--gold); }
@@ -257,18 +257,18 @@
 
   /* Options */
   .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
-  .option-btn { background: var(--card2); border: 2px solid var(--primary-light); border-radius: 12px; padding: 12px 8px; color: var(--text); font-size: 0.96rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; }
-  @media (hover:hover) and (pointer:fine){ .option-btn:hover:not(:disabled) { border-color: var(--gold); background: #fef3c7; color: var(--text); transform: scale(1.02); } }
-  .option-btn.correct { border-color: var(--success); background: rgba(16,185,129,0.13); color: var(--success); }
+  .option-btn { background: #fff; border: 1.5px solid var(--line); border-radius: var(--r-m); padding: 13px 8px; color: var(--text); font-size: 0.98rem; font-weight: 700; cursor: pointer; box-shadow: var(--sh-1); transition: transform 0.15s var(--spring), border-color 0.15s, background 0.15s, box-shadow 0.15s; text-align: center; }
+  @media (hover:hover) and (pointer:fine){ .option-btn:hover:not(:disabled) { border-color: var(--primary-vivid); background: #f0fbfe; color: var(--text); transform: translateY(-2px); box-shadow: var(--sh-2); } }
+  .option-btn.correct { border-color: var(--success); background: rgba(16,185,129,0.14); color: var(--success); box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
   .option-btn.wrong { border-color: var(--error); background: rgba(239,68,68,0.1); color: var(--error); }
   .option-btn:disabled { cursor: default; }
 
   /* Input */
   .input-area { display: flex; gap: 8px; margin-bottom: 16px; }
-  .answer-input { flex: 1; background: var(--bg); border: 2px solid var(--primary-light); border-radius: 12px; padding: 10px 14px; color: var(--text); font-size: 16px; font-weight: 600; }
-  .answer-input:focus { outline: none; border-color: var(--gold); }
-  .btn-check { padding: 10px 16px; background: linear-gradient(135deg, #0891b2, #ec4899); border: none; border-radius: 12px; color: white; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-  @media (hover:hover) and (pointer:fine){ .btn-check:hover { transform: scale(1.04); } }
+  .answer-input { flex: 1; background: #fff; border: 1.5px solid var(--line); border-radius: var(--r-m); padding: 11px 14px; color: var(--text); font-size: 16px; font-weight: 700; box-shadow: var(--sh-1); transition: border-color .15s, box-shadow .15s; }
+  .answer-input:focus { outline: none; border-color: var(--primary-vivid); box-shadow: 0 0 0 3px rgba(6,182,212,.18); }
+  .btn-check { padding: 11px 18px; background: linear-gradient(135deg, #0aa0bd, #db2777); border: none; border-radius: var(--r-m); color: white; font-size: 0.92rem; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(219,39,119,.28), inset 0 1px 0 rgba(255,255,255,.25); transition: transform .15s var(--spring), box-shadow .15s; }
+  @media (hover:hover) and (pointer:fine){ .btn-check:hover { transform: translateY(-2px); box-shadow: 0 7px 18px rgba(219,39,119,.34), inset 0 1px 0 rgba(255,255,255,.25); } }
 
   /* Feedback */
   .feedback { text-align: center; padding: 11px; border-radius: 12px; font-size: 0.93rem; font-weight: 600; margin-bottom: 12px; display: none; }
@@ -296,18 +296,18 @@
 body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(251,146,60,.15); }
 .feedback.correct { display: block; background: rgba(16,185,129,0.12); border: 1px solid var(--success); color: var(--success); }
   .feedback.wrong { display: block; background: rgba(239,68,68,0.1); border: 1px solid var(--error); color: var(--error); }
-  .btn-next { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--gold), #f97316); border: none; border-radius: 12px; color: #000; font-size: 0.96rem; font-weight: 700; cursor: pointer; display: none; transition: all 0.2s; }
-  @media (hover:hover) and (pointer:fine){ .btn-next:hover { transform: scale(1.02); } }
+  .btn-next { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--gold), #f97316); border: none; border-radius: var(--r-m); color: #2a1500; font-size: 0.98rem; font-weight: 800; cursor: pointer; display: none; box-shadow: 0 4px 14px rgba(217,119,6,.30), inset 0 1px 0 rgba(255,255,255,.32); transition: transform .15s var(--spring), box-shadow .15s; }
+  @media (hover:hover) and (pointer:fine){ .btn-next:hover { transform: translateY(-2px); box-shadow: 0 7px 20px rgba(217,119,6,.36), inset 0 1px 0 rgba(255,255,255,.28); } }
   .btn-next.show { display: block; }
 
   /* Result */
-  .result-screen { display: none; text-align: center; padding: 28px 16px; background: var(--card); border: 2px solid var(--gold); border-radius: 18px; margin-bottom: 16px; box-shadow: 0 0 36px rgba(245,158,11,0.15); }
+  .result-screen { display: none; text-align: center; padding: 28px 16px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-l); margin-bottom: 16px; box-shadow: var(--sh-3); }
   .result-screen.active { display: block; }
   .result-score { font-size: 3rem; font-weight: 700; color: var(--gold); }
   .result-msg { font-size: 1.05rem; margin: 9px 0 16px; }
   .stars { font-size: 2.3rem; letter-spacing: 8px; }
-  .btn-retry { padding: 10px 24px; background: linear-gradient(135deg, var(--primary), var(--pink)); border: none; border-radius: 12px; color: white; font-size: 0.93rem; font-weight: 700; cursor: pointer; margin: 5px; transition: all 0.2s; }
-  @media (hover:hover) and (pointer:fine){ .btn-retry:hover { transform: scale(1.04); } }
+  .btn-retry { padding: 11px 26px; background: linear-gradient(135deg, var(--primary), var(--pink)); border: none; border-radius: var(--r-m); color: white; font-size: 0.94rem; font-weight: 800; cursor: pointer; margin: 5px; box-shadow: 0 4px 12px rgba(8,145,178,.26), inset 0 1px 0 rgba(255,255,255,.25); transition: transform .15s var(--spring), box-shadow .15s; }
+  @media (hover:hover) and (pointer:fine){ .btn-retry:hover { transform: translateY(-2px); box-shadow: 0 7px 18px rgba(8,145,178,.32), inset 0 1px 0 rgba(255,255,255,.25); } }
   .btn-back { padding: 7px 14px; background: transparent; border: 1px solid var(--primary-light); border-radius: 10px; color: var(--primary-light); cursor: pointer; font-size: 0.81rem; margin-bottom: 10px; transition: all 0.2s; }
   @media (hover:hover) and (pointer:fine){ .btn-back:hover { border-color: var(--text); color: var(--text); } }
 

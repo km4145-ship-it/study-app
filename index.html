@@ -1348,6 +1348,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
       <div class="rpg-stage-sky plains" id="rpg-stage-sky">
         <div class="rpg-stage-ground"></div>
         <div class="rpg-fx" id="rpg-fx"></div>
+        <div class="rpg-sensei" id="rpg-sensei"></div>
         <div class="rpg-enemy-wrap">
           <div class="rpg-plate enemy"><span class="rpg-plate-name" id="rpg-enemy-name">てき</span><div class="rpg-gauge enemy"><i id="rpg-enemy-hp" style="width:100%"></i></div></div>
           <div class="rpg-enemy" id="rpg-enemy-sprite"></div>
@@ -1556,6 +1557,13 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-enemy-wrap{ position:absolute; top:12px; right:14px; width:146px; z-index:3; text-align:center; }
   .rpg-enemy{ width:104px; height:104px; margin:2px auto 0; }
   .rpg-enemy svg{ width:100%; height:100%; filter:drop-shadow(0 5px 6px rgba(0,0,0,.4)); animation:rpgFloat 3s ease-in-out infinite; }
+  /* バトルを見守る担当の先生（その大陸の教科の先生・ボスは鬼コーチ）＝学習と冒険をつなぐ顔 */
+  .rpg-sensei{ position:absolute; top:10px; left:12px; width:70px; z-index:3; text-align:center; pointer-events:none; }
+  .rpg-sensei-face{ width:52px; height:52px; margin:0 auto; filter:drop-shadow(0 3px 5px rgba(0,0,0,.4)); animation:rpgFloat 3.4s ease-in-out infinite; }
+  .rpg-sensei-face svg, .rpg-sensei-face img{ width:100%; height:100%; }
+  .rpg-sensei.cheer .rpg-sensei-face{ animation:rpgSenseiCheer .5s var(--spring); }
+  @keyframes rpgSenseiCheer{ 0%,100%{ transform:translateY(0) scale(1); } 40%{ transform:translateY(-7px) scale(1.12); } }
+  .rpg-sensei-nm{ margin-top:1px; font-size:.56rem; font-weight:900; color:#fff; background:rgba(15,10,40,.55); border:1px solid rgba(252,211,77,.32); border-radius:99px; padding:1px 7px; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .rpg-hero-wrap{ position:absolute; bottom:8px; left:16px; width:150px; z-index:4; }
   .rpg-hero{ width:74px; height:90px; }
   .rpg-hero svg{ width:100%; height:100%; filter:drop-shadow(0 4px 5px rgba(0,0,0,.4)); }
@@ -7302,9 +7310,12 @@ function rpgBeginBattle(area, ci, ni){
     total:qs.length, correct:0, combo:0, xpGain:0, over:false, aibouFx:_afx, guardLeft:_afx.guard }, rpgBattleStats(node, hits));
   rpgUseStamina();
   document.body.classList.add('rpg-battle');
+  // この大陸の担当先生がバトルの相棒（声・ほめ言葉）。ボスだけは鬼コーチ ゴウ教官。
+  var _teach=(RPG_WORLD[area]&&RPG_WORLD[area].teacher)||rpgHeroChar();
+  var _tnm=(RPG_WORLD[area]&&RPG_WORLD[area].teacherName)||'先生';
   var title=(node.type==='boss'?'👑 ':'')+node.name;
-  var intro=node.type==='boss' ? (node.name+'が たちはだかる！ 正かいで こうげきだ！') : (node.name+'が あらわれた！');
-  runQuestionSession(qs, title, intro, node.type==='boss'?'tiger':rpgHeroChar());
+  var intro=node.type==='boss' ? (node.name+'が たちはだかる！ '+_tnm+'先生と 力を合わせて 正かいで こうげきだ！') : (node.name+'が あらわれた！ '+_tnm+'先生「いっしょに たおそう！」');
+  runQuestionSession(qs, title, intro, node.type==='boss'?'tiger':_teach);
   rpgShowBattle();
 }
 function rpgShowBattle(){
@@ -7318,6 +7329,9 @@ function rpgShowBattle(){
   // あいぼうパーティ（3匹まで）を勇者のそばに表示（白い丸プレート＋ランク色リング）
   try{ var _ar=document.getElementById('rpg-aibou-row'); if(_ar){ _ar.innerHTML=rpgAibouParty().map(function(a){
     return '<span class="rpg-aibou-mini rpg-aibou-bd'+a.rank+'" title="'+escapeHtml(a.name||'')+'"><span class="rpg-aibou-art">'+rpgAibouArt(a)+rpgAibouHatHtml(a)+'</span></span>'; }).join(''); } }catch(e){}
+  // この大陸の担当先生を見守り役として表示（ボスは鬼コーチ ゴウ教官）＝学習の先生が冒険にも登場
+  try{ var _sk=(rpgBattle.node.type==='boss')?'tiger':((RPG_WORLD[rpgBattle.area]&&RPG_WORLD[rpgBattle.area].teacher)||'owl');
+    var _se=document.getElementById('rpg-sensei'); if(_se){ _se.className='rpg-sensei'; _se.innerHTML='<div class="rpg-sensei-face">'+_charSVG(_sk)+'</div><div class="rpg-sensei-nm">'+escapeHtml((CHARS[_sk]&&CHARS[_sk].name)||'先生')+'</div>'; } }catch(e){}
   var sky=document.getElementById('rpg-stage-sky'); if(sky){ sky.className='rpg-stage-sky '+rpgSkyClass(rpgBattle)+(rpgBattle.node.type!=='zako'?' boss':''); }
   var _sb=document.getElementById('rpg-special-btn'); if(_sb) _sb.style.display='block';   // 必殺技ボタンを表示
   rpgUpdateGauges();
@@ -7376,6 +7390,7 @@ function rpgAfterAnswer(correct){
     rpgBattle.mp=Math.min(rpgBattle.mpMax||0, (rpgBattle.mp||0)+2);   // 正解でMPがたまる（必殺技のもと）
     rpgBattle.xpGain += (rpgBattle.node.type!=='zako'?15:10) + (crit?5:0);
     if(hero){ hero.classList.remove('rpg-attack'); void hero.offsetWidth; hero.classList.add('rpg-attack'); }
+    try{ var _se=document.getElementById('rpg-sensei'); if(_se){ _se.classList.remove('cheer'); void _se.offsetWidth; _se.classList.add('cheer'); } }catch(e){}   // 先生も一緒に喜ぶ
     try{ _c3dTriggerCombat(hero,'heroAttack'); }catch(e){}
     sfx(crit?'crit':'attack'); vibe(crit?[12,24,12,24]:22);
     try{ document.body.classList.toggle('combo-glow', rpgBattle.combo>=3); }catch(e){}

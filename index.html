@@ -1581,6 +1581,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-sensei{ position:absolute; top:10px; left:12px; width:70px; z-index:3; text-align:center; pointer-events:none; }
   .rpg-sensei-face{ width:52px; height:52px; margin:0 auto; filter:drop-shadow(0 3px 5px rgba(0,0,0,.4)); animation:rpgFloat 3.4s ease-in-out infinite; }
   .rpg-sensei-face svg, .rpg-sensei-face img{ width:100%; height:100%; }
+  .rpg-sensei-face img.c3d-still, .rpg-res-react-face img.c3d-still, .rpg-guide-face img.c3d-still{ width:100%; height:100%; object-fit:contain; }
   .rpg-sensei.cheer .rpg-sensei-face{ animation:rpgSenseiCheer .5s var(--spring); }
   @keyframes rpgSenseiCheer{ 0%,100%{ transform:translateY(0) scale(1); } 40%{ transform:translateY(-7px) scale(1.12); } }
   .rpg-sensei-nm{ margin-top:1px; font-size:.56rem; font-weight:900; color:#fff; background:rgba(15,10,40,.55); border:1px solid rgba(252,211,77,.32); border-radius:99px; padding:1px 7px; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -6481,7 +6482,7 @@ function rpgRenderContinents(){
   var _gm = cc>=5 ? '5つの クリスタルが そろった！ いよいよ 魔王城へ…！'
           : cc>0 ? ('クリスタルは あと '+(5-cc)+'こ。先生たちの 国を クリアして 集めよう！')
                  : 'ようこそ、勇者！ まずは 先生たちの 国を めぐって、5つの クリスタルを あつめよう。';
-  h+='<div class="rpg-guide"><div class="rpg-guide-face">'+_charSVG('owl')+'</div><div class="rpg-guide-tx"><b>🦉 ミミ学園長</b><br>'+_gm+'</div></div>';
+  h+='<div class="rpg-guide"><div class="rpg-guide-face">'+_charStill('owl')+'</div><div class="rpg-guide-tx"><b>🦉 ミミ学園長</b><br>'+_gm+'</div></div>';
   h+='<div class="rpg-world-title">🗺️ どの先生の国に 行く？</div>';
   h+='<div class="rpg-continents">';
   RPG_CONTINENTS.forEach(function(area){
@@ -7380,7 +7381,7 @@ function rpgShowBattle(){
     return '<span class="rpg-aibou-mini rpg-aibou-bd'+a.rank+'" title="'+escapeHtml(a.name||'')+'"><span class="rpg-aibou-art">'+rpgAibouArt(a)+rpgAibouHatHtml(a)+'</span></span>'; }).join(''); } }catch(e){}
   // この大陸の担当先生を見守り役として表示（ボスは鬼コーチ ゴウ教官）＝学習の先生が冒険にも登場
   try{ var _sk = _rpgBattleTeacher();
-    var _se=document.getElementById('rpg-sensei'); if(_se){ _se.className='rpg-sensei'; _se.innerHTML='<div class="rpg-sensei-face">'+_charSVG(_sk)+'</div><div class="rpg-sensei-nm">'+escapeHtml((CHARS[_sk]&&CHARS[_sk].name)||'先生')+'</div>'; } }catch(e){}
+    var _se=document.getElementById('rpg-sensei'); if(_se){ _se.className='rpg-sensei'; _se.innerHTML='<div class="rpg-sensei-face">'+_charStill(_sk)+'</div><div class="rpg-sensei-nm">'+escapeHtml((CHARS[_sk]&&CHARS[_sk].name)||'先生')+'</div>'; } }catch(e){}
   var sky=document.getElementById('rpg-stage-sky'); if(sky){ sky.className='rpg-stage-sky '+rpgSkyClass(rpgBattle)+(rpgBattle.node.type!=='zako'?' boss':''); }
   var _sb=document.getElementById('rpg-special-btn'); if(_sb) _sb.style.display='block';   // 必殺技ボタンを表示
   rpgUpdateGauges();
@@ -7617,7 +7618,7 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   var _rk=victory?'dolphin':'panda';
   var _rmsg=victory ? (acc>=100?'イェーイ！ ぜんもん せいかい！🎉 さいこうに かがやいてたよ！':'イェーイ！ かったね！🎉 その ちょうしで つぎも いこう！')
                     : 'あせらなくて 大丈夫。まちがえた ところが 明日の のびしろ。すこし 休んで、また いっしょに いこうね。';
-  L+='<div class="rpg-res-react"><div class="rpg-res-react-face">'+_charSVG(_rk)+'</div><div class="rpg-res-react-bubble"><b>'+escapeHtml((CHARS[_rk]&&CHARS[_rk].name)||'')+'</b><br>'+_rmsg+'</div></div>';
+  L+='<div class="rpg-res-react"><div class="rpg-res-react-face">'+_charStill(_rk)+'</div><div class="rpg-res-react-bubble"><b>'+escapeHtml((CHARS[_rk]&&CHARS[_rk].name)||'')+'</b><br>'+_rmsg+'</div></div>';
   L+='<div class="rpg-res-xp">＋'+xp+' けいけんち'+(pt?('　＋'+pt+'pt🌺'):'')+'</div>';
   if(b.coinGain) L+='<div class="rpg-res-xp">🪙 ＋'+b.coinGain+' コイン（きせかえに使えるよ）</div>';
   if(b.gotTicket) L+='<div class="rpg-res-levelup">🎁 たからばこチケットを 1まい ゲット！</div>';

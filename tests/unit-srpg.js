@@ -320,4 +320,18 @@ const grid = { w: 6, h: 7 };
   });
 }
 
+// ---- 収集連動：装備ボーナスが ステータスに乗る ----
+{
+  const plain = S.srpgMakeUnit({ id:'p', side:'ally', name:'p', art:'slime', role:'attacker', rankBase:8, lvl:5 });
+  const geared = S.srpgMakeUnit({ id:'g', side:'ally', name:'g', art:'slime', role:'attacker', rankBase:8, lvl:5, bonus:{ hp:20, atk:8, def:5, spd:0 } });
+  c.eq('装備でHPが+20', geared.maxHp - plain.maxHp, 20);
+  c.eq('装備でATKが+8', geared.atk - plain.atk, 8);
+  c.eq('装備でDEFが+5', geared.def - plain.def, 5);
+  c.ok('gear情報を保持', geared.gear && geared.gear.hp === 20);
+  c.ok('装備なしはgear=0', plain.gear && plain.gear.hp === 0 && plain.gear.atk === 0);
+  // 装備ボーナスは実効ステ計算にも積まれる（バフと両立）
+  S.srpgSetMod(geared, 'atk', 2, 3);
+  c.ok('装備＋バフが両方効く', S.srpgEffStat(geared, 'atk') > geared.atk);
+}
+
 c.done();

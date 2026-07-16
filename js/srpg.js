@@ -307,13 +307,15 @@ function srpgMakeUnit(spec){
   var role = SRPG_ROLES[spec.role] || SRPG_ROLES.attacker;
   var lvl = Math.max(1, spec.lvl || 1);
   var power = (spec.rankBase || 6) * (1 + 0.08 * (lvl - 1));   // 基礎ちから（rank/lv由来）
-  var hp  = Math.round((26 + power * 3.2) * role.hp);
-  var atk = Math.round((6  + power * 1.15) * role.atk);
-  var def = Math.round((3  + power * 0.55) * role.def);
-  var spd = Math.round((10 + lvl * 0.6) * role.spd);
+  var b = spec.bonus || {};                                    // 装備ボーナス（きせかえ/あいぼう帽子＝収集連動）
+  var hp  = Math.round((26 + power * 3.2) * role.hp) + (b.hp || 0);
+  var atk = Math.round((6  + power * 1.15) * role.atk) + (b.atk || 0);
+  var def = Math.round((3  + power * 0.55) * role.def) + (b.def || 0);
+  var spd = Math.round((10 + lvl * 0.6) * role.spd) + (b.spd || 0);
   return {
     id: spec.id, side: spec.side, name: spec.name, art: spec.art,
     role: role.key, roleName: role.name, roleEm: role.em,
+    gear: { hp:(b.hp||0), atk:(b.atk||0), def:(b.def||0), spd:(b.spd||0) },
     maxHp: hp, hp: hp, atk: atk, def: def, spd: spd,
     mov: role.mov, rng: role.rng, mp: 0, mpMax: 6,
     skills: (spec.skills && spec.skills.length ? spec.skills : role.skills.slice(0, srpgSkillCount(lvl))),

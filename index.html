@@ -1153,8 +1153,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   <!-- Score -->
   <div class="score-bar">
     <div class="score-item"><div class="score-num" id="total-correct">0</div><div class="score-label">正解数</div></div>
-    <div class="score-item"><div class="score-num" id="total-streak">0</div><div class="score-label">連続正解🔥</div></div>
-    <div class="score-item"><div class="score-num" id="total-points">0</div><div class="score-label">⭐ポイント</div></div>
+    <div class="score-item"><div class="score-num" id="total-streak">0</div><div class="score-label">連続正解✅</div></div>
     <div class="score-item daily-item" onclick="setGoalPrompt()" title="今日の目標（タップで変更）"><div class="daily-ring" id="daily-ring" style="--pct:0"><div class="inner" id="daily-inner">0/20</div></div><div class="score-label">今日の目標🎯</div></div>
   </div>
 
@@ -3494,9 +3493,9 @@ var _lastPointsShown = null;
 function updateScoreBar() {
   document.getElementById('total-correct').textContent = totalCorrect;
   document.getElementById('total-streak').textContent  = totalStreak;
-  var pe=document.getElementById('total-points'); pe.textContent = totalPoints;
-  // ポイントが増えたらポップ＆コイン音
-  if(_lastPointsShown!==null && totalPoints>_lastPointsShown){ try{ pe.classList.remove('score-pop'); void pe.offsetWidth; pe.classList.add('score-pop'); }catch(e){} }
+  // ポイントは上部バー(rb-pt)に集約。増加時のポップはそちらで演出。
+  var pe=document.getElementById('rb-pt');
+  if(pe && _lastPointsShown!==null && totalPoints>_lastPointsShown){ try{ pe.classList.remove('score-pop'); void pe.offsetWidth; pe.classList.add('score-pop'); }catch(e){} }
   _lastPointsShown = totalPoints;
   renderDailyRing();
   try{ updateResBar(); }catch(e){}

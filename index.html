@@ -2276,7 +2276,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .gc-pity-b{ height:9px; background:#eee6fb; border-radius:5px; overflow:hidden; margin-top:6px; }
   .gc-pity-b i{ display:block; height:100%; background:linear-gradient(90deg,#a78bfa,#7c3aed); }
   /* 📊 きろくハブ行 */
-  .rec-hub{ display:flex; gap:8px; overflow-x:auto; padding:2px 2px 8px; margin-bottom:6px; -webkit-overflow-scrolling:touch; }
+  .rec-hub{ display:flex; flex-wrap:wrap; gap:8px; padding:2px 2px 8px; margin-bottom:6px; }   /* 折り返して全ボタンを見せる（横スクロールで家族ランキング等が見切れるのを防ぐ） */
   .rec-hub::-webkit-scrollbar{ height:0; }
   .rec-hub-btn{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:3px; border:1px solid #dcecf3; background:#fff; font-family:inherit; cursor:pointer; border-radius:14px; padding:9px 13px; font-size:11.5px; font-weight:800; color:#0e3a4d; box-shadow:0 3px 9px rgba(8,110,140,.1); white-space:nowrap; }
   .rec-hub-btn span{ font-size:21px; }

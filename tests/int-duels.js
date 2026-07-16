@@ -20,7 +20,7 @@ const duelsIn = (store) => { try { return JSON.parse((store['families/0000/share
       mu_users: JSON.stringify([{ id: 'u1', name: 'ちさき', char: 'shiba' }]),
       family_duels: JSON.stringify({ d1: duel('d1', 100, { u1: { score: 5, name: 'ちさき', timeMs: 60000 } }) }),
     } };
-    const h = createHarness({ store, mode: 'ok' });
+    const h = createHarness({ store, mode: 'ok', family: '0000' });
     // ローカルには u2 の結果だけがある（先に書き込まれていた想定）
     h.LS._m['family_duels'] = JSON.stringify({ d1: duel('d1', 100, { u2: { score: 4, name: 'あやか', timeMs: 50000 } }) });
     h.load(path.join(ROOT, 'cloud-sync.js'));
@@ -39,7 +39,7 @@ const duelsIn = (store) => { try { return JSON.parse((store['families/0000/share
       mu_users: JSON.stringify([{ id: 'u1', name: 'ちさき', char: 'shiba' }]),
       family_duels: JSON.stringify({ d2: duel('d2', 200) }),   // 端末Bが出した挑戦状
     } };
-    const h = createHarness({ store, mode: 'ok' });
+    const h = createHarness({ store, mode: 'ok', family: '0000' });
     h.load(path.join(ROOT, 'cloud-sync.js'));
     await h.settle(40, 40);
     // この端末で新しい挑戦状 d3 を作成（共有キーへの書込→保存誘発）
@@ -59,7 +59,7 @@ const duelsIn = (store) => { try { return JSON.parse((store['families/0000/share
       mu_users: JSON.stringify([{ id: 'u1', name: 'ちさき', char: 'shiba' }]),
       family_duels: JSON.stringify({ d1: duel('d1', 100, { u2: { score: 3, name: 'あやか', timeMs: 40000 } }) }),
     } };
-    const h = createHarness({ store, mode: 'ok' });
+    const h = createHarness({ store, mode: 'ok', family: '0000' });
     h.load(path.join(ROOT, 'cloud-sync.js'));
     await h.settle(40, 40);
     const cur = JSON.parse(h.LS._m['family_duels'] || '{}');   // すでに u2 の結果がマージ済み

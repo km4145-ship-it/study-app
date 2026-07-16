@@ -21,7 +21,7 @@ store['families/0000/members/u1'] = { data: { c_points: '100' } };
 store['families/0000/members/u2'] = { data: { c_points: '25' } };
 store['families/0000/members/u3'] = { data: { c_points: '300', rpg_state: JSON.stringify({ level: 4, cos: { owned: { h_crown: 1 } } }) } };
 
-const h = createHarness({ store, mode: MODE });
+const h = createHarness({ store, mode: MODE, family: '0000' });
 h.load(path.join(ROOT, 'cloud-sync.js'));
 
 (async () => {

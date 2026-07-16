@@ -12,7 +12,7 @@ if (MODE !== 'deny') {
   store['families/0000'] = { v2done: true };
   store['families/0000/shared/settings'] = { data: { mu_users: JSON.stringify([{ id: 'u1', name: 'A', char: 'shiba' }]) } };
 }
-const h = createHarness({ store, mode: MODE });
+const h = createHarness({ store, mode: MODE, family: '0000' });
 h.load(path.join(ROOT, 'cloud-sync.js'));
 
 (async () => {

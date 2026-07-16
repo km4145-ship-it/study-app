@@ -17,7 +17,7 @@ store['families/0000/members/u1'] = { data: { c_answered: '320', c_points: '4200
 store['families/0000/members/u2'] = { data: { c_answered: '280', c_points: '3100' } };
 store['families/0000/members/u3'] = { data: { c_answered: '150', c_points: '900' } };
 
-const h = createHarness({ store, mode: 'ok' });
+const h = createHarness({ store, mode: 'ok', family: '0000' });
 h.load(path.join(ROOT, 'cloud-sync.js'));
 
 (async () => {
@@ -38,7 +38,7 @@ h.load(path.join(ROOT, 'cloud-sync.js'));
   // メンバーdocが1件も無い家族では空オブジェクトを返す（UIは0件表示にできる）
   const store2 = { 'families/0000': { v2done: true },
     'families/0000/shared/settings': { data: { mu_users: '[]' } } };
-  const h2 = createHarness({ store: store2, mode: 'ok' });
+  const h2 = createHarness({ store: store2, mode: 'ok', family: '0000' });
   h2.load(path.join(ROOT, 'cloud-sync.js'));
   await h2.settle();
   const all2 = await global.cloudFetchAllMembers();

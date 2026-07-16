@@ -19,7 +19,7 @@ store['families/0000/members/u1'] = { data: { c_points: '100' } };
 store['families/0000/members/u2'] = { data: { c_points: '200' } };
 store['families/0000/members/u3'] = { data: { c_points: '300' } };
 
-const h = createHarness({ store, mode: 'ok' });
+const h = createHarness({ store, mode: 'ok', family: '0000' });
 h.load(path.join(ROOT, 'cloud-sync.js'));
 
 (async () => {

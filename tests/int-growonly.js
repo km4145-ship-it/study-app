@@ -23,7 +23,7 @@ function usersIn(store, path) {
     store['families/0000'] = { v2done: true, data: { mu_users: THREE } };   // 親バックアップ=3人
     store['families/0000/shared/settings'] = { data: { mu_users: THREE } }; // クラウド共有=3人
     store['families/0000/members/u1'] = { data: { c_answered: '10' } };
-    const h = createHarness({ store, mode: 'ok' });
+    const h = createHarness({ store, mode: 'ok', family: '0000' });
     h.load(path.join(ROOT, 'cloud-sync.js'));
     await h.settle(40, 40);
     // 端末のローカル名簿を u1 だけへ“こっそり”縮める（フックを通さず直接：古い/壊れた端末を再現）
@@ -42,7 +42,7 @@ function usersIn(store, path) {
     store['families/0000'] = { v2done: true, data: { mu_users: THREE } };                 // 親バックアップ=3人（健在）
     store['families/0000/shared/settings'] = { data: { mu_users: JSON.stringify([{ id: 'u1', name: 'ユーザー1', char: 'shiba', admin: true }]) } }; // 共有=クロバー済み1人
     store['families/0000/members/u2'] = { data: { c_answered: '20' } };
-    const h = createHarness({ store, mode: 'ok' });
+    const h = createHarness({ store, mode: 'ok', family: '0000' });
     h.load(path.join(ROOT, 'cloud-sync.js'));
     await h.settle(50, 40);   // 起動時に親から名簿を復元→保存で共有を修復
     const after = usersIn(store, 'families/0000/shared/settings');
@@ -56,7 +56,7 @@ function usersIn(store, path) {
     store['families/0000'] = { v2done: true, data: { mu_users: THREE } };
     store['families/0000/shared/settings'] = { data: { mu_users: THREE, mu_deleted: JSON.stringify({ u3: 1 }) } };
     store['families/0000/members/u1'] = { data: { c_answered: '5' } };
-    const h = createHarness({ store, mode: 'ok' });
+    const h = createHarness({ store, mode: 'ok', family: '0000' });
     h.load(path.join(ROOT, 'cloud-sync.js'));
     await h.settle(40, 40);
     global.localStorage.setItem('theme', 'light');

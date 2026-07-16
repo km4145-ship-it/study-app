@@ -61,6 +61,9 @@ function createHarness(opts) {
   }
   const db = { collection: (n) => collRef(n), enablePersistence: () => Promise.resolve() };
   const LS = makeLS(), SS = makeLS();
+  // opts.family（家族コード）を渡すと、レガシーfamily同期モードで起動する（既定はlocal-only＝端末内のみ）。
+  // 例：createHarness({ store, mode:'ok', family:'0000' }) → families/0000 に同期。
+  if (opts.family) LS.setItem('mu_family', String(opts.family));
   const g = global;
   g.window = g; g.localStorage = LS; g.sessionStorage = SS;
   // Node 20+ の組み込み navigator は読み取り専用なので防御的に（cloud-sync.js は navigator 未使用）

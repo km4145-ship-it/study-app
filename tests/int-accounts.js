@@ -53,14 +53,26 @@ function hasFamiliesPath(store) { return Object.keys(store).some((k) => k.indexO
     c.ok('③families/... のパスは一切作られない', !hasFamiliesPath(store));
   }
 
-  // --- ④ 既定（authUser未指定・mu_account_active未設定）は従来通りfamilyモードのまま ---
+  // --- ④ 既定（authUser未指定・アカウント無し・家族コード無し）は端末内のみ（local-only）＝PIIを送信しない ---
   {
     const store = {};
-    store['families/0000'] = { v2done: true };
     const h = createHarness({ store, mode: 'ok' });
     h.load(path.join(ROOT, 'cloud-sync.js'));
     await h.settle(10);
-    c.eq('④authUser未指定なら familyモードのまま（回帰確認）', window.cloudMode(), 'family');
+    c.eq('④既定は local-only（匿名familyへ落ちない）', window.cloudMode(), 'local');
+    global.localStorage.setItem('theme', 'dark');
+    await h.settle(20, 40);
+    c.ok('④local-onlyでは families/... を一切作らない（PII非送信）', !hasFamiliesPath(store));
+  }
+
+  // --- ④b 家族コードを明示設定した場合のみ、レガシーfamily同期に入る ---
+  {
+    const store = {};
+    store['families/0000'] = { v2done: true };
+    const h = createHarness({ store, mode: 'ok', family: '0000' });
+    h.load(path.join(ROOT, 'cloud-sync.js'));
+    await h.settle(10);
+    c.eq('④b 家族コード設定ありなら familyモード', window.cloudMode(), 'family');
   }
 
   // --- ⑤ アカウント削除（App Store 5.1.1(v) 必須要件）---

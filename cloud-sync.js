@@ -239,7 +239,7 @@ window.FIREBASE_CONFIG = {
   // ---- Phase 4 Slice 1：実アカウントモード（メール＋パスワード。単独オーナーのみ・共有はSlice 2）----
   //   mode='account'の時は families/{fam} ではなく accounts/{acctId} を同期先にする。
   //   families/{code}のデータとは完全に分離（自動移行はしない）。
-  var mode='family', acctId=null;
+  var mode='family', acctId=null, localOnly=false;   // localOnly＝クラウドを使わず端末内だけ（既定・PIIを送信しない）
   function curId(){ return mode==='account' ? acctId : fam; }
   function rootRef(){ return mode==='account' ? db.collection('accounts').doc(acctId) : legacyRef(); }
   function sharedRef(){ return rootRef().collection('shared').doc('settings'); }
@@ -406,6 +406,7 @@ window.FIREBASE_CONFIG = {
   window.cloudStatus = function(){ return _cloudStatus; };
   // ユーザー選択画面用：共通設定（ユーザー一覧）を最新化
   window.cloudPullShared = function(){
+    if(localOnly) return Promise.resolve(false);   // 端末内のみ＝クラウドから引くものは無い（readyPromiseへ再帰しない）
     if(!db||!curId()) return readyPromise.then(function(){ return window.cloudPullShared(); });
     var pulls = [ sharedRef().get().then(function(d){ return d.exists ? applyKeys(((d.data()||{}).data)||{}) : false; }).catch(function(){ return false; }) ];
     // ★v1親doc（通常保存では書き換わらない安定バックアップ）のユーザー一覧も必ず合算する（familyモードのみ。
@@ -422,6 +423,7 @@ window.FIREBASE_CONFIG = {
   };
   // ユーザーをタップした時：その人の最新データを取得してから開始する
   window.cloudPullUser = function(uid){
+    if(localOnly) return Promise.resolve(false);
     if(!db||!curId()) return readyPromise.then(function(){ return window.cloudPullUser(uid); });
     return memberRef(uid).get().then(function(d){
       if(d.exists){ applyKeys(memberToKeys(uid, ((d.data()||{}).data)||{})); }
@@ -471,7 +473,7 @@ window.FIREBASE_CONFIG = {
     doSaveDirty();   // 保留中の書き込みを先に吐き出してから消す
     try{ (window.muLocalWipe ? window.muLocalWipe() : basicWipe()); }catch(e){ basicWipe(); }
   }
-  window.cloudMode = function(){ return mode; };
+  window.cloudMode = function(){ return localOnly ? 'local' : mode; };
   window.cloudAccountSignUp = function(email, password){
     return firebase.auth().createUserWithEmailAndPassword(email, password)
       .then(function(){ rset('mu_account_active','1'); clearSyncCacheForModeSwitch(); alert('アカウントを作成しました。'); location.reload(); })
@@ -663,28 +665,39 @@ window.FIREBASE_CONFIG = {
   // フォールバックすると、実アカウントの端末がfamilyモード（既定families/0000）に誤って
   // 落ちてしまう恐れがあるため、`mu_account_active`（アカウントセッション開始時に立てる
   // ローカルマーカー）が立っている場合は少し待ってから判断する（action:'wait'）。
-  function _decideAuthAction(user, acctActive, alreadyWaiting){
+  // 認証状態→起動時の行動を判定（純粋関数）。
+  //  ・非匿名ユーザー → account（安全・所有者のみ・推奨のクラウド同期）
+  //  ・匿名ユーザー → family（レガシー・家族コードを明示設定した人のみ）
+  //  ・未ログイン＋アカウント復元待ち → wait（実アカウントのセッション復元を待つ）
+  //  ・未ログイン＋家族コード設定あり → anon（家族コード同期にオプトインした人だけ匿名認証）
+  //  ・未ログイン＋家族コードも無し → **local**（既定＝クラウドを使わず端末内だけ。子のPIIを一切送信しない）
+  function _decideAuthAction(user, acctActive, alreadyWaiting, familySet){
     if(user && !user.isAnonymous) return { action:'boot', mode:'account' };
     if(user && user.isAnonymous) return { action:'boot', mode:'family' };
     if(acctActive && !alreadyWaiting) return { action:'wait' };
-    if(!acctActive) return { action:'anon' };
+    if(!acctActive && familySet) return { action:'anon' };
+    if(!acctActive && !familySet) return { action:'local' };
     return { action:'none' };
   }
   function start(){
     var booted=false, authTimeout=null;
     var acctActive = rget('mu_account_active')==='1';
+    var familySet = !!((rget('mu_family')||'').trim());   // 家族コードを明示設定した人だけレガシーfamily同期
     firebase.auth().onAuthStateChanged(function(user){
       if(booted) return;
-      var d = _decideAuthAction(user, acctActive, !!authTimeout);
+      var d = _decideAuthAction(user, acctActive, !!authTimeout, familySet);
       if(d.action==='boot'){
         if(authTimeout){ clearTimeout(authTimeout); authTimeout=null; }
         mode=d.mode; if(mode==='account') acctId=user.uid; booted=true; bootSync();
       } else if(d.action==='wait'){
         authTimeout=setTimeout(function(){
-          if(!booted) firebase.auth().signInAnonymously().catch(function(){ setCloudStatus('error','auth'); });
+          if(!booted && ((rget('mu_family')||'').trim())) firebase.auth().signInAnonymously().catch(function(){ setCloudStatus('error','auth'); });
+          else if(!booted){ booted=true; localOnly=true; setCloudStatus('local'); readyResolve(true); }   // アカウント復元に失敗＆家族コードも無ければ端末内のみ
         }, 2000);
       } else if(d.action==='anon'){
         firebase.auth().signInAnonymously().catch(function(){ setCloudStatus('error','auth'); });
+      } else if(d.action==='local'){
+        booted=true; localOnly=true; setCloudStatus('local'); readyResolve(true);   // 既定：クラウドを使わない（安全）
       }
     });
   }

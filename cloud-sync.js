@@ -442,12 +442,25 @@ window.FIREBASE_CONFIG = {
     if(!db||!curId()) return Promise.resolve(false);
     return memberRef(uid).delete().then(function(){ return true; }).catch(function(){ return false; });
   };
+  // 推測困難な家族コードを生成（混同しやすい 0/O/1/l/I を除いた10桁）。既定0000のような
+  // 総当たり可能なコードを避けるため、設定プロンプトの初期値としてこれを提案する。
+  function _suggestFamilyCode(){
+    var abc='abcdefghjkmnpqrstuvwxyz23456789', s='';   // 紛らわしい i/l/o と 0/1 を除外
+    for(var i=0;i<10;i++) s+=abc.charAt(Math.floor(Math.random()*abc.length));
+    return s;
+  }
   window.cloudFamilySet = function(){
-    var c = prompt('家族の合言葉コードを決めてください（全端末で同じものを使います。英数字4文字以上）。', famCode());
-    if(c===null) return; c=(''+c).trim(); if(c.length<4){ alert('短すぎます。4文字以上にしてください。'); return; }
+    // まだ自前コードを持たない（未設定＝既定0000を使っている）なら、強いコードを初期提案する。
+    var cur=(rget('mu_family')||'').trim();
+    var suggest=(cur && cur!==DEFAULT_FAMILY) ? cur : _suggestFamilyCode();
+    var c = prompt('家族の合言葉コードを決めてください（全端末で同じものを使います。他人に推測されない長めの文字列を推奨。6文字以上）。', suggest);
+    if(c===null) return; c=(''+c).trim();
+    if(c.length<6){ alert('短すぎます。他人に当てられないよう、6文字以上にしてください。'); return; }
+    if(c===DEFAULT_FAMILY || /^0+$/.test(c)){ alert('そのコードは 誰でも当てられるため 使えません。別のコードにしてください。'); return; }
     rset('mu_family', c); try{ sessionStorage.removeItem('mu_synced'); }catch(e){}
     alert('家族コードを設定しました。クラウド同期を開始します。'); location.reload();
   };
+  window._suggestFamilyCode = _suggestFamilyCode;   // テスト用に公開
   window.cloudFamilyClear = function(){ rset('mu_family',''); stopSync(); if(unsubReset){ try{ unsubReset(); }catch(e){} unsubReset=null; } alert('クラウド同期をオフにしました（この端末は端末内保存のみ）。'); };
 
   // ---- Phase 4 Slice 1：メール＋パスワードでの実アカウント（単独オーナーのみ・共有機能はSlice 2）----

@@ -112,5 +112,22 @@ function hasFamiliesPath(store) { return Object.keys(store).some((k) => k.indexO
     c.ok('⑤c Authユーザーは残る（再ログインしてもう一度で完了できる）', window.firebase.auth().currentUser !== null);
   }
 
+  // --- ⑥ 家族コード自動生成（推測困難化）：既定0000の総当たりを避ける ---
+  {
+    const store = {};
+    const h = createHarness({ store, mode: 'ok' });
+    h.load(path.join(ROOT, 'cloud-sync.js'));
+    await h.settle(10);
+    const codes = new Set();
+    let okCharset = true;
+    for (let i = 0; i < 200; i++) {
+      const c2 = window._suggestFamilyCode();
+      codes.add(c2);
+      if (!/^[a-z2-9]{10}$/.test(c2) || /[0o1li]/.test(c2)) okCharset = false;   // 紛らわしい0/o/1/l/iを含まない10桁
+    }
+    c.ok('⑥生成コードは紛らわしい文字を含まない10桁', okCharset);
+    c.ok('⑥200回でほぼ重複しない（推測困難）', codes.size >= 195);
+  }
+
   c.done();
 })();

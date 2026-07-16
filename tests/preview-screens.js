@@ -59,6 +59,7 @@ try{
       owned:{h_crown:1,bk_angel:1,rd_cloud:1,ah_ribbon:1,a_star:1,fr_gold:1,d_sword:1},
       equip:{ hero:{hat:"h_crown",hand:"d_sword",back:"bk_angel",ride:"rd_cloud",aura:"a_star",frame:"fr_gold"}, pet:{} },
       titles:{}, sets:{} } }));
+  localStorage.setItem("u:u1:practice_rating", JSON.stringify({v:1, by:{ math:{r:62.4,n:48}, japanese:{r:58.1,n:33}, science:{r:60.2,n:27}, social:{r:56.5,n:19} }, hist:{} }));
   localStorage.setItem("u:u1:c_answered","1234");
   localStorage.setItem("u:u1:c_points","5678");
   localStorage.setItem("u:u1:gacha_pulls","17");

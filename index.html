@@ -1196,6 +1196,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
       <span class="rb-chip">🪙<b id="rb-coin">0</b></span>
       <span class="rb-chip">⭐<b id="rb-pt">0</b></span>
       <span class="rb-chip">🔥<b id="rb-streak">0</b></span>
+      <span class="rb-chip rb-hensa" title="いまの偏差値（目標65）"><span class="rb-hensa-ic">📈</span><b id="rb-hensa">--</b></span>
     </div>
     <button class="rb-gear" id="nav-settings-btn" onclick="openSettings()" title="設定" aria-label="設定">⚙️</button>
     <span class="nb-badge" id="nb-badge" style="display:none">0</span>
@@ -1251,6 +1252,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .hub-grade{ font-size:12px; font-weight:700; color:#fff; background:var(--primary-light); border-radius:6px; padding:1px 7px; margin-left:4px; vertical-align:middle; }
   .hub-chips{ display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; }
   .hub-chip{ font-size:12px; font-weight:700; color:var(--text); background:var(--card2); border-radius:999px; padding:3px 10px; }
+  .hub-hensa{ background:linear-gradient(135deg,#e8f3ff,#d7ebff); color:#0b4a86; box-shadow:inset 0 0 0 1px #bcdcff; }
+  .hub-hensa b{ font-weight:900; color:#0b63c4; }
   .hub-ring{ width:58px; height:58px; flex:0 0 58px; border-radius:50%; background:conic-gradient(#f59e0b calc(var(--p)*1%), #e6f4fc 0); display:flex; align-items:center; justify-content:center; }
   .hub-ring-in{ width:44px; height:44px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; color:var(--text); }
   .hub-ring-in small{ font-size:10px; font-weight:600; color:#94a3b8; }
@@ -2542,6 +2545,9 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rb-res{ margin-left:auto; display:flex; gap:5px; }
   .rb-chip{ display:inline-flex; align-items:center; gap:3px; background:#fff; border:1px solid var(--line); border-radius:var(--r-pill); padding:4px 10px; font-size:12px; font-weight:800; color:#0e3a4d; box-shadow:var(--sh-1); font-variant-numeric:tabular-nums; }
   .rb-chip b{ font-weight:900; }
+  .rb-hensa{ background:linear-gradient(135deg,#eef7ff,#e0f0ff); border-color:#bcdcff; color:#0b4a86; }
+  .rb-hensa .rb-hensa-ic{ font-size:11px; }
+  .rb-hensa b{ color:#0b63c4; letter-spacing:.2px; }
   .rb-gear{ width:34px; height:34px; flex:0 0 34px; border-radius:50%; border:1px solid var(--line); background:#fff; cursor:pointer; box-shadow:var(--sh-1); font-size:16px; transition:transform .2s var(--spring); }
   .rb-gear:active{ transform:rotate(35deg) scale(.94); }
   .resbar .nb-badge{ position:absolute; }
@@ -4517,6 +4523,11 @@ function updateResBar(){
   var c=document.getElementById('rb-coin'); if(c){ try{ c.textContent=rpgCoin(); }catch(e){} }
   var p=document.getElementById('rb-pt'); if(p) p.textContent=totalPoints||0;
   var st=document.getElementById('rb-streak'); if(st){ try{ st.textContent=currentStreak(); }catch(e){} }
+  var hs=document.getElementById('rb-hensa');
+  if(hs){ try{
+    var rst=ratingLoad(), n=0; Object.keys(rst.by||{}).forEach(function(k){ n+=(rst.by[k].n||0); });
+    if(n){ hs.textContent=ratingOverall(rst).toFixed(1); } else { hs.textContent='--'; }
+  }catch(e){ hs.textContent='--'; } }
 }
 
 // ===== ゲームホーム（キャラ選択後のメインメニュー：すべてゲーム形式）=====
@@ -4535,6 +4546,7 @@ function renderGameHub(){
   var lv=1; try{ lv=(rpgState().level)||1; }catch(e){}
   var st=0; try{ st=currentStreak(); }catch(e){}
   var pts=totalPoints||0;
+  var hensa=''; try{ var _rs=ratingLoad(), _hn=0; Object.keys(_rs.by||{}).forEach(function(k){ _hn+=(_rs.by[k].n||0); }); hensa=_hn? ratingOverall(_rs).toFixed(1) : ''; }catch(e){}
   var goal=getDailyGoal(), cnt=getDailyProg().count, pct=Math.min(100,Math.round(cnt/goal*100));
   var due=0; try{ due=dueCount(); }catch(e){}
   var nb=0; try{ nb=getMistakes().length; }catch(e){}
@@ -4547,7 +4559,7 @@ function renderGameHub(){
   h+='<div class="hub-player">'+
      '<div class="hub-ava">'+avatar+'</div>'+
      '<div class="hub-pinfo"><div class="hub-pname">'+escapeHtml(name)+(grade?' <span class="hub-grade">'+grade+'</span>':'')+'</div>'+
-     '<div class="hub-chips"><span class="hub-chip">⭐ '+pts+'</span><span class="hub-chip">🔥 '+st+'日</span><span class="hub-chip">Lv '+lv+'</span></div></div>'+
+     '<div class="hub-chips"><span class="hub-chip hub-hensa" title="いまの偏差値（目標65）">📈 偏差値 <b>'+(hensa||'計測中')+'</b></span><span class="hub-chip">⭐ '+pts+'</span><span class="hub-chip">🔥 '+st+'日</span><span class="hub-chip">Lv '+lv+'</span></div></div>'+
      '<div class="hub-ring" style="--p:'+pct+'"><div class="hub-ring-in">'+cnt+'<small>/'+goal+'</small></div></div>'+
      '</div>';
   // 🛡️ データ保護のおすすめ（端末内のみ＝バックアップ無しのとき。アカウントで消えても復活・別端末でも遊べる）
@@ -5306,6 +5318,7 @@ function onAnswered(q, correct){
   // ⚡れんしゅう偏差値（実力メーター）：練習・バトルの全問で更新（模試は正式偏差値なので対象外）
   if(!isExam && !_familyDaily){ try{ if(typeof ratingRecord==='function') ratingRecord(area, q, correct); }catch(e){} }   // 家族もんだいは教科混合＝currentAreaのレートを汚さない
   try{ updateQuizHensachi(true); }catch(e){}   // 解いている最中の偏差値を毎問リアルタイム更新（変動フラッシュ付き）
+  try{ updateResBar(); }catch(e){}   // 上部バーの偏差値も毎問同期（全画面で常に最新）
   if(correct) srsCorrect(q);
   else addMistake(q, area);
   checkQuests();

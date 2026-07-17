@@ -414,6 +414,39 @@ function srpgForecast(attacker, target, subjectKey, skill){
   return { kind:kind, dmg:dmg };   // drainのdmgは「敵が回復する量」
 }
 
+// ===== ウェーブ制（増援）：stage.waves = 追加の敵陣。1陣を全滅させると次が現れる =====
+// waveIdx は 0=初期配置。srpgWaveUnits(stage, 1) が2陣目の敵ユニット配列を返す。
+function srpgWaveUnits(stage, waveIdx){
+  var wave = (stage.waves || [])[waveIdx - 1];
+  if(!wave) return [];
+  return wave.map(function(e, i){
+    var t = srpgEnemyTemplate(e.key);
+    return srpgMakeUnit({
+      id:'enemy_w' + waveIdx + '_' + i, side:'enemy', name:t.name, art:t.art, role:t.role,
+      rankBase:t.rankBase, lvl:e.lvl || 1, weak:t.weak, resist:t.resist,
+      resists:t.resists, onhit:t.onhit, skills:(t.skills || []), x:e.x, y:e.y
+    });
+  });
+}
+function srpgTotalWaves(stage){ return 1 + ((stage.waves || []).length); }
+
+// ===== おまかせ編成：ロスターから つよさ×役割バランスで自動選抜（純粋関数） =====
+// list=[{id,rank,lv,sp,...}] → 選んだidの配列（最大n体）。かいふく役を1体確保→残りは強い順。
+function srpgAutoPick(list, n){
+  n = n || 4;
+  var RANKS = ['F','E','D','C','B','A','S','SS','SSS'];
+  var score = function(a){ return (RANKS.indexOf(a.rank || 'F') + 1) * 100 + (a.lv || 1); };
+  var sorted = (list || []).slice().sort(function(a, b){ return score(b) - score(a); });
+  var picked = [], healer = null;
+  // かいふく役（nature種）を1体だけ先に確保（パーティの生存力）
+  for(var i = 0; i < sorted.length; i++){ if(sorted[i].sp === 'nature'){ healer = sorted[i]; break; } }
+  if(healer) picked.push(healer.id);
+  for(var j = 0; j < sorted.length && picked.length < n; j++){
+    if(picked.indexOf(sorted[j].id) < 0) picked.push(sorted[j].id);
+  }
+  return picked;
+}
+
 // ===== スカウトガチャ（コインで仲間モンスターを引く）＝抽選は純粋関数・確率は開示前提 =====
 // レート表（合計100%）。表示と抽選が同一ソース＝開示とのズレが構造的に起きない。
 var SRPG_SCOUT_RATES = [
@@ -536,12 +569,14 @@ var SRPG_STAGES = {
     allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
     terrain:[{x:2,y:4,kind:'heal'},{x:4,y:3,kind:'fire'}],
     blocks:[{x:2,y:2,kind:'rock'},{x:3,y:3,kind:'rock'}],
+    waves:[[{key:'ghost',x:1,y:0,lvl:6},{key:'bat',x:4,y:0,lvl:6}]],
     enemies:[{key:'wolf',x:1,y:2,lvl:6},{key:'ghost',x:4,y:2,lvl:6},{key:'goblin',x:2,y:1,lvl:5},{key:'dragon',x:3,y:1,lvl:8}] },
   q_maou: { id:'q_maou', name:'魔王城：さいごの決戦', grid:{ w:6, h:7 }, continent:'math', type:'quest', boss:'魔王シグマ',
     story:['5つの クリスタルが かがやきを とりもどした。','魔王シグマが さいごの 力で たちはだかる！','「いくぞ！ みんなの 力を あわせて！」'],
     allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
     terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:3,y:2,kind:'poison'}],
     blocks:[{x:0,y:4,kind:'water'},{x:5,y:4,kind:'water'}],
+    waves:[[{key:'wolf',x:0,y:1,lvl:8},{key:'ghost',x:5,y:1,lvl:8}]],
     enemies:[{key:'voltdrake',x:1,y:2,lvl:8},{key:'dragon',x:4,y:2,lvl:8},{key:'villain',x:3,y:0,lvl:10}] }
 };
 function srpgStage(id){ return SRPG_STAGES[id] || SRPG_STAGES.arena1; }
@@ -657,6 +692,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage,
     SRPG_MON_SKILL: SRPG_MON_SKILL, srpgMonSkill: srpgMonSkill,
     srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
-    SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen
+    SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,
+    srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick
   };
 }

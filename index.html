@@ -2073,6 +2073,16 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .gp-em{ font-size:40px; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
   .gp-t{ font-weight:900; font-size:1.25rem; }
   .gp-s{ font-weight:700; font-size:.78rem; line-height:1.6; opacity:.9; margin-top:4px; }
+  /* きょうのタクト（ホームの進捗ウィジェット） */
+  .hub-tact-w{ display:flex; width:100%; gap:6px; border:none; cursor:pointer; font-family:inherit; background:linear-gradient(135deg,#1e293b,#312e81); border-radius:var(--r-m); padding:10px 12px; margin-top:10px; box-shadow:var(--sh-2); transition:transform .15s var(--spring); }
+  .hub-tact-w:active{ transform:scale(.98); }
+  .htw-item{ flex:1; text-align:center; color:#cbd5e1; font-size:11px; font-weight:800; line-height:1.5; }
+  .htw-item b{ display:block; color:#fff; font-size:13px; }
+  .htw-item.hot b{ color:#fde047; } .htw-item.done b{ color:#6ee7b7; }
+  /* 編成の出撃行 */
+  .srpg-team-row{ display:flex; gap:8px; margin-top:14px; }
+  .srpg-team-row .srpg-team-go{ flex:2.4; margin-top:0; }
+  .srpg-team-auto{ flex:1; background:#134e4a; }
   .scout-res{ max-width:460px; }
   /* ストーリー導入カード */
   .srpg-story-card{ width:100%; max-width:440px; background:linear-gradient(180deg,#0f1a2e,#1a1035); border:2px solid rgba(167,139,250,.5); border-radius:18px; padding:24px 20px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.6); cursor:pointer; animation:srpgStoryIn .3s var(--spring); }
@@ -5070,6 +5080,17 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
      '<span class="hub-hero-tx"><span class="hub-hero-k">▶ きょうの学習をはじめる</span>'+
      '<span class="hub-hero-s">'+escapeHtml(rec)+'　今日 '+cnt+'/'+goal+'問</span></span>'+
      '<span class="hub-hero-bar"><i style="width:'+pct+'%"></i></span></button>';
+  // きょうのタクト（デイリー・塔・星の進捗＝毎日の入口）
+  try{
+    var _dDone=(typeof srpgDailyDoneToday==='function') && srpgDailyDoneToday();
+    var _tBest=(typeof srpgTowerBest==='function') ? srpgTowerBest() : 0;
+    var _stars=0; try{ var _sm=lsGetJSON('srpg_stars',{})||{}; Object.keys(_sm).forEach(function(k){ _stars+=_sm[k]||0; }); }catch(e){}
+    h+='<button class="hub-tact-w" onclick="srpgOpen()">'
+      +'<span class="htw-item'+(_dDone?' done':' hot')+'">🌀 きょうの ちょうせん<b>'+(_dDone?'クリア！':'ボーナスあり')+'</b></span>'
+      +'<span class="htw-item">🗼 塔<b>'+(_tBest?('最高 '+_tBest+'階'):'未挑戦')+'</b></span>'
+      +'<span class="htw-item">⭐ あつめた星<b>'+_stars+'</b></span>'
+      +'</button>';
+  }catch(e){}
   // ゲームメニュー
   h+='<div class="hub-sec">🎮 あそんで まなぶ</div>';
   h+='<div class="hub-grid">';

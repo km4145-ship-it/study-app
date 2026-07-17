@@ -550,4 +550,41 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.eq('コスト定義（単発80/10連720）', S.SRPG_SCOUT_COST.one + '/' + S.SRPG_SCOUT_COST.ten, '80/720');
 }
 
+// ================= 第12弾：ウェーブ制＋おまかせ編成 =================
+{
+  // ウェーブ：定義済みステージの増援が妥当なユニットとして生成される
+  const staged = Object.keys(S.SRPG_STAGES).filter((id) => (S.SRPG_STAGES[id].waves || []).length);
+  c.ok('ウェーブ付きステージが2つ以上', staged.length >= 2);
+  staged.forEach((id) => {
+    const st = S.SRPG_STAGES[id];
+    c.eq(id + ' 総ウェーブ数', S.srpgTotalWaves(st), 1 + st.waves.length);
+    st.waves.forEach((w, wi) => {
+      const units = S.srpgWaveUnits(st, wi + 1);
+      c.eq(id + ' 第' + (wi + 2) + '陣のユニット数', units.length, w.length);
+      units.forEach((u2) => {
+        c.ok(id + ' 増援は敵サイド', u2.side === 'enemy');
+        c.ok(id + ' 増援が盤内', u2.x >= 0 && u2.x < st.grid.w && u2.y >= 0 && u2.y < st.grid.h);
+        c.ok(id + ' 増援idが一意形式', /^enemy_w\d+_\d+$/.test(u2.id));
+      });
+    });
+  });
+  c.eq('波の無いステージは総1陣', S.srpgTotalWaves(S.SRPG_STAGES.arena1), 1);
+  c.eq('範囲外waveは空配列', S.srpgWaveUnits(S.SRPG_STAGES.arena1, 1).length, 0);
+}
+{
+  // おまかせ編成：かいふく役1体確保→強い順・最大n・重複なし
+  const roster = [
+    { id:'w1', rank:'B', lv:9, sp:'beast' }, { id:'h1', rank:'C', lv:3, sp:'nature' },
+    { id:'s1', rank:'SS', lv:2, sp:'slime' }, { id:'d1', rank:'A', lv:5, sp:'dragon' },
+    { id:'f1', rank:'F', lv:1, sp:'beast' }, { id:'h2', rank:'F', lv:1, sp:'nature' }
+  ];
+  const picked = S.srpgAutoPick(roster, 4);
+  c.eq('4体えらぶ', picked.length, 4);
+  c.ok('かいふく役(nature)を1体確保', picked.indexOf('h1') >= 0);
+  c.ok('最強(SS)が入る', picked.indexOf('s1') >= 0);
+  c.ok('最弱(F)は入らない', picked.indexOf('f1') < 0 && picked.indexOf('h2') < 0);
+  c.eq('重複なし', new Set(picked).size, picked.length);
+  c.eq('空ロスターは空', S.srpgAutoPick([], 4).length, 0);
+}
+
 c.done();

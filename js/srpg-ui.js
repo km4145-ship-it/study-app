@@ -110,7 +110,8 @@ function srpgTeamScreen(){
   list.forEach(function(a){ h += card(srpgAibouSpec(a), srpgTeamSel.ids.indexOf(a.id) >= 0, true); });
   if(!list.length) h += '<div class="srpg-tm-empty">まだ あいぼうが いないよ。<br>「🗡️ぼうけん」で バトルに かつと なかまが ふえる！</div>';
   h += '</div>';
-  h += '<button class="rpg-btn srpg-team-go" onclick="srpgTeamConfirm()">この編成で 出撃！ →</button>';
+  h += '<div class="srpg-team-row"><button class="rpg-btn srpg-team-go" onclick="srpgTeamConfirm()">この編成で 出撃！ →</button>'
+     + '<button class="rpg-btn ghost srpg-team-auto" onclick="srpgTeamAuto()">✨おまかせ</button></div>';
   h += '<button class="rpg-btn ghost srpg-team-scout" onclick="srpgScoutScreen()">🔮 スカウト（なかまを ふやす）</button>';
   h += '</div>';
   document.getElementById('srpg-body').innerHTML = h;
@@ -124,6 +125,15 @@ function srpgTeamToggle(id){
   srpgTeamScreen();
 }
 function srpgTeamSetLeader(id){ try{ sfx('click'); }catch(e){} srpgTeamSel.leader = id; srpgTeamScreen(); }
+// おまかせ編成：つよさ×役割バランス（かいふく役1体確保→強い順）で自動選抜
+function srpgTeamAuto(){
+  try{ sfx('click'); }catch(e){}
+  var list = srpgAibouRosterList();
+  srpgTeamSel.ids = srpgAutoPick(list, 4);
+  srpgTeamSel.leader = 'hero';
+  srpgTeamScreen();
+  try{ showToast('✨','おまかせ編成にしたよ','つよい なかま＋かいふく役で くみました'); }catch(e){}
+}
 function srpgTeamConfirm(){
   try{ sfx('click'); }catch(e){}
   try{ lsSetJSON('srpg_team', { ids:srpgTeamSel.ids.slice(), leader:srpgTeamSel.leader }); }catch(e){}
@@ -911,6 +921,21 @@ function srpgScoutReward(stage){
 }
 function srpgEnd(outcome){
   if(!srpgB || srpgB.over) return;
+  // ウェーブ制：敵を全滅させても 増援（次の陣）が残っていれば 戦闘続行
+  if(outcome==='win' && srpgB.stage.waves && (srpgB.waveIdx||0) < srpgB.stage.waves.length){
+    srpgB.waveIdx = (srpgB.waveIdx||0) + 1;
+    var newbies = srpgWaveUnits(srpgB.stage, srpgB.waveIdx);
+    // 味方が居るマスと被ったら1マス上へずらす（安全弁）
+    newbies.forEach(function(nu){ var g=0; while(srpgUnitAt(srpgB.units, nu.x, nu.y) && g++<6){ nu.y = Math.max(0, nu.y-1); } });
+    srpgB.units = srpgB.units.concat(newbies);
+    srpgB.order = srpgTurnOrder(srpgB.units); srpgB.turnPtr = -1; srpgB.acted = {};
+    srpgClearHi(); srpgRender();
+    newbies.forEach(function(nu){ srpgFlashSprite(nu.id, 'hit'); srpgPopupAt(nu.x, nu.y, 'とうじょう！', 'status'); });
+    try{ showToast('⚠️','あたらしい てきが あらわれた！','第'+(srpgB.waveIdx+1)+'陣！ まだ おわらないぞ！'); sfx('wrong'); vibe(30); }catch(e){}
+    srpgSay('まだ おわらない！ あたらしい てきが きたぞ！');
+    setTimeout(srpgNextTurn, 1100);
+    return;
+  }
   srpgB.over = true; srpgB.phase = 'over';
   var win = outcome==='win';
   var coin = 30 + srpgB.stage.enemies.length * 15;

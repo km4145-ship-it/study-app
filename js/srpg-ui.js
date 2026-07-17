@@ -43,7 +43,7 @@ function srpgAibouSpec(a){
   var skills = ((SRPG_ROLES[role] || SRPG_ROLES.attacker).skills || []).slice(0, srpgSkillCount(lvl));
   var innate = srpgMonSkill(a.art);
   if(innate && skills.indexOf(innate) < 0) skills.unshift(innate);
-  return { id:a.id, name:a.name || spName, art:a.art || 'slime', role:role, lvl:lvl, rankBase:base, rank:a.rank, sp:a.sp, bonus:srpgAibouBonus(a), skills:skills, innate:innate };
+  return { id:a.id, name:a.name || spName, art:a.art || 'slime', role:role, lvl:lvl, rankBase:base, rank:a.rank, sp:a.sp, bonus:srpgAibouBonus(a), skills:skills, innate:innate, skLv:a.skLv || 1 };
 }
 function srpgAibouRosterList(){
   try{ var ai = rpgAibouState(rpgState()); return Object.keys(ai.roster).map(function(id){ return ai.roster[id]; }); }catch(e){ return []; }
@@ -96,7 +96,7 @@ function srpgTeamScreen(){
       + '<div class="srpg-tm-ava">'+((typeof srpgMonArt==='function'&&srpgMonArt(sp.art))||_charStill(sp.art))+'</div>'
       + '<div class="srpg-tm-nm">'+escapeHtml(sp.name)+'</div>'
       + '<div class="srpg-tm-meta">'+r.em+r.name+' <small>Lv'+sp.lvl+(sp.rank?' ('+sp.rank+')':'')+'</small></div>'
-      + '<div class="srpg-tm-sk">'+(innate?('<span class="srpg-tm-innate">✦'+escapeHtml(innate.name)+'</span> '):'')+'とくぎ×'+(nSk+(innate?1:0))+(gear>0?' <span class="srpg-tm-gear">🎽そうび+'+gear+'</span>':'')+'</div>'
+      + '<div class="srpg-tm-sk">'+(innate?('<span class="srpg-tm-innate">✦'+escapeHtml(innate.name)+'</span> '):'')+((sp.skLv||1)>1?('<span class="srpg-tm-sklv">技Lv'+sp.skLv+'</span> '):'')+'とくぎ×'+(nSk+(innate?1:0))+(gear>0?' <span class="srpg-tm-gear">🎽そうび+'+gear+'</span>':'')+'</div>'
       + (on ? '<button class="srpg-tm-lead" onclick="srpgTeamSetLeader(\''+sp.id+'\')">'+(isLeader?'★リーダー':'リーダーにする')+'</button>' : '')
       + (selectable ? '<button class="srpg-tm-toggle'+(on?' rm':'')+'" onclick="srpgTeamToggle(\''+sp.id+'\')">'+(on?'はずす':'えらぶ')+'</button>' : '<div class="srpg-tm-fixed">必ず出撃</div>')
       + '</div>';
@@ -112,7 +112,8 @@ function srpgTeamScreen(){
   h += '</div>';
   h += '<div class="srpg-team-row"><button class="rpg-btn srpg-team-go" onclick="srpgTeamConfirm()">この編成で 出撃！ →</button>'
      + '<button class="rpg-btn ghost srpg-team-auto" onclick="srpgTeamAuto()">✨おまかせ</button></div>';
-  h += '<button class="rpg-btn ghost srpg-team-scout" onclick="srpgScoutScreen()">🔮 スカウト（なかまを ふやす）</button>';
+  h += '<div class="srpg-team-row"><button class="rpg-btn ghost srpg-team-scout" onclick="srpgScoutScreen()">🔮 スカウト</button>'
+     + '<button class="rpg-btn ghost srpg-team-fuse" onclick="srpgSkillUpScreen()">⚗️ とくぎ強化</button></div>';
   h += '</div>';
   document.getElementById('srpg-body').innerHTML = h;
   try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
@@ -714,7 +715,7 @@ function srpgResolveAttack(correct){
   }
   if(!sk){ actor.mp = Math.min(actor.mpMax||6, (actor.mp||0) + 2); }   // 通常こうげき成功でMPチャージ
   var shape = sk ? sk.shape : 'single';
-  var power = sk ? sk.power : 100;
+  var power = sk ? srpgSkillPower(sk, actor.skLv) : 100;   // とくぎLvで威力アップ
   var cells = srpgAoeTiles(shape, tgt.x, tgt.y, srpgB.grid, actor);
   var fx = [];   // 演出は「描画のあと」にまとめて再生（renderで消えないように）
   cells.forEach(function(c){
@@ -736,7 +737,7 @@ function srpgResolveAttack(correct){
     var lab = srpgResistLabel(kind);
     var infl = null;
     var down = e.hp <= 0; if(down) e.downed = true;
-    if(!down && sk && sk.inflict && Math.random() < sk.inflict.chance){ srpgApplyStatus(e, sk.inflict.kind, sk.inflict.turns); infl = sk.inflict.kind; }
+    if(!down && sk && sk.inflict && Math.random() < srpgInflictChance(sk, actor.skLv)){ srpgApplyStatus(e, sk.inflict.kind, sk.inflict.turns); infl = sk.inflict.kind; }
     fx.push({ x:c.x, y:c.y, text:(crit?'かいしん！ ':'')+dmg+(lab.txt?(' '+lab.txt):''), cls:(lab.cls==='weak'?'weak':(lab.cls==='resist'?'resist':'dmg')), hit:(crit?'crit':'hit'), id:e.id, down:down, infl:infl });
   });
   srpgRender();
@@ -1118,6 +1119,59 @@ function srpgScoutResults(got){
   ov.style.display = 'flex';
   try{ _char3dHydrateSafe(ov); }catch(e){}
   try{ sfx(['SSS','SS','S'].indexOf(best) >= 0 ? 'fanfare' : 'levelup'); if(['SSS','SS'].indexOf(best) >= 0 && typeof confetti === 'function') confetti(); }catch(e){}
+}
+
+// ================= とくぎ強化（ダブり合成）：同じ種のなかまで とくぎLvを上げる =================
+function srpgSkillUpScreen(){
+  srpgB = null;
+  document.getElementById('srpg-title').textContent = 'とくぎ強化';
+  var s, ai; try{ s = rpgState(); ai = rpgAibouState(s); }catch(e){ return; }
+  var party = ai.party || [];
+  // artごとにグループ（2体以上いる種＝合成できる）
+  var byArt = {};
+  Object.keys(ai.roster).forEach(function(id){ var a = ai.roster[id]; if(!a) return; (byArt[a.art] = byArt[a.art] || []).push(a); });
+  var RANKS = ['F','E','D','C','B','A','S','SS','SSS'];
+  var rows = '';
+  Object.keys(byArt).forEach(function(art){
+    var g = byArt[art]; if(g.length < 2) return;
+    // ベース＝いちばん強い個体／素材＝パーティ外のダブり
+    g.sort(function(a, b){ return (RANKS.indexOf(b.rank||'F') - RANKS.indexOf(a.rank||'F')) || ((b.lv||1) - (a.lv||1)); });
+    var base = g[0];
+    var mats = g.filter(function(m){ return srpgSkillUpCanFuse(base, m, party); });
+    var artHtml = (typeof srpgMonArt==='function' && srpgMonArt(art)) || _monStill(art);
+    var maxed = (base.skLv||1) >= SRPG_SKLV_MAX;
+    rows += '<div class="srpg-fuse-row">'
+      + '<div class="srpg-fuse-art">'+artHtml+'</div>'
+      + '<div class="srpg-fuse-info"><b>'+escapeHtml(base.name||'なかま')+'</b> <small>'+(base.rank||'F')+' Lv'+(base.lv||1)+'</small>'
+      + '<div class="srpg-fuse-lv">とくぎLv '+(base.skLv||1)+' / '+SRPG_SKLV_MAX+'　<small>いりょく+'+((Math.min(SRPG_SKLV_MAX,base.skLv||1)-1)*10)+'%</small></div>'
+      + '<small class="srpg-fuse-n">ダブり '+mats.length+'体</small></div>'
+      + (maxed ? '<span class="srpg-fuse-max">MAX</span>'
+         : (mats.length ? '<button class="rpg-btn srpg-fuse-btn" onclick="srpgSkillUpDo(\''+base.id+'\',\''+mats[0].id+'\')">⚗️ 強化</button>'
+            : '<span class="srpg-fuse-none">素材なし</span>'))
+      + '</div>';
+  });
+  if(!rows) rows = '<div class="srpg-tm-empty">おなじ種類の なかまが 2体いると 強化できるよ。<br>🔮スカウトや バトルで ダブりを あつめよう！</div>';
+  document.getElementById('srpg-body').innerHTML =
+    '<div class="srpg-fuse">'
+    + '<div class="srpg-select-lead">⚗️ とくぎ強化<br><small>おなじ種類の なかまを 合成すると、とくぎLvが 上がる！（いりょく+10%・状態異常の確率+5% ずつ）</small></div>'
+    + rows
+    + '<button class="srpg-mini" onclick="srpgTeamScreen()">← 編成へもどる</button></div>';
+  try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+function srpgSkillUpDo(baseId, matId){
+  try{ sfx('click'); }catch(e){}
+  var s, ai; try{ s = rpgState(); ai = rpgAibouState(s); }catch(e){ return; }
+  var base = ai.roster[baseId], mat = ai.roster[matId];
+  if(!srpgSkillUpCanFuse(base, mat, ai.party || [])){ try{ showToast('⚠️','強化できないよ',''); }catch(e){} return; }
+  if(!confirm('⚗️ とくぎ強化\n\n「'+(mat.name||'なかま')+'（'+(mat.rank||'F')+'）」を 素材にして、\n「'+(base.name||'なかま')+'」の とくぎLvを '+((base.skLv||1)+1)+' に上げます。\n素材の なかまは いなくなります。よろしいですか？')) return;
+  base.skLv = Math.min(SRPG_SKLV_MAX, (base.skLv||1) + 1);
+  if(!ai.gone) ai.gone = {};
+  ai.gone[matId] = 1; delete ai.roster[matId];   // 墓標＝同期しても復活しない（既存の合成と同じ仕組み）
+  rpgSave(s);
+  try{ sfx('fanfare'); vibe([20,40,20]); if(typeof confetti==='function') confetti(); }catch(e){}
+  try{ showToast('⚗️','とくぎ強化 せいこう！','「'+(base.name||'なかま')+'」の とくぎLvが '+base.skLv+' になった！'); }catch(e){}
+  srpgSay('とくぎが つよくなった！');
+  srpgSkillUpScreen();
 }
 
 // ================= ユニット詳細パネル（能力・とくぎ・耐性表） =================

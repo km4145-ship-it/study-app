@@ -409,9 +409,28 @@ var SRPG_BLOCK_META = { rock:{ em:'🗻', name:'いわ' }, water:{ em:'🌊', na
 function srpgForecast(attacker, target, subjectKey, skill){
   var kind = srpgResistKind(subjectKey, target);
   if(kind === 'null') return { kind:kind, dmg:0 };
-  var power = skill ? (skill.power || 100) : 100;
+  var power = skill ? srpgSkillPower(skill, attacker && attacker.skLv) : 100;
   var dmg = srpgDamage(attacker, target, power, kind === 'drain' ? 1 : srpgResistMult(kind), false);
   return { kind:kind, dmg:dmg };   // drainのdmgは「敵が回復する量」
+}
+
+// ===== とくぎ強化（ダブり合成）：同じ種のなかまを合成 → とくぎLv(1〜5)が上がる =====
+// 効果：とくぎの威力 +10%/Lv、状態異常の確率 +5%/Lv（教科正解の一撃がさらに重くなる）
+var SRPG_SKLV_MAX = 5;
+function srpgSkillPower(sk, skLv){
+  return Math.round((sk && sk.power || 100) * (1 + 0.10 * (Math.min(SRPG_SKLV_MAX, skLv || 1) - 1)));
+}
+function srpgInflictChance(sk, skLv){
+  if(!sk || !sk.inflict) return 0;
+  return Math.min(1, sk.inflict.chance + 0.05 * (Math.min(SRPG_SKLV_MAX, skLv || 1) - 1));
+}
+// 合成できるか：同じ種（art完全一致）・別個体・Lv上限未満・素材はパーティ外（お気に入り誤消し防止）
+function srpgSkillUpCanFuse(base, mat, partyIds){
+  if(!base || !mat || base.id === mat.id) return false;
+  if(base.art !== mat.art) return false;
+  if((base.skLv || 1) >= SRPG_SKLV_MAX) return false;
+  if((partyIds || []).indexOf(mat.id) >= 0) return false;
+  return true;
 }
 
 // ===== ウェーブ制（増援）：stage.waves = 追加の敵陣。1陣を全滅させると次が現れる =====
@@ -497,7 +516,7 @@ function srpgMakeUnit(spec){
     maxHp: hp, hp: hp, atk: atk, def: def, spd: spd,
     mov: role.mov, rng: role.rng, mp: 0, mpMax: 6,
     skills: (spec.skills !== undefined ? spec.skills.slice() : role.skills.slice(0, srpgSkillCount(lvl))),
-    lvl: lvl, awaken: srpgSkillCount(lvl),
+    lvl: lvl, awaken: srpgSkillCount(lvl), skLv: Math.max(1, Math.min(SRPG_SKLV_MAX, spec.skLv || 1)),
     weak: spec.weak || null, resist: spec.resist || null, resists: spec.resists || null,
     onhit: spec.onhit || null,
     status: {}, mods: { atk:0, def:0, spd:0 }, modTurns: { atk:0, def:0, spd:0 },
@@ -693,6 +712,7 @@ if(typeof module !== 'undefined' && module.exports){
     SRPG_MON_SKILL: SRPG_MON_SKILL, srpgMonSkill: srpgMonSkill,
     srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
     SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,
-    srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick
+    srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
+    SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse
   };
 }

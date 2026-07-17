@@ -587,4 +587,32 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.eq('空ロスターは空', S.srpgAutoPick([], 4).length, 0);
 }
 
+// ================= 第13弾：とくぎ強化（ダブり合成） =================
+{
+  const sk = S.srpgSkill('burstball');   // power 120
+  c.eq('とくぎLv1は素の威力', S.srpgSkillPower(sk, 1), 120);
+  c.eq('とくぎLv3で+20%', S.srpgSkillPower(sk, 3), 144);
+  c.eq('とくぎLv5で+40%', S.srpgSkillPower(sk, 5), 168);
+  c.eq('Lv超過は5で頭打ち', S.srpgSkillPower(sk, 9), 168);
+  c.eq('通常こうげき相当(null skill)は100基準', S.srpgSkillPower(null, 3), 120);
+  const pb = S.srpgSkill('poisonbreath');   // chance 0.9
+  c.ok('状態異常確率がLvで上がる', S.srpgInflictChance(pb, 3) > S.srpgInflictChance(pb, 1));
+  c.eq('確率は1.0で頭打ち', S.srpgInflictChance(pb, 5), 1);
+  c.eq('inflict無しは0', S.srpgInflictChance(S.srpgSkill('slash'), 5), 0);
+  // 合成ルール
+  const b = { id:'b1', art:'wolf', skLv:1 }, m1 = { id:'m1', art:'wolf' }, m2 = { id:'m2', art:'slime' };
+  c.ok('同じ種は合成できる', S.srpgSkillUpCanFuse(b, m1, []));
+  c.ok('別の種は合成できない', !S.srpgSkillUpCanFuse(b, m2, []));
+  c.ok('自分自身は素材にできない', !S.srpgSkillUpCanFuse(b, b, []));
+  c.ok('パーティ内の素材は不可', !S.srpgSkillUpCanFuse(b, m1, ['m1']));
+  c.ok('Lv上限(5)では合成不可', !S.srpgSkillUpCanFuse({ id:'b2', art:'wolf', skLv:5 }, m1, []));
+  // ユニット生成にskLvが乗る＆予測にも反映
+  const uu = S.srpgMakeUnit({ id:'u', side:'ally', name:'u', art:'wolf', role:'attacker', rankBase:8, lvl:5, skLv:3 });
+  c.eq('ユニットのskLv', uu.skLv, 3);
+  const u1 = S.srpgMakeUnit({ id:'v', side:'ally', name:'v', art:'wolf', role:'attacker', rankBase:8, lvl:5, skLv:1 });
+  const tgt2 = S.srpgMakeUnit({ id:'t', side:'enemy', name:'t', art:'slime', role:'tank', rankBase:8, lvl:5 });
+  c.ok('予測ダメージがとくぎLvで増える',
+    S.srpgForecast(uu, tgt2, 'japanese', S.srpgSkill('line')).dmg > S.srpgForecast(u1, tgt2, 'japanese', S.srpgSkill('line')).dmg);
+}
+
 c.done();

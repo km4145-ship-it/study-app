@@ -112,7 +112,7 @@ window.FIREBASE_CONFIG = {
     for(id in ry){ if(!ry[id]) continue;
       if(!roster[id]) roster[id]=ry[id];
       else { var a2=roster[id], b2=ry[id];
-        roster[id]=Object.assign({}, a2, b2, { lv:Math.max(a2.lv||1,b2.lv||1), xp:Math.max(a2.xp||0,b2.xp||0), name:(b2.name||a2.name||''), rank:rankHi(a2.rank||'F', b2.rank||'F') }); } }
+        roster[id]=Object.assign({}, a2, b2, { lv:Math.max(a2.lv||1,b2.lv||1), xp:Math.max(a2.xp||0,b2.xp||0), skLv:Math.max(a2.skLv||1,b2.skLv||1), name:(b2.name||a2.name||''), rank:rankHi(a2.rank||'F', b2.rank||'F') }); } }
     Object.keys(gone).forEach(function(gid){ delete roster[gid]; });
     var party=((y.party&&y.party.length)?y.party:(x.party||[])).filter(function(pid){ return !!roster[pid]; }).slice(0,3);
     var o={ roster:roster, party:party,

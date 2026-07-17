@@ -3045,6 +3045,7 @@ function init() {
   renderVoiceSettings();
   try{ if('speechSynthesis' in window){ window.speechSynthesis.onvoiceschanged=function(){ try{ ttsPopulateVoices(); }catch(e){} }; } }catch(e){}
   if (elevenLabsKeySet) {
+    try{ setTimeout(function(){ initKuromoji(); }, 2500); }catch(e){}   // 読み辞書を起動後にプリロード（初回発話から正しい読みに）
     document.getElementById('el-api-key').placeholder = '保存済み';
     document.getElementById('voice-status').textContent = '🔊 音声オン';
     document.getElementById('voice-status').className = 'voice-status voice-on';
@@ -3975,6 +3976,7 @@ async function speakAndWait(text) {
   try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e){}
 
   if (!elevenLabsKeySet) { setVoiceStatus('🔊 内蔵音声', true); return speakBuiltin(text, mySeq); }
+  try{ initKuromoji(); }catch(e){}   // 読み辞書（漢字→カナ）を遅延ロード（冪等・初回以降の発話から効く）
   const clean = forTTS(text);
   const ind = document.getElementById('speaking-indicator'); if(ind) ind.style.display='inline';
   const charId = getCharVoiceId();

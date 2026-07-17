@@ -33,6 +33,7 @@ const TESTS = [
   ['tests/unit-voice.js'],
   ['tests/unit-furigana.js'],
   ['tests/unit-reading-ja.js'],
+  ['scripts/audit-tts.js'],   // 読み上げテキスト全量の自動監査（絵文字/英単語破壊/数字・記号残り＝誤読の火種）
   ['tests/unit-scoring.js'],
   ['tests/unit-content-data.js'],
   ['tests/unit-ui-data.js'],

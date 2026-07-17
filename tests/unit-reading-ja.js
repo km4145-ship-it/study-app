@@ -51,4 +51,31 @@ const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は forTTS を再定義しない', html.indexOf('\nfunction forTTS(') < 0);
 c.ok('index.html は js/reading-ja.js を読み込む', html.indexOf('<script src="js/reading-ja.js') >= 0);
 
+// ===== 読み変換の強化（2026-07-17）：誤読の火種をつぶす新ルール =====
+const GOLDEN2 = [
+  // 英単語を壊さない（旧実装は 'm' などを無差別置換 → 「Toメートルは…」になっていた）
+  ['toReading', ['Tomは5mはしった'], 'Tomは五メートルはしった'],
+  ['toReading', ['Lisaは犬がすき'], 'Lisaは犬がすき'],
+  // 分数・比・桁区切り
+  ['toReading', ['1/2をたす'], '二ぶんの一をたす'],
+  ['toReading', ['3:4のとき'], '三たい四のとき'],
+  ['toReading', ['1,000円もらった'], '千円もらった'],
+  // 累乗・単独単位・割り算スラッシュ
+  ['toReading', ['6²をもとめよ'], '六の二乗をもとめよ'],
+  ['toReading', ['(他の2辺)²の和'], '(他の二辺)の二乗の和'],
+  ['toReading', ['面積は？（cm²）'], '面積は？（平方センチメートル）'],
+  ['toReading', ['中心角/360をかける'], '中心角わる三百六十をかける'],
+  // 速さの複合単位
+  ['toReading', ['時速は60km/hだ'], '時速は六十じそくキロメートルだ'],
+];
+for (const [fn, args, want] of GOLDEN2) {
+  c.eq('強化: ' + fn + '(' + JSON.stringify(args).slice(1, -1) + ')', api[fn].apply(null, args), want);
+}
+// 絵文字の包括除去（旧列挙式では素通りしていた絵文字）
+c.eq('絵文字🐾🎁⚔️💥が消える', api.stripEmoji('🐾やった🎁ね⚔️💥'), 'やったね');
+// initKuromoji はふりがな機能の辞書（_furiTok）を共用する実装になっている
+const rj = fs.readFileSync(path.join(ROOT, 'js', 'reading-ja.js'), 'utf8');
+c.ok('initKuromoji は _furiTok を共用する', rj.indexOf('_furiTok') >= 0);
+c.ok('speakAndWait が initKuromoji を呼ぶ（読み辞書の自動ロード）', /initKuromoji\(\)/.test(html));
+
 c.done();

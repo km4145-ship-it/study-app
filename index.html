@@ -3772,7 +3772,32 @@ function speak(text) { lastSpokenText = text; return speakAndWait(text); }
 // 🔊 リスニング用：英語を内蔵音声で読む。speakBuiltinはja-JP固定＋日本語読み変換（forTTS）が
 // かかるため流用せず、英語専用のユタランスを直接つくる（再生はユーザーのタップ起点＝iOS制約もクリア）
 var _listenText='';
-function speakEn(text){
+// ElevenLabs があれば ネイティブ級の英語で読む（multilingual対応＝日本語と同じ声ID）。
+// 失敗・未設定なら 内蔵の英語音声へフォールバック（従来挙動）。
+async function speakEn(text){
+  if(!text) return;
+  var mySeq = ++speechSeq;   // 日本語の読み上げとも相互に割り込み（重なり防止）
+  try{ if(currentAudio){ currentAudio.pause(); currentAudio=null; } }catch(e){}
+  try{ if('speechSynthesis' in window) window.speechSynthesis.cancel(); }catch(e){}
+  if(elevenLabsKeySet){
+    try{
+      var r = await fetchVoiceBlob(getCharVoiceId(), text);
+      if(mySeq !== speechSeq) return;   // 取得中に別の発話が始まった→破棄
+      if(r.ok){
+        var url = URL.createObjectURL(r.blob);
+        var a = ensureAudioEl() || new Audio();
+        a.src = url; currentAudio = a;
+        a.onended = function(){ if(currentAudio===a) currentAudio=null; try{ URL.revokeObjectURL(url); }catch(e){} };
+        a.onerror = function(){ if(currentAudio===a) currentAudio=null; if(mySeq===speechSeq) _speakEnBuiltin(text); };
+        a.play().catch(function(){ if(currentAudio===a) currentAudio=null; if(mySeq===speechSeq) _speakEnBuiltin(text); });
+        return;
+      }
+    }catch(e){}
+    if(mySeq !== speechSeq) return;
+  }
+  _speakEnBuiltin(text);
+}
+function _speakEnBuiltin(text){
   try{
     if(!('speechSynthesis' in window) || !text) return;
     window.speechSynthesis.cancel();

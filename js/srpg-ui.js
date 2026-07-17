@@ -170,6 +170,25 @@ function srpgStageSelect(){
 }
 function srpgClearedSet(){ try{ return lsGetJSON('srpg_cleared', {}) || {}; }catch(e){ return {}; } }
 function srpgMarkCleared(id){ try{ var s = srpgClearedSet(); s[id] = 1; lsSetJSON('srpg_cleared', s); }catch(e){} }
+// ===== チュートリアル（初回だけ）＆敗北救済（難易度曲線） =====
+function _srpgFlag(k){ try{ return safeLS.getItem(k)==='1'; }catch(e){ return false; } }
+function _srpgSetFlag(k){ try{ safeLS.setItem(k, '1'); }catch(e){} }
+var SRPG_TUT_LINES = [
+  'タクトバトルへ ようこそ！ マスの上で たたかう さくせんバトルだよ。',
+  'じぶんの ばんが きたら、まず 👣いどう で 青いマスへ うごこう。',
+  'つぎに ⚔️こうげき！ 教科を えらんで、もんだいに 正解すると こうげきできるよ。',
+  '敵には ⭐弱点の教科が あるよ。弱点を つくと 大ダメージ！',
+  'MPが たまったら 🌟とくぎ！ それじゃあ、はじめよう！'
+];
+// 同じステージで2回負けたら、次は おうえんバフ（こうげき+1段階）で再挑戦できる
+function srpgLossMap(){ try{ return lsGetJSON('srpg_loss', {}) || {}; }catch(e){ return {}; } }
+function srpgNoteLoss(id){ try{ var m = srpgLossMap(); m[id] = (m[id]||0) + 1; lsSetJSON('srpg_loss', m); }catch(e){} }
+function srpgClearLoss(id){ try{ var m = srpgLossMap(); if(m[id]){ delete m[id]; lsSetJSON('srpg_loss', m); } }catch(e){} }
+function srpgApplyRescue(){
+  if((srpgLossMap()[srpgB.stageId]||0) < 2) return;
+  srpgB.units.forEach(function(u){ if(u.side==='ally') srpgSetMod(u, 'atk', 1, 99); });
+  try{ showToast('📣','おうえんが かけつけた！','みんなの こうげきが アップ！（まけつづけた ステージの おたすけ）'); }catch(e){}
+}
 
 // ================= 戦闘の開始 =================
 function srpgStart(stageId){
@@ -187,7 +206,11 @@ function srpgStart(stageId){
   };
   document.getElementById('srpg-title').textContent = stage.name;
   try{ if(typeof bgmPlay==='function') bgmPlay((stage.type==='quest' && stage.boss) ? 'boss' : 'battle'); }catch(e){}
-  if(stage.story && stage.story.length){ srpgRender(); srpgStoryIntro(stage.story, srpgDeployBegin); }
+  srpgApplyRescue();   // まけつづけたステージは おうえんバフ付きで再挑戦
+  // 初回だけ：あそびかたのチュートリアル（タップ送り・読み上げつき）→ そのままステージの物語へ
+  var lines = (stage.story && stage.story.length) ? stage.story.slice() : [];
+  if(!_srpgFlag('srpg_tut')){ _srpgSetFlag('srpg_tut'); lines = SRPG_TUT_LINES.concat(lines); }
+  if(lines.length){ srpgRender(); srpgStoryIntro(lines, srpgDeployBegin); }
   else { srpgDeployBegin(); }
 }
 // ---- 配置フェーズ（戦闘前に 味方を マスへ 並べる）----
@@ -443,6 +466,9 @@ function srpgSelectActor(){
   var actor = srpgActor();
   if(actor){ try{ document.querySelector('#st-'+actor.x+'-'+actor.y).scrollIntoView({block:'center'}); }catch(e){} }
   srpgRender();
+  // 初めてのコマンド選択にだけ ヒントを1回出す
+  if(!_srpgFlag('srpg_hint_sel')){ _srpgSetFlag('srpg_hint_sel');
+    try{ showToast('💡','さいしょの いっぽ','👣いどう してから ⚔️こうげき すると つよいよ！'); }catch(e){} }
 }
 function srpgClearHi(){ if(srpgB){ srpgB.hiMove = {}; srpgB.hiTarget = {}; srpgB.hiAoe = {}; } }
 
@@ -507,6 +533,8 @@ function srpgTileTap(x, y){
     if(sk && sk.kind==='heal'){ srpgResolveHeal(); return; }                         // 回復は出題なしで即発動
     if(sk && sk.kind==='buff'){ srpgResolveBuff(srpgUnitAt(srpgB.units, x, y)); return; }  // なかまバフも即発動
     srpgB.phase = 'pick-subject'; srpgRender();   // こうげき／デバフは 教科えらび→出題
+    if(!_srpgFlag('srpg_hint_sub')){ _srpgSetFlag('srpg_hint_sub');
+      try{ showToast('💡','教科えらびの コツ','「弱点！」と 光っている教科を えらぶと 大ダメージ！'); }catch(e){} }
     return;
   }
 }
@@ -824,6 +852,7 @@ function srpgEnd(outcome){
   var coin = 30 + srpgB.stage.enemies.length * 15;
   var xp = 40 + srpgB.stage.enemies.length * 20;
   var extra = '', scout = null;
+  if(win){ srpgClearLoss(srpgB.stageId); } else { srpgNoteLoss(srpgB.stageId); }   // 敗北救済のカウント
   if(win){
     srpgMarkCleared(srpgB.stageId);
     // ごほうび：コインとXP（既存RPGの経済＝rpgState/cosに合流）

@@ -136,7 +136,7 @@ const grid = { w: 6, h: 7 };
     { id:'h', name:'ゆうしゃ', art:'shiba', role:'attacker', lvl:3, rankBase:7 },
     { id:'m', name:'なかま',   art:'slime', role:'healer',   lvl:3, rankBase:6 }
   ]);
-  c.eq('arena1は味方2＋敵3＝5体', units.length, 5);
+  c.eq('arena1は味方2＋敵2＝4体（チュートリアル戦＝易しく）', units.length, 4);
   c.ok('味方と敵が両方いる', units.some((u) => u.side === 'ally') && units.some((u) => u.side === 'enemy'));
   c.ok('全ユニットが盤内に配置', units.every((u) => u.x >= 0 && u.x < S.SRPG_STAGES.arena1.grid.w && u.y >= 0 && u.y < S.SRPG_STAGES.arena1.grid.h));
 }

@@ -447,4 +447,30 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   }
 }
 
+// ================= モンスター固有とくぎ =================
+{
+  // 冒険に出る全モンスター（＝あいぼう化しうる種）に固有とくぎがあり、実在スキルを指す
+  const acode2 = require('fs').readFileSync(path.join(ROOT, 'js', 'aibou.js'), 'utf8');
+  const ARTS = Object.keys((new Function(acode2 + '\nreturn AIBOU_ART_SPECIES;'))());
+  ARTS.forEach((art) => {
+    const id = S.srpgMonSkill(art);
+    c.ok('固有とくぎあり: ' + art, !!id);
+    c.ok('固有とくぎが実在スキル: ' + art + '→' + id, !!S.srpgSkill(id));
+  });
+  // 亜種はベース種と同じ技を受け継ぐ
+  c.eq('亜種slime2はslimeの技', S.srpgMonSkill('slime2'), S.srpgMonSkill('slime'));
+  c.eq('亜種dragon2はdragonの技', S.srpgMonSkill('dragon2'), S.srpgMonSkill('dragon'));
+  c.ok('未知のartはnull', S.srpgMonSkill('__none__') === null);
+  // 個性が出ている（固有とくぎの種類が10種以上に分散）
+  const uniq = new Set(ARTS.map((a) => S.srpgMonSkill(a)));
+  c.ok('固有とくぎは10種類以上に分散', uniq.size >= 10);
+  // 新規固有スキルの整合は既存のスキル整合ループが検証済み（kind/mp/inflict/buff）。
+  // 自分バフ型（ぷるぷるバリア）は target:'self' で出題なし発動の分岐に乗る
+  c.eq('ぷるぷるバリアは自分バフ', S.srpgSkill('purupuru').buff.target, 'self');
+  // ユニット組み立て：固有＋役割とくぎ（重複なし）
+  const u = S.srpgMakeUnit({ id:'w', side:'ally', name:'w', art:'wolf', role:'attacker', rankBase:8, lvl:1,
+    skills:['kamikizu'].concat(S.SRPG_ROLES.attacker.skills.slice(0, S.srpgSkillCount(1))) });
+  c.ok('固有とくぎが先頭に入る', u.skills[0] === 'kamikizu' && u.skills.length === 2);
+}
+
 c.done();

@@ -149,9 +149,42 @@ var SRPG_SKILLS = {
   rukani:  { id:'rukani',   name:'よろいくだき', mp:3, shape:'single', kind:'debuff', rng:2,
     buff:{ stat:'def', stage:-2, turns:3, target:'enemy' }, desc:'敵の まもりを 下げる（ダメージUP）' },
   rariho:  { id:'rariho',   name:'すばやさダウン', mp:3, shape:'single', kind:'debuff', rng:2,
-    buff:{ stat:'spd', stage:-1, turns:3, target:'enemy' }, desc:'敵の すばやさを 下げて 後回しに' }
+    buff:{ stat:'spd', stage:-1, turns:3, target:'enemy' }, desc:'敵の すばやさを 下げて 後回しに' },
+  // ---- モンスター固有とくぎ（スカウトした仲間の個性・すべてオリジナル） ----
+  purupuru: { id:'purupuru', name:'ぷるぷるバリア', mp:3, shape:'single', kind:'buff', rng:0,
+    buff:{ stat:'def', stage:2, turns:3, target:'self' }, desc:'からだを かためて まもりを 大きく上げる' },
+  royalwave:{ id:'royalwave',name:'おうさまウェーブ', mp:5, shape:'burst', power:110, kind:'atk', rng:2, desc:'王のちからで 3×3を なぎはらう' },
+  kamikizu: { id:'kamikizu', name:'がぶりつき',     mp:4, shape:'single', power:130, kind:'atk', rng:1,
+    inflict:{ kind:'poison', turns:2, chance:0.5 }, desc:'強くかみつき きずに どくが のこる' },
+  hono:     { id:'hono',     name:'かえんのいき',   mp:5, shape:'line3',  power:140, kind:'atk', rng:1, desc:'ほのおで 直線3マスを やきはらう' },
+  sumihane: { id:'sumihane', name:'すみはね',       mp:4, shape:'cross',  power:70,  kind:'atk', rng:2,
+    inflict:{ kind:'seal', turns:2, chance:0.6 }, desc:'すみを まきちらし とくぎを ふうじる' },
+  fudesabaki:{id:'fudesabaki',name:'ふでさばき',    mp:4, shape:'line3',  power:120, kind:'atk', rng:1, desc:'ひとふでがきで 直線3マスを 斬る' },
+  gekiyaku: { id:'gekiyaku', name:'げきやくスプラッシュ', mp:5, shape:'burst', power:80, kind:'atk', rng:2,
+    inflict:{ kind:'poison', turns:3, chance:0.7 }, desc:'やくひんを ばらまき 広く どくにする' },
+  baikin:   { id:'baikin',   name:'ばいきんアタック', mp:3, shape:'single', power:90, kind:'atk', rng:1,
+    inflict:{ kind:'poison', turns:3, chance:0.8 }, desc:'ばいきんを うえつける（どく確率大）' },
+  rinpun:   { id:'rinpun',   name:'ねむりのこな',   mp:4, shape:'cross',  power:50,  kind:'atk', rng:2,
+    inflict:{ kind:'sleep', turns:2, chance:0.6 }, desc:'こなを まいて 十字の敵を ねむらせる' },
+  tokitome: { id:'tokitome', name:'とけいのまほう', mp:4, shape:'single', power:60,  kind:'atk', rng:2,
+    inflict:{ kind:'paralyze', turns:2, chance:0.9 }, desc:'時間を くるわせ うごきを 止める' }
 };
 function srpgSkill(id){ return SRPG_SKILLS[id] || null; }
+// ===== モンスター固有とくぎ：アート（種）→ 生まれつきのとくぎ =====
+// スカウトした仲間の個性。亜種（〜2）はベースの種と同じ技を受け継ぐ。
+var SRPG_MON_SKILL = {
+  slime:'purupuru', slugking:'royalwave', goblin:'line', bat:'poisonbreath', wolf:'kamikizu',
+  ghost:'lullaby', dragon:'hono', voltdrake:'numbing', trent:'heal', inkblob:'sumihane',
+  fudebird:'fudesabaki', kanjioni:'sealing', abcube:'ranban', qbird:'rariho', grammaro:'bikilt',
+  flaskun:'gekiyaku', microbe:'baikin', mapmoth:'rinpun', haniwa:'taunt', tokiou:'tokitome',
+  villain:'burstball', pet:'heal'
+};
+function srpgMonSkill(art){
+  if(!art) return null;
+  if(SRPG_MON_SKILL[art]) return SRPG_MON_SKILL[art];
+  var m = /^(.*)2$/.exec(art);   // 亜種はベース種の技
+  return (m && SRPG_MON_SKILL[m[1]]) || null;
+}
 
 // ===== 距離・範囲（マンハッタン距離＝タクティクスの標準） =====
 function srpgDist(ax, ay, bx, by){ return Math.abs(ax - bx) + Math.abs(ay - by); }
@@ -561,6 +594,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgTargetBonus: srpgTargetBonus, srpgEnemyPickTarget: srpgEnemyPickTarget, srpgEnemyAction: srpgEnemyAction, srpgDeployZone: srpgDeployZone,
     srpgMakeUnit: srpgMakeUnit, srpgEnemyTemplate: srpgEnemyTemplate, srpgStage: srpgStage,
     srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits,
-    srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage
+    srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage,
+    SRPG_MON_SKILL: SRPG_MON_SKILL, srpgMonSkill: srpgMonSkill
   };
 }

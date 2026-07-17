@@ -38,7 +38,12 @@ function srpgHeroSpec(){
 function srpgAibouSpec(a){
   var spName = (typeof AIBOU_SPECIES!=='undefined' && AIBOU_SPECIES[a.sp] && AIBOU_SPECIES[a.sp].name) || 'なかま';
   var base = (typeof AIBOU_RANK_BASE!=='undefined' && AIBOU_RANK_BASE[a.rank||'C']) || 6;
-  return { id:a.id, name:a.name || spName, art:a.art || 'slime', role:SRPG_ROLE_BY_SP[a.sp] || 'attacker', lvl:a.lv || 1, rankBase:base, rank:a.rank, sp:a.sp, bonus:srpgAibouBonus(a) };
+  var role = SRPG_ROLE_BY_SP[a.sp] || 'attacker', lvl = a.lv || 1;
+  // モンスター固有とくぎ（種の個性・Lv1から使える）＋役割とくぎ（覚醒で増える）
+  var skills = ((SRPG_ROLES[role] || SRPG_ROLES.attacker).skills || []).slice(0, srpgSkillCount(lvl));
+  var innate = srpgMonSkill(a.art);
+  if(innate && skills.indexOf(innate) < 0) skills.unshift(innate);
+  return { id:a.id, name:a.name || spName, art:a.art || 'slime', role:role, lvl:lvl, rankBase:base, rank:a.rank, sp:a.sp, bonus:srpgAibouBonus(a), skills:skills, innate:innate };
 }
 function srpgAibouRosterList(){
   try{ var ai = rpgAibouState(rpgState()); return Object.keys(ai.roster).map(function(id){ return ai.roster[id]; }); }catch(e){ return []; }
@@ -85,12 +90,13 @@ function srpgTeamScreen(){
     var isLeader = srpgTeamSel.leader === sp.id;
     var nSk = srpgSkillCount(sp.lvl);
     var gear = sp.bonus ? srpgGearTotal(sp.bonus) : 0;
+    var innate = sp.innate ? srpgSkill(sp.innate) : null;   // 固有とくぎ＝種の個性を見せる
     return '<div class="srpg-tm-card'+(on?' on':'')+(isLeader?' leader':'')+'">'
       + (isLeader?'<span class="srpg-tm-crown">👑</span>':'')
       + '<div class="srpg-tm-ava">'+((typeof srpgMonArt==='function'&&srpgMonArt(sp.art))||_charStill(sp.art))+'</div>'
       + '<div class="srpg-tm-nm">'+escapeHtml(sp.name)+'</div>'
       + '<div class="srpg-tm-meta">'+r.em+r.name+' <small>Lv'+sp.lvl+(sp.rank?' ('+sp.rank+')':'')+'</small></div>'
-      + '<div class="srpg-tm-sk">とくぎ×'+nSk+(gear>0?' <span class="srpg-tm-gear">🎽そうび+'+gear+'</span>':'')+'</div>'
+      + '<div class="srpg-tm-sk">'+(innate?('<span class="srpg-tm-innate">✦'+escapeHtml(innate.name)+'</span> '):'')+'とくぎ×'+(nSk+(innate?1:0))+(gear>0?' <span class="srpg-tm-gear">🎽そうび+'+gear+'</span>':'')+'</div>'
       + (on ? '<button class="srpg-tm-lead" onclick="srpgTeamSetLeader(\''+sp.id+'\')">'+(isLeader?'★リーダー':'リーダーにする')+'</button>' : '')
       + (selectable ? '<button class="srpg-tm-toggle'+(on?' rm':'')+'" onclick="srpgTeamToggle(\''+sp.id+'\')">'+(on?'はずす':'えらぶ')+'</button>' : '<div class="srpg-tm-fixed">必ず出撃</div>')
       + '</div>';

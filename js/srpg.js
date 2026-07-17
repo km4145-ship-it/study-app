@@ -10,11 +10,11 @@
 
 // ===== 教科＝属性（ドラクエの8系統になぞらえる。攻撃側は5教科属性を使う） =====
 var SRPG_SUBJECTS = {
-  math:     { key:'math',     elem:'io',      em:'💥', name:'イオ',     label:'算数・数学', color:'#f59e0b' },
-  japanese: { key:'japanese', elem:'dorma',   em:'🌑', name:'ドルマ',   label:'国語',       color:'#7c3aed' },
-  english:  { key:'english',  elem:'bagi',    em:'🌀', name:'バギ',     label:'英語',       color:'#10b981' },
-  science:  { key:'science',  elem:'hyad',    em:'❄️', name:'ヒャド',   label:'理科',       color:'#38bdf8' },
-  social:   { key:'social',   elem:'jibaria', em:'🪨', name:'ジバリア', label:'社会',       color:'#a16207' }
+  math:     { key:'math',     elem:'bang',  em:'💥', name:'ばくはつ', label:'算数・数学', color:'#f59e0b' },
+  japanese: { key:'japanese', elem:'dark',  em:'🌑', name:'やみ',     label:'国語',       color:'#7c3aed' },
+  english:  { key:'english',  elem:'wind',  em:'🌀', name:'かぜ',     label:'英語',       color:'#10b981' },
+  science:  { key:'science',  elem:'ice',   em:'❄️', name:'こおり',   label:'理科',       color:'#38bdf8' },
+  social:   { key:'social',   elem:'earth', em:'🪨', name:'だいち',   label:'社会',       color:'#a16207' }
 };
 var SRPG_SUBJECT_KEYS = ['math','japanese','english','science','social'];
 // 敵の弱点・耐性はこの5属性のどれか（＝どの教科でせめれば刺さるか）
@@ -127,7 +127,7 @@ function srpgLeaderTrait(role){ return SRPG_LEADER_TRAITS[role] || null; }
 var SRPG_SKILLS = {
   slash:    { id:'slash',    name:'なぎはらい',   mp:3, shape:'cross',  power:110, kind:'atk',  rng:1, desc:'十字5マスをまとめて斬る' },
   burstball:{ id:'burstball',name:'ばくれつ',     mp:4, shape:'burst',  power:120, kind:'atk',  rng:2, desc:'3×3の範囲を巻きこむ大魔法' },
-  heal:     { id:'heal',     name:'ホイミ',       mp:3, shape:'single', power:130, kind:'heal', rng:2, desc:'なかま1体のHPを回復' },
+  heal:     { id:'heal',     name:'いやしのて',   mp:3, shape:'single', power:130, kind:'heal', rng:2, desc:'なかま1体のHPを回復' },
   taunt:    { id:'taunt',    name:'みがわり突撃', mp:3, shape:'single', power:150, kind:'atk',  rng:1, desc:'みがわりになりつつ重い一撃' },
   line:     { id:'line',     name:'つらぬき',     mp:4, shape:'line3',  power:130, kind:'atk',  rng:1, desc:'奥へ直線3マスを貫く' },
   // 状態異常つきのこうげき（教科をえらんで正解で発動）
@@ -142,11 +142,11 @@ var SRPG_SKILLS = {
   // バフ／デバフ（味方は出題なしで即・敵デバフは教科をえらんで正解で発動）
   powerup: { id:'powerup',  name:'ちからため',   mp:3, shape:'single', kind:'buff', rng:0,
     buff:{ stat:'atk', stage:2, turns:3, target:'self' }, desc:'自分の こうげきを 大きく上げる' },
-  bikilt:  { id:'bikilt',   name:'バイキルト',   mp:4, shape:'single', kind:'buff', rng:2,
+  bikilt:  { id:'bikilt',   name:'ちからのうた', mp:4, shape:'single', kind:'buff', rng:2,
     buff:{ stat:'atk', stage:1, turns:3, target:'ally' }, desc:'なかま1体の こうげきを上げる' },
-  ranban:  { id:'ranban',   name:'スクルト',     mp:3, shape:'single', kind:'buff', rng:2,
+  ranban:  { id:'ranban',   name:'まもりのうた', mp:3, shape:'single', kind:'buff', rng:2,
     buff:{ stat:'def', stage:1, turns:3, target:'ally' }, desc:'なかま1体の まもりを上げる' },
-  rukani:  { id:'rukani',   name:'ルカニ',       mp:3, shape:'single', kind:'debuff', rng:2,
+  rukani:  { id:'rukani',   name:'よろいくだき', mp:3, shape:'single', kind:'debuff', rng:2,
     buff:{ stat:'def', stage:-2, turns:3, target:'enemy' }, desc:'敵の まもりを 下げる（ダメージUP）' },
   rariho:  { id:'rariho',   name:'すばやさダウン', mp:3, shape:'single', kind:'debuff', rng:2,
     buff:{ stat:'spd', stage:-1, turns:3, target:'enemy' }, desc:'敵の すばやさを 下げて 後回しに' }

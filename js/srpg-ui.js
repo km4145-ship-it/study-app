@@ -1257,6 +1257,7 @@ function srpgScoutCinematic(got, onDone){
   function finish(){
     if(skipped) return; skipped = true;
     timers.forEach(clearTimeout);
+    setTimeout(function(){ try{ if(window.gachaFx) gachaFx.stop(); }catch(e){} }, 1600);   // 星の雨は少し余韻を残して停止
     onDone();
   }
   ov.innerHTML = '<div class="sc-stage" id="sc-stage">'
@@ -1271,6 +1272,10 @@ function srpgScoutCinematic(got, onDone){
   ov.style.display = 'flex';
   ov.onclick = finish;
   var stage = document.getElementById('sc-stage');
+  // Canvasパーティクル（gacha-fx）を召喚にも接続＝数百粒子の吸い込み・爆発・星の雨
+  var fxRank = { low:'R', A:'SR', S:'SSR', SS:'UR', SSS:'LR' }[tier] || 'R';
+  function fxCv(z){ try{ var cv=document.getElementById('gacha-fx-canvas'); if(cv) cv.style.zIndex=z; }catch(e){} }
+  try{ if(window.gachaFx){ gachaFx.charge(fxRank); fxCv(2000); } }catch(e){}
   try{ sfx('click'); }catch(e){}
   // ①チャージ（吸い込み・魔法陣が速くなる）
   T(function(){ if(stage) stage.classList.add('charging'); try{ sfx('coin'); }catch(e){} }, 250);
@@ -1281,6 +1286,7 @@ function srpgScoutCinematic(got, onDone){
     stage.classList.add('tell', 'tier-' + tier);
     try{ if(tier==='SS'||tier==='SSS'){ document.body.classList.add('srpg-flash'); setTimeout(function(){ document.body.classList.remove('srpg-flash'); }, 300); vibe([20,50,20]); } }catch(e){}
     try{ sfx(tier==='SSS' ? 'legendary' : (tier==='SS'||tier==='S') ? 'fanfare' : 'levelup'); }catch(e){}
+    try{ if(window.gachaFx){ gachaFx.pulse(fxRank); fxCv(2000); } }catch(e){}
   }, 1300);
   // ③SSSだけ：一度暗転する「ため」→虹爆発
   if(tier === 'SSS'){
@@ -1289,7 +1295,9 @@ function srpgScoutCinematic(got, onDone){
   }
   // ④爆発フラッシュ→結果へ
   var endAt = (tier === 'SSS') ? 3600 : 2400;
-  T(function(){ var f = document.getElementById('sc-flash'); if(f) f.classList.add('go'); try{ sfx('correct'); }catch(e){} }, endAt - 300);
+  T(function(){ var f = document.getElementById('sc-flash'); if(f) f.classList.add('go');
+    try{ if(window.gachaFx){ gachaFx.burst(fxRank); if(tier==='SS'||tier==='SSS') gachaFx.rain(fxRank); fxCv(2000); } }catch(e){}
+    try{ sfx('correct'); }catch(e){} }, endAt - 300);
   T(finish, endAt);
 }
 function srpgScoutResults(got){
@@ -1539,13 +1547,16 @@ function srpgScoutReveal(mon, onDone){
   var art = ((typeof srpgMonArt==='function' && srpgMonArt(mon.art)) || (typeof _monStill==='function' && _monStill(mon.art)) || '👾');
   var el = document.createElement('div'); el.className = 'srpg-scout';
   el.innerHTML = '<div class="srpg-scout-rays"></div>'
-    + '<div class="srpg-scout-art">'+art+'</div>'
+    + '<div class="srpg-scout-art silhou">'+art+'</div>'
+    + (mon.rank?'<div class="srpg-scout-stamp rk-'+mon.rank+'">'+mon.rank+'</div>':'')
     + '<div class="srpg-scout-cap">🎉 なかまが あらわれた！</div>'
     + '<div class="srpg-scout-nm">'+escapeHtml(mon.name)+' <span>'+escapeHtml(mon.rank||'')+'</span></div>'
     + '<div class="srpg-scout-tap">タップして つづける ▶</div>';
   var done = false, fin = function(){ if(done) return; done = true; try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); };
   el.onclick = fin;
   sc.appendChild(el);
+  // 登場ショー：シルエット→0.7秒後に開眼（カラー化＋閃光）→ランクがドンと打刻
+  setTimeout(function(){ try{ var a=el.querySelector('.srpg-scout-art'); if(a) a.classList.remove('silhou'); var st=el.querySelector('.srpg-scout-stamp'); if(st) st.classList.add('go'); sfx('correct'); vibe(20); }catch(e){} }, 700);
   try{ sfx('fanfare'); if(typeof confetti==='function') confetti(); }catch(e){}
   srpgSay('やったね！ '+(mon.name||'なかま')+'が、なかまに なったよ！');
   setTimeout(fin, 2800);

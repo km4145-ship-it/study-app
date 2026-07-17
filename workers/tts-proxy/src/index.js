@@ -67,6 +67,7 @@ function json(request, env, status, body) {
 }
 
 function privateTtsPath(familyCode) { return 'families/' + encodeURIComponent(familyCode) + '/private/tts'; }
+function privateTtsPathAccount(uid) { return 'accounts/' + encodeURIComponent(uid) + '/private/tts'; }
 
 // ---- キー検証：GET /v1/user への問い合わせ結果を isKeyValidFromUserCheck で解釈する
 // （判定ロジック自体は ../lib/tts.js の純粋関数＝ネットワーク無しでテスト済み）。
@@ -92,13 +93,24 @@ async function preflight(request, env) {
   if (!verified.ok) return { error: json(request, env, 401, { ok: false, error: 'auth_required' }) };
   let body;
   try { body = await request.json(); } catch (e) { return { error: json(request, env, 400, { ok: false, error: 'invalid_json' }) }; }
-  const familyCode = body && body.familyCode;
-  if (!isValidFamilyCode(familyCode)) return { error: json(request, env, 400, { ok: false, error: 'invalid_family_code' }) };
-  return { familyCode, body };
+  // スコープを判定：account（推奨・uid本人の accounts/{uid}/private/tts）か family（レガシー）。
+  const provider = (verified.payload && verified.payload.firebase && verified.payload.firebase.sign_in_provider) || '';
+  const scope = (body && body.scope === 'account') ? 'account' : 'family';
+  let ttsPath;
+  if (scope === 'account') {
+    // 匿名では account スコープを使わせない（メール＋パスワードの本人のみ）
+    if (provider === 'anonymous') return { error: json(request, env, 403, { ok: false, error: 'account_required' }) };
+    ttsPath = privateTtsPathAccount(verified.uid);
+  } else {
+    const familyCode = body && body.familyCode;
+    if (!isValidFamilyCode(familyCode)) return { error: json(request, env, 400, { ok: false, error: 'invalid_family_code' }) };
+    ttsPath = privateTtsPath(familyCode);
+  }
+  return { ttsPath, uid: verified.uid, scope, body };
 }
 
-// ---- /setTtsKey：キーを検証してから families/{code}/private/tts に保存 ----
-async function handleSetTtsKey(request, env, familyCode, body) {
+// ---- /setTtsKey：キーを検証してから private/tts（account または family）に保存 ----
+async function handleSetTtsKey(request, env, ttsPath, body) {
   const apiKey = body.apiKey;
   if (!isPlausibleApiKey(apiKey)) return json(request, env, 400, { ok: false, error: 'invalid_key_format' });
   const verified = await verifyElevenLabsKey(apiKey);
@@ -107,14 +119,14 @@ async function handleSetTtsKey(request, env, familyCode, body) {
   }
   const token = await getFirestoreAccessToken(env);
   // 鍵を変えたら日次クォータもリセットする（updateMaskを指定せず全置換）
-  await patchDoc(env.FIREBASE_PROJECT_ID, privateTtsPath(familyCode), { apiKey: apiKey, setAt: new Date().toISOString() }, token);
+  await patchDoc(env.FIREBASE_PROJECT_ID, ttsPath, { apiKey: apiKey, setAt: new Date().toISOString() }, token);
   return json(request, env, 200, { ok: true });
 }
 
 // ---- /verifyTtsKey：保存済みキーの有効性を確認 ----
-async function handleVerifyTtsKey(request, env, familyCode) {
+async function handleVerifyTtsKey(request, env, ttsPath) {
   const token = await getFirestoreAccessToken(env);
-  const doc = await getDoc(env.FIREBASE_PROJECT_ID, privateTtsPath(familyCode), token);
+  const doc = await getDoc(env.FIREBASE_PROJECT_ID, ttsPath, token);
   if (!doc || !doc.apiKey) return json(request, env, 400, { ok: false, error: 'no_key_set' });
   const verified = await verifyElevenLabsKey(doc.apiKey);
   if (verified.ok) return json(request, env, 200, { ok: true });
@@ -124,14 +136,14 @@ async function handleVerifyTtsKey(request, env, familyCode) {
 // ---- /synthesizeSpeech：保存済みキーで音声合成し、音声バイナリをそのまま返す ----
 // 「声が見つからない」エラー時は、クライアントから渡された ownerId でボイスライブラリに
 // 追加してから1回だけ再試行する（index.htmlの既存fetchVoiceBlobの挙動を踏襲）。
-async function handleSynthesizeSpeech(request, env, familyCode, body) {
+async function handleSynthesizeSpeech(request, env, ttsPath, body) {
   const { voiceId, voiceSettings, ownerId } = body;
   if (typeof voiceId !== 'string' || !voiceId) return json(request, env, 400, { ok: false, error: 'voice_id_required' });
   const sanitized = sanitizeText(body.text);
   if (!sanitized.ok) return json(request, env, 400, { ok: false, error: sanitized.reason });
 
   const token = await getFirestoreAccessToken(env);
-  const path = privateTtsPath(familyCode);
+  const path = ttsPath;
   const doc = await getDoc(env.FIREBASE_PROJECT_ID, path, token);
   if (!doc || !doc.apiKey) return json(request, env, 400, { ok: false, error: 'no_key_set' });
   const apiKey = doc.apiKey;
@@ -179,7 +191,7 @@ export default {
     const pre = await preflight(request, env);
     if (pre.error) return pre.error;
     try {
-      return await handler(request, env, pre.familyCode, pre.body);
+      return await handler(request, env, pre.ttsPath, pre.body);
     } catch (e) {
       return json(request, env, 502, { ok: false, error: 'network_error', message: String((e && e.message) || e) });
     }

@@ -3688,10 +3688,14 @@ async function ttsCall(fn, body){
   var user = (typeof firebase!=='undefined' && firebase.auth) ? firebase.auth().currentUser : null;
   if (!user) throw new Error('cloud-not-ready');
   var token = await user.getIdToken();
+  var mode = (window.cloudMode && window.cloudMode()) || 'family';
+  var payload = Object.assign({}, body||{});
+  if(mode==='account'){ payload.scope='account'; }        // accounts/{uid}/private/tts（推奨）
+  else { payload.familyCode=_ttsFamilyCode(); }            // レガシー family/{code}/private/tts
   return fetch(TTS_FUNCTIONS_BASE+'/'+fn, {
     method:'POST',
     headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' },
-    body: JSON.stringify(Object.assign({ familyCode:_ttsFamilyCode() }, body||{}))
+    body: JSON.stringify(payload)
   });
 }
 
@@ -3720,7 +3724,13 @@ async function saveApiKey() {
       showVoiceError(data.message || 'APIキーを確認できませんでした');
     }
   }catch(e){
-    showVoiceError('通信できません（ネット/ブラウザ制限）→内蔵音声', e&&e.message);
+    var _m=(e&&e.message)||'';
+    if(/cloud-not-ready/.test(_m)){
+      var _cm=(window.cloudMode && window.cloudMode())||'local';
+      showVoiceError(_cm==='local' ? 'アカウントにログインすると 高品質音声が使えます（設定→アカウントを作る/ログイン）' : '接続の準備中です。少し待って もう一度おためしください', _m);
+    } else {
+      showVoiceError('通信できません（ネット/ブラウザ制限）→内蔵音声', _m);
+    }
   }
 }
 

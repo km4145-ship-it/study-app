@@ -43,6 +43,16 @@ c.ok('accounts は非匿名のみ許可（sign_in_provider チェック）',
   eff.indexOf("request.auth.token.firebase.sign_in_provider != 'anonymous'") >= 0);
 c.ok('accounts は所有者本人のみ（uid 一致チェック）', eff.indexOf('request.auth.uid == accountId') >= 0);
 
+// 4b) accounts も families 同様、private をクライアントから守る（ElevenLabsキーの保存先）。
+//     無条件キャッチオール match /{document=**} があると private/tts が所有者に読めてしまう。
+//     ※ block() はヘッダ中の {accountId} の波括弧で早期終了するため、末尾までスライスして見る
+//       （accounts は最後のブロックなので、以降は閉じ波括弧のみ＝他の match を巻き込まない）。
+const acctRegion = eff.slice(eff.indexOf('match /accounts/{accountId}'));
+c.ok('accounts ブロックを抽出できる', acctRegion.indexOf('match /accounts/{accountId}') === 0);
+c.ok('accounts 配下にキャッチオール match /{document=**} が無い（private漏洩防止）', acctRegion.indexOf('match /{document=**}') < 0);
+c.ok('accounts 配下に private を対象にする match が無い（＝デフォルト拒否・Worker専用）', acctRegion.indexOf('/private') < 0);
+c.ok('accounts 配下は shared/members/sessions を明示列挙', acctRegion.indexOf('/shared/') >= 0 && acctRegion.indexOf('/members/') >= 0 && acctRegion.indexOf('/sessions/') >= 0);
+
 // 5) rules_version 2（{document=**} 等の再帰ワイルドカードに必須）
 c.ok("rules_version = '2'", rules.indexOf("rules_version = '2'") >= 0);
 

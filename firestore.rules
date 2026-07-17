@@ -50,9 +50,21 @@ service cloud.firestore {
       }
     }
     match /accounts/{accountId} {
+      // 所有者本人（非匿名）のみ。families と同様、許可するサブコレクションだけを明示列挙し、
+      // private/** には一切ルールを書かない＝デフォルト拒否（クライアントは鍵を読めない）。
+      // ElevenLabsキー accounts/{uid}/private/tts は Cloudflare Worker のサービスアカウント
+      // （Firestoreルールを迂回）だけが読み書きする。
       allow read, write: if request.auth != null && request.auth.uid == accountId
                           && request.auth.token.firebase.sign_in_provider != 'anonymous';
-      match /{document=**} {
+      match /shared/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == accountId
+                            && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      }
+      match /members/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == accountId
+                            && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      }
+      match /sessions/{document=**} {
         allow read, write: if request.auth != null && request.auth.uid == accountId
                             && request.auth.token.firebase.sign_in_provider != 'anonymous';
       }

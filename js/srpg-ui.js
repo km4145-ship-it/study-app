@@ -1137,11 +1137,59 @@ function srpgScoutDo(n, useFree){
   srpgScoutCinematic(got, function(){
     if(got.length === 1 && got[0].mon){
       srpgScoutReveal(got[0].mon, function(){ srpgScoutResults(got); });
+    } else if(got.length > 1){
+      srpgScoutSequence(got, function(){ srpgScoutResults(got, true); });   // 1体ずつ順次開封→まとめ
     } else {
       srpgScoutResults(got);
     }
   });
 }
+// ================= 10連の順次開封：低レアはさっと・高レアは足が止まる =================
+function srpgScoutSequence(got, onDone){
+  var ov = document.getElementById('srpg-ask');
+  var fxMode = 'full'; try{ fxMode = _gachaFxMode(); }catch(e){}
+  if(!ov || !got.length || _srpgRM || fxMode === 'off'){ onDone(); return; }
+  var i = 0, timer = null, finished = false;
+  var HIGH = { SS:1, SSS:1, LG:1 }, MID = { A:1, S:1 };
+  function finishAll(){
+    if(finished) return; finished = true;
+    if(timer) clearTimeout(timer);
+    ov.onclick = null;
+    onDone();
+  }
+  function next(){
+    if(finished) return;
+    if(timer){ clearTimeout(timer); timer = null; }
+    if(i >= got.length){ finishAll(); return; }
+    var g = got[i++];
+    if(g.mon && HIGH[g.rank]){
+      // SS以上：フル登場ショー（シルエット→開眼→ランク打刻。タップ/自動で次へ）
+      ov.onclick = null; ov.style.display = 'none';
+      srpgScoutReveal(g.mon, function(){ next(); });
+      return;
+    }
+    show(g, (g.mon && MID[g.rank]) ? 'mid' : 'low', (g.mon && MID[g.rank]) ? 950 : 460);
+  }
+  function show(g, tier, ms){
+    var art = g.mon ? ((typeof srpgMonArt==='function' && srpgMonArt(g.mon.art)) || _monStill(g.mon.art)) : '<span class="sc-seq-em">🍖</span>';
+    ov.innerHTML = '<div class="sc-seq '+tier+'">'
+      + '<div class="sc-seq-count">'+i+' / '+got.length+'</div>'
+      + '<div class="sc-seq-card rk-'+(g.rank||'')+'">'
+      + (g.isNew ? '<span class="srpg-got-new">NEW</span>' : '')
+      + '<div class="sc-seq-art">'+art+'</div>'
+      + '<div class="sc-seq-rk rk-'+(g.rank||'')+'">'+(g.rank||'')+'</div>'
+      + '<div class="sc-seq-nm">'+escapeHtml(g.mon ? g.mon.name : 'なかまがいっぱい → エサ+5')+'</div></div>'
+      + '<div class="sc-seq-skip">タップで つぎへ<button class="sc-seq-all">⏭ ぜんぶとばす</button></div>';
+    ov.style.display = 'flex';
+    ov.onclick = function(){ next(); };
+    var btn = ov.querySelector('.sc-seq-all');
+    if(btn) btn.onclick = function(ev){ try{ ev.stopPropagation(); }catch(e){} finishAll(); };
+    try{ sfx(tier === 'mid' ? 'levelup' : 'click'); if(tier === 'mid') vibe(12); }catch(e){}
+    timer = setTimeout(next, ms);
+  }
+  next();
+}
+
 // ================= 🎖️メダル交換所＆📖なかま図鑑 =================
 function _srpgAllDexArts(){ var base=Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && !/2$/.test(a); }); return base.concat(Object.keys(SRPG_MON_VARIANTS2)); }
 function _srpgMetDex(){
@@ -1305,11 +1353,11 @@ function srpgScoutCinematic(got, onDone){
     try{ sfx('correct'); }catch(e){} }, endAt - 300);
   T(finish, endAt);
 }
-function srpgScoutResults(got){
+function srpgScoutResults(got, revealed){
   var ov = document.getElementById('srpg-ask'); if(!ov) return;
   var best = got.reduce(function(m, g){ return (['F','E','D','C','B','A','S','SS','SSS','LG'].indexOf(g.rank) > ['F','E','D','C','B','A','S','SS','SSS','LG'].indexOf(m)) ? g.rank : m; }, 'F');
-  var HIRANK = { S:1, SS:1, SSS:1 };
-  var many = got.length > 1;
+  var HIRANK = { S:1, SS:1, SSS:1, LG:1 };
+  var many = got.length > 1 && !revealed;   // 順次開封済みは 開いた一覧で
   var cells = got.map(function(g, i){
     if(g.full) return '<div class="srpg-got full"><div class="srpg-got-art">🍖</div><div class="srpg-got-nm">エサ+5</div><small>いっぱい</small></div>';
     var art = (typeof srpgMonArt==='function' && srpgMonArt(g.mon.art)) || _monStill(g.mon.art);

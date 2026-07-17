@@ -2171,6 +2171,23 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .sc-flash.go{ animation:scFlash .5s ease-out forwards; }
   @keyframes scFlash{ 0%{ opacity:0; } 25%{ opacity:1; } 100%{ opacity:0; } }
   .sc-skip{ position:absolute; bottom:26px; left:0; right:0; text-align:center; color:#64748b; font-weight:800; font-size:.78rem; animation:srpgBlink 1.4s ease-in-out infinite; }
+  /* 10連の順次開封 */
+  .sc-seq{ position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(4,8,18,.9); cursor:pointer; z-index:5; }
+  .sc-seq-count{ color:#94a3b8; font-weight:900; margin-bottom:12px; letter-spacing:1px; }
+  .sc-seq-card{ position:relative; width:190px; background:linear-gradient(180deg,#141d33,#1c2942); border:2px solid rgba(148,163,184,.4); border-radius:18px; padding:16px 10px 12px; text-align:center; animation:scSeqIn .28s cubic-bezier(.2,1.4,.4,1); box-shadow:0 14px 40px rgba(0,0,0,.5); }
+  .sc-seq.mid .sc-seq-card{ animation:scSeqMid .5s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes scSeqIn{ from{ transform:scale(.55); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  @keyframes scSeqMid{ 0%{ transform:scale(.4) rotate(-7deg); opacity:0; } 55%{ transform:scale(1.14) rotate(2deg); } 100%{ transform:scale(1) rotate(0); opacity:1; } }
+  .sc-seq-art{ width:116px; height:126px; margin:0 auto; display:flex; align-items:center; justify-content:center; }
+  .sc-seq-art svg, .sc-seq-art canvas, .sc-seq-art .mon-svg{ width:100%; height:100%; }
+  .sc-seq-em{ font-size:64px; }
+  .sc-seq-rk{ font-weight:900; font-size:1.3rem; margin-top:2px; }
+  .sc-seq-nm{ color:#fff; font-weight:800; font-size:.95rem; margin-top:2px; }
+  .sc-seq-card.rk-A{ border-color:#a78bfa; }
+  .sc-seq-card.rk-S{ border-color:#f472b6; box-shadow:0 0 22px rgba(244,114,182,.45), 0 14px 40px rgba(0,0,0,.5); }
+  .sc-seq.mid .sc-seq-card::after{ content:''; position:absolute; inset:-2px; border-radius:18px; box-shadow:0 0 26px currentColor; opacity:.5; pointer-events:none; }
+  .sc-seq-skip{ margin-top:16px; color:#64748b; font-weight:800; font-size:.78rem; }
+  .sc-seq-all{ background:rgba(148,163,184,.16); color:#cbd5e1; border:1px solid rgba(148,163,184,.4); border-radius:999px; padding:4px 12px; font-weight:800; font-family:inherit; cursor:pointer; margin-left:8px; font-size:.74rem; }
   @keyframes scSpin{ to{ transform:translate(-50%,-50%) rotate(360deg); } }
   /* 10連の裏向きカード→順次フリップ */
   .srpg-got.card{ perspective:500px; background:transparent; border:none; padding:0; animation:none; min-height:106px; }

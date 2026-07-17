@@ -30,6 +30,7 @@ const TESTS = [
   ['tests/unit-srpg-mons.js'],
   ['tests/unit-revenge.js'],
   ['tests/unit-audio.js'],
+  ['tests/unit-voice.js'],
   ['tests/unit-furigana.js'],
   ['tests/unit-reading-ja.js'],
   ['tests/unit-scoring.js'],

@@ -3819,8 +3819,11 @@ function ttsAllJaVoices(){ try{ return (window.speechSynthesis.getVoices()||[]).
 // 声の質を点数化：内蔵(local)・高品質(Enhanced/Premium/Neural)・定番(Kyoko/O-ren/Siri/Google)を優先
 function ttsScore(v){ var n=((v.name||'')+' '+(v.voiceURI||'')); var s=0;
   if(v.localService) s+=3;
-  if(/enhanced|premium|neural/i.test(n)) s+=4;
-  if(/kyoko|o-?ren|hattori|siri|google/i.test(n)) s+=3;
+  if(/enhanced|premium|neural|natural/i.test(n)) s+=5;         // 高品質エンジン
+  if(/kyoko|o-?ren|otoya|hattori|siri/i.test(n)) s+=4;         // Apple 高品質日本語
+  if(/nanami|ayumi|haruka|keita|sayaka|ichiro|mayu/i.test(n)) s+=3;  // Microsoft 日本語
+  if(/google.*(日本語|japanese)/i.test(n)) s+=4;               // Chrome/Android の Google 日本語
+  if(/compact|eloquence|espeak|novelty/i.test(n)) s-=4;        // 低品質・ロボット声は下げる
   return s; }
 function ttsRateFactor(){ var v=parseFloat(safeLS.getItem('tts_rate')); return isNaN(v)?1.0:v; }
 function ttsPitchOffset(){ var v=parseFloat(safeLS.getItem('tts_pitch')); return isNaN(v)?0:v; }
@@ -3833,34 +3836,82 @@ function pickJaVoice(prof) {
   if(prof==='kai' && sorted.length>1) return sorted[1];
   return sorted[0];
 }
+// ===== 内蔵音声：キャラごとに聞き分けられる声色（高さ/速さ）=====
+var SPEAK_TUNE = {
+  girl:   { pitch:1.22, rate:1.00 },   // やさしい女の子
+  boy:    { pitch:0.98, rate:1.06 },   // 元気な男の子
+  owl:    { pitch:1.00, rate:0.92 },   // ミミ学園長：落ち着き・ゆっくり
+  shiba:  { pitch:1.10, rate:1.08 },   // 柴犬：元気
+  cat:    { pitch:1.30, rate:1.00 },   // ねこ：高め・かわいい
+  rabbit: { pitch:1.40, rate:1.06 },   // うさぎ：とても高い
+  fox:    { pitch:1.06, rate:0.98 },   // きつね：中庸
+  bear:   { pitch:0.78, rate:0.92 },   // くま：低め・ゆったり
+  tiger:  { pitch:0.72, rate:0.98 },   // 鬼コーチ：低い・力強い
+  panda:  { pitch:1.12, rate:0.98 },   // パンダ：まるい声
+  dolphin:{ pitch:1.36, rate:1.10 },   // イルカ：高く・はやい
+  penguin:{ pitch:1.26, rate:1.02 }    // ペンギン：かわいい
+};
+function speakTune(k){
+  if(SPEAK_TUNE[k]) return SPEAK_TUNE[k];
+  var prof=(CHARS[k]&&CHARS[k].voice)||'hana';
+  return { kai:{pitch:0.72,rate:0.96}, loco:{pitch:1.05,rate:1.06} }[prof] || { pitch:1.15, rate:1.0 };
+}
+function _jaVoicesSorted(){ return ttsAllJaVoices().slice().sort(function(a,b){ return ttsScore(b)-ttsScore(a); }); }
+function _charVoiceIndex(k){ var n=0,s=String(k||''); for(var i=0;i<s.length;i++){ n=(n*31+s.charCodeAt(i))>>>0; } return n; }
+// キャラごとに 内蔵音声を割り振る（上位同点圏の声をキャラで分散＝聞き分けやすく）
+function pickJaVoiceForChar(k){
+  var vs=_jaVoicesSorted(); if(!vs.length) return null;
+  var manual=(safeLS.getItem('tts_voice')||'').trim();
+  if(manual){ var m=vs.find(function(v){return v.voiceURI===manual;})||vs.find(function(v){return v.name===manual;}); if(m) return m; }
+  var topScore=ttsScore(vs[0]);
+  var top=vs.filter(function(v){ return ttsScore(v) >= topScore-2; }); if(!top.length) top=vs;
+  return top[_charVoiceIndex(k)%top.length];
+}
+// 長文を 文の区切りで分割（lookbehind非対応環境でも安全な方法・長い1発話でのiOS/Chrome切れ対策）
+function _ttsChunks(s){
+  s=String(s==null?'':s).trim(); if(!s) return [];
+  var raw=s.replace(/([。．！？!?\n])/g, '$1').split('');
+  var out=[], buf='';
+  for(var i=0;i<raw.length;i++){ var p=raw[i]; if(!p) continue;
+    if((buf+p).length>90 && buf){ out.push(buf); buf=p; } else buf+=p; }
+  if(buf.trim()) out.push(buf);
+  return out.length?out:[s];
+}
 // 発話の世代カウンタ：新しい発話が始まると古い発話は破棄される（重なり防止）
 var speechSeq = 0;
 function speakBuiltin(text, mySeq) {
   return new Promise((resolve) => {
     if (!('speechSynthesis' in window)) { resolve(); return; }
     if (mySeq !== undefined && mySeq !== speechSeq) { resolve(); return; }
+    var chunks = _ttsChunks(forTTS(text));
+    if (!chunks.length) { resolve(); return; }
     try {
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(forTTS(text));
-      u.lang = 'ja-JP';
-      // キャラごとに声色を変える（自然なトーンに調整＋設定の速さ/高さを反映）
-      const _prof = (CHARS[currentChar] && CHARS[currentChar].voice) || 'hana';
-      const v = pickJaVoice(_prof); if (v) u.voice = v;
-      let _bp, _br;
-      if (_prof === 'kai')      { _bp = 0.72; _br = 0.96; }   // 鬼コーチ：低め・落ち着き
-      else if (_prof === 'loco'){ _bp = 1.05; _br = 1.06; }   // 元気キャラ：ややテンポよく
-      else                      { _bp = 1.15; _br = 1.0;  }   // やさしいキャラ：少し高め（前の1.35は甲高すぎた）
-      u.pitch = Math.max(0, Math.min(2, _bp + ttsPitchOffset()));
-      u.rate  = Math.max(0.5, Math.min(1.5, _br * ttsRateFactor()));
-      const ind = document.getElementById('speaking-indicator');
+      // キャラごとの声＋声色（高さ/速さ）＋設定オフセット
+      var k = currentChar, tune = speakTune(k), voice = pickJaVoiceForChar(k);
+      var pitch = Math.max(0, Math.min(2, tune.pitch + ttsPitchOffset()));
+      var rate  = Math.max(0.5, Math.min(1.5, tune.rate * ttsRateFactor()));
+      var ind = document.getElementById('speaking-indicator');
       if (ind) ind.style.display = 'inline';
-      let done = false;
-      const finish = () => { if (done) return; done = true; if (ind && mySeq === speechSeq) ind.style.display='none'; resolve(); };
-      u.onend = finish;
-      u.onerror = finish;
-      window.speechSynthesis.speak(u);
-      // 念のためのタイムアウト（声が長すぎ/詰まり対策）
-      setTimeout(finish, 12000);
+      var i = 0, done = false, keep = null;
+      var finish = function(){ if (done) return; done = true; if (keep) { clearInterval(keep); keep = null; }
+        if (ind && mySeq === speechSeq) ind.style.display = 'none'; resolve(); };
+      // iOS/Chromeの「約15秒で止まる」既知バグ対策：定期的に resume で生かし続ける
+      keep = setInterval(function(){ try{ if (window.speechSynthesis.speaking) window.speechSynthesis.resume(); }catch(e){} }, 6000);
+      var next = function(){
+        if (done) return;
+        if (mySeq !== undefined && mySeq !== speechSeq) { finish(); return; }
+        if (i >= chunks.length) { finish(); return; }
+        var u = new SpeechSynthesisUtterance(chunks[i++]);
+        u.lang = 'ja-JP'; if (voice) u.voice = voice;
+        u.pitch = pitch; u.rate = rate;
+        u.onend = function(){ next(); };
+        u.onerror = function(){ next(); };
+        try { window.speechSynthesis.speak(u); } catch(e) { finish(); }
+      };
+      next();
+      // 全体の安全タイムアウト（長文でも切れない上限）
+      setTimeout(finish, 45000);
     } catch(e) { resolve(); }
   });
 }

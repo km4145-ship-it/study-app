@@ -77,6 +77,8 @@ function aibouPower(a){ var b=AIBOU_RANK_BASE[(a&&a.rank)||'F']||2; return Math.
 function aibouLvMax(a){ return AIBOU_RANK_LVMAX[(a&&a.rank)||'F']||10; }
 // エサを n 個あげる（a を直接更新）。返り値＝上がったレベル数
 function aibouFeed(a, n){
+  // 同期データ破損（文字列/NaN/負数）でも while が暴走しないよう矯正
+  a.lv=Math.max(1, Math.min(999, parseInt(a.lv,10)||1)); a.xp=Math.max(0, parseInt(a.xp,10)||0);
   var max=aibouLvMax(a), ups=0;
   a.xp=(a.xp||0)+(n||1)*8;
   while((a.lv||1)<max && a.xp>=aibouXpNeed(a.lv)){ a.xp-=aibouXpNeed(a.lv); a.lv=(a.lv||1)+1; ups++; }

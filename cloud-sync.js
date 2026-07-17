@@ -202,7 +202,7 @@ window.FIREBASE_CONFIG = {
     return inc;
   }
   // fullKeys: {ローカルのlocalStorageキー: 値} をマージしながら取り込む
-  function applyKeys(map){ var changed=false, dirty={shared:false, members:{}};
+  function applyKeys(map){ try{window._bc&&window._bc('cloud:applyKeys');}catch(_){} var changed=false, dirty={shared:false, members:{}};
     Object.keys(map||{}).forEach(function(k){
       if(!isSyncKey(k)) return;
       var cur=rget(k), nv=mergeKey(k,cur,map[k]);
@@ -635,7 +635,7 @@ window.FIREBASE_CONFIG = {
   // accountモードの起動処理：v1移行・リセット伝播（checkLegacy/listenReset）はfamily専用の
   // 概念なので呼ばない（新規accountにはv1親docが存在しないため）。readOkのみをゲート条件にする
   // （守るべきv1バックアップが無いので、familyモードのreadOk&&_parentReadOkの二重ゲートは不要）。
-  function bootSyncAccount(){
+  function bootSyncAccount(){ try{window._bc&&window._bc('cloud:bootAccount');}catch(_){ }
     setCloudStatus('connecting');
     setTimeout(function(){ if(_cloudStatus==='connecting') setCloudStatus('error','timeout'); }, 15000);
     db = firebase.firestore();
@@ -657,7 +657,7 @@ window.FIREBASE_CONFIG = {
         try{ if(window.muOnCloudUpdate) window.muOnCloudUpdate(); }catch(e){}
       });
   }
-  function bootSync(){ if(mode==='account') bootSyncAccount(); else bootSyncFamily(); }
+  try{window._bc&&window._bc('cloud:bootSync');}catch(_){ } function bootSync(){ if(mode==='account') bootSyncAccount(); else bootSyncFamily(); }
 
   // onAuthStateChangedの1回の発火に対して、その場で取るべき行動を判定する（純粋関数・
   // 副作用無し＝テストしやすいよう分離。_sessionBlockedと同じ方針）。
@@ -682,6 +682,11 @@ window.FIREBASE_CONFIG = {
   }
   function start(){
     var booted=false, authTimeout=null;
+    // ★セーフモード：前回起動がフリーズで終わっていたら、クラウド同期を丸ごとお休みして
+    //   端末内のみで必ず起動する（同期データ起因のフリーズから全端末を救出する非常口）
+    if(typeof window!=='undefined' && window.__SAFE_MODE){
+      booted=true; localOnly=true; setCloudStatus('local'); readyResolve(true); return;
+    }
     var acctActive = rget('mu_account_active')==='1';
     var familySet = !!((rget('mu_family')||'').trim());   // 家族コードを明示設定した人だけレガシーfamily同期
     firebase.auth().onAuthStateChanged(function(user){

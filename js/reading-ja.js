@@ -45,6 +45,7 @@ const UNIT_MAP = [
 ];
 const DIGIT_KAN = ['〇','一','二','三','四','五','六','七','八','九'];
 function intToKan(n) {
+  if (!isFinite(n)) return 'たくさん';   // Infinity/NaNで while が無限化するのを防ぐ
   if (n === 0) return 'ゼロ';
   if (n < 0) return 'マイナス' + intToKan(-n);
   const units4 = ['','万','億','兆'];

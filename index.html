@@ -18,6 +18,13 @@
     }catch(_){}
   }
   window.addEventListener('error', function(ev){ keep(ent(ev.message, ev.filename, ev.lineno)); });
+  // ★フリーズ検知＋セーフモード：前回の起動が「完了フラグを消せずに終わった」＝フリーズ/クラッシュ。
+  //   次の起動はクラウド同期をお休みして必ず立ち上げる（＋直前の処理名 _bc_last を画面で報告）。
+  try{
+    window.__SAFE_MODE = (localStorage.getItem('_boot_pending')==='1');
+    localStorage.setItem('_boot_pending','1');
+    window._bc = function(t){ try{ localStorage.setItem('_bc_last', String(t).slice(0,80)+' @'+new Date().toISOString().slice(11,19)); }catch(_){}}
+  }catch(_){ window.__SAFE_MODE=false; window._bc=function(){}; }
   window.addEventListener('unhandledrejection', function(ev){ var r=ev&&ev.reason; keep(ent('Promise: '+((r&&(r.message||r))||'?'), '', 0)); });
 })();
 </script>
@@ -3038,6 +3045,22 @@ function areaCharOf(key) {
 
 // =================== INIT ===================
 function init() {
+  try{window._bc&&window._bc('init');}catch(_){}
+  try{ setTimeout(function(){ try{ localStorage.removeItem('_boot_pending'); }catch(_){}}, 8000); }catch(_){}
+  if(window.__SAFE_MODE){
+    try{
+      var _last=''; try{ _last=localStorage.getItem('_bc_last')||'(記録なし)'; }catch(_){}
+      var bar=document.createElement('div');
+      bar.setAttribute('style','position:fixed;top:0;left:0;right:0;z-index:2147482100;background:#b45309;color:#fff;padding:10px 12px;font-size:12.5px;line-height:1.5;font-weight:700;');
+      bar.innerHTML='⚠️ 前回、起動中に固まったため <b>セーフモード</b>（クラウド同期おやすみ）で起動しました。<br>直前の処理: <code style="background:rgba(0,0,0,.25);padding:1px 6px;border-radius:6px">'+_last.replace(/[<>&]/g,'')+'</code> ← この文字列を おしえてください ';
+      var xb=document.createElement('button');
+      xb.textContent='とじる';
+      xb.setAttribute('style','margin-left:8px;border:none;border-radius:8px;padding:3px 10px;font-weight:800');
+      xb.onclick=function(){ try{ bar.remove(); }catch(_){ } };
+      bar.appendChild(xb);
+      document.body.appendChild(bar);
+    }catch(_){}
+  }
   applyTheme(); applyFontSize();
   updateScoreBar();
   try{ if(typeof char3dObserve==='function') char3dObserve(); }catch(e){}  // 3Dキャラの自動マウント監視
@@ -3348,6 +3371,7 @@ function muOnSessionTaken(by){
 }
 var _muPicking=false;
 async function muPickUser(id){
+  try{window._bc&&window._bc('pickUser:'+id);}catch(_){}
   if(_muPicking) return; _muPicking=true;
   try{
     // 1) クラウドから最新データを読み込む（どの端末でも続きから）
@@ -3996,6 +4020,7 @@ function playBlob(blob, fallbackText, mySeq) {
 }
 // speakAndWait: ①キャラの声 → ②ダメなら鳴っているハナの声で代用 → ③それでもダメなら内蔵音声
 async function speakAndWait(text) {
+  try{window._bc&&window._bc('speak:'+String(text).slice(0,30));}catch(_){}
   const mySeq = ++speechSeq;                 // 新しい発話世代（前の発話を無効化）
   // 直前の音声を確実に止める（重なり防止）
   try { if (currentAudio) { currentAudio.pause(); currentAudio = null; } } catch(e){}
@@ -4929,7 +4954,7 @@ function hubCard(cls, icon, name, desc, onclick, big, badge){
     '<span class="hub-card-tx"><span class="hub-card-nm">'+name+'</span>'+
     '<span class="hub-card-ds">'+desc+'</span></span></button>';
 }
-function renderGameHub(){
+function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   var host=document.getElementById('game-hub'); if(!host) return;
   var u=(typeof muCurrentUser==='function' && muCurrentUser())||{};
   var name=u.name||'きみ';
@@ -6867,7 +6892,7 @@ function rpgStoryAdvance(){
 }
 
 // ================= タイトル／入口 =================
-function showRpg(){
+function showRpg(){ try{window._bc&&window._bc('showRpg');}catch(_){}
   rpgBattle=null; rpgHideBattle();
   hideMainScreens();
   setActiveTab('adv');
@@ -6905,7 +6930,7 @@ function rpgShowTitle(){
     '<button class="rpg-title-btn" onclick="rpgStartAdventure()">⚔️ 冒険を はじめる</button>'+
     '</div>';
 }
-function rpgStartAdventure(){
+function rpgStartAdventure(){ try{window._bc&&window._bc('startAdventure');}catch(_){}
   try{ unlockSpeech(); sfx('start'); }catch(e){}
   rpgStoryPlay(RPG_STORY.prologue, function(){ rpgMarkSeen('prologue'); rpgRenderContinents(); });
 }

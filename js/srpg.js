@@ -539,7 +539,7 @@ function srpgTowerStage(floor){
   var enemies = _srpgPlaceEnemies(rng, keys, Math.max(1, n), lvl, 1);
   if(boss){
     var bx = 2 + Math.floor(rng()*2);
-    while(enemies.some(function(e){ return e.x===bx && e.y===0; })) bx = (bx+1)%6;
+    var _bg=0; while(enemies.some(function(e){ return e.x===bx && e.y===0; }) && _bg++<8) bx = (bx+1)%6;
     enemies.push({ key:'villain', x:bx, y:0, lvl:Math.min(14, lvl+2) });
   }
   var terr = [];

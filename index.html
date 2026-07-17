@@ -2892,7 +2892,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/audio.js?v=1"></script>
 <script src="js/gacha-fx.js?v=3"></script>
 <script src="js/furigana.js?v=1"></script>
-<script src="js/reading-ja.js?v=2"></script>
+<script src="js/reading-ja.js?v=3"></script>
 <script src="js/content-data.js?v=2"></script>
 <script src="js/scoring.js?v=1"></script>
 <script src="js/ui-data.js?v=1"></script>
@@ -3047,7 +3047,6 @@ function init() {
   renderVoiceSettings();
   try{ if('speechSynthesis' in window){ window.speechSynthesis.onvoiceschanged=function(){ try{ ttsPopulateVoices(); }catch(e){} }; } }catch(e){}
   if (elevenLabsKeySet) {
-    try{ setTimeout(function(){ initKuromoji(); }, 2500); }catch(e){}   // 読み辞書を起動後にプリロード（初回発話から正しい読みに）
     document.getElementById('el-api-key').placeholder = '保存済み';
     document.getElementById('voice-status').textContent = '🔊 音声オン';
     document.getElementById('voice-status').className = 'voice-status voice-on';

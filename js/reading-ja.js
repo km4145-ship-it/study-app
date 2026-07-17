@@ -5,30 +5,16 @@
 // ===== 日本語の読み変換（ElevenLabsの誤読対策） =====
 // kuromoji.js で漢字を正しい読み（発音カナ）に変換してからTTSに渡す
 let kuroTokenizer = null;
-let _kuroLoading = false;
+// 【重要・2026-07-17】kuromoji辞書の自前ロードは禁止。
+// 辞書構築（約17MBの展開）がメインスレッドを数秒〜数十秒ブロックし、失敗すると発話のたびに
+// 再ロード＝アプリ全体が「応答なし」でフリーズする事故が本番で発生した（ログイン後に
+// el_key_set が同期されて読み上げ経路に入った端末すべてが操作不能に）。
+// 旧コメント「kuromojiは一時無効化：確実な読み込みを最優先」はこの事故の教訓だった。
+// → initKuromoji は「ふりがな機能（furigana.js）が既に構築済みの辞書を共用する」だけにする。
+//   （ふりがなONのユーザーは漢字も正しい読みに。OFFなら記号・数字・単位の変換のみ＝軽量で安全）
 function initKuromoji() {
-  if (kuroTokenizer || _kuroLoading) return;
-  // ふりがな機能（furigana.js）が同じ辞書を構築済みなら共用する（二重ロード回避）
-  if (typeof _furiTok !== 'undefined' && _furiTok) { kuroTokenizer = _furiTok; return; }
-  if (typeof kuromoji === 'undefined') {
-    // kuromoji本体を遅延ロード（読み上げを使う人にだけ・初期表示は軽いまま）
-    try {
-      if (typeof document === 'undefined' || document.getElementById('kuromoji-lib')) return;
-      _kuroLoading = true;
-      var sc = document.createElement('script');
-      sc.id = 'kuromoji-lib';
-      sc.src = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js';
-      sc.onload = function(){ _kuroLoading = false; initKuromoji(); };
-      sc.onerror = function(){ _kuroLoading = false; };
-      document.head.appendChild(sc);
-    } catch(e) { _kuroLoading = false; }
-    return;
-  }
-  try {
-    _kuroLoading = true;
-    kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
-      .build((err, tok) => { _kuroLoading = false; if (!err && tok) kuroTokenizer = tok; });
-  } catch(e) { _kuroLoading = false; }
+  if (kuroTokenizer) return;
+  try { if (typeof _furiTok !== 'undefined' && _furiTok) kuroTokenizer = _furiTok; } catch(e) {}
 }
 function hasJapanese(t) { return /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/.test(t); }
 // 固有名詞など、解析器が間違えやすい語の読みを上書き

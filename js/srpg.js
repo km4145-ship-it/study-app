@@ -488,6 +488,38 @@ function srpgScoutTen(rng){
   if(!out.some(function(k){ return HI[k]; })) out[9] = 'A';
   return out;
 }
+// ===== 天井（ピティ）：ハズレ続きの救済＝スカウト30回で SS以上を1体かくてい =====
+var SRPG_SCOUT_PITY_MAX = 30;
+function srpgScoutApplyPity(ranks, pityBefore, pityMax){
+  var HI = { SS:1, SSS:1 };
+  var natural = ranks.some(function(k){ return HI[k]; });
+  var out = ranks.slice(), triggered = false;
+  if(!natural && (pityBefore + ranks.length) >= (pityMax || SRPG_SCOUT_PITY_MAX)){
+    out[out.length - 1] = 'SS'; triggered = true;   // 天井到達→最後の1体をSSへ
+  }
+  var pityAfter = (natural || triggered) ? 0 : (pityBefore + ranks.length);   // SS以上が出たらリセット
+  return { ranks:out, pity:pityAfter, triggered:triggered };
+}
+// ===== 週替わりピックアップ：週キーから決定的に3種えらぶ（家族全端末で同じ） =====
+function srpgScoutPickups(weekKey){
+  var rng = srpgSeedRng('pickup:' + weekKey);
+  var arts = Object.keys(SRPG_MON_SKILL).filter(function(k){ return k !== 'pet' && k !== 'villain'; });
+  var out = [], guard = 0;
+  while(out.length < 3 && guard++ < 60){
+    var a = arts[Math.floor(rng() * arts.length)];
+    if(out.indexOf(a) < 0) out.push(a);
+  }
+  return out;
+}
+// アート抽選（ピックアップは重み2倍）
+function srpgScoutArt(rnd, arts, pickups){
+  if(!arts || !arts.length) return null;
+  var weights = arts.map(function(a){ return (pickups && pickups.indexOf(a) >= 0) ? 2 : 1; });
+  var tot = weights.reduce(function(x, y){ return x + y; }, 0);
+  var r = (rnd === undefined ? 0 : rnd) * tot, acc = 0;
+  for(var i = 0; i < arts.length; i++){ acc += weights[i]; if(r < acc) return arts[i]; }
+  return arts[arts.length - 1];
+}
 
 // ===== クリア星評価（★1=勝利 ★2=全員生存 ★3=規定ラウンド以内） =====
 function srpgStars(won, alliesDowned, rounds, par){
@@ -712,6 +744,7 @@ if(typeof module !== 'undefined' && module.exports){
     SRPG_MON_SKILL: SRPG_MON_SKILL, srpgMonSkill: srpgMonSkill,
     srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
     SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,
+    SRPG_SCOUT_PITY_MAX: SRPG_SCOUT_PITY_MAX, srpgScoutApplyPity: srpgScoutApplyPity, srpgScoutPickups: srpgScoutPickups, srpgScoutArt: srpgScoutArt,
     srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
     SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse
   };

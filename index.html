@@ -2061,6 +2061,25 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-got.rk-SS{ border-color:#fde047; box-shadow:0 0 12px rgba(253,224,71,.45); } .srpg-got.rk-SSS{ border-color:#f87171; box-shadow:0 0 16px rgba(248,113,113,.6); }
   .rk-F,.rk-E{ color:#94a3b8; } .rk-D,.rk-C{ color:#7dd3fc; } .rk-B{ color:#6ee7b7; } .rk-A{ color:#a78bfa; } .rk-S{ color:#f472b6; } .rk-SS{ color:#fde047; } .rk-SSS{ color:#f87171; }
   .srpg-team-scout{ margin-top:8px; background:#3b0764; }
+  /* スカウトの天井・ピックアップ・無料・履歴 */
+  .srpg-shop-pick{ margin:10px 0 4px; text-align:center; }
+  .srpg-shop-pick small{ color:#c4b5fd; font-weight:800; font-size:.7rem; }
+  .srpg-pick-row{ display:flex; justify-content:center; gap:10px; margin-top:5px; }
+  .srpg-pick-face{ position:relative; width:46px; height:46px; background:rgba(167,139,250,.14); border:1px solid rgba(167,139,250,.4); border-radius:12px; padding:2px; }
+  .srpg-pick-face svg, .srpg-pick-face canvas{ width:100%; height:100%; }
+  .srpg-pick-face i{ position:absolute; right:-6px; top:-7px; font-style:normal; font-size:.6rem; font-weight:900; background:#f59e0b; color:#451a03; border-radius:999px; padding:1px 5px; }
+  .srpg-shop-pity{ margin:8px auto 4px; max-width:340px; text-align:center; }
+  .srpg-pity-bar{ height:8px; background:rgba(148,163,184,.2); border-radius:999px; overflow:hidden; margin-bottom:4px; }
+  .srpg-pity-bar i{ display:block; height:100%; background:linear-gradient(90deg,#a78bfa,#fde047); border-radius:999px; }
+  .srpg-shop-pity small{ color:#94a3b8; font-weight:700; font-size:.7rem; }
+  .srpg-shop-pity b{ color:#fde047; }
+  .srpg-shop-free{ background:linear-gradient(135deg,#0e7490,#059669); margin-bottom:10px; animation:srpgRing 1.6s ease-in-out infinite; }
+  .srpg-shop-freedone{ color:#64748b; font-weight:800; font-size:.76rem; margin-bottom:10px; }
+  .srpg-shop-links{ display:flex; justify-content:center; gap:8px; margin-top:2px; }
+  .srpg-log-row{ display:flex; align-items:center; gap:8px; background:rgba(148,163,184,.08); border-radius:9px; padding:4px 8px; margin-bottom:4px; font-size:.8rem; font-weight:700; }
+  .srpg-log-art{ width:30px; height:30px; flex:0 0 auto; }
+  .srpg-log-art svg, .srpg-log-art canvas{ width:100%; height:100%; }
+  .srpg-log-new{ font-style:normal; font-size:.58rem; font-weight:900; background:#f59e0b; color:#451a03; border-radius:999px; padding:1px 5px; margin-left:auto; }
   /* ガチャえらび（2種類のハブ） */
   .gacha-pick-coin{ text-align:center; font-weight:900; color:#fde047; font-size:1.05rem; margin:4px 0 10px; }
   .gacha-pick-card{ display:block; width:100%; text-align:center; border:2px solid rgba(167,139,250,.4); border-radius:18px; padding:18px 14px; margin-bottom:14px; cursor:pointer; font-family:inherit; color:#fff; box-shadow:0 10px 26px rgba(0,0,0,.4); transition:transform .15s var(--spring); }

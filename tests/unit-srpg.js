@@ -615,4 +615,41 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
     S.srpgForecast(uu, tgt2, 'japanese', S.srpgSkill('line')).dmg > S.srpgForecast(u1, tgt2, 'japanese', S.srpgSkill('line')).dmg);
 }
 
+// ================= 第15弾：天井・ピックアップ・重み付きアート抽選 =================
+{
+  // 天井：ハズレ続き→到達で最後の1体がSSに・SS以上が自然に出たらリセット
+  const r1 = S.srpgScoutApplyPity(['F','E','D'], 27, 30);
+  c.eq('天井到達で最後がSSに', r1.ranks[2], 'SS');
+  c.ok('天井発動フラグ', r1.triggered === true);
+  c.eq('発動後はリセット', r1.pity, 0);
+  const r2 = S.srpgScoutApplyPity(['F','E'], 10, 30);
+  c.eq('未到達は昇格なし', r2.ranks.join(','), 'F,E');
+  c.eq('未到達はカウント加算', r2.pity, 12);
+  const r3 = S.srpgScoutApplyPity(['F','SS'], 28, 30);
+  c.ok('自然SSなら昇格せずリセット', r3.triggered === false && r3.pity === 0);
+  const r4 = S.srpgScoutApplyPity(['SSS'], 29, 30);
+  c.ok('自然SSSもリセット', r4.pity === 0 && r4.ranks[0] === 'SSS');
+}
+{
+  // 週替わりピックアップ：決定的・3種・有効アート・villain/pet除外
+  const p1 = S.srpgScoutPickups('2026-w29'), p2 = S.srpgScoutPickups('2026-w29'), p3 = S.srpgScoutPickups('2026-w30');
+  c.eq('同じ週キーで同一', p1.join(','), p2.join(','));
+  c.eq('3種えらぶ', p1.length, 3);
+  c.eq('重複なし', new Set(p1).size, 3);
+  p1.forEach((a) => c.ok('ピックアップは有効アート: '+a, !!S.srpgMonSkill(a) && a!=='villain' && a!=='pet'));
+  const weeks = ['2026-w29','2026-w30','2026-w31','2026-w32'];
+  const sigs = new Set(weeks.map((w) => S.srpgScoutPickups(w).join(',')));
+  c.ok('週が変わると顔ぶれも変わる（4週で2種以上）', sigs.size >= 2);
+}
+{
+  // 重み付きアート抽選：ピックアップは2倍＝決定的rndで検証
+  const arts = ['a','b','c'];   // b がピックアップ→重み [1,2,1] 計4
+  c.eq('rnd=0 は先頭', S.srpgScoutArt(0, arts, ['b']), 'a');
+  c.eq('rnd=0.3 はピックアップ帯', S.srpgScoutArt(0.3, arts, ['b']), 'b');
+  c.eq('rnd=0.6 もピックアップ帯（幅2倍）', S.srpgScoutArt(0.6, arts, ['b']), 'b');
+  c.eq('rnd=0.9 は末尾', S.srpgScoutArt(0.9, arts, ['b']), 'c');
+  c.eq('ピックアップ無しは均等', S.srpgScoutArt(0.5, arts, []), 'b');
+  c.ok('空配列はnull', S.srpgScoutArt(0.5, [], []) === null);
+}
+
 c.done();

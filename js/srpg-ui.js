@@ -1036,25 +1036,49 @@ function _scoutArts(rank){
   if(rank==='SSS') arts.push('villain');
   return arts;
 }
+function _srpgWeekKey(){ var d=new Date(); var onejan=new Date(d.getFullYear(),0,1); var wk=Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7); return d.getFullYear()+'-w'+wk; }
+function srpgScoutFreeReady(){ try{ return safeLS.getItem('srpg_scout_free') !== _srpgToday(); }catch(e){ return false; } }
 function srpgScoutScreen(){
   srpgB = null;
   var coin = 0; try{ coin = rpgCoin(); }catch(e){}
+  var pity = 0; try{ pity = rpgCosState(rpgState()).scoutPity || 0; }catch(e){}
+  var pleft = Math.max(0, SRPG_SCOUT_PITY_MAX - pity);
+  var ppct = Math.min(100, Math.round(pity / SRPG_SCOUT_PITY_MAX * 100));
+  var picks = srpgScoutPickups(_srpgWeekKey());
+  var freeOk = srpgScoutFreeReady();
   document.getElementById('srpg-title').textContent = 'スカウト';
   var faces = ['dragon','slugking','tokiou','villain'].map(function(a){ return '<span class="srpg-sc-mon">'+((typeof srpgMonArt==='function'&&srpgMonArt(a))||_monStill(a))+'</span>'; }).join('');
+  var pickFaces = picks.map(function(a){ return '<span class="srpg-pick-face">'+((typeof srpgMonArt==='function'&&srpgMonArt(a))||_monStill(a))+'<i>×2</i></span>'; }).join('');
   document.getElementById('srpg-body').innerHTML =
     '<div class="srpg-scout-shop">'
     + '<div class="srpg-shop-hero"><div class="srpg-shop-circle"></div><div class="srpg-shop-faces">'+faces+'</div>'
     + '<div class="srpg-shop-t">🔮 なかまスカウト</div>'
     + '<div class="srpg-shop-s">コインで つよい なかまを むかえよう！<br>SSSランクなら 魔王も なかまに…！？</div></div>'
+    + '<div class="srpg-shop-pick"><small>こんしゅうの ピックアップ（出やすさ2倍）</small><div class="srpg-pick-row">'+pickFaces+'</div></div>'
+    + '<div class="srpg-shop-pity"><div class="srpg-pity-bar"><i style="width:'+ppct+'%"></i></div><small>あと <b>'+pleft+'</b>回スカウトで SSランク以上 かくてい！（天井）</small></div>'
     + '<div class="srpg-shop-coin">🪙 <b>'+coin+'</b></div>'
+    + (freeOk ? '<button class="rpg-btn srpg-shop-free" onclick="srpgScoutDo(1,true)">🎀 きょうの むりょうスカウト（1日1回）</button>' : '<div class="srpg-shop-freedone">🎀 きょうの むりょうスカウトは うけとりずみ（また あした！）</div>')
     + '<div class="srpg-shop-btns">'
     + '<button class="rpg-btn" onclick="srpgScoutDo(1)">1回 スカウト<br><small>🪙'+SRPG_SCOUT_COST.one+'</small></button>'
     + '<button class="rpg-btn srpg-shop-ten" onclick="srpgScoutDo(10)">10連 スカウト<br><small>🪙'+SRPG_SCOUT_COST.ten+' ・ Aランク以上 1体かくてい</small></button>'
     + '</div>'
-    + '<button class="srpg-mini2" onclick="srpgScoutOdds()">📋 確率をみる</button>'
+    + '<div class="srpg-shop-links"><button class="srpg-mini2" onclick="srpgScoutOdds()">📋 確率をみる</button>'
+    + '<button class="srpg-mini2" onclick="srpgScoutLog()">📜 これまでの けっか</button></div>'
     + '<button class="srpg-mini" onclick="srpgTeamScreen()">← 編成へもどる</button>'
     + '</div>';
   try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+function srpgScoutLog(){
+  var ov = document.getElementById('srpg-ask'); if(!ov) return;
+  var lg = []; try{ lg = lsGetJSON('scout_log', []) || []; }catch(e){}
+  var rows = lg.slice().reverse().map(function(e){
+    var art = (typeof srpgMonArt==='function' && srpgMonArt(e.art)) || _monStill(e.art);
+    return '<div class="srpg-log-row"><span class="srpg-log-art">'+art+'</span><b class="rk-'+e.rank+'">'+e.rank+'</b><span>'+escapeHtml(e.nm||'')+'</span>'+(e.nw?'<i class="srpg-log-new">NEW</i>':'')+'</div>';
+  }).join('') || '<div class="srpg-odds-note">まだ スカウトしていないよ</div>';
+  ov.innerHTML = '<div class="srpg-ui-card"><div class="srpg-ui-sec">📜 スカウトの きろく（さいきん20回）</div>'+rows
+    + '<button class="rpg-btn ghost srpg-ui-close" onclick="srpgCloseUnitInfo()">とじる</button></div>';
+  ov.style.display = 'flex';
+  try{ _char3dHydrateSafe(ov); }catch(e){}
 }
 function srpgScoutOdds(){
   var ov = document.getElementById('srpg-ask'); if(!ov) return;
@@ -1066,21 +1090,26 @@ function srpgScoutOdds(){
     + '<button class="rpg-btn ghost srpg-ui-close" onclick="srpgCloseUnitInfo()">とじる</button></div>';
   ov.style.display = 'flex';
 }
-function srpgScoutDo(n){
+function srpgScoutDo(n, useFree){
   try{ sfx('click'); }catch(e){}
-  var cost = (n === 10) ? SRPG_SCOUT_COST.ten : SRPG_SCOUT_COST.one;
+  var cost = useFree ? 0 : ((n === 10) ? SRPG_SCOUT_COST.ten : SRPG_SCOUT_COST.one);
   var s, cos;
   try{ s = rpgState(); cos = rpgCosState(s); }catch(e){ return; }
+  if(useFree){ if(!srpgScoutFreeReady()) return; try{ safeLS.setItem('srpg_scout_free', _srpgToday()); }catch(e){} }
   if((cos.coin||0) < cost){ try{ sfx('wrong'); showToast('🪙','コインが たりないよ','バトルの しょうりや デイリーで ためよう'); }catch(e){} return; }
   cos.coin -= cost;
   var ai = rpgAibouState(s);
   var ranks = (n === 10) ? srpgScoutTen(Math.random) : [srpgScoutRank(Math.random())];
+  // 天井：ハズレ続きでも SRPG_SCOUT_PITY_MAX 回で SS以上を保証（SS以上が出たらリセット）
+  var pityRes = srpgScoutApplyPity(ranks, cos.scoutPity || 0, SRPG_SCOUT_PITY_MAX);
+  ranks = pityRes.ranks; cos.scoutPity = pityRes.pity;
+  var picks = srpgScoutPickups(_srpgWeekKey());
   var got = [];
   ranks.forEach(function(rank){
     var full = Object.keys(ai.roster).length >= AIBOU_ROSTER_MAX;
     if(full){ ai.food = (ai.food||0) + 5; got.push({ rank:rank, full:true }); return; }
     var arts = _scoutArts(rank);
-    var art = arts[Math.floor(Math.random()*arts.length)];
+    var art = srpgScoutArt(Math.random(), arts, picks);   // ピックアップは出やすさ2倍
     var sp = aibouRollSpecies(art, rank==='SSS' ? 'boss' : 'zako', undefined, false);
     var id = 'm' + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36);
     var name = (SRPG_ENEMY_TEMPLATES[art] && SRPG_ENEMY_TEMPLATES[art].name) || (AIBOU_SPECIES[sp] && AIBOU_SPECIES[sp].name) || 'なかま';
@@ -1090,6 +1119,13 @@ function srpgScoutDo(n){
     got.push({ rank:rank, mon:mon, isNew:isNew });
   });
   rpgSave(s);
+  try{
+    var lg = lsGetJSON('scout_log', []) || [];
+    got.forEach(function(g){ if(g.mon) lg.push({ t:Date.now(), art:g.mon.art, rank:g.rank, nm:g.mon.name, nw:g.isNew?1:0 }); });
+    while(lg.length > 20) lg.shift();
+    lsSetJSON('scout_log', lg);
+  }catch(e){}
+  if(pityRes.triggered){ try{ showToast('🎯','天井とうたつ！','SSランク以上を おむかえ！（ここまでの がんばりの ごほうび）'); }catch(e){} }
   try{ updateResBar(); }catch(e){}
   srpgScoutCinematic(got, function(){
     if(got.length === 1 && got[0].mon){

@@ -210,6 +210,7 @@ function srpgMoveTiles(unit, grid, units){
     for(var i=0;i<DIRS.length;i++){
       var nx = cur.x + DIRS[i][0], ny = cur.y + DIRS[i][1], k = nx + ',' + ny;
       if(nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      if(grid.blocked && grid.blocked[k]) continue;   // 障害物マス（岩・水）は通れない
       if(seen[k] !== undefined) continue;
       if(cur.d + 1 > (unit.mov || 0)) continue;
       var blocked = occ[k] && !(nx === unit.x && ny === unit.y);   // 他ユニットが居るマスは通れない
@@ -385,14 +386,41 @@ function srpgEnemyAction(enemy, grid, units){
   return { moveTo:plan.moveTo, kind:plan.targetId ? 'attack' : 'none', targetId:plan.targetId };
 }
 
-// ===== 配置フェーズ：味方を置ける自陣ゾーン（下部エリア。敵の初期位置は除く） =====
+// ===== 配置フェーズ：味方を置ける自陣ゾーン（下部エリア。敵の初期位置・障害物は除く） =====
 function srpgDeployZone(stage){
   if(stage.deployZone) return stage.deployZone.slice();
   var g = stage.grid, occ = {};
   (stage.enemies || []).forEach(function(e){ occ[e.x + ',' + e.y] = 1; });
+  (stage.blocks || []).forEach(function(b){ occ[b.x + ',' + b.y] = 1; });
   var z = [];
   for(var y = Math.max(0, g.h - 3); y < g.h; y++) for(var x = 0; x < g.w; x++){ if(!occ[x + ',' + y]) z.push({ x:x, y:y }); }
   return z;
+}
+
+// ===== 障害物（岩🗻・水🌊）：通れないマス＝位置取りの戦略が深くなる =====
+function srpgGridWithBlocks(stage){
+  var g = { w: stage.grid.w, h: stage.grid.h, blocked: {} };
+  (stage.blocks || []).forEach(function(b){ g.blocked[b.x + ',' + b.y] = b.kind || 'rock'; });
+  return g;
+}
+var SRPG_BLOCK_META = { rock:{ em:'🗻', name:'いわ' }, water:{ em:'🌊', name:'みず' } };
+
+// ===== ダメージ予測（攻撃前に「よそう」を見せる＝弱点えらびの学びが深まる） =====
+function srpgForecast(attacker, target, subjectKey, skill){
+  var kind = srpgResistKind(subjectKey, target);
+  if(kind === 'null') return { kind:kind, dmg:0 };
+  var power = skill ? (skill.power || 100) : 100;
+  var dmg = srpgDamage(attacker, target, power, kind === 'drain' ? 1 : srpgResistMult(kind), false);
+  return { kind:kind, dmg:dmg };   // drainのdmgは「敵が回復する量」
+}
+
+// ===== クリア星評価（★1=勝利 ★2=全員生存 ★3=規定ラウンド以内） =====
+function srpgStars(won, alliesDowned, rounds, par){
+  if(!won) return 0;
+  var s = 1;
+  if((alliesDowned || 0) === 0) s++;
+  if((rounds || 99) <= (par || 6)) s++;
+  return s;
 }
 
 // ===== ユニット生成 =====
@@ -467,7 +495,8 @@ var SRPG_STAGES = {
   q_japanese: { id:'q_japanese', name:'ことばの大陸：ことだまの森', grid:{ w:6, h:7 }, continent:'japanese', type:'quest', boss:'トレント',
     story:['ことばの大陸の 森が しずかに ざわめく。','ことだまを のっとった 大樹が ゆくてを ふさぐ。','ミケ先生「森の 回復マスを うまく つかって！」'],
     allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:3,y:5}],
-    terrain:[{x:2,y:4,kind:'heal'},{x:3,y:4,kind:'heal'},{x:1,y:2,kind:'poison'}],
+    terrain:[{x:2,y:4,kind:'heal'},{x:3,y:4,kind:'heal'},{x:1,y:3,kind:'poison'}],
+    blocks:[{x:0,y:3,kind:'rock'},{x:5,y:3,kind:'rock'}],
     enemies:[{key:'ghost',x:1,y:2,lvl:4},{key:'bat',x:4,y:2,lvl:4},{key:'trent',x:3,y:1,lvl:6}] },
   q_english: { id:'q_english', name:'アルファベット大陸：かぜの谷', grid:{ w:6, h:7 }, continent:'english', type:'quest', boss:'ボルトドレイク',
     story:['かぜの谷に 雷鳴が とどろく。','空を かける 竜が いなずまを あやつる！','ラビィ先生「すばやさが カギ。順番を よく見て！」'],
@@ -483,11 +512,13 @@ var SRPG_STAGES = {
     story:['れきしの大陸の 古城に 亡霊が よみがえる。','時を こえた 軍勢が 立ちはだかる。','クマ先生「陣形を 大事に、一体ずつ たおそう！」'],
     allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
     terrain:[{x:2,y:4,kind:'heal'},{x:4,y:3,kind:'fire'}],
+    blocks:[{x:2,y:2,kind:'rock'},{x:3,y:3,kind:'rock'}],
     enemies:[{key:'wolf',x:1,y:2,lvl:6},{key:'ghost',x:4,y:2,lvl:6},{key:'goblin',x:2,y:1,lvl:5},{key:'dragon',x:3,y:1,lvl:8}] },
   q_maou: { id:'q_maou', name:'魔王城：さいごの決戦', grid:{ w:6, h:7 }, continent:'math', type:'quest', boss:'魔王シグマ',
     story:['5つの クリスタルが かがやきを とりもどした。','魔王シグマが さいごの 力で たちはだかる！','「いくぞ！ みんなの 力を あわせて！」'],
     allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
     terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:3,y:2,kind:'poison'}],
+    blocks:[{x:0,y:4,kind:'water'},{x:5,y:4,kind:'water'}],
     enemies:[{key:'voltdrake',x:1,y:2,lvl:8},{key:'dragon',x:4,y:2,lvl:8},{key:'villain',x:3,y:0,lvl:10}] }
 };
 function srpgStage(id){ return SRPG_STAGES[id] || SRPG_STAGES.arena1; }
@@ -525,8 +556,12 @@ function srpgDailyStage(dateKey){
     if(used[tx+','+ty]) continue; used[tx+','+ty] = 1;
     terr.push({ x:tx, y:ty, kind:tks[Math.floor(rng()*tks.length)] });
   }
+  var blocks = [];
+  var bn = Math.floor(rng()*3);   // 0〜2個の岩
+  for(var bi=0;bi<bn;bi++){ var bx2=Math.floor(rng()*6), by2=3+Math.floor(rng()*2);
+    if(used[bx2+','+by2]) continue; used[bx2+','+by2]=1; blocks.push({x:bx2,y:by2,kind:(rng()<0.5?'rock':'water')}); }
   return { id:'daily', name:'きょうの ちょうせん', grid:{w:6,h:7}, continent:cont, type:'daily',
-    allySlots:SRPG_STD_SLOTS.slice(), terrain:terr, enemies:enemies };
+    allySlots:SRPG_STD_SLOTS.slice(), terrain:terr, blocks:blocks, enemies:enemies };
 }
 // ちょうせんの塔：階が上がるほど強く・多く。5階ごとにボス階（魔王）
 function srpgTowerStage(floor){
@@ -545,8 +580,10 @@ function srpgTowerStage(floor){
   var terr = [];
   if(floor >= 3){ terr.push({ x:Math.floor(rng()*6), y:3 + Math.floor(rng()*2), kind:(floor%2 ? 'fire' : 'poison') }); }
   if(floor >= 5){ terr.push({ x:Math.floor(rng()*6), y:5, kind:'heal' }); }
+  var blocks = [];
+  if(floor >= 4){ var _tb=Math.floor(rng()*6); blocks.push({x:_tb,y:4,kind:(floor%2?'rock':'water')}); }
   return { id:'tower', name:'ちょうせんの塔 ' + floor + '階', grid:{w:6,h:7}, continent:'math', type:'tower', floor:floor,
-    boss:(boss ? '魔王シグマ' : null), allySlots:SRPG_STD_SLOTS.slice(), terrain:terr, enemies:enemies };
+    boss:(boss ? '魔王シグマ' : null), allySlots:SRPG_STD_SLOTS.slice(), terrain:terr, blocks:blocks, enemies:enemies };
 }
 
 // 味方スペック配列＋ステージから、配置済みの戦闘ユニット一覧を組み立てる（純粋）。
@@ -595,6 +632,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgMakeUnit: srpgMakeUnit, srpgEnemyTemplate: srpgEnemyTemplate, srpgStage: srpgStage,
     srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits,
     srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage,
-    SRPG_MON_SKILL: SRPG_MON_SKILL, srpgMonSkill: srpgMonSkill
+    SRPG_MON_SKILL: SRPG_MON_SKILL, srpgMonSkill: srpgMonSkill,
+    srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars
   };
 }

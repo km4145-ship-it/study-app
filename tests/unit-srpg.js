@@ -473,4 +473,59 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.ok('固有とくぎが先頭に入る', u.skills[0] === 'kamikizu' && u.skills.length === 2);
 }
 
+// ================= 第10弾：障害物・ダメージ予測・星評価 =================
+{
+  // 障害物：BFSで通れない・配置ゾーンから除外・グリッド生成
+  const st = { grid:{ w:6, h:7 }, blocks:[{ x:2, y:5, kind:'rock' }, { x:3, y:5, kind:'water' }], enemies:[{ key:'slime', x:2, y:1, lvl:1 }] };
+  const g = S.srpgGridWithBlocks(st);
+  c.eq('障害物がグリッドに載る', g.blocked['2,5'], 'rock');
+  const u = S.srpgMakeUnit({ id:'a', side:'ally', name:'a', art:'slime', role:'attacker', rankBase:8, lvl:3, x:2, y:6 });
+  const tiles = S.srpgMoveTiles(u, g, [u]);
+  c.ok('障害物マスへは移動できない', !tiles.some((t) => (t.x===2&&t.y===5) || (t.x===3&&t.y===5)));
+  c.ok('障害物の先へは回り込みで到達（完全遮断ではない）', tiles.length > 0);
+  const zone = S.srpgDeployZone(st);
+  c.ok('配置ゾーンから障害物を除外', !zone.some((z) => (z.x===2&&z.y===5) || (z.x===3&&z.y===5)));
+  // 全ステージの障害物が 盤内・敵/味方枠と非重複
+  Object.keys(S.SRPG_STAGES).forEach((id) => {
+    const s2 = S.SRPG_STAGES[id];
+    (s2.blocks || []).forEach((b) => {
+      c.ok(id+' 障害物が盤内', b.x>=0 && b.x<s2.grid.w && b.y>=0 && b.y<s2.grid.h);
+      c.ok(id+' 障害物が敵と非重複', !s2.enemies.some((e) => e.x===b.x && e.y===b.y));
+      c.ok(id+' 障害物が味方枠と非重複', !s2.allySlots.some((a) => a.x===b.x && a.y===b.y));
+      c.ok(id+' 障害物の種別が有効', !!S.SRPG_BLOCK_META[b.kind||'rock']);
+    });
+  });
+  // デイリー/塔の障害物も盤内＆敵と非重複（決定的サンプル）
+  ['2026-7-17','2026-7-20','2026-7-25'].forEach((d) => {
+    const ds = S.srpgDailyStage(d);
+    (ds.blocks||[]).forEach((b) => c.ok('daily '+d+' 障害物OK', b.x>=0&&b.x<6&&b.y>=3&&b.y<5 && !ds.enemies.some((e)=>e.x===b.x&&e.y===b.y)));
+  });
+  for(let fl=4; fl<=8; fl++){
+    const ts = S.srpgTowerStage(fl);
+    (ts.blocks||[]).forEach((b) => c.ok('tower'+fl+' 障害物OK', b.x>=0&&b.x<6&&b.y===4));
+  }
+}
+{
+  // ダメージ予測：弱点＞等倍＞半減・無効は0・吸収は回復量
+  const atk = S.srpgMakeUnit({ id:'x', side:'ally', name:'x', art:'slime', role:'attacker', rankBase:8, lvl:5 });
+  const tgt = S.srpgMakeUnit({ id:'y', side:'enemy', name:'y', art:'villain', role:'tank', rankBase:16, lvl:8,
+    resists:{ math:'weak', japanese:'half', social:'null', english:'drain' } });
+  const fw = S.srpgForecast(atk, tgt, 'math', null), fn2 = S.srpgForecast(atk, tgt, 'science', null);
+  const fh = S.srpgForecast(atk, tgt, 'japanese', null), f0 = S.srpgForecast(atk, tgt, 'social', null), fd = S.srpgForecast(atk, tgt, 'english', null);
+  c.ok('予測: 弱点＞等倍＞半減', fw.dmg > fn2.dmg && fn2.dmg > fh.dmg);
+  c.eq('予測: 無効は0', f0.dmg, 0);
+  c.ok('予測: 吸収は正の回復量', fd.kind==='drain' && fd.dmg > 0);
+  // とくぎの威力も反映
+  const fs2 = S.srpgForecast(atk, tgt, 'math', S.srpgSkill('line'));
+  c.ok('予測: とくぎ(威力130)は通常より大きい', fs2.dmg > fw.dmg);
+}
+{
+  // 星評価
+  c.eq('負けは0', S.srpgStars(false, 0, 1, 6), 0);
+  c.eq('勝利のみ=★1', S.srpgStars(true, 2, 9, 6), 1);
+  c.eq('全員生存=★2', S.srpgStars(true, 0, 9, 6), 2);
+  c.eq('全員生存＋規定内=★3', S.srpgStars(true, 0, 5, 6), 3);
+  c.eq('倒れたが速い=★2', S.srpgStars(true, 1, 4, 6), 2);
+}
+
 c.done();

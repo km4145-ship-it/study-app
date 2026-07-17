@@ -2003,6 +2003,38 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-vic-mem svg, .srpg-vic-mem canvas, .srpg-vic-mem .mon-svg{ width:100%; height:100%; }
   @keyframes srpgVicJump{ 0%,100%{ transform:translateY(0); } 40%{ transform:translateY(-11px); } }
   @media (prefers-reduced-motion: reduce){ .srpg-vic-mem, .srpg-scout-rays{ animation:none; } }
+  /* ===== 第10弾：障害物・詳細パネル・ダメージ予測・ラウンド・星評価 ===== */
+  .srpg-tile.blocked{ background:rgba(15,23,42,.55); box-shadow:inset 0 0 0 1px rgba(71,85,105,.6), 0 5px 0 rgba(0,0,0,.35); cursor:default; }
+  .srpg-block{ position:absolute; left:50%; top:46%; transform:translate(-50%,-50%) rotateX(-52deg); font-size:26px; filter:drop-shadow(0 4px 3px rgba(0,0,0,.5)); pointer-events:none; }
+  .srpg-fc{ display:block; font-size:.66rem; color:#a5b4fc; font-weight:800; margin-top:2px; }
+  .srpg-fc.bad{ color:#fca5a5; }
+  .srpg-round{ background:#fbbf24; color:#451a03; font-weight:900; font-size:.72rem; padding:2px 9px; border-radius:999px; margin-right:5px; }
+  .srpg-result-stars{ font-size:1.9rem; letter-spacing:4px; margin:2px 0; }
+  .srpg-result-stars span{ color:#334155; } .srpg-result-stars span.on{ color:#fde047; text-shadow:0 0 12px rgba(253,224,71,.6); }
+  .srpg-result-starhint{ font-size:.72rem; color:#94a3b8; font-weight:700; margin-bottom:6px; }
+  .srpg-sc-stars{ font-size:.8rem; color:#fde047; letter-spacing:1px; }
+  /* ユニット詳細パネル */
+  .srpg-ui-card{ width:100%; max-width:420px; max-height:86vh; overflow-y:auto; background:linear-gradient(180deg,#0f1a2e,#16233d); border:2px solid rgba(148,163,184,.45); border-radius:18px; padding:16px; box-shadow:0 20px 50px rgba(0,0,0,.6); }
+  .srpg-ui-head{ display:flex; gap:12px; align-items:center; }
+  .srpg-ui-art{ width:84px; height:92px; flex:0 0 auto; background:rgba(255,255,255,.06); border-radius:14px; padding:4px; }
+  .srpg-ui-art svg, .srpg-ui-art canvas, .srpg-ui-art .mon-svg{ width:100%; height:100%; }
+  .srpg-ui-nm{ font-weight:900; font-size:1.15rem; }
+  .srpg-ui-role{ color:#a9b6d6; font-weight:800; font-size:.8rem; margin-top:2px; }
+  .srpg-ui-hp{ color:#6ee7b7; font-weight:800; font-size:.82rem; margin-top:2px; }
+  .srpg-ui-stats{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:12px 0 4px; }
+  .srpg-ui-stat{ background:rgba(148,163,184,.12); border-radius:10px; padding:6px 4px; text-align:center; }
+  .srpg-ui-stat small{ display:block; font-size:.6rem; color:#94a3b8; font-weight:800; }
+  .srpg-ui-stat b{ font-size:.95rem; } .srpg-ui-stat i{ font-style:normal; font-size:.7rem; }
+  .srpg-ui-stat i.up{ color:#fde047; } .srpg-ui-stat i.dn{ color:#93c5fd; }
+  .srpg-ui-sec{ font-weight:900; font-size:.8rem; color:#e0e7ff; margin:12px 0 6px; }
+  .srpg-ui-resists{ display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .srpg-ui-res{ background:rgba(148,163,184,.1); border-radius:9px; padding:6px 8px; font-size:.76rem; font-weight:800; display:flex; gap:6px; align-items:center; }
+  .srpg-ui-res.weak{ color:#fde047; background:rgba(253,224,71,.12); }
+  .srpg-ui-res.half{ color:#93c5fd; } .srpg-ui-res.null{ color:#94a3b8; } .srpg-ui-res.drain{ color:#f9a8d4; background:rgba(244,114,182,.12); }
+  .srpg-ui-skill{ background:rgba(148,163,184,.1); border-radius:10px; padding:8px 10px; margin-bottom:6px; font-size:.8rem; }
+  .srpg-ui-skill b{ color:#e9d5ff; } .srpg-ui-skill small{ color:#94a3b8; margin-left:4px; }
+  .srpg-ui-skill span{ color:#cbd5e1; }
+  .srpg-ui-close{ width:100%; margin-top:10px; }
   /* ストーリー導入カード */
   .srpg-story-card{ width:100%; max-width:440px; background:linear-gradient(180deg,#0f1a2e,#1a1035); border:2px solid rgba(167,139,250,.5); border-radius:18px; padding:24px 20px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.6); cursor:pointer; animation:srpgStoryIn .3s var(--spring); }
   @keyframes srpgStoryIn{ from{ opacity:0; transform:scale(.9);} to{ opacity:1; transform:scale(1);} }

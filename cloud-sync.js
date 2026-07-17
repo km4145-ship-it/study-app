@@ -110,7 +110,7 @@ window.FIREBASE_CONFIG = {
   function mergeAibou(x,y){
     if(!x && !y) return undefined;
     x=x||{}; y=y||{};
-    var RANKS=['F','E','D','C','B','A','S','SS','SSS'];
+    var RANKS=['F','E','D','C','B','A','S','SS','SSS','LG'];
     function rankHi(a,b){ return (RANKS.indexOf(a)>=RANKS.indexOf(b))? a : b; }
     var gone={}; [x.gone,y.gone].forEach(function(g){ if(g&&typeof g==='object'){ Object.keys(g).forEach(function(k){ if(g[k]) gone[k]=1; }); } });
     var roster={}, rx=x.roster||{}, ry=y.roster||{}, id;

@@ -532,12 +532,13 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
 {
   const sum = S.SRPG_SCOUT_RATES.reduce((a, r) => a + r[1], 0);
   c.eq('スカウト確率の合計は100%', sum, 100);
-  const RANKS = ['F','E','D','C','B','A','S','SS','SSS'];
+  const RANKS = ['F','E','D','C','B','A','S','SS','SSS','LG'];
   c.ok('レート表のランクはすべて有効', S.SRPG_SCOUT_RATES.every((r) => RANKS.indexOf(r[0]) >= 0));
-  // 境界値：0→最初(SSS)・0.999→最後(F)・累積の切れ目
-  c.eq('rnd=0 は最高ランク', S.srpgScoutRank(0), 'SSS');
+  // 境界値：0→最初(LG=伝説)・0.999→最後(F)・累積の切れ目
+  c.eq('rnd=0 は最高ランク(LG)', S.srpgScoutRank(0), 'LG');
   c.eq('rnd=0.999 は最低ランク', S.srpgScoutRank(0.999), 'F');
   c.ok('全乱数で有効ランクのみ', [...Array(101)].every((_, i) => RANKS.indexOf(S.srpgScoutRank(i / 101)) >= 0));
+  c.eq('LGレートは0.5%', S.SRPG_SCOUT_RATES[0].join(','), 'LG,0.5');
   // 10連保証：低ランクしか出ない乱数列でも A以上が1体入る
   const lowRng = () => 0.99;   // 常にF
   const ten = S.srpgScoutTen(lowRng);
@@ -659,8 +660,12 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   const p = S.srpgDexProgress({ wolf:1, slime:1, ghost:0 }, 22);
   c.eq('図鑑進捗：met数', p.count, 2);
   c.eq('図鑑進捗：%', p.pct, Math.round(2/22*100));
-  c.ok('節目報酬は3段階・needが昇順', S.SRPG_DEX_REWARDS.length === 3 && S.SRPG_DEX_REWARDS[0].need < S.SRPG_DEX_REWARDS[2].need);
-  c.ok('最終節目は全22種', S.SRPG_DEX_REWARDS[2].need === 22);
+  c.ok('節目報酬は4段階・needが昇順', S.SRPG_DEX_REWARDS.length === 4 && S.SRPG_DEX_REWARDS[0].need < S.SRPG_DEX_REWARDS[3].need);
+  c.ok('最終節目は全121種（基本21＋変種100）', S.SRPG_DEX_REWARDS[3].need === 121);
+  // LG：天井・自動編成・とくぎ継承
+  c.ok('LGでも天井リセット', S.srpgScoutApplyPity(['LG'], 29, 30).pity === 0);
+  const lgPick = S.srpgAutoPick([{id:'x',rank:'LG',lv:1,sp:'beast'},{id:'y',rank:'SSS',lv:99,sp:'beast'}], 1);
+  c.eq('おまかせはLGを最強と判断', lgPick[0], 'x');
 }
 
 c.done();

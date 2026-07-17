@@ -276,10 +276,35 @@ var SRPG_MON_ART = {
 // 亜種（色ちがい）：ベースの絵に hue-rotate をかける（RPG_VARIANTS と同じ角度体系）
 var SRPG_MON_VARIANT = { slime2:140, goblin2:150, bat2:170, wolf2:120, ghost2:100, dragon2:180, trent2:130, voltdrake2:90, flaskun2:200, haniwa2:60 };
 
+// ===== 属性バリアント（20種×5属性=100体・名前も見た目もプロシージャル生成のオリジナル） =====
+var SRPG_MON_BASE_NAMES={slime:'スライム',goblin:'ゴブリン',bat:'いっかくばち',wolf:'ウルフ',ghost:'ゴースト',trent:'トレント',slugking:'スラグキング',dragon:'ドラゴン',inkblob:'インクブロブ',fudebird:'フデバード',kanjioni:'カンジオニ',abcube:'ABキューブ',qbird:'クエスバード',grammaro:'グラマロ',flaskun:'フラスクン',microbe:'マイクローブ',voltdrake:'ボルトドレイク',mapmoth:'マップモス',haniwa:'ハニワン',tokiou:'トキオウ',villain:'魔王シグマ'};
+var SRPG_ELEM_VARIANTS={fire:{p:'ほのお',hue:-45,sat:1.35,badge:'🔥'},ice:{p:'こおり',hue:165,sat:1.1,badge:'❄️'},thunder:{p:'かみなり',hue:12,sat:1.6,badge:'⚡'},dark:{p:'やみ',hue:255,sat:.8,badge:'🌑'},holy:{p:'ひかり',hue:60,sat:1.3,badge:'✨'}};
+var SRPG_MON_VARIANTS2={};
+(function(){
+  Object.keys(SRPG_MON_BASE_NAMES).forEach(function(b){
+    if(b==='villain') return;   // 魔王は唯一無二
+    Object.keys(SRPG_ELEM_VARIANTS).forEach(function(e){
+      SRPG_MON_VARIANTS2[b+'_'+e]={ base:b, elem:e, name:SRPG_ELEM_VARIANTS[e].p+SRPG_MON_BASE_NAMES[b] };
+    });
+  });
+})();
+// 種名の解決（基本種・変種・亜種すべて）
+function srpgMonName(art){
+  if(SRPG_MON_BASE_NAMES[art]) return SRPG_MON_BASE_NAMES[art];
+  var v=SRPG_MON_VARIANTS2[art]; if(v) return v.name;
+  var m=/^(.*)2$/.exec(art); if(m&&SRPG_MON_BASE_NAMES[m[1]]) return SRPG_MON_BASE_NAMES[m[1]]+'（亜種）';
+  return 'なかま';
+}
+
 // アートキー→オリジナルSVG（無ければ null＝呼び出し側が従来アートへフォールバック）
 function srpgMonArt(art){
   if(!art) return null;
   if(SRPG_MON_ART[art]) return SRPG_MON_ART[art];
+  var v2=SRPG_MON_VARIANTS2[art];
+  if(v2 && SRPG_MON_ART[v2.base]){
+    var ev=SRPG_ELEM_VARIANTS[v2.elem];
+    return '<span class="srpg-evwrap"><span class="srpg-hue" style="filter:hue-rotate('+ev.hue+'deg) saturate('+ev.sat+')">'+SRPG_MON_ART[v2.base]+'</span><i class="srpg-ev-badge">'+ev.badge+'</i></span>';
+  }
   var m = /^(.*)2$/.exec(art);
   if(m && SRPG_MON_ART[m[1]] && SRPG_MON_VARIANT[art] != null){
     return '<span class="srpg-hue" style="filter:hue-rotate('+SRPG_MON_VARIANT[art]+'deg)">' + SRPG_MON_ART[m[1]] + '</span>';
@@ -288,5 +313,5 @@ function srpgMonArt(art){
 }
 
 if(typeof module !== 'undefined' && module.exports){
-  module.exports = { SRPG_MON_ART: SRPG_MON_ART, SRPG_MON_VARIANT: SRPG_MON_VARIANT, srpgMonArt: srpgMonArt };
+  module.exports = { SRPG_MON_ART: SRPG_MON_ART, SRPG_MON_VARIANT: SRPG_MON_VARIANT, srpgMonArt: srpgMonArt, SRPG_MON_VARIANTS2: SRPG_MON_VARIANTS2, SRPG_ELEM_VARIANTS: SRPG_ELEM_VARIANTS, SRPG_MON_BASE_NAMES: SRPG_MON_BASE_NAMES, srpgMonName: srpgMonName };
 }

@@ -63,4 +63,15 @@ const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は srpg-mons.js を srpg-ui.js の前で読む',
   html.indexOf('js/srpg-mons.js') >= 0 && html.indexOf('js/srpg-mons.js') < html.indexOf('js/srpg-ui.js'));
 
+// ===== 属性変種100体（20種×5属性・プロシージャル生成のオリジナル） =====
+c.eq('変種はちょうど100体', Object.keys(M.SRPG_MON_VARIANTS2).length, 100);
+c.eq('属性は5系統', Object.keys(M.SRPG_ELEM_VARIANTS).length, 5);
+Object.keys(M.SRPG_MON_VARIANTS2).slice(0, 100).forEach((id) => {
+  const v = M.SRPG_MON_VARIANTS2[id];
+  c.ok('変種のベースにアートがある: ' + id, !!M.SRPG_MON_ART[v.base]);
+});
+c.ok('変種アートが解決される（バッジ付き）', (M.srpgMonArt('slime_fire')||'').indexOf('srpg-ev-badge') >= 0);
+c.ok('変種名はプレフィックス＋基本名', M.srpgMonName('slime_fire') === 'ほのおスライム' && M.srpgMonName('dragon_holy') === 'ひかりドラゴン');
+c.ok('基本名も解決', M.srpgMonName('wolf') === 'ウルフ');
+c.ok('未知は「なかま」', M.srpgMonName('__x__') === 'なかま');
 c.done();

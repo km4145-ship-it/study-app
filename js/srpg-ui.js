@@ -1031,11 +1031,13 @@ function srpgClose(){
 
 // ================= スカウトガチャ（コインで仲間モンスターを引く） =================
 function _scoutArts(rank){
-  // 引けるアート：あいぼう化できる全種（petは除外・魔王はSSSのときだけ）
+  // 引けるアート：基本20種＋属性変種100種（petは除外・魔王はSSS/LGのときだけ）
   var arts = Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && a!=='villain' && !/2$/.test(a); });
-  if(rank==='SSS') arts.push('villain');
+  arts = arts.concat(Object.keys(SRPG_MON_VARIANTS2));
+  if(rank==='SSS' || rank==='LG') arts.push('villain');
   return arts;
 }
+function _scoutSp(art){ var v=SRPG_MON_VARIANTS2[art]; return AIBOU_ART_SPECIES[v?v.base:art] || 'beast'; }
 function _srpgWeekKey(){ var d=new Date(); var onejan=new Date(d.getFullYear(),0,1); var wk=Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7); return d.getFullYear()+'-w'+wk; }
 function srpgScoutFreeReady(){ try{ return safeLS.getItem('srpg_scout_free') !== _srpgToday(); }catch(e){ return false; } }
 function srpgScoutScreen(){
@@ -1114,9 +1116,9 @@ function srpgScoutDo(n, useFree){
     if(full){ ai.food = (ai.food||0) + 5; got.push({ rank:rank, full:true }); return; }
     var arts = _scoutArts(rank);
     var art = srpgScoutArt(Math.random(), arts, picks);   // ピックアップは出やすさ2倍
-    var sp = aibouRollSpecies(art, rank==='SSS' ? 'boss' : 'zako', undefined, false);
+    var sp = _scoutSp(art);
     var id = 'm' + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36);
-    var name = (SRPG_ENEMY_TEMPLATES[art] && SRPG_ENEMY_TEMPLATES[art].name) || (AIBOU_SPECIES[sp] && AIBOU_SPECIES[sp].name) || 'なかま';
+    var name = (typeof srpgMonName==='function' ? srpgMonName(art) : ((SRPG_ENEMY_TEMPLATES[art] && SRPG_ENEMY_TEMPLATES[art].name) || 'なかま'));
     var isNew = !Object.keys(ai.roster).some(function(k){ return ai.roster[k] && ai.roster[k].art === art; });
     var mon = { id:id, art:art, sp:sp, rank:rank, lv:1, xp:0, name:name };
     ai.roster[id] = mon;
@@ -1141,7 +1143,7 @@ function srpgScoutDo(n, useFree){
   });
 }
 // ================= 🎖️メダル交換所＆📖なかま図鑑 =================
-function _srpgAllDexArts(){ return Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && !/2$/.test(a); }); }
+function _srpgAllDexArts(){ var base=Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && !/2$/.test(a); }); return base.concat(Object.keys(SRPG_MON_VARIANTS2)); }
 function _srpgMetDex(){
   // 図鑑＝これまでに仲間にした種（cos.metDex）。現ロスターからも補完（過去分の救済）
   var s = rpgState(), cos = rpgCosState(s), ai = rpgAibouState(s);
@@ -1160,7 +1162,7 @@ function srpgMedalShop(){
   var cells = arts.map(function(a){
     var art = (typeof srpgMonArt==='function' && srpgMonArt(a)) || _monStill(a);
     var cost = srpgMedalCost(a);
-    var name = (SRPG_ENEMY_TEMPLATES[a] && SRPG_ENEMY_TEMPLATES[a].name) || a;
+    var name = (typeof srpgMonName==='function') ? srpgMonName(a) : a;
     var ok = medals >= cost;
     return '<div class="srpg-med-cell"><div class="srpg-med-art">'+art+'</div>'
       + '<div class="srpg-med-nm">'+escapeHtml(name)+'</div>'
@@ -1180,7 +1182,7 @@ function srpgMedalBuy(art){
   var cost = srpgMedalCost(art);
   if((cos.scoutMedals||0) < cost) return;
   if(Object.keys(ai.roster).length >= AIBOU_ROSTER_MAX){ try{ showToast('🐾','なかまが いっぱいだよ','ロスターを あけてから 交換してね'); }catch(e){} return; }
-  var name = (SRPG_ENEMY_TEMPLATES[art] && SRPG_ENEMY_TEMPLATES[art].name) || 'なかま';
+  var name = (typeof srpgMonName==='function') ? srpgMonName(art) : 'なかま';
   if(!confirm('🎖️ メダル'+cost+'枚で「'+name+'」と 交換しますか？')) return;
   cos.scoutMedals -= cost;
   var rank = (art === 'villain') ? 'S' : 'A';
@@ -1213,7 +1215,7 @@ function srpgDexScreen(){
   var cells = arts.map(function(a){
     var got = !!met[a];
     var art = (typeof srpgMonArt==='function' && srpgMonArt(a)) || _monStill(a);
-    var name = got ? ((SRPG_ENEMY_TEMPLATES[a] && SRPG_ENEMY_TEMPLATES[a].name) || a) : '？？？';
+    var name = got ? ((typeof srpgMonName==='function') ? srpgMonName(a) : a) : '？？？';
     return '<div class="srpg-dex-cell'+(got?' got':'')+'"><div class="srpg-dex-art">'+art+'</div><div class="srpg-dex-nm">'+escapeHtml(name)+'</div></div>';
   }).join('');
   var rwList = SRPG_DEX_REWARDS.map(function(r){ return '<span class="'+(cos.dexRw[r.id]?'done':'')+'">'+(cos.dexRw[r.id]?'✅':'🎁')+' '+r.label+'</span>'; }).join('');
@@ -1231,6 +1233,7 @@ function srpgDexScreen(){
 // ===== 召喚シネマティック：暗転→多重魔法陣チャージ→ランク色予告→爆発→結果 =====
 var SRPG_TIER_COLOR = { low:'#38bdf8', A:'#a78bfa', S:'#f472b6', SS:'#fde047', SSS:'#f87171' };
 function _scoutTier(best){
+  if(best==='LG') return 'SSS';   // LGは最上位演出（虹）
   if(best==='SSS') return 'SSS';
   if(best==='SS') return 'SS';
   if(best==='S') return 'S';
@@ -1239,7 +1242,7 @@ function _scoutTier(best){
 }
 function srpgScoutCinematic(got, onDone){
   var ov = document.getElementById('srpg-ask'); if(!ov){ onDone(); return; }
-  var RK = ['F','E','D','C','B','A','S','SS','SSS'];
+  var RK = ['F','E','D','C','B','A','S','SS','SSS','LG'];
   var best = got.reduce(function(m, g){ return RK.indexOf(g.rank) > RK.indexOf(m) ? g.rank : m; }, 'F');
   var tier = _scoutTier(best), col = SRPG_TIER_COLOR[tier];
   var fxMode = 'full'; try{ fxMode = _gachaFxMode(); }catch(e){}
@@ -1291,7 +1294,7 @@ function srpgScoutCinematic(got, onDone){
 }
 function srpgScoutResults(got){
   var ov = document.getElementById('srpg-ask'); if(!ov) return;
-  var best = got.reduce(function(m, g){ return (['F','E','D','C','B','A','S','SS','SSS'].indexOf(g.rank) > ['F','E','D','C','B','A','S','SS','SSS'].indexOf(m)) ? g.rank : m; }, 'F');
+  var best = got.reduce(function(m, g){ return (['F','E','D','C','B','A','S','SS','SSS','LG'].indexOf(g.rank) > ['F','E','D','C','B','A','S','SS','SSS','LG'].indexOf(m)) ? g.rank : m; }, 'F');
   var HIRANK = { S:1, SS:1, SSS:1 };
   var many = got.length > 1;
   var cells = got.map(function(g, i){
@@ -1328,7 +1331,7 @@ function srpgSkillUpScreen(){
   // artごとにグループ（2体以上いる種＝合成できる）
   var byArt = {};
   Object.keys(ai.roster).forEach(function(id){ var a = ai.roster[id]; if(!a) return; (byArt[a.art] = byArt[a.art] || []).push(a); });
-  var RANKS = ['F','E','D','C','B','A','S','SS','SSS'];
+  var RANKS = ['F','E','D','C','B','A','S','SS','SSS','LG'];
   var rows = '';
   Object.keys(byArt).forEach(function(art){
     var g = byArt[art]; if(g.length < 2) return;

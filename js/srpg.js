@@ -183,7 +183,9 @@ function srpgMonSkill(art){
   if(!art) return null;
   if(SRPG_MON_SKILL[art]) return SRPG_MON_SKILL[art];
   var m = /^(.*)2$/.exec(art);   // 亜種はベース種の技
-  return (m && SRPG_MON_SKILL[m[1]]) || null;
+  if(m && SRPG_MON_SKILL[m[1]]) return SRPG_MON_SKILL[m[1]];
+  var uv = /^(.*)_(fire|ice|thunder|dark|holy)$/.exec(art);   // 属性変種もベース種の技を継承
+  return (uv && SRPG_MON_SKILL[uv[1]]) || null;
 }
 
 // ===== 距離・範囲（マンハッタン距離＝タクティクスの標準） =====
@@ -453,7 +455,7 @@ function srpgTotalWaves(stage){ return 1 + ((stage.waves || []).length); }
 // list=[{id,rank,lv,sp,...}] → 選んだidの配列（最大n体）。かいふく役を1体確保→残りは強い順。
 function srpgAutoPick(list, n){
   n = n || 4;
-  var RANKS = ['F','E','D','C','B','A','S','SS','SSS'];
+  var RANKS = ['F','E','D','C','B','A','S','SS','SSS','LG'];
   var score = function(a){ return (RANKS.indexOf(a.rank || 'F') + 1) * 100 + (a.lv || 1); };
   var sorted = (list || []).slice().sort(function(a, b){ return score(b) - score(a); });
   var picked = [], healer = null;
@@ -469,8 +471,8 @@ function srpgAutoPick(list, n){
 // ===== スカウトガチャ（コインで仲間モンスターを引く）＝抽選は純粋関数・確率は開示前提 =====
 // レート表（合計100%）。表示と抽選が同一ソース＝開示とのズレが構造的に起きない。
 var SRPG_SCOUT_RATES = [
-  ['SSS', 1], ['SS', 4], ['S', 7], ['A', 12], ['B', 13], ['C', 14], ['D', 15], ['E', 16], ['F', 18]
-];
+  ['LG', 0.5], ['SSS', 1], ['SS', 3.5], ['S', 7], ['A', 12], ['B', 13], ['C', 14], ['D', 15], ['E', 16], ['F', 18]
+];   // LG＝伝説ランク（最上位・0.5%）
 var SRPG_SCOUT_COST = { one: 80, ten: 720 };   // 10連は1割引＋A以上1体確定
 function srpgScoutRank(rnd){
   var r = (rnd === undefined ? 0 : rnd) * 100, acc = 0;
@@ -498,15 +500,16 @@ function srpgDexProgress(metArts, total){
 }
 // 図鑑の節目ほうび（受領フラグは cos.dexRw に union 保存）
 var SRPG_DEX_REWARDS = [
-  { id:'d8',  need:8,  coin:300,  label:'8種で 🪙300' },
-  { id:'d15', need:15, coin:800,  label:'15種で 🪙800' },
-  { id:'d22', need:22, coin:2000, label:'ぜんぶ（22種）で 🪙2000' }
+  { id:'d10',  need:10,  coin:300,  label:'10種で 🪙300' },
+  { id:'d40',  need:40,  coin:1000, label:'40種で 🪙1000' },
+  { id:'d80',  need:80,  coin:2500, label:'80種で 🪙2500' },
+  { id:'d121', need:121, coin:8000, label:'ぜんぶ（121種）で 🪙8000' }
 ];
 
 // ===== 天井（ピティ）：ハズレ続きの救済＝スカウト30回で SS以上を1体かくてい =====
 var SRPG_SCOUT_PITY_MAX = 30;
 function srpgScoutApplyPity(ranks, pityBefore, pityMax){
-  var HI = { SS:1, SSS:1 };
+  var HI = { SS:1, SSS:1, LG:1 };
   var natural = ranks.some(function(k){ return HI[k]; });
   var out = ranks.slice(), triggered = false;
   if(!natural && (pityBefore + ranks.length) >= (pityMax || SRPG_SCOUT_PITY_MAX)){

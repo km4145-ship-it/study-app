@@ -26,8 +26,8 @@ var AIBOU_ART_SPECIES={
 
 // ===== ランク（9段階・SSSが最強）とパラメータ =====
 var AIBOU_RANKS=['F','E','D','C','B','A','S','SS','SSS'];
-var AIBOU_RANK_BASE ={ F:2,  E:3,  D:4,  C:5,  B:7,  A:9,  S:12, SS:16, SSS:22 };   // 「ちから」の基礎値
-var AIBOU_RANK_LVMAX={ F:10, E:15, D:20, C:25, B:30, A:40, S:50, SS:65, SSS:80 };   // ランクごとのレベル上限
+var AIBOU_RANK_BASE ={ F:2,  E:3,  D:4,  C:5,  B:7,  A:9,  S:12, SS:16, SSS:22, LG:30 };   // 「ちから」の基礎値（LG=スカウト限定の伝説）
+var AIBOU_RANK_LVMAX={ F:10, E:15, D:20, C:25, B:30, A:40, S:50, SS:65, SSS:80, LG:99 };   // ランクごとのレベル上限
 var AIBOU_ROSTER_MAX=50;                                          // 手持ちの上限（あふれたらエサになる）
 
 // ランク抽選の重み。lv=戦った章のレベル（1..10、ボスは+2）。高い章ほど高ランクが出やすい

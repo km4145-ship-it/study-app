@@ -1091,23 +1091,92 @@ function srpgScoutDo(n){
   });
   rpgSave(s);
   try{ updateResBar(); }catch(e){}
-  if(n === 1 && got[0].mon){
-    srpgScoutReveal(got[0].mon, function(){ srpgScoutResults(got); });
-  } else {
-    srpgScoutResults(got);
+  srpgScoutCinematic(got, function(){
+    if(got.length === 1 && got[0].mon){
+      srpgScoutReveal(got[0].mon, function(){ srpgScoutResults(got); });
+    } else {
+      srpgScoutResults(got);
+    }
+  });
+}
+// ===== 召喚シネマティック：暗転→多重魔法陣チャージ→ランク色予告→爆発→結果 =====
+var SRPG_TIER_COLOR = { low:'#38bdf8', A:'#a78bfa', S:'#f472b6', SS:'#fde047', SSS:'#f87171' };
+function _scoutTier(best){
+  if(best==='SSS') return 'SSS';
+  if(best==='SS') return 'SS';
+  if(best==='S') return 'S';
+  if(best==='A') return 'A';
+  return 'low';
+}
+function srpgScoutCinematic(got, onDone){
+  var ov = document.getElementById('srpg-ask'); if(!ov){ onDone(); return; }
+  var RK = ['F','E','D','C','B','A','S','SS','SSS'];
+  var best = got.reduce(function(m, g){ return RK.indexOf(g.rank) > RK.indexOf(m) ? g.rank : m; }, 'F');
+  var tier = _scoutTier(best), col = SRPG_TIER_COLOR[tier];
+  var fxMode = 'full'; try{ fxMode = _gachaFxMode(); }catch(e){}
+  var reduced = _srpgRM || fxMode === 'off';
+  if(reduced){ onDone(); return; }   // 演出オフ設定・reduced-motionは即結果
+  var motes = '';
+  for(var i = 0; i < 14; i++){
+    motes += '<span class="sc-mote" style="--a:'+(i*26)+'deg;--d:'+(0.9+(i%5)*0.22)+'s"></span>';
   }
+  var skipped = false, timers = [];
+  function T(fn, ms){ timers.push(setTimeout(fn, ms)); }
+  function finish(){
+    if(skipped) return; skipped = true;
+    timers.forEach(clearTimeout);
+    onDone();
+  }
+  ov.innerHTML = '<div class="sc-stage" id="sc-stage">'
+    + '<div class="sc-vignette"></div>'
+    + '<div class="sc-circle c1"></div><div class="sc-circle c2"></div><div class="sc-circle c3"></div>'
+    + '<div class="sc-runes">✦ ◇ ✧ ○ ✦ ◇ ✧ ○</div>'
+    + motes
+    + '<div class="sc-core"></div>'
+    + '<div class="sc-flash" id="sc-flash"></div>'
+    + '<div class="sc-skip">タップで スキップ ⏭</div>'
+    + '</div>';
+  ov.style.display = 'flex';
+  ov.onclick = finish;
+  var stage = document.getElementById('sc-stage');
+  try{ sfx('click'); }catch(e){}
+  // ①チャージ（吸い込み・魔法陣が速くなる）
+  T(function(){ if(stage) stage.classList.add('charging'); try{ sfx('coin'); }catch(e){} }, 250);
+  // ②ランク色の予告（円が染まる・SS以上は震動）
+  T(function(){
+    if(!stage) return;
+    stage.style.setProperty('--sc', col);
+    stage.classList.add('tell', 'tier-' + tier);
+    try{ if(tier==='SS'||tier==='SSS'){ document.body.classList.add('srpg-flash'); setTimeout(function(){ document.body.classList.remove('srpg-flash'); }, 300); vibe([20,50,20]); } }catch(e){}
+    try{ sfx(tier==='SSS' ? 'legendary' : (tier==='SS'||tier==='S') ? 'fanfare' : 'levelup'); }catch(e){}
+  }, 1300);
+  // ③SSSだけ：一度暗転する「ため」→虹爆発
+  if(tier === 'SSS'){
+    T(function(){ if(stage) stage.classList.add('blackout'); }, 2100);
+    T(function(){ if(stage){ stage.classList.remove('blackout'); stage.classList.add('rainbow'); } try{ vibe([30,60,30,60,90]); if(typeof confetti==='function') confetti(); }catch(e){} }, 2800);
+  }
+  // ④爆発フラッシュ→結果へ
+  var endAt = (tier === 'SSS') ? 3600 : 2400;
+  T(function(){ var f = document.getElementById('sc-flash'); if(f) f.classList.add('go'); try{ sfx('correct'); }catch(e){} }, endAt - 300);
+  T(finish, endAt);
 }
 function srpgScoutResults(got){
   var ov = document.getElementById('srpg-ask'); if(!ov) return;
   var best = got.reduce(function(m, g){ return (['F','E','D','C','B','A','S','SS','SSS'].indexOf(g.rank) > ['F','E','D','C','B','A','S','SS','SSS'].indexOf(m)) ? g.rank : m; }, 'F');
+  var HIRANK = { S:1, SS:1, SSS:1 };
+  var many = got.length > 1;
   var cells = got.map(function(g, i){
     if(g.full) return '<div class="srpg-got full"><div class="srpg-got-art">🍖</div><div class="srpg-got-nm">エサ+5</div><small>いっぱい</small></div>';
     var art = (typeof srpgMonArt==='function' && srpgMonArt(g.mon.art)) || _monStill(g.mon.art);
-    return '<div class="srpg-got rk-'+g.rank+'" style="animation-delay:'+(i*0.08)+'s">'
-      + (g.isNew ? '<span class="srpg-got-new">NEW</span>' : '')
+    var inner = (g.isNew ? '<span class="srpg-got-new">NEW</span>' : '')
       + '<div class="srpg-got-art">'+art+'</div>'
       + '<div class="srpg-got-rk rk-'+g.rank+'">'+g.rank+'</div>'
-      + '<div class="srpg-got-nm">'+escapeHtml(g.mon.name)+'</div></div>';
+      + '<div class="srpg-got-nm">'+escapeHtml(g.mon.name)+'</div>';
+    if(!many) return '<div class="srpg-got rk-'+g.rank+'">'+inner+'</div>';
+    // 10連：裏向きカード → 順次フリップ（0.16秒間隔・高ランクは開く直前に金パルス）
+    return '<div class="srpg-got card rk-'+g.rank+(HIRANK[g.rank]?' hi':'')+'" style="--fd:'+(0.35 + i*0.16)+'s">'
+      + '<div class="srpg-got-back">？</div>'
+      + '<div class="srpg-got-face">'+inner+'</div></div>';
   }).join('');
   ov.innerHTML = '<div class="srpg-ui-card scout-res">'
     + '<div class="srpg-ui-sec">🔮 スカウトの けっか</div>'

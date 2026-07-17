@@ -2098,6 +2098,48 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-fuse-max{ color:#fde047; font-weight:900; }
   .srpg-fuse-none{ color:#64748b; font-weight:800; font-size:.76rem; }
   .srpg-tm-sklv{ display:inline-block; color:#e9d5ff; font-weight:900; font-size:.66rem; background:rgba(167,139,250,.18); padding:0 6px; border-radius:999px; }
+  /* ===== 召喚シネマティック（スカウト演出） ===== */
+  .sc-stage{ --sc:#38bdf8; position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 46%, #131b33, #04060f 78%); overflow:hidden; cursor:pointer; }
+  .sc-vignette{ position:absolute; inset:0; box-shadow:inset 0 0 140px 60px rgba(0,0,0,.85); pointer-events:none; }
+  .sc-circle{ position:absolute; left:50%; top:46%; border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; transition:filter .5s, opacity .5s; }
+  .sc-circle.c1{ width:290px; height:290px; border:2px dashed var(--sc); opacity:.5; animation:scSpin 9s linear infinite; }
+  .sc-circle.c2{ width:220px; height:220px; border:3px solid var(--sc); opacity:.4; animation:scSpin 6s linear infinite reverse; box-shadow:0 0 26px var(--sc), inset 0 0 26px var(--sc); }
+  .sc-circle.c3{ width:150px; height:150px; background:conic-gradient(from 0deg, var(--sc) 0 14deg, transparent 14deg 45deg); opacity:.3; border-radius:50%; animation:scSpin 4s linear infinite; -webkit-mask:radial-gradient(circle, transparent 55%, #000 56%); mask:radial-gradient(circle, transparent 55%, #000 56%); }
+  .sc-runes{ position:absolute; left:50%; top:46%; width:250px; text-align:center; transform:translate(-50%,-50%); color:var(--sc); font-size:15px; letter-spacing:16px; opacity:.55; animation:scSpin 14s linear infinite reverse; pointer-events:none; }
+  .sc-mote{ position:absolute; left:50%; top:46%; width:7px; height:7px; border-radius:50%; background:var(--sc); box-shadow:0 0 9px var(--sc); opacity:0; transform:rotate(var(--a)) translateX(190px); pointer-events:none; }
+  .sc-stage.charging .sc-mote{ animation:scSuck var(--d) ease-in infinite; }
+  @keyframes scSuck{ 0%{ opacity:0; transform:rotate(var(--a)) translateX(190px) scale(1); } 25%{ opacity:1; } 100%{ opacity:0; transform:rotate(var(--a)) translateX(8px) scale(.4); } }
+  .sc-core{ position:absolute; left:50%; top:46%; width:26px; height:26px; border-radius:50%; transform:translate(-50%,-50%); background:radial-gradient(circle, #fff, var(--sc) 62%, transparent 74%); box-shadow:0 0 24px var(--sc); animation:scPulse 1.5s ease-in-out infinite; pointer-events:none; }
+  @keyframes scPulse{ 0%,100%{ transform:translate(-50%,-50%) scale(1); } 50%{ transform:translate(-50%,-50%) scale(1.35); } }
+  .sc-stage.charging .sc-circle.c1{ animation-duration:3.5s; }
+  .sc-stage.charging .sc-circle.c2{ animation-duration:2.2s; }
+  .sc-stage.charging .sc-circle.c3{ animation-duration:1.4s; }
+  .sc-stage.tell .sc-circle, .sc-stage.tell .sc-core{ filter:brightness(1.6); }
+  .sc-stage.tell .sc-core{ animation-duration:.5s; }
+  .sc-stage.tier-SS .sc-vignette, .sc-stage.tier-SSS .sc-vignette{ box-shadow:inset 0 0 160px 40px rgba(0,0,0,.8), inset 0 0 60px 10px var(--sc); }
+  .sc-stage.blackout .sc-circle, .sc-stage.blackout .sc-core, .sc-stage.blackout .sc-runes, .sc-stage.blackout .sc-mote{ opacity:0; transition:opacity .4s; }
+  .sc-stage.rainbow .sc-circle.c2{ border-color:transparent; background:conic-gradient(#f87171,#fbbf24,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171); -webkit-mask:radial-gradient(circle, transparent 62%, #000 63%); mask:radial-gradient(circle, transparent 62%, #000 63%); opacity:.9; animation-duration:1s; }
+  .sc-stage.rainbow .sc-core{ background:radial-gradient(circle,#fff,#fde047 40%, #f472b6 70%, transparent 80%); box-shadow:0 0 60px #fff; animation-duration:.3s; }
+  .sc-flash{ position:absolute; inset:0; background:radial-gradient(circle at 50% 46%, #fff 24%, rgba(255,255,255,.6) 52%, transparent 76%); opacity:0; pointer-events:none; }
+  .sc-flash.go{ animation:scFlash .5s ease-out forwards; }
+  @keyframes scFlash{ 0%{ opacity:0; } 25%{ opacity:1; } 100%{ opacity:0; } }
+  .sc-skip{ position:absolute; bottom:26px; left:0; right:0; text-align:center; color:#64748b; font-weight:800; font-size:.78rem; animation:srpgBlink 1.4s ease-in-out infinite; }
+  @keyframes scSpin{ to{ transform:translate(-50%,-50%) rotate(360deg); } }
+  /* 10連の裏向きカード→順次フリップ */
+  .srpg-got.card{ perspective:500px; background:transparent; border:none; padding:0; animation:none; min-height:106px; }
+  .srpg-got-back, .srpg-got-face{ position:absolute; inset:0; border-radius:12px; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+  .srpg-got.card{ position:relative; }
+  .srpg-got-back{ display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:900; color:#818cf8; background:linear-gradient(150deg,#1e1b4b,#312e81); border:2px solid rgba(129,140,248,.5); animation:scCardOut .45s ease var(--fd) forwards; }
+  .srpg-got-face{ background:rgba(148,163,184,.1); border:2px solid rgba(148,163,184,.35); padding:7px 4px; text-align:center; transform:rotateY(180deg); animation:scCardIn .45s ease var(--fd) forwards; }
+  .srpg-got.card.rk-A .srpg-got-face{ border-color:#a78bfa; }
+  .srpg-got.card.rk-S .srpg-got-face{ border-color:#f472b6; box-shadow:0 0 10px rgba(244,114,182,.35); }
+  .srpg-got.card.rk-SS .srpg-got-face{ border-color:#fde047; box-shadow:0 0 12px rgba(253,224,71,.45); }
+  .srpg-got.card.rk-SSS .srpg-got-face{ border-color:#f87171; box-shadow:0 0 16px rgba(248,113,113,.6); }
+  .srpg-got.card.hi .srpg-got-back{ animation:scCardHi .5s ease-in-out calc(var(--fd) - .3s), scCardOut .45s ease var(--fd) forwards; border-color:#fde047; }
+  @keyframes scCardHi{ 0%,100%{ box-shadow:none; } 50%{ box-shadow:0 0 22px #fde047; transform:scale(1.08); } }
+  @keyframes scCardOut{ from{ transform:rotateY(0); } to{ transform:rotateY(180deg); } }
+  @keyframes scCardIn{ from{ transform:rotateY(-180deg); } to{ transform:rotateY(0); } }
+  @media (prefers-reduced-motion: reduce){ .sc-circle,.sc-core,.sc-mote,.sc-runes{ animation:none!important; } }
   .scout-res{ max-width:460px; }
   /* ストーリー導入カード */
   .srpg-story-card{ width:100%; max-width:440px; background:linear-gradient(180deg,#0f1a2e,#1a1035); border:2px solid rgba(167,139,250,.5); border-radius:18px; padding:24px 20px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.6); cursor:pointer; animation:srpgStoryIn .3s var(--spring); }

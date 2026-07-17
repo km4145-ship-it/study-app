@@ -48,7 +48,8 @@ const SCREENS = [
   { name: 'srpginfo',  wait: 1200, drive: "srpgOpen(); setTimeout(function(){ srpgStart('arena1'); }, 60); setTimeout(function(){ try{ var v=srpgB.units.filter(function(u){return u.side==='enemy';})[0]; srpgShowUnitInfo(v.id); }catch(e){ document.title='E:'+e.message; } }, 1500)" },  // ユニット詳細パネル
   { name: 'srpgfuse', wait: 900, drive: "try{ var s=rpgState(); var ai=rpgAibouState(s); ai.roster.d1={id:'d1',art:'wolf',sp:'beast',rank:'A',lv:8,xp:0,name:'ウルフ',skLv:2}; ai.roster.d2={id:'d2',art:'wolf',sp:'beast',rank:'C',lv:2,xp:0,name:'ウルフ'}; ai.roster.d3={id:'d3',art:'slime',sp:'slime',rank:'B',lv:4,xp:0,name:'スライム'}; ai.roster.d4={id:'d4',art:'slime',sp:'slime',rank:'F',lv:1,xp:0,name:'スライム'}; rpgSave(s); }catch(e){} srpgOpen(); setTimeout(function(){ srpgSkillUpScreen(); }, 300)" },
   { name: 'srpgshop',  wait: 900, drive: "srpgOpen(); setTimeout(function(){ srpgScoutScreen(); }, 300)" },  // スカウトガチャ
-  { name: 'srpgten',   wait: 1400, drive: "srpgOpen(); setTimeout(function(){ srpgScoutScreen(); }, 300); setTimeout(function(){ try{ srpgScoutDo(10); }catch(e){ document.title='E:'+e.message; } }, 900)" },  // 10連の結果
+  { name: 'srpgten',   wait: 6200, drive: "srpgOpen(); setTimeout(function(){ srpgScoutScreen(); }, 300); setTimeout(function(){ try{ srpgScoutDo(10); }catch(e){ document.title='E:'+e.message; } }, 900)" },  // 10連（シネマ→フリップ結果）
+  { name: 'srpgsummon', wait: 2600, drive: "srpgOpen(); setTimeout(function(){ srpgScoutScreen(); }, 300); setTimeout(function(){ try{ srpgScoutDo(10); }catch(e){ document.title='E:'+e.message; } }, 900)" },  // 召喚シネマ（予告中）
   { name: 'srpgbtl',   drive: "srpgOpen(); setTimeout(function(){ srpgStart('q_science'); }, 60); setTimeout(function(){ for(var i=0;i<6;i++) srpgStoryStep(); }, 500); setTimeout(function(){ try{ srpgBattleBegin(); }catch(e){} }, 950)", wait: 2900 },  // 地形（毒沼）つき盤面
 ];
 

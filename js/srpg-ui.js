@@ -1231,9 +1231,9 @@ function srpgDexScreen(){
 }
 
 // ===== 召喚シネマティック：暗転→多重魔法陣チャージ→ランク色予告→爆発→結果 =====
-var SRPG_TIER_COLOR = { low:'#38bdf8', A:'#a78bfa', S:'#f472b6', SS:'#fde047', SSS:'#f87171' };
+var SRPG_TIER_COLOR = { low:'#38bdf8', A:'#a78bfa', S:'#f472b6', SS:'#fde047', SSS:'#f87171', LG:'#ffffff' };
 function _scoutTier(best){
-  if(best==='LG') return 'SSS';   // LGは最上位演出（虹）
+  if(best==='LG') return 'LG';    // LG＝伝説専用の最上位演出
   if(best==='SSS') return 'SSS';
   if(best==='SS') return 'SS';
   if(best==='S') return 'S';
@@ -1273,7 +1273,7 @@ function srpgScoutCinematic(got, onDone){
   ov.onclick = finish;
   var stage = document.getElementById('sc-stage');
   // Canvasパーティクル（gacha-fx）を召喚にも接続＝数百粒子の吸い込み・爆発・星の雨
-  var fxRank = { low:'R', A:'SR', S:'SSR', SS:'UR', SSS:'LR' }[tier] || 'R';
+  var fxRank = { low:'R', A:'SR', S:'SSR', SS:'UR', SSS:'LR', LG:'LR' }[tier] || 'R';
   function fxCv(z){ try{ var cv=document.getElementById('gacha-fx-canvas'); if(cv) cv.style.zIndex=z; }catch(e){} }
   try{ if(window.gachaFx){ gachaFx.charge(fxRank); fxCv(2000); } }catch(e){}
   try{ sfx('click'); }catch(e){}
@@ -1284,17 +1284,22 @@ function srpgScoutCinematic(got, onDone){
     if(!stage) return;
     stage.style.setProperty('--sc', col);
     stage.classList.add('tell', 'tier-' + tier);
-    try{ if(tier==='SS'||tier==='SSS'){ document.body.classList.add('srpg-flash'); setTimeout(function(){ document.body.classList.remove('srpg-flash'); }, 300); vibe([20,50,20]); } }catch(e){}
-    try{ sfx(tier==='SSS' ? 'legendary' : (tier==='SS'||tier==='S') ? 'fanfare' : 'levelup'); }catch(e){}
+    try{ if(tier==='SS'||tier==='SSS'||tier==='LG'){ document.body.classList.add('srpg-flash'); setTimeout(function(){ document.body.classList.remove('srpg-flash'); }, 300); vibe([20,50,20]); } }catch(e){}
+    try{ sfx((tier==='SSS'||tier==='LG') ? 'legendary' : (tier==='SS'||tier==='S') ? 'fanfare' : 'levelup'); }catch(e){}
     try{ if(window.gachaFx){ gachaFx.pulse(fxRank); fxCv(2000); } }catch(e){}
   }, 1300);
-  // ③SSSだけ：一度暗転する「ため」→虹爆発
-  if(tier === 'SSS'){
+  // ③SSS/LG：暗転の「ため」→虹爆発（LGは 二段の暗転＝もう一度ためる）
+  if(tier === 'SSS' || tier === 'LG'){
     T(function(){ if(stage) stage.classList.add('blackout'); }, 2100);
     T(function(){ if(stage){ stage.classList.remove('blackout'); stage.classList.add('rainbow'); } try{ vibe([30,60,30,60,90]); if(typeof confetti==='function') confetti(); }catch(e){} }, 2800);
   }
+  if(tier === 'LG'){
+    // 伝説だけの二段目：虹が一度ぜんぶ消える→白光で再点灯→超爆発
+    T(function(){ if(stage) stage.classList.add('blackout'); try{ sfx('coin'); }catch(e){} }, 3700);
+    T(function(){ if(stage){ stage.classList.remove('blackout'); stage.classList.add('rainbow','lgfinal'); } try{ sfx('legendary'); vibe([40,80,40,80,120]); if(typeof confetti==='function'){ confetti(); setTimeout(confetti,300); } if(window.gachaFx&&gachaFx.rain) gachaFx.rain('LR'); }catch(e){} }, 4400);
+  }
   // ④爆発フラッシュ→結果へ
-  var endAt = (tier === 'SSS') ? 3600 : 2400;
+  var endAt = (tier === 'LG') ? 5400 : (tier === 'SSS') ? 3600 : 2400;
   T(function(){ var f = document.getElementById('sc-flash'); if(f) f.classList.add('go');
     try{ if(window.gachaFx){ gachaFx.burst(fxRank); if(tier==='SS'||tier==='SSS') gachaFx.rain(fxRank); fxCv(2000); } }catch(e){}
     try{ sfx('correct'); }catch(e){} }, endAt - 300);

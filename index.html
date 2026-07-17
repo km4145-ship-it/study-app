@@ -2164,6 +2164,9 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .sc-stage.blackout .sc-circle, .sc-stage.blackout .sc-core, .sc-stage.blackout .sc-runes, .sc-stage.blackout .sc-mote{ opacity:0; transition:opacity .4s; }
   .sc-stage.rainbow .sc-circle.c2{ border-color:transparent; background:conic-gradient(#f87171,#fbbf24,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171); -webkit-mask:radial-gradient(circle, transparent 62%, #000 63%); mask:radial-gradient(circle, transparent 62%, #000 63%); opacity:.9; animation-duration:1s; }
   .sc-stage.rainbow .sc-core{ background:radial-gradient(circle,#fff,#fde047 40%, #f472b6 70%, transparent 80%); box-shadow:0 0 60px #fff; animation-duration:.3s; }
+  .sc-stage.lgfinal .sc-circle.c1{ animation-duration:.8s; border-style:solid; border-color:#fff; opacity:.85; box-shadow:0 0 40px #fff; }
+  .sc-stage.lgfinal .sc-core{ width:44px; height:44px; box-shadow:0 0 90px #fff, 0 0 160px rgba(255,255,255,.6); animation-duration:.18s; }
+  .sc-stage.lgfinal .sc-vignette{ box-shadow:inset 0 0 160px 30px rgba(0,0,0,.7), inset 0 0 80px 16px rgba(255,255,255,.28); }
   .sc-flash{ position:absolute; inset:0; background:radial-gradient(circle at 50% 46%, #fff 24%, rgba(255,255,255,.6) 52%, transparent 76%); opacity:0; pointer-events:none; }
   .sc-flash.go{ animation:scFlash .5s ease-out forwards; }
   @keyframes scFlash{ 0%{ opacity:0; } 25%{ opacity:1; } 100%{ opacity:0; } }
@@ -2477,6 +2480,24 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-gacha-ov.hint .rpg-gacha-box{ animation-duration:.22s; }
   .rpg-gacha-ov.hint .rpg-gacha-card.cos-r .rpg-gacha-box{ filter:drop-shadow(0 0 18px #a78bfa); }
   .rpg-gacha-ov.hint .rpg-gacha-card.cos-s .rpg-gacha-box{ filter:drop-shadow(0 0 22px #fde047); }
+  /* 開封直前の「時が止まる」：全CSSアニメを一時停止して薄暗く（静寂のため） */
+  .rpg-gacha-ov.still *{ animation-play-state:paused!important; }
+  .rpg-gacha-ov.still{ filter:brightness(.7) saturate(.8); transition:filter .25s ease; }
+  /* UR/LRの限界突破フェーズ：カード脈動＋全画面の回転ストリーク */
+  .rpg-gacha-ov.phase4 .rpg-gacha-card{ animation:gPh4Pulse .5s ease-in-out infinite; }
+  @keyframes gPh4Pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.035); } }
+  .rpg-gacha-ov.phase4::after{ content:''; position:fixed; inset:-30%; pointer-events:none; z-index:97;
+    background:repeating-conic-gradient(from 0deg, rgba(255,255,255,.06) 0 2deg, transparent 2deg 22deg);
+    animation:gPh4Spin 1.1s linear infinite; }
+  @keyframes gPh4Spin{ to{ transform:rotate(22deg); } }
+  /* LRの再チャージ：虹の光柱が立ちのぼる */
+  .rpg-gacha-ov.rebirth::before{ content:''; position:fixed; left:50%; top:0; bottom:0; width:120px; transform:translateX(-50%);
+    background:linear-gradient(180deg, transparent, rgba(248,113,113,.5), rgba(251,191,36,.55), rgba(74,222,128,.5), rgba(56,189,248,.55), rgba(167,139,250,.5), transparent);
+    filter:blur(14px); z-index:96; animation:gRebirth 1.4s ease-in-out; pointer-events:none; }
+  @keyframes gRebirth{ 0%{ opacity:0; transform:translateX(-50%) scaleY(.2); } 40%{ opacity:1; transform:translateX(-50%) scaleY(1.05); } 100%{ opacity:.9; } }
+  /* URの一瞬の暗転 */
+  .rpg-gacha-ov.miniblack::after{ content:''; position:fixed; inset:0; background:#04060f; z-index:98; animation:gMini .65s ease both; pointer-events:none; }
+  @keyframes gMini{ 0%{ opacity:0; } 30%,80%{ opacity:.94; } 100%{ opacity:0; } }
   .rpg-gacha-ov.flash::after{ content:''; position:fixed; inset:0; background:radial-gradient(circle at 50% 42%, #ffffff 28%, rgba(255,255,255,.55) 54%, rgba(255,255,255,0) 78%); z-index:99; pointer-events:none; animation:rpgFlash .5s ease-out; }
   @keyframes rpgFlash{ from{ opacity:.95; } to{ opacity:0; } }
   /* ===== ガチャ演出 強化（溜め→色でレア度を示す期待感→レア度ほど派手）===== */
@@ -7575,7 +7596,7 @@ function rpgGachaReveal(pick, dup, refund, opts){
     ov.style.display='flex';
     var done=false;
     var reveal=function(){ if(done) return; done=true;
-      ov.classList.remove('charging','hint','phase2','phase3');
+      ov.classList.remove('charging','hint','phase2','phase3','phase4');
       var boom=function(){
         ov.classList.add('open');
         if(rank>=7) ov.classList.add('flash','shake','ultra','legend');       // LR
@@ -7595,24 +7616,48 @@ function rpgGachaReveal(pick, dup, refund, opts){
         }catch(e){}
         setTimeout(function(){ ov.classList.remove('flash','shake'); }, 900);
       };
-      if(rank>=7 && _ch3 && fxm==='full'){
-        // LRだけのフェイクアウト：宝箱がしずかに開く→暗転「……？」→ため→大爆発
-        ov.classList.add('fakeout');
-        try{ sfx('coin'); }catch(e){}
-        setTimeout(function(){ ov.classList.remove('fakeout'); boom(); }, 1000);
-      } else boom();
+      // 開封直前の「時が止まる」ため（無音の一瞬）→ ランクごとの多段フィナーレ
+      var still=function(next, ms){ ov.classList.add('still'); setTimeout(function(){ ov.classList.remove('still'); next(); }, ms); };
+      if(fxm!=='full'){ boom(); }
+      else if(rank>=7 && _ch3){
+        // LR：時が止まる→偽開封（しずかに開く「……？」2秒）→虹の再チャージ→大爆発→追い星の雨
+        still(function(){
+          ov.classList.add('fakeout');
+          try{ sfx('coin'); }catch(e){}
+          setTimeout(function(){
+            ov.classList.remove('fakeout'); ov.classList.add('rebirth');
+            try{ sfx('charge'); if(window.gachaFx) gachaFx.charge(rank); }catch(e){}
+            setTimeout(function(){
+              ov.classList.remove('rebirth'); boom();
+              try{ if(window.gachaFx && gachaFx.rain){ setTimeout(function(){ gachaFx.rain(rank); }, 1000); } }catch(e){}
+              setTimeout(confetti, 1500); setTimeout(confetti, 1900);
+            }, 1400);
+          }, 2000);
+        }, 350);
+      }
+      else if(rank>=6){
+        // UR：時が止まる→一瞬の暗転→爆発
+        still(function(){ ov.classList.add('miniblack'); setTimeout(function(){ ov.classList.remove('miniblack'); boom(); }, 650); }, 320);
+      }
+      else if(rank>=5){ still(boom, 300); }   // SSR：ためて→ドン
+      else boom();                            // SR：テンポよく
     };
     if(fxm==='off'){ _gEpicSkipFn=null; reveal(); return; }   // 「なし」＝即開封
     try{ sfx('charge'); }catch(e){}
     try{ if(window.gachaFx) gachaFx.charge(rank); }catch(e){}   // B：溜め粒子（青→金→レア色へ昇格）
     if(_ch3){ try{ char3dHydrate(ov); _c3dTriggerChest(ov,'charge'); }catch(e){} }   // 3D宝箱：ゆっくりガタガタ
     // A：予兆→昇格→ドラムロール。フェーズごとに色と音が育つ（短縮時は尺を圧縮）
-    var _T=(fxm==='short')?[700,1400,2100]:[2600,4800,6800];
+    // レア度の階段：SR<SSR<UR<LR の順に「ため」が長く・フェーズが増える
+    var _TT=(fxm==='short')
+      ? { 4:[600,1200,1800], 5:[700,1400,2200], 6:[800,1600,2700], 7:[900,1800,3200] }
+      : { 4:[2000,3600,5200], 5:[2600,4800,7000], 6:[3000,5600,8400], 7:[3400,6200,9800] };
+    var _T=_TT[Math.min(7,Math.max(4,rank))];
     var t1=setTimeout(function(){ if(!done){ ov.classList.add('phase2','hint'); try{ sfx('powerup'); if(window.gachaFx){ gachaFx.pulse(rank); if(gachaFx.streak) gachaFx.streak(rank); } }catch(e){} if(_ch3) try{ _c3dTriggerChest(ov,'phase2'); }catch(e){} } }, _T[0]);
     var t2=setTimeout(function(){ if(!done){ ov.classList.add('phase3'); try{ sfx('drumroll'); if(window.gachaFx){ gachaFx.pulse(rank); if(gachaFx.vortex) gachaFx.vortex(rank); } }catch(e){} if(_ch3) try{ _c3dTriggerChest(ov,'phase3'); }catch(e){} } }, _T[1]);
+    var t4=(rank>=6 && fxm==='full')?setTimeout(function(){ if(!done){ ov.classList.add('phase4'); try{ sfx('powerup'); if(window.gachaFx){ gachaFx.pulse(rank); if(gachaFx.streak) gachaFx.streak(rank); } }catch(e){} } }, _T[1]+1100):null;   // UR/LR：限界突破フェーズ
     var t2b=_ch3?setTimeout(function(){ if(!done) try{ _c3dTriggerChest(ov,'open'); }catch(e){} }, Math.max(0,_T[2]-320)):null;   // 開封の直前にフタが開く
     var t3=setTimeout(reveal, _T[2]);
-    _gEpicSkipFn=function(){ clearTimeout(t1); clearTimeout(t2); if(t2b) clearTimeout(t2b); clearTimeout(t3); reveal(); };
+    _gEpicSkipFn=function(){ clearTimeout(t1); clearTimeout(t2); if(t4) clearTimeout(t4); if(t2b) clearTimeout(t2b); clearTimeout(t3); reveal(); };
     return;
   }
   ov.className='rpg-gacha-ov charging '+rcls;                 // 溜めフェーズから開始

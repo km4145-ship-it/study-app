@@ -1181,7 +1181,7 @@ function srpgMedalBuy(art){
   var s = rpgState(), cos = rpgCosState(s), ai = rpgAibouState(s);
   var cost = srpgMedalCost(art);
   if((cos.scoutMedals||0) < cost) return;
-  if(Object.keys(ai.roster).length >= AIBOU_ROSTER_MAX){ try{ showToast('🐾','なかまが いっぱいだよ','ロスターを あけてから 交換してね'); }catch(e){} return; }
+  if(Object.keys(ai.roster).length >= AIBOU_ROSTER_MAX){ try{ showToast('🐾','なかまが いっぱいだよ','⚗️とくぎ強化の『🧹おかたづけ』で ダブりを整理してね'); }catch(e){} return; }
   var name = (typeof srpgMonName==='function') ? srpgMonName(art) : 'なかま';
   if(!confirm('🎖️ メダル'+cost+'枚で「'+name+'」と 交換しますか？')) return;
   cos.scoutMedals -= cost;
@@ -1363,9 +1363,35 @@ function srpgSkillUpScreen(){
   document.getElementById('srpg-body').innerHTML =
     '<div class="srpg-fuse">'
     + '<div class="srpg-select-lead">⚗️ とくぎ強化<br><small>おなじ種類の なかまを 合成すると、とくぎLvが 上がる！（いりょく+10%・状態異常の確率+5% ずつ）</small></div>'
+    + '<div class="srpg-fuse-top"><span>🐾 なかま '+Object.keys(ai.roster).length+' / '+AIBOU_ROSTER_MAX+'</span><button class="srpg-mini2" onclick="srpgCleanupDo()">🧹 おかたづけ（ダブり→エサ）</button></div>'
     + rows
     + '<button class="srpg-mini" onclick="srpgTeamScreen()">← 編成へもどる</button></div>';
   try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+// 🧹おかたづけ：各種類（art）で いちばん強い1体を残し、パーティ外のダブりを一括でエサに
+function srpgCleanupDo(){
+  try{ sfx('click'); }catch(e){}
+  var s, ai; try{ s = rpgState(); ai = rpgAibouState(s); }catch(e){ return; }
+  var party = ai.party || [];
+  var RANKS = ['F','E','D','C','B','A','S','SS','SSS','LG'];
+  var score = function(a){ return RANKS.indexOf(a.rank||'F')*10000 + (a.lv||1)*10 + (a.skLv||1); };
+  var byArt = {};
+  Object.keys(ai.roster).forEach(function(id){ var a=ai.roster[id]; if(a) (byArt[a.art]=byArt[a.art]||[]).push(a); });
+  var mats = [];
+  Object.keys(byArt).forEach(function(art){
+    var g = byArt[art]; if(g.length < 2) return;
+    g.sort(function(a,b){ return score(b)-score(a); });
+    g.slice(1).forEach(function(m){ if(party.indexOf(m.id) < 0) mats.push(m); });   // 最強1体とパーティは残す
+  });
+  if(!mats.length){ try{ showToast('🧹','ダブりは ないよ','どの種類も 1体ずつ＝ぴかぴかだね！'); }catch(e){} return; }
+  var food = mats.length * 2;
+  if(!confirm('🧹 おかたづけ\n\nダブり '+mats.length+'体を エサ '+food+'こ に かえます。\n（各種類で いちばん強い子と パーティは のこります）\n※とくぎ強化に つかいたい ダブりがあるなら、先に ⚗️強化してね。よろしいですか？')) return;
+  if(!ai.gone) ai.gone = {};
+  mats.forEach(function(m){ ai.gone[m.id] = 1; delete ai.roster[m.id]; });
+  ai.food = (ai.food||0) + food;
+  rpgSave(s);
+  try{ sfx('coin'); showToast('🧹','おかたづけ かんりょう！','ダブり'+mats.length+'体 → 🍖エサ+'+food+'（のこり '+Object.keys(ai.roster).length+'体）'); }catch(e){}
+  srpgSkillUpScreen();
 }
 function srpgSkillUpDo(baseId, matId){
   try{ sfx('click'); }catch(e){}

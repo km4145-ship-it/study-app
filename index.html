@@ -2892,7 +2892,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/audio.js?v=1"></script>
 <script src="js/gacha-fx.js?v=3"></script>
 <script src="js/furigana.js?v=1"></script>
-<script src="js/reading-ja.js?v=1"></script>
+<script src="js/reading-ja.js?v=2"></script>
 <script src="js/content-data.js?v=2"></script>
 <script src="js/scoring.js?v=1"></script>
 <script src="js/ui-data.js?v=1"></script>
@@ -2905,9 +2905,9 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/ranking.js?v=3"></script>
 <script src="js/three.min.js?v=1"></script>
 <script src="js/char3d.js?v=11"></script>
-<script src="js/srpg.js?v=1"></script>
-<script src="js/srpg-mons.js?v=1"></script>
-<script src="js/srpg-ui.js?v=1"></script>
+<script src="js/srpg.js?v=2"></script>
+<script src="js/srpg-mons.js?v=2"></script>
+<script src="js/srpg-ui.js?v=2"></script>
 <script>
 // =================== CHARACTER SVGs ===================
   // chars.js へ分離
@@ -6839,7 +6839,10 @@ function _rpgPortrait(char){
 function rpgStoryShow(){
   var st=_rpgStoryState; if(!st) return;
   var line=st.lines[st.i];
-  document.getElementById('rpg-story-portrait').innerHTML=_rpgPortrait(line.char);
+  // ★防御：描画のどこかで例外が出ても、オーバーレイが「透明なクリック食い」として
+  //   残らないよう、失敗時はテキストだけでも必ず表示する（全ボタン操作不能の予防）
+  try{ document.getElementById('rpg-story-portrait').innerHTML=_rpgPortrait(line.char); }
+  catch(e){ try{ document.getElementById('rpg-story-portrait').textContent='📖'; }catch(e2){} }
   var nameEl=document.getElementById('rpg-story-name'); nameEl.textContent=line.who||''; nameEl.style.display=line.who?'inline-block':'none';
   var txt=document.getElementById('rpg-story-text');
   var full=line.text;
@@ -6850,7 +6853,12 @@ function rpgStoryShow(){
   st.timer=setInterval(function(){ i++; txt.textContent=full.slice(0,i); if(i>=full.length){ clearInterval(st.timer); st.typing=false; document.getElementById('rpg-story-next').style.opacity='1'; } }, 24);
 }
 function rpgStoryAdvance(){
-  var st=_rpgStoryState; if(!st) return;
+  var st=_rpgStoryState;
+  if(!st){   // ★自己回復：状態が無いのにオーバーレイが見えている＝異常状態→必ず閉じる
+    try{ document.getElementById('rpg-story').style.display='none'; }catch(e){}
+    try{ document.body.classList.remove('story-open'); }catch(e){}
+    return;
+  }
   if(st.typing){ clearInterval(st.timer); document.getElementById('rpg-story-text').textContent=st.lines[st.i].text; st.typing=false; document.getElementById('rpg-story-next').style.opacity='1'; return; }
   st.i++;
   if(st.i>=st.lines.length){ var cb=st.onDone; document.getElementById('rpg-story').style.display='none'; _rpgStoryState=null;

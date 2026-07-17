@@ -2061,6 +2061,18 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-got.rk-SS{ border-color:#fde047; box-shadow:0 0 12px rgba(253,224,71,.45); } .srpg-got.rk-SSS{ border-color:#f87171; box-shadow:0 0 16px rgba(248,113,113,.6); }
   .rk-F,.rk-E{ color:#94a3b8; } .rk-D,.rk-C{ color:#7dd3fc; } .rk-B{ color:#6ee7b7; } .rk-A{ color:#a78bfa; } .rk-S{ color:#f472b6; } .rk-SS{ color:#fde047; } .rk-SSS{ color:#f87171; }
   .srpg-team-scout{ margin-top:8px; background:#3b0764; }
+  /* ガチャえらび（2種類のハブ） */
+  .gacha-pick-coin{ text-align:center; font-weight:900; color:#fde047; font-size:1.05rem; margin:4px 0 10px; }
+  .gacha-pick-card{ display:block; width:100%; text-align:center; border:2px solid rgba(167,139,250,.4); border-radius:18px; padding:18px 14px; margin-bottom:14px; cursor:pointer; font-family:inherit; color:#fff; box-shadow:0 10px 26px rgba(0,0,0,.4); transition:transform .15s var(--spring); }
+  .gacha-pick-card:active{ transform:scale(.97); }
+  .gacha-pick-card.scout{ background:linear-gradient(150deg,#1e1b4b,#3b0764); }
+  .gacha-pick-card.equip{ background:linear-gradient(150deg,#422006,#7c2d12); border-color:rgba(251,191,36,.45); }
+  .gp-faces{ display:flex; justify-content:center; gap:8px; margin-bottom:6px; }
+  .gp-face{ width:54px; height:54px; display:inline-block; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  .gp-face svg, .gp-face canvas{ width:100%; height:100%; }
+  .gp-em{ font-size:40px; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  .gp-t{ font-weight:900; font-size:1.25rem; }
+  .gp-s{ font-weight:700; font-size:.78rem; line-height:1.6; opacity:.9; margin-top:4px; }
   .scout-res{ max-width:460px; }
   /* ストーリー導入カード */
   .srpg-story-card{ width:100%; max-width:440px; background:linear-gradient(180deg,#0f1a2e,#1a1035); border:2px solid rgba(167,139,250,.5); border-radius:18px; padding:24px 20px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.6); cursor:pointer; animation:srpgStoryIn .3s var(--spring); }
@@ -4953,7 +4965,7 @@ var _navTab='home';
 function muNav(dest){
   try{ var _ov=document.getElementById('rpg-gacha-ov'); if(_ov){ _ov.style.display='none'; _ov.className='rpg-gacha-ov'; } if(window.gachaFx) gachaFx.reset(); }catch(e){}   // 画面遷移で前回のガチャ演出を確実に閉じる（残留で操作不能になるのを防ぐ）
   if(dest==='home') showSubjectSelect();
-  else if(dest==='adv') showRpg();
+  else if(dest==='adv') srpgOpen();   // ぼうけん＝タクトバトルに一本化（旧RPGはホームの『大陸ストーリー』から）
   else if(dest==='gacha') showGacha();
   else if(dest==='dress') showCosmetics();
   else if(dest==='rec') showRecords();
@@ -5061,8 +5073,8 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   // ゲームメニュー
   h+='<div class="hub-sec">🎮 あそんで まなぶ</div>';
   h+='<div class="hub-grid">';
-  h+= hubCard('adv','🗡️','ぼうけん','RPGで偏差値65をめざす','showRpg()', true);
-  h+= hubCard('tact','⚔️','タクトバトル','マス目で戦う作戦バトル！弱点教科をつけ','srpgOpen()', true, 'NEW');
+  h+= hubCard('adv','⚔️','ぼうけん','タクトバトルで 偏差値65をめざす！','srpgOpen()', true);
+  h+= hubCard('quest','🗺️','大陸ストーリー','先生をたすける ものがたりクエスト','showRpg()');
   h+= hubCard('prac','✏️','れんしゅう','教科をえらんで10問','hubPickSubject(\'practice\')');
   h+= hubCard('exam','⏱️','模試チャレンジ','本番形式で力だめし','hubPickSubject(\'exam\')');
   h+= hubCard('rev','🔁','ふくしゅう', due>0?('たまってる '+due+'問！'):'今日のふくしゅう','startReviewDue()', false, due>0?due:0);
@@ -7580,7 +7592,31 @@ function _g10Summary(){
 }
 function rpgGachaClose(){ var ov=document.getElementById('rpg-gacha-ov'); if(ov){ ov.classList.remove('open','g10','flash','shake','ultra','legend'); ov.style.display='none'; } try{ if(window.gachaFx) gachaFx.reset(); }catch(e){} try{ if(document.body.classList.contains('rpg-mode')) rpgShowCosmetics(); }catch(e){} try{ rpgAnnounceCollect(); }catch(e){} }
 // 🎁 ガチャ（宝箱ガチャ専用タブ）
+// ガチャえらび（2種類だけ・わかりやすく）：🔮なかまスカウト ／ 🎁そうびガチャ
 function showGacha(){
+  try{ sfx('click'); }catch(e){}
+  rpgBattle=null; rpgHideBattle(); hideMainScreens();
+  document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
+  document.getElementById('rpg-result-view').style.display='none';
+  var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
+  setActiveTab('gacha');
+  var coin=0; try{ coin=rpgCoin(); }catch(e){}
+  var scoutFaces=['dragon','slugking','villain'].map(function(a){ return '<span class="gp-face">'+((typeof srpgMonArt==='function'&&srpgMonArt(a))||_monStill(a))+'</span>'; }).join('');
+  var h='<div class="rpg-world-title">🎁 ガチャ</div>';
+  h+='<div class="gacha-pick-coin">🪙 <b>'+coin+'</b></div>';
+  h+='<button class="gacha-pick-card scout" onclick="srpgScoutDirect()">'
+    +'<div class="gp-faces">'+scoutFaces+'</div>'
+    +'<div class="gp-t">🔮 なかまスカウト</div>'
+    +'<div class="gp-s">モンスターを なかまにして ぼうけんの戦力に！<br>ランクF〜SSS ・ 10連はAランク以上かくてい</div></button>';
+  h+='<button class="gacha-pick-card equip" onclick="showGachaEquip()">'
+    +'<div class="gp-faces"><span class="gp-em">👑</span><span class="gp-em">🗡️</span><span class="gp-em">🦋</span></div>'
+    +'<div class="gp-t">🎁 そうびガチャ</div>'
+    +'<div class="gp-s">勇者の きせかえ・そうびを あつめよう！<br>そうびは タクトの つよさにも はんえい</div></button>';
+  mv.innerHTML=h;
+  try{ _char3dHydrateSafe(mv); }catch(e){}
+}
+function srpgScoutDirect(){ srpgOpen(); try{ srpgScoutScreen(); }catch(e){} }
+function showGachaEquip(){
   try{ sfx('click'); }catch(e){}
   rpgBattle=null; rpgHideBattle(); hideMainScreens();
   document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
@@ -7633,7 +7669,7 @@ function showGacha(){
   mv.innerHTML=h;
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
-function gachaSetBanner(id){ _gachaBanner=id; try{ sfx('click'); }catch(e){} showGacha(); }
+function gachaSetBanner(id){ _gachaBanner=id; try{ sfx('click'); }catch(e){} showGachaEquip(); }
 // 🎫 スタンプカード：ひいた回数を記録（10回でチケット1まい。数学はgacha-story.jsのgachaStamps）
 function _gachaBumpPulls(n){ try{ safeLS.setItem('gacha_pulls', String((parseInt(safeLS.getItem('gacha_pulls')||'0',10)||0)+(n||1))); }catch(e){} }
 function gachaStampClaim(){
@@ -7643,7 +7679,7 @@ function gachaStampClaim(){
   var s=rpgState(), cos=rpgCosState(s); cos.tickets=(cos.tickets||0)+1; rpgSave(s);
   try{ sfx('fanfare'); confetti(); }catch(e){}
   showToast('🎟️','スタンプカードが いっぱい！','無料チケット 1まい ゲット！');
-  showGacha();
+  showGachaEquip();
 }
 // ⭐ ねがいごと：セット単位の目標。出たら開封カードでお知らせ・かなったら（セット完成）はれて解除
 function gachaWishSet(id){
@@ -7677,7 +7713,7 @@ function gachaShowShop(){
   var s=rpgState(), cos=rpgCosState(s);
   var lineup=[];
   try{ lineup=gachaShopLineup(_gachaPool().map(function(p){ return p.it; }), todayKey()); }catch(e){}
-  var h='<button class="rpg-back" onclick="showGacha()">← ガチャにもどる</button>';
+  var h='<button class="rpg-back" onclick="showGachaEquip()">← ガチャにもどる</button>';
   h+='<div class="rpg-world-title">🛒 たぬすけのお店</div>';
   h+='<div class="gc-merchant"><span class="gc-m-face">🦝</span><span class="gc-m-bubble">いらっしゃい！ きょうの品ぞろえじゃ。あしたには 入れかわるぞ</span></div>';
   h+='<div class="rpg-coin-bar">🪙 もっているコイン：<b>'+cos.coin+'</b>　<span class="rpg-coin-hint">ダブりや バトルで たまるよ</span></div>';
@@ -7717,7 +7753,7 @@ function gachaShowOdds(){
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
   var rt=_gachaRates(_gachaBanner);
   var _bn=null; GACHA_BANNERS.forEach(function(b){ if(b.id===_gachaBanner) _bn=b; });
-  var h='<button class="rpg-back" onclick="showGacha()">← ガチャにもどる</button>';
+  var h='<button class="rpg-back" onclick="showGachaEquip()">← ガチャにもどる</button>';
   h+='<div class="rpg-world-title">📊 くわしい かくりつ</div>';
   if(_bn) h+='<div class="rpg-map-hint">いま選んでいる宝箱：'+_bn.em+' '+_bn.name+'</div>';
   h+='<div class="gc-odds-card"><div class="gc-odds-ttl">アイテム（'+rt.total+'種）</div><table class="gc-odds-tbl">';

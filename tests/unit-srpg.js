@@ -652,4 +652,15 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.ok('空配列はnull', S.srpgScoutArt(0.5, [], []) === null);
 }
 
+// ================= 第16弾：メダル交換所＆なかま図鑑 =================
+{
+  c.eq('メダル交換：通常50枚', S.srpgMedalCost('wolf'), 50);
+  c.eq('メダル交換：魔王150枚', S.srpgMedalCost('villain'), 150);
+  const p = S.srpgDexProgress({ wolf:1, slime:1, ghost:0 }, 22);
+  c.eq('図鑑進捗：met数', p.count, 2);
+  c.eq('図鑑進捗：%', p.pct, Math.round(2/22*100));
+  c.ok('節目報酬は3段階・needが昇順', S.SRPG_DEX_REWARDS.length === 3 && S.SRPG_DEX_REWARDS[0].need < S.SRPG_DEX_REWARDS[2].need);
+  c.ok('最終節目は全22種', S.SRPG_DEX_REWARDS[2].need === 22);
+}
+
 c.done();

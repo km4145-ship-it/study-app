@@ -488,6 +488,21 @@ function srpgScoutTen(rng){
   if(!out.some(function(k){ return HI[k]; })) out[9] = 'A';
   return out;
 }
+// ===== スカウトメダル交換所：1回引くごとに1枚→ためると好きな種と交換（ダブり救済の最終形） =====
+var SRPG_MEDAL_COST = { normal:50, villain:150 };
+function srpgMedalCost(art){ return art === 'villain' ? SRPG_MEDAL_COST.villain : SRPG_MEDAL_COST.normal; }
+// なかま図鑑の進捗（met=これまでに仲間にした種の集合）
+function srpgDexProgress(metArts, total){
+  var count = Object.keys(metArts || {}).filter(function(k){ return metArts[k]; }).length;
+  return { count:count, total:total, pct: total ? Math.round(count / total * 100) : 0 };
+}
+// 図鑑の節目ほうび（受領フラグは cos.dexRw に union 保存）
+var SRPG_DEX_REWARDS = [
+  { id:'d8',  need:8,  coin:300,  label:'8種で 🪙300' },
+  { id:'d15', need:15, coin:800,  label:'15種で 🪙800' },
+  { id:'d22', need:22, coin:2000, label:'ぜんぶ（22種）で 🪙2000' }
+];
+
 // ===== 天井（ピティ）：ハズレ続きの救済＝スカウト30回で SS以上を1体かくてい =====
 var SRPG_SCOUT_PITY_MAX = 30;
 function srpgScoutApplyPity(ranks, pityBefore, pityMax){
@@ -745,6 +760,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
     SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,
     SRPG_SCOUT_PITY_MAX: SRPG_SCOUT_PITY_MAX, srpgScoutApplyPity: srpgScoutApplyPity, srpgScoutPickups: srpgScoutPickups, srpgScoutArt: srpgScoutArt,
+    SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS,
     srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
     SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse
   };

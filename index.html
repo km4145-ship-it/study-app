@@ -2080,6 +2080,20 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-log-art{ width:30px; height:30px; flex:0 0 auto; }
   .srpg-log-art svg, .srpg-log-art canvas{ width:100%; height:100%; }
   .srpg-log-new{ font-style:normal; font-size:.58rem; font-weight:900; background:#f59e0b; color:#451a03; border-radius:999px; padding:1px 5px; margin-left:auto; }
+  /* メダル交換所＆なかま図鑑 */
+  .srpg-med-have{ text-align:center; font-weight:900; color:#fde047; margin:6px 0 10px; }
+  .srpg-med-grid, .srpg-dex-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; }
+  .srpg-med-cell, .srpg-dex-cell{ background:rgba(148,163,184,.1); border:1px solid rgba(148,163,184,.3); border-radius:12px; padding:7px 4px; text-align:center; }
+  .srpg-med-art, .srpg-dex-art{ width:52px; height:56px; margin:0 auto; }
+  .srpg-med-art svg, .srpg-med-art canvas, .srpg-dex-art svg, .srpg-dex-art canvas{ width:100%; height:100%; }
+  .srpg-med-nm, .srpg-dex-nm{ font-size:.64rem; font-weight:800; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:2px 0 4px; }
+  .srpg-med-btn{ width:100%; border:none; border-radius:9px; padding:6px 0; font-weight:900; font-family:inherit; cursor:pointer; background:linear-gradient(135deg,#f59e0b,#db2777); color:#fff; font-size:.74rem; }
+  .srpg-med-btn.off{ background:#334155; color:#64748b; cursor:not-allowed; }
+  .srpg-dex-cell:not(.got) .srpg-dex-art{ filter:brightness(0) opacity(.55); }
+  .srpg-dex-cell.got{ border-color:rgba(110,231,183,.45); }
+  .srpg-dex-prog{ text-align:center; font-weight:900; color:#fff; max-width:340px; margin:0 auto 8px; }
+  .srpg-dex-rw{ display:flex; flex-direction:column; gap:3px; text-align:center; font-size:.74rem; font-weight:800; color:#cbd5e1; margin-bottom:10px; }
+  .srpg-dex-rw .done{ color:#6ee7b7; }
   /* ガチャえらび（2種類のハブ） */
   .gacha-pick-coin{ text-align:center; font-weight:900; color:#fde047; font-size:1.05rem; margin:4px 0 10px; }
   .gacha-pick-card{ display:block; width:100%; text-align:center; border:2px solid rgba(167,139,250,.4); border-radius:18px; padding:18px 14px; margin-bottom:14px; cursor:pointer; font-family:inherit; color:#fff; box-shadow:0 10px 26px rgba(0,0,0,.4); transition:transform .15s var(--spring); }

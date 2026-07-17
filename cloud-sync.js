@@ -93,6 +93,11 @@ window.FIREBASE_CONFIG = {
     if(x.welcome||y.welcome) o.welcome=1;   // 初回100コインボーナスの再付与を防ぐ
     if(x.pity!=null||y.pity!=null) o.pity=Math.max(parseInt(x.pity||0,10)||0, parseInt(y.pity||0,10)||0);  // ガチャ天井カウンタを保全
     if(x.scoutPity!=null||y.scoutPity!=null) o.scoutPity=Math.max(parseInt(x.scoutPity||0,10)||0, parseInt(y.scoutPity||0,10)||0);  // スカウト天井も保全
+    if(x.scoutMedals!=null||y.scoutMedals!=null) o.scoutMedals=Math.max(parseInt(x.scoutMedals||0,10)||0, parseInt(y.scoutMedals||0,10)||0);  // メダルはmax（コインと同じ方針）
+    var metDex={}; [x.metDex,y.metDex].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) metDex[k]=1; }); } });
+    if(Object.keys(metDex).length) o.metDex=metDex;   // 図鑑は合算（出会いは消えない）
+    var dexRw={}; [x.dexRw,y.dexRw].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) dexRw[k]=1; }); } });
+    if(Object.keys(dexRw).length) o.dexRw=dexRw;      // 節目ほうび受領も合算（二重受取を防ぐ）
     var titles={}; [x.titles,y.titles].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) titles[k]=o2[k]; }); } });
     if(Object.keys(titles).length) o.titles=titles;                       // 手に入れた称号は端末間で合算
     var sets={}; [x.sets,y.sets].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) sets[k]=o2[k]; }); } });

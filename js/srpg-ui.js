@@ -1062,8 +1062,10 @@ function srpgScoutScreen(){
     + '<button class="rpg-btn" onclick="srpgScoutDo(1)">1回 スカウト<br><small>🪙'+SRPG_SCOUT_COST.one+'</small></button>'
     + '<button class="rpg-btn srpg-shop-ten" onclick="srpgScoutDo(10)">10連 スカウト<br><small>🪙'+SRPG_SCOUT_COST.ten+' ・ Aランク以上 1体かくてい</small></button>'
     + '</div>'
-    + '<div class="srpg-shop-links"><button class="srpg-mini2" onclick="srpgScoutOdds()">📋 確率をみる</button>'
-    + '<button class="srpg-mini2" onclick="srpgScoutLog()">📜 これまでの けっか</button></div>'
+    + '<div class="srpg-shop-links"><button class="srpg-mini2" onclick="srpgScoutOdds()">📋 確率</button>'
+    + '<button class="srpg-mini2" onclick="srpgScoutLog()">📜 きろく</button>'
+    + '<button class="srpg-mini2" onclick="srpgMedalShop()">🎖️ こうかんじょ</button>'
+    + '<button class="srpg-mini2" onclick="srpgDexScreen()">📖 ずかん</button></div>'
     + '<button class="srpg-mini" onclick="srpgTeamScreen()">← 編成へもどる</button>'
     + '</div>';
   try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
@@ -1103,6 +1105,8 @@ function srpgScoutDo(n, useFree){
   // 天井：ハズレ続きでも SRPG_SCOUT_PITY_MAX 回で SS以上を保証（SS以上が出たらリセット）
   var pityRes = srpgScoutApplyPity(ranks, cos.scoutPity || 0, SRPG_SCOUT_PITY_MAX);
   ranks = pityRes.ranks; cos.scoutPity = pityRes.pity;
+  cos.scoutMedals = (cos.scoutMedals || 0) + ranks.length;   // 🎖️1回=1枚（交換所用・ダブり救済の最終形）
+  if(!cos.metDex) cos.metDex = {};
   var picks = srpgScoutPickups(_srpgWeekKey());
   var got = [];
   ranks.forEach(function(rank){
@@ -1116,6 +1120,7 @@ function srpgScoutDo(n, useFree){
     var isNew = !Object.keys(ai.roster).some(function(k){ return ai.roster[k] && ai.roster[k].art === art; });
     var mon = { id:id, art:art, sp:sp, rank:rank, lv:1, xp:0, name:name };
     ai.roster[id] = mon;
+    cos.metDex[art] = 1;   // 図鑑：この種に出会った
     got.push({ rank:rank, mon:mon, isNew:isNew });
   });
   rpgSave(s);
@@ -1135,6 +1140,94 @@ function srpgScoutDo(n, useFree){
     }
   });
 }
+// ================= 🎖️メダル交換所＆📖なかま図鑑 =================
+function _srpgAllDexArts(){ return Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && !/2$/.test(a); }); }
+function _srpgMetDex(){
+  // 図鑑＝これまでに仲間にした種（cos.metDex）。現ロスターからも補完（過去分の救済）
+  var s = rpgState(), cos = rpgCosState(s), ai = rpgAibouState(s);
+  if(!cos.metDex) cos.metDex = {};
+  var changed = false;
+  Object.keys(ai.roster).forEach(function(id){ var a = ai.roster[id]; if(a && a.art && !cos.metDex[a.art] && !/2$/.test(a.art) && a.art!=='pet'){ cos.metDex[a.art] = 1; changed = true; } });
+  if(changed) rpgSave(s);
+  return cos.metDex;
+}
+function srpgMedalShop(){
+  srpgB = null;
+  var s = rpgState(), cos = rpgCosState(s);
+  var medals = cos.scoutMedals || 0;
+  document.getElementById('srpg-title').textContent = 'こうかんじょ';
+  var arts = _srpgAllDexArts();
+  var cells = arts.map(function(a){
+    var art = (typeof srpgMonArt==='function' && srpgMonArt(a)) || _monStill(a);
+    var cost = srpgMedalCost(a);
+    var name = (SRPG_ENEMY_TEMPLATES[a] && SRPG_ENEMY_TEMPLATES[a].name) || a;
+    var ok = medals >= cost;
+    return '<div class="srpg-med-cell"><div class="srpg-med-art">'+art+'</div>'
+      + '<div class="srpg-med-nm">'+escapeHtml(name)+'</div>'
+      + '<button class="srpg-med-btn'+(ok?'':' off')+'" '+(ok?('onclick="srpgMedalBuy(\''+a+'\')"'):'disabled')+'>🎖️'+cost+'</button></div>';
+  }).join('');
+  document.getElementById('srpg-body').innerHTML =
+    '<div class="srpg-medshop">'
+    + '<div class="srpg-select-lead">🎖️ メダル こうかんじょ<br><small>スカウト1回で メダル1枚。ためると すきな なかまと 交換できるよ（Aランク・魔王はSランク）</small></div>'
+    + '<div class="srpg-med-have">もっているメダル 🎖️ <b>'+medals+'</b></div>'
+    + '<div class="srpg-med-grid">'+cells+'</div>'
+    + '<button class="srpg-mini" onclick="srpgScoutScreen()">← スカウトへもどる</button></div>';
+  try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+function srpgMedalBuy(art){
+  try{ sfx('click'); }catch(e){}
+  var s = rpgState(), cos = rpgCosState(s), ai = rpgAibouState(s);
+  var cost = srpgMedalCost(art);
+  if((cos.scoutMedals||0) < cost) return;
+  if(Object.keys(ai.roster).length >= AIBOU_ROSTER_MAX){ try{ showToast('🐾','なかまが いっぱいだよ','ロスターを あけてから 交換してね'); }catch(e){} return; }
+  var name = (SRPG_ENEMY_TEMPLATES[art] && SRPG_ENEMY_TEMPLATES[art].name) || 'なかま';
+  if(!confirm('🎖️ メダル'+cost+'枚で「'+name+'」と 交換しますか？')) return;
+  cos.scoutMedals -= cost;
+  var rank = (art === 'villain') ? 'S' : 'A';
+  var sp = aibouRollSpecies(art, art==='villain' ? 'boss' : 'zako', undefined, false);
+  var id = 'm' + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36);
+  var mon = { id:id, art:art, sp:sp, rank:rank, lv:1, xp:0, name:name };
+  ai.roster[id] = mon;
+  if(!cos.metDex) cos.metDex = {};
+  cos.metDex[art] = 1;
+  rpgSave(s);
+  try{ sfx('fanfare'); if(typeof confetti==='function') confetti(); }catch(e){}
+  srpgScoutReveal(mon, function(){ srpgMedalShop(); });
+}
+function srpgDexScreen(){
+  srpgB = null;
+  var met = _srpgMetDex();
+  var s = rpgState(), cos = rpgCosState(s);
+  var arts = _srpgAllDexArts();
+  var prog = srpgDexProgress(met, arts.length);
+  document.getElementById('srpg-title').textContent = 'なかま ずかん';
+  if(!cos.dexRw) cos.dexRw = {};
+  var rwMsg = '';
+  SRPG_DEX_REWARDS.forEach(function(r){
+    if(prog.count >= r.need && !cos.dexRw[r.id]){
+      cos.dexRw[r.id] = 1; cos.coin = (cos.coin||0) + r.coin;
+      rwMsg += '<div class="srpg-res-line scout">🎉 ずかん '+r.need+'種 たっせい！ 🪙+'+r.coin+'</div>';
+    }
+  });
+  if(rwMsg){ rpgSave(s); try{ sfx('fanfare'); if(typeof confetti==='function') confetti(); }catch(e){} }
+  var cells = arts.map(function(a){
+    var got = !!met[a];
+    var art = (typeof srpgMonArt==='function' && srpgMonArt(a)) || _monStill(a);
+    var name = got ? ((SRPG_ENEMY_TEMPLATES[a] && SRPG_ENEMY_TEMPLATES[a].name) || a) : '？？？';
+    return '<div class="srpg-dex-cell'+(got?' got':'')+'"><div class="srpg-dex-art">'+art+'</div><div class="srpg-dex-nm">'+escapeHtml(name)+'</div></div>';
+  }).join('');
+  var rwList = SRPG_DEX_REWARDS.map(function(r){ return '<span class="'+(cos.dexRw[r.id]?'done':'')+'">'+(cos.dexRw[r.id]?'✅':'🎁')+' '+r.label+'</span>'; }).join('');
+  document.getElementById('srpg-body').innerHTML =
+    '<div class="srpg-dex">'
+    + '<div class="srpg-select-lead">📖 なかま ずかん<br><small>これまでに 仲間にした モンスターの きろく</small></div>'
+    + '<div class="srpg-dex-prog"><div class="srpg-pity-bar"><i style="width:'+prog.pct+'%"></i></div><b>'+prog.count+' / '+prog.total+'</b> しゅるい</div>'
+    + rwMsg
+    + '<div class="srpg-dex-rw">'+rwList+'</div>'
+    + '<div class="srpg-dex-grid">'+cells+'</div>'
+    + '<button class="srpg-mini" onclick="srpgScoutScreen()">← スカウトへもどる</button></div>';
+  try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+
 // ===== 召喚シネマティック：暗転→多重魔法陣チャージ→ランク色予告→爆発→結果 =====
 var SRPG_TIER_COLOR = { low:'#38bdf8', A:'#a78bfa', S:'#f472b6', SS:'#fde047', SSS:'#f87171' };
 function _scoutTier(best){

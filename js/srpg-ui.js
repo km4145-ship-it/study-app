@@ -634,9 +634,9 @@ function srpgResolveAttack(correct){
   srpgRender();
   // ここから演出（描画のあと＝消えない）
   srpgAtkAnim(actor);
+  srpgSkillFx(sk, srpgB.subject, cells, tgt.x, tgt.y);   // ④ とくぎ固有エフェクト
   var anyHit = false;
   fx.forEach(function(ev){
-    srpgSlashAt(ev.x, ev.y, srpgB.subject, ev.hit==='crit');
     if(ev.hit==='hit' || ev.hit==='crit'){ srpgFlashSprite(ev.id, 'hit'); srpgShakeTile(ev.x, ev.y); anyHit = true; }
     if(ev.hit==='heal') srpgFlashSprite(ev.id, 'heal');
     srpgPopupAt(ev.x, ev.y, ev.text, ev.cls);
@@ -759,7 +759,8 @@ function srpgEnemySkillApply(enemy, act, sk){
   });
   srpgRender();
   srpgAtkAnim(enemy);
-  cells.forEach(function(c){ srpgSlashAt(c.x, c.y, 'math', true); });
+  var _c = act.center || (cells[0] || { x:enemy.x, y:enemy.y });
+  srpgSkillFx(sk, null, cells, _c.x, _c.y);   // ④ 敵とくぎも固有エフェクト
   fx.forEach(function(ev){
     srpgFlashSprite(ev.id, 'hit'); srpgShakeTile(ev.x, ev.y);
     srpgPopupAt(ev.x, ev.y, ev.dmg, 'dmg-e');
@@ -811,7 +812,7 @@ function srpgEnd(outcome){
   var win = outcome==='win';
   var coin = 30 + srpgB.stage.enemies.length * 15;
   var xp = 40 + srpgB.stage.enemies.length * 20;
-  var extra = '';
+  var extra = '', scout = null;
   if(win){
     srpgMarkCleared(srpgB.stageId);
     // ごほうび：コインとXP（既存RPGの経済＝rpgState/cosに合流）
@@ -823,14 +824,24 @@ function srpgEnd(outcome){
     // 収集連動：出撃した仲間が成長＋敵をスカウト
     var grew = srpgGrowUsedAibou(srpgB.units);
     grew.forEach(function(g){ extra += '<div class="srpg-res-line grow">🍖 '+escapeHtml(g.name)+' が Lv'+g.lv+' に せいちょう！</div>'; });
-    var sc = srpgScoutReward(srpgB.stage);
-    if(sc && sc.mon){ extra += '<div class="srpg-res-line scout">🎉 '+escapeHtml(sc.mon.name)+'（'+sc.mon.rank+'）が なかまに なった！'+(sc.inParty?'（パーティ入り）':'')+'</div>'; }
-    else if(sc && sc.full){ extra += '<div class="srpg-res-line">🐾 なかまが いっぱい…🍖エサ+10</div>'; }
+    scout = srpgScoutReward(srpgB.stage);
+    if(scout && scout.mon){ extra += '<div class="srpg-res-line scout">🎉 '+escapeHtml(scout.mon.name)+'（'+scout.mon.rank+'）が なかまに なった！'+(scout.inParty?'（パーティ入り）':'')+'</div>'; }
+    else if(scout && scout.full){ extra += '<div class="srpg-res-line">🐾 なかまが いっぱい…🍖エサ+10</div>'; }
     try{ updateResBar(); }catch(e){}
     try{ if(typeof bgmPlay==='function') bgmPlay('map'); }catch(e){}
   }
+  // ⑤ 勝利の決めポーズ：生き残った味方が とびはねる（リーダーは大きく中央）
+  var vic = '';
+  if(win){
+    var alive = srpgB.units.filter(function(u){ return u.side==='ally' && !u.downed; });
+    var mems = alive.map(function(u, i){
+      return '<div class="srpg-vic-mem'+(u.isLeader?' lead':'')+'" style="animation-delay:'+(i*0.09).toFixed(2)+'s">'+srpgUnitArt(u)+'</div>';
+    }).join('');
+    vic = '<div class="srpg-vic-stage"><div class="srpg-vic-burst"></div><div class="srpg-vic-party">'+mems+'</div></div>';
+  }
   var body = document.getElementById('srpg-body');
   var card = '<div class="srpg-result '+(win?'win':'lose')+'">'
+    + vic
     + '<div class="srpg-result-em">'+(win?'🏆':'💫')+'</div>'
     + '<div class="srpg-result-t">'+(win?'しょうり！':'まけてしまった…')+'</div>'
     + '<div class="srpg-result-s">'+(win?('🪙コイン +'+coin+' ／ けいけんち +'+xp):'もういちど ちょうせんしよう！')+'</div>'
@@ -843,6 +854,8 @@ function srpgEnd(outcome){
   body.insertAdjacentHTML('beforeend', '<div class="srpg-result-wrap">'+card+'</div>');
   try{ sfx(win?'levelup':'wrong'); }catch(e){}
   if(win){ try{ if(typeof confetti==='function') confetti(); }catch(e){} }
+  // ③ スカウトした仲間の「登場演出」（結果カードの上に出す）
+  if(win && scout && scout.mon){ try{ srpgScoutReveal(scout.mon); }catch(e){} }
 }
 function srpgClose(){
   srpgB = null;
@@ -916,6 +929,45 @@ function srpgVsIntro(a, b, onDone){
   sc.appendChild(el);
   try{ sfx('levelup'); }catch(e){}
   setTimeout(function(){ try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); }, 1150);
+}
+// ③ スカウトした仲間の登場演出（大アートが回転しながら光の中に登場）
+function srpgScoutReveal(mon, onDone){
+  var sc = document.getElementById('srpg-screen');
+  if(!sc || !mon){ if(onDone) onDone(); return; }
+  var art = ((typeof srpgMonArt==='function' && srpgMonArt(mon.art)) || (typeof _monStill==='function' && _monStill(mon.art)) || '👾');
+  var el = document.createElement('div'); el.className = 'srpg-scout';
+  el.innerHTML = '<div class="srpg-scout-rays"></div>'
+    + '<div class="srpg-scout-art">'+art+'</div>'
+    + '<div class="srpg-scout-cap">🎉 なかまが あらわれた！</div>'
+    + '<div class="srpg-scout-nm">'+escapeHtml(mon.name)+' <span>'+escapeHtml(mon.rank||'')+'</span></div>'
+    + '<div class="srpg-scout-tap">タップして つづける ▶</div>';
+  var done = false, fin = function(){ if(done) return; done = true; try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); };
+  el.onclick = fin;
+  sc.appendChild(el);
+  try{ sfx('fanfare'); if(typeof confetti==='function') confetti(); }catch(e){}
+  setTimeout(fin, 2800);
+}
+// ④ とくぎごとの固有エフェクト（形・状態異常で見た目を変える）
+function srpgSkillFx(sk, subj, cells, cx, cy){
+  var col = subj ? ((srpgSubjectMeta(subj) || {}).color || '#f87171') : '#f87171';
+  var shape = sk ? sk.shape : 'single';
+  if(shape === 'burst'){
+    srpgFxOverlay(cx, cy, 'fx-burst', '<span class="fx-burst-ring" style="--c:'+col+'"></span><span class="fx-burst-core" style="--c:'+col+'"></span>', 720);
+    cells.forEach(function(c){ srpgFxOverlay(c.x, c.y, 'fx-spark', '', 560); });
+  } else if(shape === 'line3'){
+    cells.forEach(function(c){ srpgFxOverlay(c.x, c.y, 'fx-beam', '<span class="fx-beam-l" style="--c:'+col+'"></span>', 520); });
+  } else if(shape === 'cross'){
+    cells.forEach(function(c){ srpgSlashAt(c.x, c.y, subj, false); });
+  } else {
+    srpgSlashAt(cx, cy, subj, false);
+  }
+  // 状態異常つきは色つきのしるしを重ねる
+  if(sk && sk.inflict){
+    var K = sk.inflict.kind;
+    var ov = K==='poison' ? { c:'fx-poison', e:'☠️' } : K==='paralyze' ? { c:'fx-zap', e:'⚡' }
+      : K==='sleep' ? { c:'fx-sleep', e:'💤' } : K==='seal' ? { c:'fx-seal', e:'🚫' } : null;
+    if(ov) cells.forEach(function(c){ srpgFxOverlay(c.x, c.y, ov.c, ov.e, 720); });
+  }
 }
 function srpgToast(t, s){
   try{ if(typeof showToast==='function'){ showToast('', t, s||''); return; } }catch(e){}

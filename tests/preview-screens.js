@@ -46,6 +46,8 @@ const SCREENS = [
   { name: 'srpgdeploy',drive: "srpgOpen(); setTimeout(function(){ srpgStart('arena1'); }, 60)", wait: 1500 },  // 配置フェーズ（自陣ゾーン）
   { name: 'srpgblock', drive: "srpgOpen(); setTimeout(function(){ srpgStart('q_maou'); }, 60); setTimeout(function(){ for(var i=0;i<9;i++) srpgStoryStep(); }, 500); setTimeout(function(){ try{ srpgBattleBegin(); }catch(e){} }, 950)", wait: 2900 },  // 障害物（水）つき魔王城
   { name: 'srpginfo',  wait: 1200, drive: "srpgOpen(); setTimeout(function(){ srpgStart('arena1'); }, 60); setTimeout(function(){ try{ var v=srpgB.units.filter(function(u){return u.side==='enemy';})[0]; srpgShowUnitInfo(v.id); }catch(e){ document.title='E:'+e.message; } }, 1500)" },  // ユニット詳細パネル
+  { name: 'srpgshop',  wait: 900, drive: "srpgOpen(); setTimeout(function(){ srpgScoutScreen(); }, 300)" },  // スカウトガチャ
+  { name: 'srpgten',   wait: 1400, drive: "srpgOpen(); setTimeout(function(){ srpgScoutScreen(); }, 300); setTimeout(function(){ try{ srpgScoutDo(10); }catch(e){ document.title='E:'+e.message; } }, 900)" },  // 10連の結果
   { name: 'srpgbtl',   drive: "srpgOpen(); setTimeout(function(){ srpgStart('q_science'); }, 60); setTimeout(function(){ for(var i=0;i<6;i++) srpgStoryStep(); }, 500); setTimeout(function(){ try{ srpgBattleBegin(); }catch(e){} }, 950)", wait: 2900 },  // 地形（毒沼）つき盤面
 ];
 

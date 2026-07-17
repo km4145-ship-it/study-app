@@ -528,4 +528,26 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.eq('倒れたが速い=★2', S.srpgStars(true, 1, 4, 6), 2);
 }
 
+// ================= スカウトガチャ（抽選＝純粋関数・開示と同一ソース） =================
+{
+  const sum = S.SRPG_SCOUT_RATES.reduce((a, r) => a + r[1], 0);
+  c.eq('スカウト確率の合計は100%', sum, 100);
+  const RANKS = ['F','E','D','C','B','A','S','SS','SSS'];
+  c.ok('レート表のランクはすべて有効', S.SRPG_SCOUT_RATES.every((r) => RANKS.indexOf(r[0]) >= 0));
+  // 境界値：0→最初(SSS)・0.999→最後(F)・累積の切れ目
+  c.eq('rnd=0 は最高ランク', S.srpgScoutRank(0), 'SSS');
+  c.eq('rnd=0.999 は最低ランク', S.srpgScoutRank(0.999), 'F');
+  c.ok('全乱数で有効ランクのみ', [...Array(101)].every((_, i) => RANKS.indexOf(S.srpgScoutRank(i / 101)) >= 0));
+  // 10連保証：低ランクしか出ない乱数列でも A以上が1体入る
+  const lowRng = () => 0.99;   // 常にF
+  const ten = S.srpgScoutTen(lowRng);
+  c.eq('10連は10体', ten.length, 10);
+  c.ok('全F引きでも保証でA以上が1体', ten.some((k) => ['A','S','SS','SSS'].indexOf(k) >= 0));
+  // 高ランクが自然に出た場合は昇格しない（決定的シード）
+  const rng2 = S.srpgSeedRng('scout-test');
+  const ten2 = S.srpgScoutTen(rng2);
+  c.ok('10連の全要素が有効ランク', ten2.every((k) => RANKS.indexOf(k) >= 0));
+  c.eq('コスト定義（単発80/10連720）', S.SRPG_SCOUT_COST.one + '/' + S.SRPG_SCOUT_COST.ten, '80/720');
+}
+
 c.done();

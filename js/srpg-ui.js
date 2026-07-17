@@ -111,6 +111,7 @@ function srpgTeamScreen(){
   if(!list.length) h += '<div class="srpg-tm-empty">まだ あいぼうが いないよ。<br>「🗡️ぼうけん」で バトルに かつと なかまが ふえる！</div>';
   h += '</div>';
   h += '<button class="rpg-btn srpg-team-go" onclick="srpgTeamConfirm()">この編成で 出撃！ →</button>';
+  h += '<button class="rpg-btn ghost srpg-team-scout" onclick="srpgScoutScreen()">🔮 スカウト（なかまを ふやす）</button>';
   h += '</div>';
   document.getElementById('srpg-body').innerHTML = h;
   try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
@@ -1000,6 +1001,98 @@ function srpgClose(){
   var sc = document.getElementById('srpg-screen'); if(sc) sc.style.display='none';
   var bar = document.getElementById('mu-tabbar'); if(bar) bar.classList.remove('mu-hidden');
   try{ muNav('home'); }catch(e){ try{ renderGameHub(); }catch(e2){} }
+}
+
+// ================= スカウトガチャ（コインで仲間モンスターを引く） =================
+function _scoutArts(rank){
+  // 引けるアート：あいぼう化できる全種（petは除外・魔王はSSSのときだけ）
+  var arts = Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && a!=='villain' && !/2$/.test(a); });
+  if(rank==='SSS') arts.push('villain');
+  return arts;
+}
+function srpgScoutScreen(){
+  srpgB = null;
+  var coin = 0; try{ coin = rpgCoin(); }catch(e){}
+  document.getElementById('srpg-title').textContent = 'スカウト';
+  var faces = ['dragon','slugking','tokiou','villain'].map(function(a){ return '<span class="srpg-sc-mon">'+((typeof srpgMonArt==='function'&&srpgMonArt(a))||_monStill(a))+'</span>'; }).join('');
+  document.getElementById('srpg-body').innerHTML =
+    '<div class="srpg-scout-shop">'
+    + '<div class="srpg-shop-hero"><div class="srpg-shop-circle"></div><div class="srpg-shop-faces">'+faces+'</div>'
+    + '<div class="srpg-shop-t">🔮 なかまスカウト</div>'
+    + '<div class="srpg-shop-s">コインで つよい なかまを むかえよう！<br>SSSランクなら 魔王も なかまに…！？</div></div>'
+    + '<div class="srpg-shop-coin">🪙 <b>'+coin+'</b></div>'
+    + '<div class="srpg-shop-btns">'
+    + '<button class="rpg-btn" onclick="srpgScoutDo(1)">1回 スカウト<br><small>🪙'+SRPG_SCOUT_COST.one+'</small></button>'
+    + '<button class="rpg-btn srpg-shop-ten" onclick="srpgScoutDo(10)">10連 スカウト<br><small>🪙'+SRPG_SCOUT_COST.ten+' ・ Aランク以上 1体かくてい</small></button>'
+    + '</div>'
+    + '<button class="srpg-mini2" onclick="srpgScoutOdds()">📋 確率をみる</button>'
+    + '<button class="srpg-mini" onclick="srpgTeamScreen()">← 編成へもどる</button>'
+    + '</div>';
+  try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+function srpgScoutOdds(){
+  var ov = document.getElementById('srpg-ask'); if(!ov) return;
+  var rows = SRPG_SCOUT_RATES.map(function(r){
+    return '<div class="srpg-odds-row"><b class="rk-'+r[0]+'">'+r[0]+'</b><span>'+r[1]+'%</span></div>';
+  }).join('');
+  ov.innerHTML = '<div class="srpg-ui-card"><div class="srpg-ui-sec">スカウトの確率（合計100%）</div>'+rows
+    + '<div class="srpg-odds-note">・10連は Aランク以上が 1体かくてい<br>・なかまが いっぱい（50体）のときは かわりに 🍖エサ+5</div>'
+    + '<button class="rpg-btn ghost srpg-ui-close" onclick="srpgCloseUnitInfo()">とじる</button></div>';
+  ov.style.display = 'flex';
+}
+function srpgScoutDo(n){
+  try{ sfx('click'); }catch(e){}
+  var cost = (n === 10) ? SRPG_SCOUT_COST.ten : SRPG_SCOUT_COST.one;
+  var s, cos;
+  try{ s = rpgState(); cos = rpgCosState(s); }catch(e){ return; }
+  if((cos.coin||0) < cost){ try{ sfx('wrong'); showToast('🪙','コインが たりないよ','バトルの しょうりや デイリーで ためよう'); }catch(e){} return; }
+  cos.coin -= cost;
+  var ai = rpgAibouState(s);
+  var ranks = (n === 10) ? srpgScoutTen(Math.random) : [srpgScoutRank(Math.random())];
+  var got = [];
+  ranks.forEach(function(rank){
+    var full = Object.keys(ai.roster).length >= AIBOU_ROSTER_MAX;
+    if(full){ ai.food = (ai.food||0) + 5; got.push({ rank:rank, full:true }); return; }
+    var arts = _scoutArts(rank);
+    var art = arts[Math.floor(Math.random()*arts.length)];
+    var sp = aibouRollSpecies(art, rank==='SSS' ? 'boss' : 'zako', undefined, false);
+    var id = 'm' + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36);
+    var name = (SRPG_ENEMY_TEMPLATES[art] && SRPG_ENEMY_TEMPLATES[art].name) || (AIBOU_SPECIES[sp] && AIBOU_SPECIES[sp].name) || 'なかま';
+    var isNew = !Object.keys(ai.roster).some(function(k){ return ai.roster[k] && ai.roster[k].art === art; });
+    var mon = { id:id, art:art, sp:sp, rank:rank, lv:1, xp:0, name:name };
+    ai.roster[id] = mon;
+    got.push({ rank:rank, mon:mon, isNew:isNew });
+  });
+  rpgSave(s);
+  try{ updateResBar(); }catch(e){}
+  if(n === 1 && got[0].mon){
+    srpgScoutReveal(got[0].mon, function(){ srpgScoutResults(got); });
+  } else {
+    srpgScoutResults(got);
+  }
+}
+function srpgScoutResults(got){
+  var ov = document.getElementById('srpg-ask'); if(!ov) return;
+  var best = got.reduce(function(m, g){ return (['F','E','D','C','B','A','S','SS','SSS'].indexOf(g.rank) > ['F','E','D','C','B','A','S','SS','SSS'].indexOf(m)) ? g.rank : m; }, 'F');
+  var cells = got.map(function(g, i){
+    if(g.full) return '<div class="srpg-got full"><div class="srpg-got-art">🍖</div><div class="srpg-got-nm">エサ+5</div><small>いっぱい</small></div>';
+    var art = (typeof srpgMonArt==='function' && srpgMonArt(g.mon.art)) || _monStill(g.mon.art);
+    return '<div class="srpg-got rk-'+g.rank+'" style="animation-delay:'+(i*0.08)+'s">'
+      + (g.isNew ? '<span class="srpg-got-new">NEW</span>' : '')
+      + '<div class="srpg-got-art">'+art+'</div>'
+      + '<div class="srpg-got-rk rk-'+g.rank+'">'+g.rank+'</div>'
+      + '<div class="srpg-got-nm">'+escapeHtml(g.mon.name)+'</div></div>';
+  }).join('');
+  ov.innerHTML = '<div class="srpg-ui-card scout-res">'
+    + '<div class="srpg-ui-sec">🔮 スカウトの けっか</div>'
+    + '<div class="srpg-got-grid">'+cells+'</div>'
+    + '<div class="srpg-odds-note">「🛡️ 編成」から 出撃メンバーに 入れられるよ</div>'
+    + '<div class="srpg-result-btns">'
+    + '<button class="rpg-btn" onclick="srpgCloseUnitInfo();srpgScoutScreen()">🔮 もういちど</button>'
+    + '<button class="rpg-btn ghost" onclick="srpgCloseUnitInfo();srpgTeamScreen()">🛡️ 編成へ</button></div></div>';
+  ov.style.display = 'flex';
+  try{ _char3dHydrateSafe(ov); }catch(e){}
+  try{ sfx(['SSS','SS','S'].indexOf(best) >= 0 ? 'fanfare' : 'levelup'); if(['SSS','SS'].indexOf(best) >= 0 && typeof confetti === 'function') confetti(); }catch(e){}
 }
 
 // ================= ユニット詳細パネル（能力・とくぎ・耐性表） =================

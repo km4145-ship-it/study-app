@@ -414,6 +414,29 @@ function srpgForecast(attacker, target, subjectKey, skill){
   return { kind:kind, dmg:dmg };   // drainのdmgは「敵が回復する量」
 }
 
+// ===== スカウトガチャ（コインで仲間モンスターを引く）＝抽選は純粋関数・確率は開示前提 =====
+// レート表（合計100%）。表示と抽選が同一ソース＝開示とのズレが構造的に起きない。
+var SRPG_SCOUT_RATES = [
+  ['SSS', 1], ['SS', 4], ['S', 7], ['A', 12], ['B', 13], ['C', 14], ['D', 15], ['E', 16], ['F', 18]
+];
+var SRPG_SCOUT_COST = { one: 80, ten: 720 };   // 10連は1割引＋A以上1体確定
+function srpgScoutRank(rnd){
+  var r = (rnd === undefined ? 0 : rnd) * 100, acc = 0;
+  for(var i = 0; i < SRPG_SCOUT_RATES.length; i++){
+    acc += SRPG_SCOUT_RATES[i][1];
+    if(r < acc) return SRPG_SCOUT_RATES[i][0];
+  }
+  return 'F';
+}
+// 10連：A以上（A/S/SS/SSS）が1体も出なければ、最後の1体をAに引き上げ（保証）
+function srpgScoutTen(rng){
+  var HI = { A:1, S:1, SS:1, SSS:1 };
+  var out = [];
+  for(var i = 0; i < 10; i++) out.push(srpgScoutRank(rng()));
+  if(!out.some(function(k){ return HI[k]; })) out[9] = 'A';
+  return out;
+}
+
 // ===== クリア星評価（★1=勝利 ★2=全員生存 ★3=規定ラウンド以内） =====
 function srpgStars(won, alliesDowned, rounds, par){
   if(!won) return 0;
@@ -633,6 +656,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits,
     srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage,
     SRPG_MON_SKILL: SRPG_MON_SKILL, srpgMonSkill: srpgMonSkill,
-    srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars
+    srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
+    SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen
   };
 }

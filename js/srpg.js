@@ -459,6 +459,63 @@ var SRPG_STAGES = {
 };
 function srpgStage(id){ return SRPG_STAGES[id] || SRPG_STAGES.arena1; }
 
+// ===== 周回要素：デイリー挑戦＆ちょうせんの塔（決定的生成＝同じ入力なら同じステージ） =====
+// 乱数は種つきLCG（Date.now/Math.random禁止＝テスト再現可能。日付キーはUI側が渡す）
+function srpgSeedRng(seedStr){
+  var h = 2166136261 >>> 0;
+  String(seedStr || '').split('').forEach(function(c){ h = ((h ^ c.charCodeAt(0)) * 16777619) >>> 0; });
+  return function(){ h = (h * 1664525 + 1013904223) >>> 0; return h / 4294967296; };
+}
+var SRPG_STD_SLOTS = [{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}];
+// 敵n体を上部ゾーン（y0..2）へ重複なく置く
+function _srpgPlaceEnemies(rng, keys, n, lvlMin, lvlVar){
+  var out = [], used = {};
+  for(var i=0;i<n;i++){
+    var k = keys[Math.floor(rng()*keys.length)];
+    var x = Math.floor(rng()*6), y = Math.floor(rng()*3), guard = 0;
+    while(used[x+','+y] && guard++ < 24){ x = (x+1)%6; if(x===0) y = (y+1)%3; }
+    used[x+','+y] = 1;
+    out.push({ key:k, x:x, y:y, lvl:lvlMin + Math.floor(rng()*(lvlVar+1)) });
+  }
+  return out;
+}
+// きょうの挑戦：日付キー（例 '2026-7-17'）から敵編成・地形・大陸が日替わりで決まる
+function srpgDailyStage(dateKey){
+  var rng = srpgSeedRng('daily:' + dateKey);
+  var keys = Object.keys(SRPG_ENEMY_TEMPLATES).filter(function(k){ return k !== 'villain'; });
+  var cont = SRPG_SUBJECT_KEYS[Math.floor(rng()*SRPG_SUBJECT_KEYS.length)];
+  var enemies = _srpgPlaceEnemies(rng, keys, 3 + Math.floor(rng()*2), 3, 3);   // 3〜4体・Lv3〜6
+  var terr = [], tks = ['heal','poison','fire'], used = {};
+  var tn = 1 + Math.floor(rng()*3);
+  for(var j=0;j<tn;j++){
+    var tx = Math.floor(rng()*6), ty = 3 + Math.floor(rng()*2);   // 中央帯（y3..4）
+    if(used[tx+','+ty]) continue; used[tx+','+ty] = 1;
+    terr.push({ x:tx, y:ty, kind:tks[Math.floor(rng()*tks.length)] });
+  }
+  return { id:'daily', name:'きょうの ちょうせん', grid:{w:6,h:7}, continent:cont, type:'daily',
+    allySlots:SRPG_STD_SLOTS.slice(), terrain:terr, enemies:enemies };
+}
+// ちょうせんの塔：階が上がるほど強く・多く。5階ごとにボス階（魔王）
+function srpgTowerStage(floor){
+  floor = Math.max(1, floor|0);
+  var rng = srpgSeedRng('tower:' + floor);
+  var keys = Object.keys(SRPG_ENEMY_TEMPLATES).filter(function(k){ return k !== 'villain'; });
+  var boss = (floor % 5 === 0);
+  var n = Math.min(5, 2 + Math.floor(floor/3)) - (boss ? 1 : 0);
+  var lvl = Math.min(12, 1 + floor);
+  var enemies = _srpgPlaceEnemies(rng, keys, Math.max(1, n), lvl, 1);
+  if(boss){
+    var bx = 2 + Math.floor(rng()*2);
+    while(enemies.some(function(e){ return e.x===bx && e.y===0; })) bx = (bx+1)%6;
+    enemies.push({ key:'villain', x:bx, y:0, lvl:Math.min(14, lvl+2) });
+  }
+  var terr = [];
+  if(floor >= 3){ terr.push({ x:Math.floor(rng()*6), y:3 + Math.floor(rng()*2), kind:(floor%2 ? 'fire' : 'poison') }); }
+  if(floor >= 5){ terr.push({ x:Math.floor(rng()*6), y:5, kind:'heal' }); }
+  return { id:'tower', name:'ちょうせんの塔 ' + floor + '階', grid:{w:6,h:7}, continent:'math', type:'tower', floor:floor,
+    boss:(boss ? '魔王シグマ' : null), allySlots:SRPG_STD_SLOTS.slice(), terrain:terr, enemies:enemies };
+}
+
 // 味方スペック配列＋ステージから、配置済みの戦闘ユニット一覧を組み立てる（純粋）。
 // allySpecs: [{ id,name,art,role,lvl,rankBase }]（最大5・弱点耐性は持たない）
 function srpgBuildUnits(stage, allySpecs){
@@ -503,6 +560,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgSideDown: srpgSideDown, srpgOutcome: srpgOutcome, srpgEnemyPlan: srpgEnemyPlan,
     srpgTargetBonus: srpgTargetBonus, srpgEnemyPickTarget: srpgEnemyPickTarget, srpgEnemyAction: srpgEnemyAction, srpgDeployZone: srpgDeployZone,
     srpgMakeUnit: srpgMakeUnit, srpgEnemyTemplate: srpgEnemyTemplate, srpgStage: srpgStage,
-    srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits
+    srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits,
+    srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage
   };
 }

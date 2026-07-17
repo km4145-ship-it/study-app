@@ -401,4 +401,50 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.ok('敵の初期位置は配置ゾーンに含まない', zone.every((z) => !occ[z.x + ',' + z.y]));
 }
 
+// ================= 周回要素：デイリー挑戦＆ちょうせんの塔（決定的生成） =================
+{
+  // 決定的：同じ日付キー → 完全に同じステージ／別の日 → （高確率で）別の編成
+  const a = S.srpgDailyStage('2026-7-17'), b = S.srpgDailyStage('2026-7-17'), c2 = S.srpgDailyStage('2026-7-18');
+  c.eq('デイリーは同じ日付で同一', JSON.stringify(a), JSON.stringify(b));
+  const days = ['2026-7-17','2026-7-18','2026-7-19','2026-7-20','2026-7-21'];
+  const sigs = new Set(days.map((d) => JSON.stringify(S.srpgDailyStage(d).enemies)));
+  c.ok('日付が変わると編成も変わる（5日で2種以上）', sigs.size >= 2);
+  // 妥当性：敵は実在テンプレ・盤内・重複配置なし・味方枠あり・地形は有効種別
+  days.forEach((d) => {
+    const st = S.srpgDailyStage(d), pos = new Set();
+    c.ok(d+' 敵3〜4体', st.enemies.length >= 3 && st.enemies.length <= 4);
+    st.enemies.forEach((e) => {
+      c.ok(d+' 敵テンプレ実在', !!S.SRPG_ENEMY_TEMPLATES[e.key]);
+      c.ok(d+' 盤内', e.x >= 0 && e.x < 6 && e.y >= 0 && e.y < 3);
+      c.ok(d+' 配置重複なし', !pos.has(e.x+','+e.y)); pos.add(e.x+','+e.y);
+    });
+    (st.terrain||[]).forEach((t) => c.ok(d+' 地形種別が有効', ['heal','poison','fire'].indexOf(t.kind) >= 0));
+    c.ok(d+' 味方枠5', st.allySlots.length === 5);
+    c.ok(d+' 大陸が有効教科', S.SRPG_SUBJECT_KEYS.indexOf(st.continent) >= 0);
+    c.ok(d+' buildUnitsが通る', S.srpgBuildUnits(st, [{id:'h',name:'h',art:'shiba',role:'attacker',lvl:3,rankBase:8}]).length >= 4);
+  });
+}
+{
+  // 塔：決定的・階が上がるとレベルも上がる・5階ごとにボス（魔王）
+  c.eq('塔は同じ階で同一', JSON.stringify(S.srpgTowerStage(3)), JSON.stringify(S.srpgTowerStage(3)));
+  const f1 = S.srpgTowerStage(1), f9 = S.srpgTowerStage(9);
+  const maxLvl = (st) => Math.max.apply(null, st.enemies.map((e) => e.lvl));
+  c.ok('高層ほど敵レベルが高い', maxLvl(f9) > maxLvl(f1));
+  c.ok('高層ほど敵が多い（か同数）', f9.enemies.length >= f1.enemies.length);
+  const f5 = S.srpgTowerStage(5), f10 = S.srpgTowerStage(10);
+  c.ok('5階はボス（魔王）が出る', f5.enemies.some((e) => e.key === 'villain') && !!f5.boss);
+  c.ok('10階もボス', f10.enemies.some((e) => e.key === 'villain'));
+  c.ok('4階はボス無し', !S.srpgTowerStage(4).enemies.some((e) => e.key === 'villain'));
+  // 妥当性（1〜12階）：盤内・重複なし・テンプレ実在
+  for (let fl = 1; fl <= 12; fl++) {
+    const st = S.srpgTowerStage(fl), pos = new Set();
+    st.enemies.forEach((e) => {
+      c.ok('塔'+fl+'階 敵テンプレ実在', !!S.SRPG_ENEMY_TEMPLATES[e.key]);
+      c.ok('塔'+fl+'階 盤内', e.x >= 0 && e.x < 6 && e.y >= 0 && e.y < 3);
+      c.ok('塔'+fl+'階 配置重複なし', !pos.has(e.x+','+e.y)); pos.add(e.x+','+e.y);
+    });
+    c.ok('塔'+fl+'階 レベル上限12(+ボス14)', st.enemies.every((e) => e.lvl <= 14));
+  }
+}
+
 c.done();

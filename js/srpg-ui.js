@@ -158,9 +158,25 @@ function srpgStageSelect(){
     var locked = i > 0 && !cleared[trains[i-1]];
     return srpgStageCard(id, locked);
   }).join('');
+  // 周回コンテンツ：きょうの挑戦（日替わり・1日1回ボーナス）＆ちょうせんの塔（最高階を目指す）
+  var dailyDone = srpgDailyDoneToday(), best = srpgTowerBest();
+  var dailySt = srpgDailyStage(_srpgToday());
+  var dailyFaces = dailySt.enemies.map(function(e){ var a=SRPG_ENEMY_TEMPLATES[e.key].art; return '<span class="srpg-sc-mon">'+((typeof srpgMonArt==='function'&&srpgMonArt(a))||_monStill(a))+'</span>'; }).join('');
+  var loopCards =
+    '<button class="srpg-stage-card quest'+(dailyDone?' done':'')+'" onclick="srpgStart(\'daily\')">'
+    + '<div class="srpg-sc-head"><b>🌀 きょうの ちょうせん</b>'+(dailyDone?'<span class="srpg-sc-clear">クリア済</span>':'<span class="srpg-sc-new">ボーナス!</span>')+'</div>'
+    + '<div class="srpg-sc-mons">'+dailyFaces+'</div>'
+    + '<div class="srpg-sc-foot">'+(dailyDone?'また あした あたらしい 敵が くるよ':'まいにち 敵が かわる ・ きょうの初クリアで 🪙+60 と 🍖+5')+'</div>'
+    + '</button>'
+    + '<button class="srpg-stage-card quest" onclick="srpgTowerStart()">'
+    + '<div class="srpg-sc-head"><b>🗼 ちょうせんの塔</b>'+(best?'<span class="srpg-sc-clear">最高 '+best+'階</span>':'')+'</div>'
+    + '<div class="srpg-sc-foot">のぼるほど 敵が つよくなる ・ HPを ひきついで 連戦 ・ 5階ごとに ボス＆🎫</div>'
+    + '</button>';
   document.getElementById('srpg-body').innerHTML =
     '<div class="srpg-select">'
     + '<div class="srpg-select-top"><button class="srpg-mini2" onclick="srpgTeamScreen()">🛡️ 編成を かえる</button></div>'
+    + '<div class="srpg-sec">🌀 まいにち <small>周回で きたえよう</small></div>'
+    + '<div class="srpg-stage-list">'+loopCards+'</div>'
     + '<div class="srpg-sec">🗺️ 大陸クエスト <small>各大陸の 主を たおそう</small></div>'
     + '<div class="srpg-stage-list">'+questCards+'</div>'
     + '<div class="srpg-sec">⚔️ 訓練場 <small>自由に れんしゅう</small></div>'
@@ -191,10 +207,37 @@ function srpgApplyRescue(){
 }
 
 // ================= 戦闘の開始 =================
+// ===== 周回要素の状態 =====
+function _srpgToday(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+var _towerFloor = 1, _towerCarry = null;   // 塔：現在の階＆前フロアからのHP/MP引き継ぎ
+function srpgTowerBest(){ try{ return parseInt(safeLS.getItem('srpg_tower_best'),10)||0; }catch(e){ return 0; } }
+function srpgDailyDoneToday(){ try{ return safeLS.getItem('srpg_daily_done')===_srpgToday(); }catch(e){ return false; } }
+function srpgTowerStart(){ _towerFloor = 1; _towerCarry = null; srpgStart('tower'); }
+// 塔の次の階へ：味方のHP/MP（と倒れたか）を持ち越して連戦
+function srpgTowerNext(){
+  try{ sfx('click'); }catch(e){}
+  _towerCarry = {};
+  (srpgB && srpgB.units || []).forEach(function(u){
+    if(u.side==='ally') _towerCarry[u.id] = { hp:u.hp, mp:u.mp||0, downed:!!u.downed };
+  });
+  _towerFloor = ((srpgB && srpgB.stage && srpgB.stage.floor) || _towerFloor) + 1;
+  srpgStart('tower');
+}
 function srpgStart(stageId){
   try{ sfx('click'); }catch(e){}
-  var stage = srpgStage(stageId);
+  var stage = (stageId==='daily') ? srpgDailyStage(_srpgToday())
+            : (stageId==='tower') ? srpgTowerStage(_towerFloor)
+            : srpgStage(stageId);
   var units = srpgBuildUnits(stage, srpgAllyRoster());
+  // 塔の連戦：前の階の HP/MP を引き継ぐ（倒れた仲間は 30% で復活＝やさしめの消耗戦）
+  if(stageId==='tower' && _towerCarry){
+    units.forEach(function(u){
+      if(u.side!=='ally') return;
+      var c = _towerCarry[u.id]; if(!c) return;
+      u.hp = c.downed ? Math.max(1, Math.round(u.maxHp*0.3)) : Math.max(1, Math.min(u.maxHp, c.hp));
+      u.mp = Math.min(u.mpMax||6, c.mp||0);
+    });
+  }
   // 声を勇者のキャラに合わせる（読み上げ＝出題・技名・勝敗がそのキャラの声になる）
   try{ var _h = srpgHeroSpec(); if(typeof CHARS!=='undefined' && CHARS[_h.art]) currentChar = _h.art; }catch(e){}
   srpgB = {
@@ -852,9 +895,31 @@ function srpgEnd(outcome){
   var coin = 30 + srpgB.stage.enemies.length * 15;
   var xp = 40 + srpgB.stage.enemies.length * 20;
   var extra = '', scout = null;
-  if(win){ srpgClearLoss(srpgB.stageId); } else { srpgNoteLoss(srpgB.stageId); }   // 敗北救済のカウント
+  var stype = srpgB.stage.type;
+  var isLoop = (stype==='daily' || stype==='tower');
+  if(!isLoop){ if(win){ srpgClearLoss(srpgB.stageId); } else { srpgNoteLoss(srpgB.stageId); } }   // 敗北救済（周回は対象外）
+  if(win && isLoop){
+    // 周回の追加報酬：デイリー初クリア＝🪙60＋🍖5／塔＝階×10コイン＆5階ごとに🎫
+    try{
+      var s2 = rpgState(), cos2 = rpgCosState(s2);
+      if(stype==='daily' && !srpgDailyDoneToday()){
+        cos2.coin = (cos2.coin||0) + 60;
+        var ai2 = rpgAibouState(s2); ai2.food = (ai2.food||0) + 5;
+        safeLS.setItem('srpg_daily_done', _srpgToday());
+        extra += '<div class="srpg-res-line scout">🌀 きょうの初クリア！ 🪙+60 ・ 🍖エサ+5</div>';
+      }
+      if(stype==='tower'){
+        var fl = srpgB.stage.floor || 1;
+        cos2.coin = (cos2.coin||0) + fl*10;
+        extra += '<div class="srpg-res-line grow">🗼 '+fl+'階 とっぱ！ 🪙+'+(fl*10)+'</div>';
+        if(fl % 5 === 0){ cos2.tickets = (cos2.tickets||0) + 1; extra += '<div class="srpg-res-line scout">🎫 ボス階クリア！ ガチャチケット+1</div>'; }
+        if(fl > srpgTowerBest()){ try{ safeLS.setItem('srpg_tower_best', String(fl)); }catch(e){} extra += '<div class="srpg-res-line">🏅 さいこう記録 こうしん！ '+fl+'階</div>'; }
+      }
+      rpgSave(s2);
+    }catch(e){}
+  }
   if(win){
-    srpgMarkCleared(srpgB.stageId);
+    if(!isLoop) srpgMarkCleared(srpgB.stageId);
     // ごほうび：コインとXP（既存RPGの経済＝rpgState/cosに合流）
     try{ var s = rpgState(), cos = rpgCosState(s);
       cos.coin = (cos.coin||0) + coin;
@@ -887,7 +952,9 @@ function srpgEnd(outcome){
     + '<div class="srpg-result-s">'+(win?('🪙コイン +'+coin+' ／ けいけんち +'+xp):'もういちど ちょうせんしよう！')+'</div>'
     + (extra?('<div class="srpg-res-extra">'+extra+'</div>'):'')
     + '<div class="srpg-result-btns">'
-    + '<button class="rpg-btn" onclick="srpgStart(\''+srpgB.stageId+'\')">🔁 もういちど</button>'
+    + (win && stype==='tower' ? '<button class="rpg-btn" onclick="srpgTowerNext()">🗼 つぎの '+((srpgB.stage.floor||1)+1)+'階へ →</button>' : '')
+    + (stype==='tower' ? '' : '<button class="rpg-btn" onclick="srpgStart(\''+srpgB.stageId+'\')">🔁 もういちど</button>')
+    + (!win && stype==='tower' ? '<button class="rpg-btn" onclick="srpgTowerStart()">🔁 1階から ちょうせん</button>' : '')
     + (win?'<button class="rpg-btn" onclick="srpgTeamScreen()">🛡️ 編成をかえる</button>':'')
     + '<button class="rpg-btn ghost" onclick="srpgStageSelect()">🗺️ ステージ選択</button>'
     + '</div></div>';

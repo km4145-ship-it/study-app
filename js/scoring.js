@@ -54,6 +54,21 @@ function masteryTier(correct, attempts){
   if(attempts >= 2 && rate >= 0.55) return MASTERY_TIERS.familiar;
   return MASTERY_TIERS.learning;
 }
+// ログイン連続の更新：1日の欠席は「フリーズ」で救済（7連続ごとに1回まで）。
+// 学習ストリーク(currentStreak)は既に月1回の欠席救済を持つのに、ログインボーナス側だけ
+// 1日欠席で streak=1 にリセット＝7/14/30/50/100/200/365日の大型報酬が最も脆かった。
+// これを是正（"休める設計"＝ダークパターンの逆）。lg={last,streak,freezeAt} を受け取り純粋に次状態を返す。
+function loginStreakUpdate(lg, todayStr, yestStr, twoAgoStr){
+  lg = lg || {};
+  var prev = lg.streak || 0;
+  var freezeAt = (lg.freezeAt == null) ? -99 : lg.freezeAt;
+  if(lg.last === yestStr) return { streak: prev + 1, frozen:false, freezeAt: freezeAt };
+  if(lg.last === twoAgoStr && (prev - freezeAt) >= 7){   // 1日だけの欠席はフリーズで継続
+    var ns = prev + 1;
+    return { streak: ns, frozen:true, freezeAt: ns };    // フリーズ消費（次は+7連続まで使えない）
+  }
+  return { streak: 1, frozen:false, freezeAt: -99 };     // 2日以上の欠席 or フリーズ切れ＝リセット
+}
 // rows=[{correct,attempts},...] → 段階ごとの単元数＋マスター率(%)。
 // 「マスター率」は proficient 以上（とくい＋マスター）を習得済みとみなした割合。
 function masterySummary(rows){

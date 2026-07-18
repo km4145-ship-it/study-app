@@ -8,7 +8,7 @@ const c = makeChecker('unit-scoring');
 
 const code = fs.readFileSync(path.join(ROOT, 'js', 'scoring.js'), 'utf8');
 const api = (new Function(code +
-  '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp,masteryTier,masterySummary,MASTERY_TIERS};'))();
+  '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp,masteryTier,masterySummary,MASTERY_TIERS,loginStreakUpdate};'))();
 
 ['_seedOf', 'withSeed', 'calcHensachiRaw', 'judgeOf', 'rpgXpForLevel', 'rpgLevelForXp']
   .forEach((f) => c.ok(f + ' が関数', typeof api[f] === 'function'));
@@ -75,8 +75,29 @@ c.ok('order は 練習中<なじみ<とくい<マスター',
   c.eq('masterySummary：空配列は0%', api.masterySummary([]).pct, 0);
 }
 
+// ===== ログイン連続の欠席救済（フリーズ）=====
+{
+  const T='2026-07-19', Y='2026-07-18', TA='2026-07-17';
+  c.eq('昨日ログイン→連続+1', api.loginStreakUpdate({last:Y,streak:5,freezeAt:-99}, T, Y, TA).streak, 6);
+  const f = api.loginStreakUpdate({last:TA,streak:10,freezeAt:-99}, T, Y, TA);   // 1日欠席・フリーズ可
+  c.eq('1日欠席はフリーズで継続(+1)', f.streak, 11);
+  c.ok('フリーズ発動フラグ', f.frozen === true);
+  c.eq('フリーズ消費で freezeAt=新streak', f.freezeAt, 11);
+  const f2 = api.loginStreakUpdate({last:TA,streak:11,freezeAt:11}, T, Y, TA);   // 直後にまた欠席＝フリーズ切れ
+  c.eq('7連続以内の再欠席はリセット', f2.streak, 1);
+  c.ok('連続してフリーズは使えない', f2.frozen === false);
+  const f3 = api.loginStreakUpdate({last:TA,streak:20,freezeAt:11}, T, Y, TA);   // 前回freeze11から+9＝再び使える
+  c.eq('7連続あけば再びフリーズ可', f3.streak, 21);
+  // 2日以上の欠席はフリーズでも救えない（last=3日前）
+  c.eq('2日欠席はリセット', api.loginStreakUpdate({last:'2026-07-16',streak:30,freezeAt:-99}, T, Y, TA).streak, 1);
+  // 初回（履歴なし）
+  c.eq('初ログインは1', api.loginStreakUpdate({last:'',streak:0}, T, Y, TA).streak, 1);
+}
+
 // index.html 側は再定義せず、モジュールを読み込む
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+c.ok('rpgLoginBonus は loginStreakUpdate を使う（欠席救済の配線）',
+  /function rpgLoginBonus\(\)[\s\S]{0,400}loginStreakUpdate\(lg/.test(html));
 c.ok('index.html は calcHensachiRaw を再定義しない', html.indexOf('function calcHensachiRaw(') < 0);
 c.ok('index.html は withSeed を再定義しない', html.indexOf('function withSeed(') < 0);
 c.ok('index.html は js/scoring.js を読み込む', html.indexOf('<script src="js/scoring.js') >= 0);

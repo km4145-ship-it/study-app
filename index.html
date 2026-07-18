@@ -3355,7 +3355,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/furigana.js?v=1"></script>
 <script src="js/reading-ja.js?v=3"></script>
 <script src="js/content-data.js?v=2"></script>
-<script src="js/scoring.js?v=2"></script>
+<script src="js/scoring.js?v=3"></script>
 <script src="js/ui-data.js?v=1"></script>
 <script src="js/util.js?v=3"></script>
 <script src="js/miss-types.js?v=1"></script>
@@ -7582,7 +7582,10 @@ var LOGIN_MILESTONES={7:200,14:400,30:1000,50:1800,100:4000,200:9000,365:20000};
 function rpgLoginBonus(){
   var s=rpgState(), lg=s.login||{last:'',streak:0};
   if(lg.last===rpgToday()) return;
-  var streak=(lg.last===rpgYesterday())?((lg.streak||0)+1):1;
+  // 1日の欠席は「おやすみ券（フリーズ）」で救済＝大型マイルストーンが1日で消えない（純ロジックは scoring.js）
+  var _twoAgo=rpgDateStr(new Date(Date.now()-2*86400000));
+  var _up=loginStreakUpdate(lg, rpgToday(), rpgYesterday(), _twoAgo);
+  var streak=_up.streak, froze=_up.frozen;
   var pts=20+Math.min(streak,14)*5;
   var coins=15+Math.min(streak,14)*5;   // 連続で増える（14日で頭打ち＝日次はインフレ抑制）
   // 節目（7/14/30/50/100/200/365日）で一度だけ大ボーナス。長期に続ける理由を作る。
@@ -7590,10 +7593,12 @@ function rpgLoginBonus(){
   var mileCoin=0, mileHit=0;
   if(LOGIN_MILESTONES[streak] && !lg.miles[streak]){ mileCoin=LOGIN_MILESTONES[streak]; mileHit=streak; lg.miles[streak]=1; }
   var cos=rpgCosState(s); cos.coin=(cos.coin||0)+coins+mileCoin;
-  s.login={last:rpgToday(),streak:streak,miles:lg.miles}; totalPoints+=pts; safeLS.setItem('c_points', totalPoints); rpgSave(s);
+  s.login={last:rpgToday(),streak:streak,miles:lg.miles,freezeAt:_up.freezeAt}; totalPoints+=pts; safeLS.setItem('c_points', totalPoints); rpgSave(s);
   try{ updateScoreBar(); }catch(e){}
-  try{ setTimeout(function(){ showToast('🎁','ログインボーナス '+streak+'日め！','🪙＋'+coins+' コイン ・ ＋'+pts+'ポイント もらった！'); sfx('fanfare'); confetti(); }, 350); }catch(e){}
-  if(mileHit){ try{ setTimeout(function(){ showToast('🏆','れんぞく '+mileHit+'日 たっせい！','ごほうびの コイン 🪙＋'+mileCoin+'！ すごい つづけ方だね！'); sfx('legendary'); confetti(); }, 1400); }catch(e){} }
+  // フリーズで救済したときは「守ってあげた」前向き通知（不安を煽らない・休んでOKのメッセージ）
+  if(froze){ try{ setTimeout(function(){ showToast('🧊','おやすみ券で れんぞく記録を まもったよ！','1日 おやすみしても だいじょうぶ。きょうから また つづけよう！'); sfx('coin'); }, 200); }catch(e){} }
+  try{ setTimeout(function(){ showToast('🎁','ログインボーナス '+streak+'日め！','🪙＋'+coins+' コイン ・ ＋'+pts+'ポイント もらった！'); sfx('fanfare'); confetti(); }, froze?900:350); }catch(e){}
+  if(mileHit){ try{ setTimeout(function(){ showToast('🏆','れんぞく '+mileHit+'日 たっせい！','ごほうびの コイン 🪙＋'+mileCoin+'！ すごい つづけ方だね！'); sfx('legendary'); confetti(); }, froze?1900:1400); }catch(e){} }
 }
 function rpgPetStageFor(wins){ var st=0; for(var i=0;i<PET_WINS_FOR.length;i++){ if(wins>=PET_WINS_FOR[i]) st=i; } return st; }
 // ===== あいぼう（なかまモンスター）の状態層 =====

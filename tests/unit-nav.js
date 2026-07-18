@@ -126,7 +126,9 @@ c.ok('スカウト低ランクの基礎値に下限5(初期仲間との逆転防
 
 // ---- UX2：おすすめ教科の算数固定を解消・無料スカウトの発見性・きろく並べ替え ----
 c.ok('おすすめCTAが算数固定でない（苦手/ローテ）', html.indexOf('function _recommendArea') >= 0 && html.indexOf('startPractice(_recommendArea())') >= 0);
-c.ok('無料スカウト可能時にぼうけんカードへバッジ', html.indexOf("_freeScout?'🎁':0") >= 0 && html.indexOf('srpgScoutFreeReady') >= 0);
+c.ok('無料スカウト/進化 可能時にぼうけんカードへバッジ', html.indexOf('var _advBadge = _freeScout ?') >= 0 && html.indexOf('srpgScoutFreeReady') >= 0);
+c.ok('進化できるなかまの判定srpgHasEvolvableがある', srpgUi.indexOf('function srpgHasEvolvable') >= 0);
+c.ok('ハブのゲームメニューが3グループに分かれている', html.indexOf('🎮 あそぶ</div>') >= 0 && html.indexOf('📚 まなぶ</div>') >= 0 && html.indexOf('🛠️ べんきょう道具</div>') >= 0);
 c.ok('きろく：今日の目標が保護者向けより上に', html.indexOf('🎯 今日の目標・連続記録') < html.indexOf('おうちの方へ（保護者向け）'));
 c.ok('きろく：保護者向けは折りたたみ', html.indexOf('<details class="rec-fold"><summary>👨‍👩‍👧 おうちの方へ') >= 0);
 c.ok('きろく：偏差値推移チャートは折りたたみ外（レイアウト0回避）', html.indexOf('id="rec-trend"') < html.indexOf('<details class="rec-fold">'));

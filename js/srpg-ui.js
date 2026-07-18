@@ -1375,6 +1375,25 @@ function _scoutArts(rank){
 function _scoutSp(art){ var v=SRPG_MON_VARIANTS2[art]; return AIBOU_ART_SPECIES[v?v.base:art] || 'beast'; }
 function _srpgWeekKey(){ var d=new Date(); var onejan=new Date(d.getFullYear(),0,1); var wk=Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7); return d.getFullYear()+'-w'+wk; }
 function srpgScoutFreeReady(){ try{ return safeLS.getItem('srpg_scout_free') !== _srpgToday(); }catch(e){ return false; } }
+// 進化できるなかまが1体でもいるか（ハブの発見性バッジ用）。育成画面と同じ判定ロジック。
+function srpgHasEvolvable(){
+  try{
+    if(typeof srpgEvolveCanDo!=='function') return false;
+    var s = rpgState(), ai = rpgAibouState(s), cos = rpgCosState(s);
+    var coin = cos.coin || 0, party = srpgProtectedIds(ai);
+    var RANKS = ['F','E','D','C','B','A','S','SS','SSS','LG'];
+    var byArt = {};
+    Object.keys(ai.roster).forEach(function(id){ var a = ai.roster[id]; if(a) (byArt[a.art] = byArt[a.art] || []).push(a); });
+    return Object.keys(byArt).some(function(art){
+      var g = byArt[art]; if(g.length < 2) return false;
+      g.sort(function(a, b){ return (RANKS.indexOf(b.rank||'F') - RANKS.indexOf(a.rank||'F')) || ((b.lv||1) - (a.lv||1)); });
+      var base = g[0];
+      var dupes = g.filter(function(m){ return m.id !== base.id && party.indexOf(m.id) < 0; });
+      var can = srpgEvolveCanDo(base, dupes.length, coin);
+      return !!(can && can.ok);
+    });
+  }catch(e){ return false; }
+}
 function srpgScoutScreen(){
   srpgB = null;
   var coin = 0; try{ coin = rpgCoin(); }catch(e){}

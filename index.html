@@ -5490,17 +5490,24 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   try{ rpgCheckMissions(); checkAchievements(); }catch(e){}
   h += _hubMissionsHtml();
   // ゲームメニュー
-  h+='<div class="hub-sec">🎮 あそんで まなぶ</div>';
-  h+='<div class="hub-grid">';
+  // 12枚を無差別平置きせず、3グループ（あそぶ／まなぶ／どうぐ）に分けて 目的別に見つけやすく。
   var _freeScout=false; try{ _freeScout=(typeof srpgScoutFreeReady==='function') && srpgScoutFreeReady(); }catch(e){}
-  h+= hubCard('adv','⚔️','ぼうけん（バトル）',(_freeScout?'🎁 むりょうスカウトが できるよ！':'マスの上の さくせんバトル。偏差値65をめざす！'),'srpgOpen()', true, _freeScout?'🎁':0);
-  h+= hubCard('aibou','🐾','なかま','エサやり・なまえ・ずかん','rpgShowAibou()');   // なかま管理。しゅつげき編成はタクト側に一本化
+  var _canEvo=false; try{ _canEvo=(typeof srpgHasEvolvable==='function') && srpgHasEvolvable(); }catch(e){}
+  var _advDesc = _freeScout ? '🎁 むりょうスカウトが できるよ！' : (_canEvo ? '✨ 進化できる なかまが いるよ！' : 'マスの上の さくせんバトル。偏差値65をめざす！');
+  var _advBadge = _freeScout ? '🎁' : (_canEvo ? '✨' : 0);
+  h+='<div class="hub-sec">🎮 あそぶ</div><div class="hub-grid">';
+  h+= hubCard('adv','⚔️','ぼうけん（バトル）',_advDesc,'srpgOpen()', true, _advBadge);
+  h+= hubCard('aibou','🐾','なかま','エサやり・なまえ・ずかん','rpgShowAibou()', false, _canEvo?'✨':0);   // なかま管理。しゅつげき編成はタクト側に一本化
+  h+='</div>';
+  h+='<div class="hub-sec">📚 まなぶ</div><div class="hub-grid">';
   h+= hubCard('prac','✏️','れんしゅう','教科をえらんで10問','hubPickSubject(\'practice\')');
-  h+= hubCard('exam','⏱️','模試チャレンジ','本番形式で力だめし','hubPickSubject(\'exam\')');
   h+= hubCard('rev','🔁','ふくしゅう', due>0?('たまってる '+due+'問！'):'今日のふくしゅう','startReviewDue()', false, due>0?due:0);
   h+= hubCard('weak','💪','にがて克服','苦手を集中とっくん','startWeaknessDrill()');
   h+= hubCard('hard','🔥','難問チャレンジ','むずかしい問題に挑戦','startHardChallenge()');
   h+= hubCard('mix','🔀','ミックス演習','全教科ごちゃまぜ','startMixedPractice()');
+  h+= hubCard('exam','⏱️','模試チャレンジ','本番形式で力だめし','hubPickSubject(\'exam\')');
+  h+='</div>';
+  h+='<div class="hub-sec">🛠️ べんきょう道具</div><div class="hub-grid">';
   h+= hubCard('flash','🃏','暗記カード','サッとおぼえる','showFlashcards()');
   h+= hubCard('write','✍️','記述問題','説明する力をつける','showWrite()');
   h+= hubCard('teach','🗣️','おしえて','キャラ先生に説明して理解チェック','teachStart()');

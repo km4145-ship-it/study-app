@@ -149,13 +149,16 @@ function srpgTeamConfirm(){
 }
 
 // ================= 起動・ステージ選択 =================
-function srpgOpen(){
+function srpgOpen(dest){
   try{ hideMainScreens(); }catch(e){}
   try{ hideTabbar(); }catch(e){}
   var sc = document.getElementById('srpg-screen'); if(!sc) return;
   sc.style.display = 'block';
   srpgTeamSel = null;
-  srpgTeamScreen();
+  if(dest==='daily'){ try{ srpgStart('daily'); return; }catch(e){} }
+  else if(dest==='tower'){ try{ srpgTowerStart(); return; }catch(e){} }
+  else if(dest==='team'){ srpgTeamScreen(); return; }
+  srpgStageSelect();   // 既定はステージ選択（毎回 編成をくぐらせない。編成は「編成をかえる」から）
 }
 function srpgStageCard(id, locked){
   var st = SRPG_STAGES[id], cleared = srpgClearedSet(), done = cleared[id];

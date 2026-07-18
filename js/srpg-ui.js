@@ -218,11 +218,16 @@ function srpgMarkCleared(id){ try{ var s = srpgClearedSet(); s[id] = 1; lsSetJSO
 function _srpgFlag(k){ try{ return safeLS.getItem(k)==='1'; }catch(e){ return false; } }
 function _srpgSetFlag(k){ try{ safeLS.setItem(k, '1'); }catch(e){} }
 var SRPG_TUT_LINES = [
-  'タクトバトルへ ようこそ！ マスの上で たたかう さくせんバトルだよ。',
+  // ── 物語（なぜ戦うのか）＝タクト単体で世界観が伝わるように ──
+  'むかし、まなびの王国は「ちえの光」で かがやいていた。',
+  'でも 魔王シグマの「モヤの霧」で、ちえは モンスターに かわり、動物の先生たちも 霧の中に とらわれてしまった…！',
+  'そこで きみの出番だ、見習い勇者！ 問題を といて モンスターを たおし、5つの「ちえのクリスタル」を あつめて、魔王シグマを たおそう！',
+  // ── あそびかた ──
+  'まずは たたかいかたを おぼえよう。マスの上で たたかう さくせんバトルだよ。',
   'じぶんの ばんが きたら、まず 👣いどう で 青いマスへ うごこう。',
   'つぎに ⚔️こうげき！ 教科を えらんで、もんだいに 正解すると こうげきできるよ。',
   '敵には ⭐弱点の教科が あるよ。弱点を つくと 大ダメージ！',
-  'MPが たまったら 🌟とくぎ！ それじゃあ、はじめよう！'
+  'MPが たまったら 🌟とくぎ！ それじゃあ、ぼうけんの はじまりだ！'
 ];
 // 同じステージで2回負けたら、次は おうえんバフ（こうげき+1段階）で再挑戦できる
 function srpgLossMap(){ try{ return lsGetJSON('srpg_loss', {}) || {}; }catch(e){ return {}; } }
@@ -1641,6 +1646,14 @@ function srpgScoutResults(got, revealed){
 }
 
 // ================= なかまの育成（ダブり合成）：とくぎ強化／進化（ランクアップ） =================
+// 育成の素材にしてはいけない「使用中のなかま」＝タクトの出撃チーム(srpg_team)を保護。
+// （以前は旧RPGの ai.party=3びき を保護していたが、実戦で使うのはタクトのチーム。移行期は両方を保護＝より安全）
+function srpgProtectedIds(ai){
+  var ids = {};
+  try{ var t = lsGetJSON('srpg_team', null); if(t){ (t.ids||[]).forEach(function(id){ ids[id]=1; }); if(t.leader && t.leader!=='hero') ids[t.leader]=1; } }catch(e){}
+  try{ (ai && ai.party || []).forEach(function(id){ ids[id]=1; }); }catch(e){}
+  return Object.keys(ids);
+}
 var SRPG_RANK_SCORE = ['F','E','D','C','B','A','S','SS','SSS','LG'];
 // ダブりを「弱い順」に（進化の素材は 弱い個体から消費し、育てた個体を守る）
 function _srpgDupeSort(a, b){
@@ -1651,7 +1664,7 @@ function srpgSkillUpScreen(){
   srpgB = null;
   document.getElementById('srpg-title').textContent = 'なかまの育成';
   var s, ai; try{ s = rpgState(); ai = rpgAibouState(s); }catch(e){ return; }
-  var party = ai.party || [];
+  var party = srpgProtectedIds(ai);
   var coin = 0; try{ coin = rpgCoin(); }catch(e){}
   // artごとにグループ（2体以上いる種＝合成できる）
   var byArt = {};
@@ -1704,7 +1717,7 @@ function srpgEvolveDo(baseId){
   var s, ai; try{ s = rpgState(); ai = rpgAibouState(s); }catch(e){ return; }
   var cos; try{ cos = rpgCosState(s); }catch(e){ return; }
   var base = ai.roster[baseId]; if(!base){ return; }
-  var party = ai.party || [];
+  var party = srpgProtectedIds(ai);
   var dupes = Object.keys(ai.roster).map(function(id){ return ai.roster[id]; })
     .filter(function(m){ return m && m.art === base.art && m.id !== base.id && party.indexOf(m.id) < 0; })
     .sort(_srpgDupeSort);   // 弱い順＝弱いダブりから消費
@@ -1743,7 +1756,7 @@ function srpgEvolveFx(base, rank){
 function srpgCleanupDo(){
   try{ sfx('click'); }catch(e){}
   var s, ai; try{ s = rpgState(); ai = rpgAibouState(s); }catch(e){ return; }
-  var party = ai.party || [];
+  var party = srpgProtectedIds(ai);
   var RANKS = ['F','E','D','C','B','A','S','SS','SSS','LG'];
   var score = function(a){ return RANKS.indexOf(a.rank||'F')*10000 + (a.lv||1)*10 + (a.skLv||1); };
   var byArt = {};
@@ -1768,7 +1781,7 @@ function srpgSkillUpDo(baseId, matId){
   try{ sfx('click'); }catch(e){}
   var s, ai; try{ s = rpgState(); ai = rpgAibouState(s); }catch(e){ return; }
   var base = ai.roster[baseId], mat = ai.roster[matId];
-  if(!srpgSkillUpCanFuse(base, mat, ai.party || [])){ try{ showToast('⚠️','強化できないよ',''); }catch(e){} return; }
+  if(!srpgSkillUpCanFuse(base, mat, srpgProtectedIds(ai))){ try{ showToast('⚠️','強化できないよ',''); }catch(e){} return; }
   if(!confirm('⚗️ とくぎ強化\n\n「'+(mat.name||'なかま')+'（'+(mat.rank||'F')+'）」を 素材にして、\n「'+(base.name||'なかま')+'」の とくぎLvを '+((base.skLv||1)+1)+' に上げます。\n素材の なかまは いなくなります。よろしいですか？')) return;
   base.skLv = Math.min(SRPG_SKLV_MAX, (base.skLv||1) + 1);
   if(!ai.gone) ai.gone = {};

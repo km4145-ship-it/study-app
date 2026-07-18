@@ -33,4 +33,13 @@ c.ok('ぼうけんタブ(muNav adv)はタクト(srpgOpen)へ', muNav.indexOf("de
 c.ok('ぼうけんタブのアイコンは⚔️', html.indexOf('data-tab="adv" onclick="muNav(\'adv\')" aria-label="ぼうけん"><span class="mt-i">⚔️</span>') >= 0);
 c.ok('旧RPGトップバーの🗡️衝突を解消（🗺️大陸ストーリー）', html.indexOf('<div class="rpg-topttl">🗺️ 大陸ストーリー</div>') >= 0);
 
+// ---- タクト一本化：物語がタクト単体で伝わる＋育成はタクトのチームを保護 ----
+const srpgUi = fs.readFileSync(path.join(ROOT, 'js', 'srpg-ui.js'), 'utf8');
+const tut = srpgUi.slice(srpgUi.indexOf('var SRPG_TUT_LINES'), srpgUi.indexOf('var SRPG_TUT_LINES') + 900);
+c.ok('タクト初回に魔王シグマの動機づけがある', tut.indexOf('魔王シグマ') >= 0);
+c.ok('タクト初回にクリスタル収集の目的がある', tut.indexOf('クリスタル') >= 0);
+c.ok('育成の保護対象はタクトのチーム(srpg_team)', srpgUi.indexOf("lsGetJSON('srpg_team', null)") >= 0 && srpgUi.indexOf('function srpgProtectedIds') >= 0);
+c.ok('育成が旧RPGのai.partyを直接保護していない（ねじれ解消）', srpgUi.indexOf('var party = ai.party || [];') < 0);
+c.ok('育成の合成可否がsrpgProtectedIdsを使う', srpgUi.indexOf('srpgSkillUpCanFuse(base, mat, srpgProtectedIds(ai))') >= 0);
+
 c.done();

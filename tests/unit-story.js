@@ -169,7 +169,7 @@ AREAS.forEach(function (area) {
   c.ok(area + ' 大陸クリア', Array.isArray(story[area + '_clear']) && story[area + '_clear'].length > 0);
 });
 // 全シーンの char が有効キーのみ（誤字＝立ち絵が✨になる不具合を防ぐ）
-const VALID_CHARS = ['owl', 'shiba', 'cat', 'rabbit', 'fox', 'bear', 'villain', 'merchant', 'scroll', 'rival', 'moog', 'zeron', 'lt_jp', 'lt_en', 'lt_sci', 'lt_soc'];
+const VALID_CHARS = ['owl', 'shiba', 'cat', 'rabbit', 'fox', 'bear', 'villain', 'merchant', 'scroll', 'rival', 'moog', 'zeron', 'lt_jp', 'lt_en', 'lt_sci', 'lt_soc', 'secret'];
 Object.keys(story).forEach(function (k) { story[k].forEach(function (l) { c.ok(k + ' char有効(' + l.char + ')', VALID_CHARS.indexOf(l.char) >= 0); }); });
 // 各大陸の先生が clear シーンに登場（救出）
 c.ok('ことば clearにミケ(cat)', story.japanese_clear.some(function (l) { return l.char === 'cat'; }));
@@ -193,5 +193,18 @@ c.ok('srpgMaouFinale が maou_clear→パネル', ui.indexOf("_srpgStory('maou_c
 c.ok('srpgChapterHint が定義', ui.indexOf('function srpgChapterHint') >= 0);
 c.ok('先生の単元ヒント SRPG_TEACHER_HINT', ui.indexOf('SRPG_TEACHER_HINT') >= 0 && /math:'（コタロウ/.test(ui));
 c.ok('VS後に単元ヒントを表示', ui.indexOf('srpgChapterHint(srpgB.stage)') >= 0);
+
+// ===== ③ 裏ボス（エンドゲーム＝魔王城クリア後） =====
+const KY = S.SRPG_ENEMY_TEMPLATES.kyomu;
+c.ok('裏ボス kyomu テンプレ(boss+phase+charge)', !!(KY && KY.boss && KY.phase && KY.charge && KY.charge.warn));
+c.ok('kyomu は全ボス最強(rankBase>=最終ボス)', !!(KY && KY.rankBase >= S.SRPG_ENEMY_TEMPLATES.mathfinal.rankBase));
+c.ok('q_secret ステージが存在(quest型)', !!(S.SRPG_STAGES.q_secret && S.SRPG_STAGES.q_secret.type === 'quest'));
+c.ok('q_secret に虚無竜ムゲン(kyomu)', S.SRPG_STAGES.q_secret.enemies.some(function (e) { return e.key === 'kyomu'; }));
+c.ok('secret_intro/secret_clear がある', Array.isArray(story.secret_intro) && story.secret_intro.length > 0 && Array.isArray(story.secret_clear) && story.secret_clear.length > 0);
+c.ok('secret に裏ボス立ち絵(secret char)', story.secret_intro.some(function (l) { return l.char === 'secret'; }));
+c.ok('_rpgPortrait に secret', html.indexOf("char==='secret'") >= 0);
+c.ok('srpgStart が q_secret に secret_intro を配線', ui.indexOf("stageId==='q_secret'") >= 0 && ui.indexOf("_srpgStory('secret_intro')") >= 0);
+c.ok('q_secret 勝利で secret_clear を再生', ui.indexOf("_srpgStory('secret_clear')") >= 0);
+c.ok('裏ボスは魔王城クリアまで隠す', ui.indexOf("id !== 'q_secret'") >= 0);
 
 c.done();

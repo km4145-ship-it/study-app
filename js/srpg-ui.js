@@ -252,6 +252,8 @@ function srpgStageSelect(){
   srpgB = null;
   var cleared = srpgClearedSet();
   var quests = Object.keys(SRPG_STAGES).filter(function(id){ return SRPG_STAGES[id].type === 'quest'; });
+  // 裏ボス（エンドゲーム）は 魔王城クリアまで 隠す＝サプライズ
+  if(!cleared['q_maou']){ quests = quests.filter(function(id){ return id !== 'q_secret'; }); }
   var trains = Object.keys(SRPG_STAGES).filter(function(id){ return SRPG_STAGES[id].type !== 'quest'; });
   var questCards = quests.map(function(id, i){
     var locked = i > 0 && !cleared[quests[i-1]];
@@ -396,6 +398,14 @@ function srpgStart(stageId){
     if(maouScenes && maouScenes.length){
       srpgMarkStorySeen('maou_intro'); srpgRender();
       try{ rpgStoryPlay(maouScenes, srpgDeployBegin); return; }catch(e){}
+    }
+  }
+  // 裏ボス（エンドゲーム）：真の決戦の突入シーンを初回だけ再生
+  if(stageId==='q_secret'){
+    var secScenes = (!srpgStorySeen('secret_intro')) ? _srpgStory('secret_intro') : null;
+    if(secScenes && secScenes.length){
+      srpgMarkStorySeen('secret_intro'); srpgRender();
+      try{ rpgStoryPlay(secScenes, srpgDeployBegin); return; }catch(e){}
     }
   }
   // 初回だけ：あそびかたのチュートリアル（タップ送り・読み上げつき）→ そのままステージの物語へ
@@ -1405,6 +1415,8 @@ function srpgEnd(outcome){
       }
     }
   }
+  // 裏ボス（エンドゲーム）撃破＝真エンディングのシーンを結果のあとに再生
+  if(win && srpgB.stageId==='q_secret'){ storyAfter = _srpgStory('secret_clear'); }
   if(!isLoop){ if(win){ srpgClearLoss(srpgB.stageId); } else { srpgNoteLoss(srpgB.stageId); } }   // 敗北救済（周回は対象外）
   if(!win && stype==='tower'){ try{ lsSetJSON('srpg_tower_save', null); }catch(e){} }   // 塔で負けたら「つづき」は消える
   if(win && isLoop){

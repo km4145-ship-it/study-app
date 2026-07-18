@@ -733,6 +733,11 @@ var SRPG_ENEMY_TEMPLATES = {
   so_fin:  { art:'tokiou',   name:'社会魔王トキ', role:'attacker', rankBase:15, weak:'social', resist:'japanese', boss:true, resists:{ social:'weak', japanese:'half' }, onhit:{ kind:'sleep', turns:1, chance:0.3 }, skills:['line','burstball'],
     phase:{ hp:0.5, atk:1, def:1, name:'れきし さいげん', msg:'まだ 歴史は おわらぬ！ 昨日を 知る者だけが、明日を えらべる…！' },
     charge:{ name:'エターナル・エラ', aoe:'burst', power:185, mp:6, warn:'社会魔王が ちからを ためている…！ つぎのターン 超大技！ 赤いマスから にげろ！' } },
+  // ===== 裏ボス（エンドゲーム＝魔王城クリア後の真の決戦。全ボス最強） =====
+  kyomu:{ art:'dragon', name:'虚無竜ムゲン', role:'tank', rankBase:20, weak:'math', resist:'social', boss:true,
+    resists:{ math:'weak', social:'half', japanese:'half' }, onhit:{ kind:'poison', turns:2, chance:0.4 }, skills:['burstball','poisonbreath'],
+    phase:{ hp:0.6, atk:1, def:1, name:'しんの きょむ', msg:'あきらめの おおもと…わしは 何度でも よみがえる！' },
+    charge:{ name:'アビス・エンド', aoe:'burst', power:230, mp:6, warn:'ムゲンが すべてを のみこもうと している…！ つぎのターン 超・大技！ 赤いマスから にげろ！' } },
   mender: { art:'qbird',   name:'いやしのトリ', role:'healer',  rankBase:7,  weak:'english',  resist:'japanese',
     resists:{ english:'weak', japanese:'half' }, skills:['heal'] },
   cheerer:{ art:'grammaro', name:'おうえんのホン', role:'mage',  rankBase:7,  weak:'japanese', resist:'social',
@@ -793,7 +798,15 @@ var SRPG_STAGES = {
     terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:3,y:2,kind:'poison'}],
     blocks:[{x:0,y:4,kind:'water'},{x:5,y:4,kind:'water'}],
     waves:[[{key:'wolf',x:0,y:1,lvl:8},{key:'cheerer',x:5,y:1,lvl:8}]],   // 応援役つき増援
-    enemies:[{key:'voltdrake',x:1,y:2,lvl:8},{key:'dragon',x:4,y:2,lvl:8},{key:'villain',x:3,y:0,lvl:10}] }
+    enemies:[{key:'voltdrake',x:1,y:2,lvl:8},{key:'dragon',x:4,y:2,lvl:8},{key:'villain',x:3,y:0,lvl:10}] },
+  // 裏ボス（エンドゲーム）：魔王城クリア後に解放される 真の決戦。全ステージ最難。
+  q_secret: { id:'q_secret', name:'虚無の裂け目：真の決戦', grid:{ w:6, h:7 }, continent:'math', type:'quest', boss:'虚無竜ムゲン',
+    story:['魔王シグマが 消えた その あとに——','霧の いちばん おくから、さらに ふかい 闇が うごめく。','これが モヤの おおもと…虚無竜ムゲン！'],
+    allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
+    terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:2,y:2,kind:'poison'},{x:3,y:2,kind:'poison'}],
+    blocks:[{x:0,y:4,kind:'rock'},{x:5,y:4,kind:'rock'}],
+    waves:[[{key:'dragon',x:0,y:1,lvl:12},{key:'mender',x:5,y:1,lvl:12}]],   // 回復役つき増援＝長期戦
+    enemies:[{key:'voltdrake',x:1,y:2,lvl:12},{key:'dragon',x:4,y:2,lvl:12},{key:'kyomu',x:3,y:0,lvl:15}] }
 };
 function srpgStage(id){ return SRPG_STAGES[id] || SRPG_STAGES.arena1; }
 

@@ -114,10 +114,11 @@ const grid = { w: 6, h: 7 };
 {
   const code = fs.readFileSync(path.join(ROOT, 'js', 'rpg-assets.js'), 'utf8');
   const RPG_SVG = (new Function(code + '\nreturn RPG_SVG;'))();
+  const SRPG_MON_ART = require(path.join(ROOT, 'js', 'srpg-mons.js')).SRPG_MON_ART;   // 戦闘は srpgUnitArt→srpgMonArt(SRPG_MON_ART) が最優先
   const valid = (k) => S.SRPG_SUBJECT_KEYS.indexOf(k) >= 0;
   Object.keys(S.SRPG_ENEMY_TEMPLATES).forEach((k) => {
     const t = S.SRPG_ENEMY_TEMPLATES[k];
-    c.ok('敵art ' + t.art + ' はRPG_SVGに実在', typeof RPG_SVG[t.art] === 'string');
+    c.ok('敵art ' + t.art + ' が描画可能(SRPG_MON_ART か RPG_SVG)', typeof SRPG_MON_ART[t.art] === 'string' || typeof RPG_SVG[t.art] === 'string');
     c.ok('敵 ' + k + ' の弱点は有効な教科', valid(t.weak));
     c.ok('敵 ' + k + ' の耐性は有効な教科', valid(t.resist));
     c.ok('敵 ' + k + ' の役割は定義済み', !!S.SRPG_ROLES[t.role]);

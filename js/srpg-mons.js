@@ -23,6 +23,22 @@ function _mEyeSharp(cx, cy, w, dir, pupil){
 }
 function _mCheek(cx, cy){ return '<ellipse cx="'+cx+'" cy="'+cy+'" rx="5" ry="3" fill="#ff8fab" opacity=".45"/>'; }
 function _mHead(){ return '<svg viewBox="0 0 120 120" class="mon-svg">'; }
+// 幹部（シグマの魔神）共通ベース：裂けたダークローブ＋影に沈んだ顔＋光る鋭い眼。
+// c={ body, dark, inner, eye }。呼び出し側で教科モチーフを足して '</svg>' で閉じる。
+function _mFiend(c){
+  return _mHead()
+    + '<ellipse cx="60" cy="113" rx="34" ry="6.5" fill="rgba(0,0,0,.32)"/>'
+    + '<circle cx="60" cy="58" r="50" fill="'+c.eye+'" opacity=".08"/>'
+    + '<path d="M60 42 Q28 48 26 96 L32 110 L45 101 L54 110 L60 101 L66 110 L75 101 L88 110 L94 96 Q92 48 60 42 Z" fill="'+c.body+'" stroke="'+c.dark+'" stroke-width="4.2"/>'
+    + '<path d="M60 52 Q42 56 40 94 L53 104 L60 97 L67 104 Q80 56 60 52 Z" fill="'+c.inner+'"/>'
+    + '<path d="M35 62 Q24 52 20 42 Q34 47 44 58 Z" fill="'+c.body+'" stroke="'+c.dark+'" stroke-width="2.6"/>'
+    + '<path d="M85 62 Q96 52 100 42 Q86 47 76 58 Z" fill="'+c.body+'" stroke="'+c.dark+'" stroke-width="2.6"/>'
+    + '<path d="M60 36 Q40 40 40 56 Q40 68 60 70 Q80 68 80 56 Q80 40 60 36 Z" fill="'+c.dark+'" stroke="'+c.dark+'" stroke-width="2"/>'
+    + '<path d="M46 54 Q44 42 60 41 Q76 42 74 54 Q60 47 46 54 Z" fill="#050310"/>'
+    + '<ellipse cx="52" cy="55" rx="7.5" ry="4.4" fill="'+c.eye+'" opacity=".45"/><ellipse cx="68" cy="55" rx="7.5" ry="4.4" fill="'+c.eye+'" opacity=".45"/>'
+    + _mEyeSharp(52, 57, 6, 1, c.eye) + _mEyeSharp(68, 57, 6, -1, c.eye)
+    + '<circle cx="52" cy="56" r="1.3" fill="#fff"/><circle cx="68" cy="56" r="1.3" fill="#fff"/>';
+}
 
 // ===== オリジナルモンスター9種 =====
 var SRPG_MON_ART = {
@@ -303,6 +319,64 @@ var SRPG_MON_ART = {
     + '<path d="M60 78 L60 64 M60 78 L72 82" stroke="#7c3a12" stroke-width="3" stroke-linecap="round"/>'
     + '<circle cx="60" cy="78" r="3" fill="#7c3a12"/>'
     + _mEye(51, 72, 5, 1) + _mEye(69, 72, 5, 1)
+    + '</svg>',
+
+  // ===== シグマ幹部（5体・教科テーマ×魔神）＋裏ボス =====
+  // 天秤の魔神ゼロン（数）：頭上に天秤（＋と−が釣り合う）
+  zeron:
+    _mFiend({ body:'#312e81', dark:'#141042', inner:'#1a1650', eye:'#fbbf24' })
+    + '<path d="M60 18 L60 34 M33 25 L87 25" stroke="#cbd5e1" stroke-width="2.6" stroke-linecap="round"/>'
+    + '<circle cx="60" cy="19" r="3.6" fill="#fbbf24" stroke="#141042" stroke-width="1.2"/>'
+    + '<path d="M33 25 L27 35 L39 35 Z" fill="#1e1b4b" stroke="#cbd5e1" stroke-width="1.4"/>'
+    + '<path d="M87 25 L81 35 L93 35 Z" fill="#1e1b4b" stroke="#cbd5e1" stroke-width="1.4"/>'
+    + '<text x="33" y="34" font-size="8" text-anchor="middle" fill="#fbbf24" font-weight="bold">＋</text>'
+    + '<text x="87" y="34" font-size="8" text-anchor="middle" fill="#93c5fd" font-weight="bold">−</text>'
+    + '</svg>',
+  // 静寂の魔神サイレント（ことば）：×の封印＋縫い留められた口
+  jp_lt:
+    _mFiend({ body:'#3b0764', dark:'#1e1b4b', inner:'#12082e', eye:'#a855f7' })
+    + '<path d="M53 20 L67 32 M67 20 L53 32" stroke="#c4b5fd" stroke-width="3" stroke-linecap="round" opacity=".92"/>'
+    + '<path d="M50 64 L70 64" stroke="#7c3aed" stroke-width="3" stroke-linecap="round"/>'
+    + '<path d="M55 61 L55 67 M60 61 L60 67 M65 61 L65 67" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round"/>'
+    + '</svg>',
+  // 混沌の魔神バベル（英語）：崩れた文字が乱舞
+  en_lt:
+    _mFiend({ body:'#065f46', dark:'#032b20', inner:'#04231b', eye:'#34d399' })
+    + '<text x="30" y="36" font-size="14" fill="#34d399" font-weight="bold" transform="rotate(-20 30 36)">A</text>'
+    + '<text x="92" y="30" font-size="13" fill="#6ee7b7" font-weight="bold" transform="rotate(18 92 30)">Z</text>'
+    + '<text x="60" y="22" font-size="11" fill="#a7f3d0" font-weight="bold" transform="rotate(-8 60 22)">B</text>'
+    + '<text x="76" y="60" font-size="10" fill="#34d399" font-weight="bold" transform="rotate(24 76 60)">Q</text>'
+    + '</svg>',
+  // まやかしの魔神ペテル（理科）：プリズムが光を歪める
+  sci_lt:
+    _mFiend({ body:'#155e75', dark:'#06303b', inner:'#05242c', eye:'#38bdf8' })
+    + '<path d="M60 16 L72 36 L48 36 Z" fill="#0e7490" stroke="#67e8f9" stroke-width="2"/>'
+    + '<path d="M72 28 L94 22 M73 32 L96 34 M72 35 L92 42" stroke="#67e8f9" stroke-width="1.6" opacity=".8" stroke-linecap="round"/>'
+    + '<circle cx="30" cy="30" r="2.2" fill="#a5f3fc"/><circle cx="90" cy="48" r="1.8" fill="#a5f3fc"/><circle cx="34" cy="52" r="1.5" fill="#a5f3fc"/>'
+    + '</svg>',
+  // 忘却の魔神レーテ（社会）：溶けかけた時計と記憶を消す霧
+  so_lt:
+    _mFiend({ body:'#44403c', dark:'#1c1917', inner:'#292524', eye:'#f59e0b' })
+    + '<circle cx="60" cy="25" r="11" fill="#3f3f46" stroke="#a16207" stroke-width="2.4"/>'
+    + '<path d="M60 25 L60 18 M60 25 L66 27" stroke="#e7e5e4" stroke-width="2" stroke-linecap="round"/>'
+    + '<circle cx="60" cy="25" r="1.6" fill="#e7e5e4"/>'
+    + '<path d="M38 30 Q30 27 25 32 M82 30 Q90 27 95 32 M40 40 Q33 39 29 43" stroke="#a8a29e" stroke-width="2" fill="none" opacity=".55" stroke-linecap="round"/>'
+    + '</svg>',
+  // 虚無竜ムゲン（裏ボス）：あきらめの根源＝闇の竜。開いた虚無の口・三つ目・角の冠
+  kyomu:
+    _mHead() + '<ellipse cx="60" cy="114" rx="40" ry="7" fill="rgba(0,0,0,.45)"/>'
+    + '<circle cx="60" cy="58" r="56" fill="#1e1b4b" opacity=".2"/><circle cx="60" cy="56" r="40" fill="#4c1d95" opacity=".16"/>'
+    + '<path d="M60 46 Q16 42 6 18 Q18 44 30 54 Q12 58 4 76 Q26 66 40 70 L38 100 Q28 110 22 113 Q40 106 60 108 Q80 106 98 113 Q92 110 82 100 L80 70 Q94 66 116 76 Q108 58 90 54 Q102 44 114 18 Q104 42 60 46 Z" fill="#171335" stroke="#0a0720" stroke-width="4"/>'
+    + '<path d="M40 40 L34 20 L46 33 L54 18 L60 33 L66 18 L74 33 L86 20 L80 40 Q60 32 40 40 Z" fill="#2a2250" stroke="#0a0720" stroke-width="2.4"/>'
+    + '<circle cx="47" cy="22" r="2.2" fill="#a855f7"/><circle cx="60" cy="19" r="2.6" fill="#c084fc"/><circle cx="73" cy="22" r="2.2" fill="#a855f7"/>'
+    + '<ellipse cx="49" cy="58" rx="8" ry="5" fill="#a855f7" opacity=".5"/><ellipse cx="71" cy="58" rx="8" ry="5" fill="#a855f7" opacity=".5"/>'
+    + _mEyeSharp(49, 60, 7, 1, '#c084fc') + _mEyeSharp(71, 60, 7, -1, '#c084fc')
+    + '<circle cx="49" cy="59" r="1.4" fill="#fff"/><circle cx="71" cy="59" r="1.4" fill="#fff"/>'
+    + '<path d="M60 46 L56 54 L64 54 Z" fill="#ef4444"/><circle cx="60" cy="50" r="2" fill="#fca5a5"/>'
+    + '<path d="M44 80 Q60 94 76 80 Q68 100 60 100 Q52 100 44 80 Z" fill="#000"/>'
+    + '<path d="M48 82 L51 89 L54 82 Z M66 82 L69 89 L72 82 Z M57 84 L60 92 L63 84 Z" fill="#c4b5fd"/>'
+    + '<path d="M60 100 L56 110 L63 108" stroke="#a855f7" stroke-width="2" fill="none" opacity=".85" stroke-linecap="round"/>'
+    + '<circle cx="20" cy="50" r="2.6" fill="#c4b5fd" opacity=".85"/><circle cx="100" cy="54" r="2.1" fill="#c4b5fd" opacity=".8"/><circle cx="94" cy="32" r="1.7" fill="#a78bfa" opacity=".75"/>'
     + '</svg>'
 };
 // 亜種（色ちがい）：ベースの絵に hue-rotate をかける（RPG_VARIANTS と同じ角度体系）

@@ -53,6 +53,13 @@ var MON3D_SPECS = {
   haniwa:    { plan:'golem',   main:'#c2724a', hole:'#3f1f12' },
   tokiou:    { plan:'robe',    main:'#1e3a8a', inner:'#eff6ff', trim:'#fcd34d', eye:'#fff', pupil:'#0f172a', crown:'#fcd34d' },
   villain:   { plan:'robe',    main:'#3b0764', inner:'#0b0219', trim:'#a78bfa', eye:'#f43f5e', pupil:'#0b0219', horns:'#a78bfa', demon:true },
+  // シグマ幹部5体＋裏ボス（demonローブをテーマ色で流用＝各教科の魔神）
+  zeron:     { plan:'robe',    main:'#312e81', inner:'#141042', trim:'#fbbf24', eye:'#fbbf24', horns:'#a5b4fc', demon:true },
+  jp_lt:     { plan:'robe',    main:'#3b0764', inner:'#12082e', trim:'#a855f7', eye:'#a855f7', horns:'#c4b5fd', demon:true },
+  en_lt:     { plan:'robe',    main:'#065f46', inner:'#04231b', trim:'#34d399', eye:'#34d399', horns:'#6ee7b7', demon:true },
+  sci_lt:    { plan:'robe',    main:'#155e75', inner:'#05242c', trim:'#38bdf8', eye:'#38bdf8', horns:'#67e8f9', demon:true },
+  so_lt:     { plan:'robe',    main:'#44403c', inner:'#292524', trim:'#f59e0b', eye:'#f59e0b', horns:'#d6d3d1', demon:true },
+  kyomu:     { plan:'robe',    main:'#171335', inner:'#0a0720', trim:'#c084fc', eye:'#c084fc', horns:'#c4b5fd', demon:true },
   crystal:   { plan:'crystal', main:'#38f0e0', hi:'#7cf9ec' }
 };
 // 亜種の3D：基本の体型（plan）を流用して主色だけ変える（rpg-assets.jsのRPG_VARIANTSと対応）

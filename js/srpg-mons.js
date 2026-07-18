@@ -129,17 +129,49 @@ var SRPG_MON_ART = {
     + '<path d="M50 98 L53 104 L56 98 Z" fill="#fff"/><path d="M64 98 L67 104 L70 98 Z" fill="#fff"/>'
     + '</svg>',
   // 魔王シグマ：闇の王（冠・マント・赤い瞳・オーラ）＝ボス
+  // 魔王シグマ：モヤの霧をまとう魔王（丸トゥーンの雑魚とは別格の、威圧感ある独自シルエット）
   villain:
-    _mHead() + '<ellipse cx="60" cy="113" rx="34" ry="6.5" fill="rgba(0,0,0,.3)"/>'
-    + '<circle cx="60" cy="66" r="46" fill="#5b21b6" opacity=".14"/>'
-    + '<path d="M22 104 Q18 58 60 50 Q102 58 98 104 Q80 96 60 100 Q40 96 22 104 Z" fill="#312e81" stroke="#17153b" stroke-width="4"/>'
-    + '<path d="M40 100 Q60 92 80 100 L80 104 Q60 98 40 104 Z" fill="#4c1d95"/>'
-    + '<path d="M34 60 Q30 30 60 30 Q90 30 86 60 Q60 52 34 60 Z" fill="#1f1b4d" stroke="#17153b" stroke-width="3.6"/>'
-    + '<path d="M32 40 L34 22 L44 34 L52 20 L60 34 L68 20 L76 34 L86 22 L88 40 Q60 32 32 40 Z" fill="#fbbf24" stroke="#a16207" stroke-width="2.6"/>'
-    + '<circle cx="52" cy="24" r="3" fill="#ef4444"/><circle cx="60" cy="21" r="3.4" fill="#f87171"/><circle cx="68" cy="24" r="3" fill="#ef4444"/>'
-    + _mEyeSharp(50, 58, 9, 1, '#ef4444') + _mEyeSharp(70, 58, 9, -1, '#ef4444')
-    + '<path d="M50 70 Q60 66 70 70" stroke="#0b0b1e" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
-    + '<circle cx="20" cy="52" r="3" fill="#a78bfa" opacity=".8"/><circle cx="100" cy="52" r="3" fill="#a78bfa" opacity=".8"/><circle cx="96" cy="80" r="2.4" fill="#a78bfa" opacity=".7"/>'
+    _mHead()
+    // 足元の濃い影＋背後に立ちこめる紫のモヤ・オーラ（発光を重ねる）
+    + '<ellipse cx="60" cy="115" rx="42" ry="7.5" fill="rgba(0,0,0,.45)"/>'
+    + '<circle cx="60" cy="58" r="54" fill="#4c1d95" opacity=".10"/>'
+    + '<circle cx="60" cy="56" r="42" fill="#6d28d9" opacity=".13"/>'
+    + '<path d="M16 98 Q8 72 20 50" stroke="#7c3aed" stroke-width="3.2" fill="none" opacity=".28" stroke-linecap="round"/>'
+    + '<path d="M104 98 Q112 72 100 50" stroke="#7c3aed" stroke-width="3.2" fill="none" opacity=".28" stroke-linecap="round"/>'
+    + '<path d="M30 106 Q26 84 36 68" stroke="#a855f7" stroke-width="2.2" fill="none" opacity=".22" stroke-linecap="round"/>'
+    // 太く湾曲した魔の角（外へ反り返り、根元太く先すぼまり＝耳でなく角に見せる）
+    + '<path d="M46 30 Q24 27 13 12 Q7 4 10 1 Q16 9 27 14 Q40 20 49 27 Z" fill="#c7b8ea" stroke="#0d0a22" stroke-width="2.8" stroke-linejoin="round"/>'
+    + '<path d="M74 30 Q96 27 107 12 Q113 4 110 1 Q104 9 93 14 Q80 20 71 27 Z" fill="#c7b8ea" stroke="#0d0a22" stroke-width="2.8" stroke-linejoin="round"/>'
+    + '<path d="M46 30 Q28 27 18 15 Q12 8 13 5 Q21 13 32 17 Q43 22 49 28 Z" fill="#8571b8" opacity=".65"/>'
+    + '<path d="M74 30 Q92 27 102 15 Q108 8 107 5 Q99 13 88 17 Q77 22 71 28 Z" fill="#8571b8" opacity=".65"/>'
+    + '<path d="M31 17 L35 21 M22 10 L26 14" stroke="#0d0a22" stroke-width="1.2" opacity=".45" stroke-linecap="round"/>'
+    + '<path d="M89 17 L85 21 M98 10 L94 14" stroke="#0d0a22" stroke-width="1.2" opacity=".45" stroke-linecap="round"/>'
+    // 裂けたマント（下広がり・裾がギザギザに破れた重厚なローブ）
+    + '<path d="M60 40 Q24 46 20 92 L15 113 L28 104 L37 113 L46 103 L55 113 L60 104 L65 113 L74 103 L83 113 L92 104 L105 113 L100 92 Q96 46 60 40 Z" fill="#241b4a" stroke="#0b0820" stroke-width="4.2"/>'
+    + '<path d="M60 52 Q40 56 37 92 L45 107 L54 99 L60 105 L66 99 L75 107 Q83 56 60 52 Z" fill="#120e2e"/>'
+    // 尖った肩のカラー（左右にとがらせて威圧）
+    + '<path d="M35 60 Q23 50 18 40 Q34 45 46 56 Z" fill="#3b0764" stroke="#0b0820" stroke-width="3"/>'
+    + '<path d="M85 60 Q97 50 102 40 Q86 45 74 56 Z" fill="#3b0764" stroke="#0b0820" stroke-width="3"/>'
+    // 尖ったフード（頭巾）＝中は闇
+    + '<path d="M60 12 Q38 16 34 44 Q47 37 60 37 Q73 37 86 44 Q82 16 60 12 Z" fill="#1b1440" stroke="#0b0820" stroke-width="3.6"/>'
+    + '<path d="M43 42 Q41 22 60 20 Q79 22 77 42 Q60 35 43 42 Z" fill="#060411"/>'
+    // σの紋章（額に浮かぶ）
+    + '<text x="60" y="30" font-size="12" text-anchor="middle" fill="#c4b5fd" font-weight="bold" opacity=".92">σ</text>'
+    // 光る鋭い眼（赤い発光ハロー＋鋭い眼＋中の光点）
+    + '<ellipse cx="51" cy="35" rx="8.5" ry="5" fill="#dc2626" opacity=".45"/>'
+    + '<ellipse cx="69" cy="35" rx="8.5" ry="5" fill="#dc2626" opacity=".45"/>'
+    + _mEyeSharp(51, 37, 7, 1, '#ef4444') + _mEyeSharp(69, 37, 7, -1, '#ef4444')
+    + '<circle cx="51" cy="36" r="1.5" fill="#fff5f5"/><circle cx="69" cy="36" r="1.5" fill="#fff5f5"/>'
+    // 牙をむいた口（闇の中に白い牙）
+    + '<path d="M50 48 Q60 45 70 48 L67 52 L63 48 L60 52 L57 48 L53 52 Z" fill="#080512"/>'
+    + '<path d="M53 48 L55 53 L57 48 Z M63 48 L65 53 L67 48 Z" fill="#fff"/>'
+    // マントを走る紫のエネルギー亀裂
+    + '<path d="M60 62 L56 74 L62 72 L57 90" stroke="#a855f7" stroke-width="2" fill="none" opacity=".85" stroke-linecap="round"/>'
+    // 袖から伸びるかぎ爪の手（左右）
+    + '<path d="M31 88 Q23 92 21 100 Q27 96 31 98 Q25 100 23 106 Q31 101 34 103 Q30 105 30 109 Q37 100 39 90 Z" fill="#1b1440" stroke="#0b0820" stroke-width="2.2"/>'
+    + '<path d="M89 88 Q97 92 99 100 Q93 96 89 98 Q95 100 97 106 Q89 101 86 103 Q90 105 90 109 Q83 100 81 90 Z" fill="#1b1440" stroke="#0b0820" stroke-width="2.2"/>'
+    // 浮遊する紫の火の粉
+    + '<circle cx="24" cy="46" r="2.4" fill="#c4b5fd" opacity=".9"/><circle cx="98" cy="52" r="1.9" fill="#c4b5fd" opacity=".85"/><circle cx="92" cy="30" r="1.6" fill="#a78bfa" opacity=".8"/><circle cx="28" cy="30" r="1.4" fill="#a78bfa" opacity=".75"/>'
     + '</svg>',
   // スラッグキング：ゼリーの王（冠つきの大きなスライム＝数の大陸ボス）
   slugking:

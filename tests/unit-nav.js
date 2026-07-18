@@ -35,6 +35,7 @@ c.ok('旧RPGトップバーの🗡️衝突を解消（🗺️大陸ストーリ
 
 // ---- タクト一本化：物語がタクト単体で伝わる＋育成はタクトのチームを保護 ----
 const srpgUi = fs.readFileSync(path.join(ROOT, 'js', 'srpg-ui.js'), 'utf8');
+const cosData = fs.readFileSync(path.join(ROOT, 'js', 'cos-data.js'), 'utf8');
 const tut = srpgUi.slice(srpgUi.indexOf('var SRPG_TUT_LINES'), srpgUi.indexOf('var SRPG_TUT_LINES') + 900);
 c.ok('タクト初回に魔王シグマの動機づけがある', tut.indexOf('魔王シグマ') >= 0);
 c.ok('タクト初回にクリスタル収集の目的がある', tut.indexOf('クリスタル') >= 0);
@@ -63,9 +64,16 @@ c.ok('大陸初クリアでクリスタル獲得', srpgUi.indexOf('cryFirst') >=
 c.ok('魔王城カードはクリスタル条件を表示', srpgUi.indexOf('5つの クリスタルで ひらく') >= 0);
 
 // ---- きょうの目標（デイリーミッション）が旧RPG非表示後も機能・ハブに表示 ----
-c.ok('回答時にミッション達成判定が走る', html.indexOf('rpgBumpDailyCorrect(totalStreak); try{ rpgCheckMissions(); }') >= 0);
+c.ok('回答時にミッション達成判定が走る', html.indexOf('rpgBumpDailyCorrect(totalStreak); try{ rpgCheckMissions(); checkAchievements(); }') >= 0);
 c.ok('タクト勝利で勝利ミッションを加算', srpgUi.indexOf('rpgBumpDailyWin(); rpgCheckMissions();') >= 0 && html.indexOf('function rpgBumpDailyWin') >= 0);
 c.ok('ハブにきょうの目標カードがある', html.indexOf('function _hubMissionsHtml') >= 0 && html.indexOf('h += _hubMissionsHtml();') >= 0);
-c.ok('ハブ描画でミッション達成判定が走る', html.indexOf('try{ rpgCheckMissions(); }catch(e){}\n  h += _hubMissionsHtml();') >= 0);
+c.ok('ハブ描画でミッション達成判定が走る', html.indexOf('try{ rpgCheckMissions(); checkAchievements(); }catch(e){}\n  h += _hubMissionsHtml();') >= 0);
+
+// ---- 実績・称号（マイルストーンで称号付与・記録画面で装備）----
+c.ok('実績データSTUDY_ACHIEVEMENTSがある', html.indexOf('function STUDY_ACHIEVEMENTS') >= 0);
+c.ok('達成判定checkAchievementsがある', html.indexOf('function checkAchievements') >= 0);
+c.ok('記録画面に実績セクション', html.indexOf('function renderAchievements') >= 0 && html.indexOf('id="rec-achievements"') >= 0);
+c.ok('勝利でも実績判定が走る', srpgUi.indexOf('checkAchievements()') >= 0);
+c.ok('実績由来の称号がCOS_TITLESにある', cosData.indexOf('a_maou:{') >= 0 && cosData.indexOf('a_crystal:{') >= 0);
 
 c.done();

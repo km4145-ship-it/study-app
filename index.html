@@ -2190,6 +2190,23 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .hm-row.done .hm-bar i{ background:#10b981; }
   .hm-foot{ font-size:.72rem; color:var(--muted,#5b7a88); font-weight:600; margin-top:8px; }
   @media (prefers-color-scheme:dark){ .hub-missions{ background:#1e293b; border-color:rgba(148,163,184,.2); } .hm-tx,.hm-head{ color:#e2e8f0; } .hm-bar{ background:rgba(255,255,255,.12); } }
+  /* ハブ：装備中の称号チップ */
+  .hub-eqtitle{ display:inline-block; font-size:.66rem; font-weight:800; color:#b45309; background:linear-gradient(135deg,#fff7d6,#ffe6a8); border-radius:999px; padding:1px 8px; vertical-align:middle; }
+  /* 実績・称号グリッド（きろく画面） */
+  .ach-head{ font-size:.85rem; font-weight:800; color:var(--text); margin-bottom:8px; }
+  .ach-head b{ color:var(--primary,#0891b2); }
+  .ach-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; }
+  .ach{ display:flex; flex-direction:column; align-items:center; gap:2px; text-align:center; border:none; border-radius:12px; padding:9px 6px; font-family:inherit; cursor:pointer; background:linear-gradient(135deg,#fff7d6,#ffe6a8); box-shadow:var(--sh-1); }
+  .ach.lock{ background:var(--card2,#eef2f7); cursor:default; opacity:.75; }
+  .ach.on{ outline:3px solid #f59e0b; }
+  .ach-em{ font-size:1.7rem; line-height:1; }
+  .ach-nm{ font-size:.72rem; font-weight:900; color:#8a5a00; }
+  .ach.lock .ach-nm{ color:var(--muted,#5b7a88); }
+  .ach-ds{ font-size:.62rem; font-weight:600; color:#a16207; line-height:1.3; }
+  .ach.lock .ach-ds{ color:var(--muted,#5b7a88); }
+  .ach-tag{ font-size:.6rem; font-weight:800; color:#fff; background:#0891b2; border-radius:999px; padding:0 7px; margin-top:2px; }
+  .ach-tag.on{ background:#f59e0b; }
+  @media (prefers-color-scheme:dark){ .ach.lock{ background:#243244; } .hub-eqtitle{ color:#78350f; } }
   .htw-item{ flex:1; text-align:center; color:#cbd5e1; font-size:11px; font-weight:800; line-height:1.5; }
   .htw-item b{ display:block; color:#fff; font-size:13px; }
   .htw-item.hot b{ color:#fde047; } .htw-item.done b{ color:#6ee7b7; }
@@ -2888,6 +2905,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
     <div id="rec-weak"></div>
     <div class="rec-sec-title">教科別の正答率</div>
     <div id="rec-subjects"></div>
+    <div class="rec-sec-title">🎖️ 実績・称号</div>
+    <div id="rec-achievements"></div>
     <div class="rec-sec-title">🏅 ゲットしたバッジ</div>
     <div id="rec-badges"></div>
     <div class="rec-sec-title">最近の記録</div>
@@ -4731,7 +4750,7 @@ function handleAnswer(correct, correctAns) {
     if(correct){ sfx(totalStreak>=3?'crit':'correct'); vibe(20); sparkleBurst(document.getElementById('feedback')); }
     else { sfx('wrong'); vibe([30,50,30]); }
   }
-  if(correct){ rpgBumpDailyCorrect(totalStreak); try{ rpgCheckMissions(); }catch(e){} }  // 今日のミッション：全モードの正解を集計＋その場で達成判定・付与
+  if(correct){ rpgBumpDailyCorrect(totalStreak); try{ rpgCheckMissions(); checkAchievements(); }catch(e){} }  // 今日のミッション：全モードの正解を集計＋その場で達成判定・付与
   if(rpgBattle) rpgAfterAnswer(correct);
   document.getElementById('btn-next').classList.add('show');
 }
@@ -5314,6 +5333,7 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   var host=document.getElementById('game-hub'); if(!host) return;
   var u=(typeof muCurrentUser==='function' && muCurrentUser())||{};
   var name=u.name||'きみ';
+  var _hubTitle=null; try{ _hubTitle=rpgEquippedTitle(); }catch(e){}   // 装備中の称号（実績・きせかえで得た）
   var grade=''; try{ grade=muGradeLabel(muGradeLevel(u)); }catch(e){}
   var lv=1; try{ lv=(rpgState().level)||1; }catch(e){}
   var st=0; try{ st=currentStreak(); }catch(e){}
@@ -5330,7 +5350,7 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   // プレイヤーストリップ
   h+='<div class="hub-player">'+
      '<div class="hub-ava">'+avatar+'</div>'+
-     '<div class="hub-pinfo"><div class="hub-pname">'+escapeHtml(name)+(grade?' <span class="hub-grade">'+grade+'</span>':'')+'</div>'+
+     '<div class="hub-pinfo"><div class="hub-pname">'+escapeHtml(name)+(grade?' <span class="hub-grade">'+grade+'</span>':'')+(_hubTitle?' <span class="hub-eqtitle">'+_hubTitle.em+' '+escapeHtml(_hubTitle.name)+'</span>':'')+'</div>'+
      '<div class="hub-chips"><span class="hub-chip hub-hensa" title="れんしゅうの じつりょくメーター。本物の偏差値は 模試でわかるよ（きろく画面）">📈 じつりょく <b>'+(hensa||'計測中')+'</b>'+(hensaSub?'<small style="font-weight:700"> '+hensaSub+'</small>':'')+'</span><span class="hub-chip">⭐ '+pts+'</span><span class="hub-chip">🔥 '+st+'日</span><span class="hub-chip">Lv '+lv+'</span></div></div>'+
      '<div class="hub-ring" style="--p:'+pct+'"><div class="hub-ring-in">'+cnt+'<small>/'+goal+'</small></div></div>'+
      '</div>';
@@ -5367,7 +5387,7 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
       +'</button>';
   }catch(e){}
   // きょうの目標（デイリーミッション）＝毎日戻る動機。ハブに常設し、その場で達成判定
-  try{ rpgCheckMissions(); }catch(e){}
+  try{ rpgCheckMissions(); checkAchievements(); }catch(e){}
   h += _hubMissionsHtml();
   // ゲームメニュー
   h+='<div class="hub-sec">🎮 あそんで まなぶ</div>';
@@ -7109,6 +7129,55 @@ function rpgCheckMissions(){
   ms.forEach(function(m){ if(!d.claimed[m.id]) allDone=false; });
   if(allDone && !d.claimed.all){ d.claimed.all=1; var st=rpgGiveSticker(s); totalPoints+=30; cos.coin=(cos.coin||0)+40; changed=true; try{ showToast('🎉','きょうの ミッション ぜんぶ たっせい！','シール「'+st+'」＋30ポイント ・ 🪙+40！'); sfx('fanfare'); confetti(); }catch(e){} }
   if(changed){ safeLS.setItem('c_points', totalPoints); try{ updateScoreBar(); }catch(e){} rpgSave(s); }
+}
+// ===== 実績・称号：学習と冒険のマイルストーン。達成で称号(cos.titles)を付与＝きせかえで装備できる =====
+function _achAnswered(){ try{ return parseInt(safeLS.getItem('c_answered')||'0',10)||0; }catch(e){ return 0; } }
+function _achStreak(){ try{ return currentStreak(); }catch(e){ return 0; } }
+function _achRating(){ try{ return (typeof ratingOverall==='function'&&typeof ratingLoad==='function')? ratingOverall(ratingLoad()) : 0; }catch(e){ return 0; } }
+function _achCrystals(){ try{ return (typeof srpgCrystalCount==='function'&&typeof srpgClearedSet==='function')? srpgCrystalCount(srpgClearedSet()) : 0; }catch(e){ return 0; } }
+function _achDex(){ try{ var c=rpgCosState(rpgState()); return Object.keys((c&&c.metDex)||{}).length; }catch(e){ return 0; } }
+function _achMaou(){ try{ return safeLS.getItem('srpg_maou_cleared')==='1'; }catch(e){ return false; } }
+function STUDY_ACHIEVEMENTS(){ return [
+  { id:'a_start',    hint:'はじめて 問題を とく', done:function(){ return _achAnswered()>=1; } },
+  { id:'a_ans100',   hint:'通算 100問 とく',     done:function(){ return _achAnswered()>=100; } },
+  { id:'a_ans1000',  hint:'通算 1000問 とく',    done:function(){ return _achAnswered()>=1000; } },
+  { id:'a_streak3',  hint:'3日 れんぞく 学習',   done:function(){ return _achStreak()>=3; } },
+  { id:'a_streak7',  hint:'7日 れんぞく 学習',   done:function(){ return _achStreak()>=7; } },
+  { id:'a_streak30', hint:'30日 れんぞく 学習',  done:function(){ return _achStreak()>=30; } },
+  { id:'a_jitsu55',  hint:'じつりょく 55',        done:function(){ return _achRating()>=55; } },
+  { id:'a_jitsu65',  hint:'じつりょく 65',        done:function(){ return _achRating()>=65; } },
+  { id:'a_crystal',  hint:'クリスタルを 5つ集める', done:function(){ return _achCrystals()>=5; } },
+  { id:'a_maou',     hint:'魔王シグマを たおす',  done:function(){ return _achMaou(); } },
+  { id:'a_scout',    hint:'なかま図鑑 30種',      done:function(){ return _achDex()>=30; } }
+]; }
+// 達成判定＋新規付与（称号＝cos.titles へ）。称号はきせかえ画面で装備できる。
+function checkAchievements(){
+  try{
+    if(typeof COS_TITLES==='undefined') return;
+    var s=rpgState(), cos=rpgCosState(s); if(!cos.titles) cos.titles={};
+    var got=[];
+    STUDY_ACHIEVEMENTS().forEach(function(a){ if(cos.titles[a.id]) return; if(a.done()){ cos.titles[a.id]=1; got.push(a.id); } });
+    if(got.length){
+      rpgSave(s);
+      got.forEach(function(id, i){ var t=COS_TITLES[id]||{}; setTimeout(function(){ try{ showToast(t.em||'🎖️','実績たっせい！ 称号ゲット','「'+(t.name||'')+'」（きろく/きせかえで つけられるよ）', 4200); sfx('fanfare'); confetti(); }catch(e){} }, 400+i*1300); });
+    }
+  }catch(e){}
+}
+// 記録画面：実績・称号の一覧（達成は色つき・タップで称号つけかえ／未達成は条件ヒント）
+function renderAchievements(){
+  var el=document.getElementById('rec-achievements'); if(!el) return;
+  try{ checkAchievements(); }catch(e){}
+  var list=STUDY_ACHIEVEMENTS(), cos={}; try{ cos=rpgCosState(rpgState()); }catch(e){}
+  var owned=cos.titles||{}, eq=cos.title||'';
+  var n=list.filter(function(a){ return owned[a.id]; }).length;
+  var grid=list.map(function(a){ var t=(typeof COS_TITLES!=='undefined'&&COS_TITLES[a.id])||{}, has=!!owned[a.id], on=(eq===a.id);
+    return '<button class="ach'+(has?' got':' lock')+(on?' on':'')+'" '+(has?('onclick="rpgTitleEquip(\''+a.id+'\'); renderAchievements();"'):'disabled')+'>'
+      +'<span class="ach-em">'+(has?(t.em||'🎖️'):'🔒')+'</span>'
+      +'<span class="ach-nm">'+escapeHtml(has?(t.name||''):'？？？')+'</span>'
+      +'<span class="ach-ds">'+escapeHtml(a.hint)+'</span>'
+      +(on?'<span class="ach-tag on">つけてる</span>':(has?'<span class="ach-tag">つける</span>':''))+'</button>';
+  }).join('');
+  el.innerHTML='<div class="ach-head">あつめた称号 <b>'+n+' / '+list.length+'</b>　<small>タップで つけかえ</small></div><div class="ach-grid">'+grid+'</div>';
 }
 function rpgLoginBonus(){
   var s=rpgState(), lg=s.login||{last:'',streak:0};
@@ -9040,6 +9109,7 @@ function renderHensachiGoal(){
 // ---- 学習記録の追加セクション描画 ----
 function renderRecordExtras(){
   renderHensachiGoal();
+  try{ renderAchievements(); }catch(e){}
   renderCalendar();
   renderWeek(); renderParent(); renderTrend(); renderMastery();
   const dEl = document.getElementById('rec-daily');

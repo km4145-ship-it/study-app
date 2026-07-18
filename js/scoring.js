@@ -33,3 +33,36 @@ function judgeOf(h){
 function rpgXpForLevel(l){ return Math.pow(Math.max(0,l-1),2)*40; }
 
 function rpgLevelForXp(xp){ return Math.floor(Math.sqrt(Math.max(0,xp)/40))+1; }
+
+// ===== 単元マスター度（Familiar→Proficient→Mastered）=====
+// 正答率だけでなく「挑戦回数（＝確信度）」も加味した段階モデル。
+// 1回100%は"マスター"にしない（まぐれ/母数不足を排除）＝教育的に正しい習熟の見立て。
+// order は「弱い→強い」の並び順。renderMastery とサマリで共有する唯一の判定ソース。
+var MASTERY_TIERS = {
+  learning:   { key:'learning',   order:0, mk:'▶', label:'れんしゅう中', short:'練習中', col:'#94a3b8' },
+  familiar:   { key:'familiar',   order:1, mk:'○', label:'なじんできた', short:'なじみ',   col:'#f59e0b' },
+  proficient: { key:'proficient', order:2, mk:'◎', label:'とくい',       short:'とくい',   col:'#36b37e' },
+  mastered:   { key:'mastered',   order:3, mk:'👑', label:'マスター',     short:'マスター', col:'#137a4f' },
+};
+// correct/attempts → tier オブジェクト。attempts=0 は null（マップに出さない）。
+function masteryTier(correct, attempts){
+  attempts = attempts|0; correct = correct|0;
+  if(attempts <= 0) return null;
+  var rate = correct / attempts;
+  if(attempts >= 6 && rate >= 0.85) return MASTERY_TIERS.mastered;
+  if(attempts >= 4 && rate >= 0.70) return MASTERY_TIERS.proficient;
+  if(attempts >= 2 && rate >= 0.55) return MASTERY_TIERS.familiar;
+  return MASTERY_TIERS.learning;
+}
+// rows=[{correct,attempts},...] → 段階ごとの単元数＋マスター率(%)。
+// 「マスター率」は proficient 以上（とくい＋マスター）を習得済みとみなした割合。
+function masterySummary(rows){
+  var out = { learning:0, familiar:0, proficient:0, mastered:0, total:0, pct:0 };
+  (rows||[]).forEach(function(r){
+    var t = masteryTier(r.correct, r.attempts); if(!t) return;
+    out[t.key]++; out.total++;
+  });
+  var got = out.proficient + out.mastered;
+  out.pct = out.total ? Math.round(got / out.total * 100) : 0;
+  return out;
+}

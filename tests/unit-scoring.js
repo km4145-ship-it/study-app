@@ -8,7 +8,7 @@ const c = makeChecker('unit-scoring');
 
 const code = fs.readFileSync(path.join(ROOT, 'js', 'scoring.js'), 'utf8');
 const api = (new Function(code +
-  '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp};'))();
+  '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp,masteryTier,masterySummary,MASTERY_TIERS};'))();
 
 ['_seedOf', 'withSeed', 'calcHensachiRaw', 'judgeOf', 'rpgXpForLevel', 'rpgLevelForXp']
   .forEach((f) => c.ok(f + ' が関数', typeof api[f] === 'function'));
@@ -45,10 +45,42 @@ c.eq('judgeOf(30)=E', api.judgeOf(30).band, 'E');
 c.eq('rpgXpForLevel[1,2,3,5,10]', [1, 2, 3, 5, 10].map(api.rpgXpForLevel).join(','), '0,40,160,640,3240');
 c.eq('rpgLevelForXp[0,40,160,360,1440]', [0, 40, 160, 360, 1440].map(api.rpgLevelForXp).join(','), '1,2,3,4,7');
 
+// ===== 単元マスター度（Familiar→Proficient→Mastered）=====
+c.eq('masteryTier：0回はnull', api.masteryTier(0, 0), null);
+c.eq('masteryTier：1/1(100%)はまだ練習中（母数不足）', api.masteryTier(1, 1).key, 'learning');
+c.eq('masteryTier：3/5(60%)はなじみ', api.masteryTier(3, 5).key, 'familiar');
+c.eq('masteryTier：4/5(80%)はとくい', api.masteryTier(4, 5).key, 'proficient');
+c.eq('masteryTier：7/8(87.5%)はマスター', api.masteryTier(7, 8).key, 'mastered');
+c.eq('masteryTier：6回でも8割未満はマスターにしない(5/6)', api.masteryTier(5, 6).key, 'proficient');
+c.eq('masteryTier：低正答は回数多くても練習中(2/10)', api.masteryTier(2, 10).key, 'learning');
+c.ok('order は 練習中<なじみ<とくい<マスター',
+  api.MASTERY_TIERS.learning.order < api.MASTERY_TIERS.familiar.order &&
+  api.MASTERY_TIERS.familiar.order < api.MASTERY_TIERS.proficient.order &&
+  api.MASTERY_TIERS.proficient.order < api.MASTERY_TIERS.mastered.order);
+{
+  const rows = [
+    { correct:7, attempts:8 },   // mastered
+    { correct:4, attempts:5 },   // proficient
+    { correct:3, attempts:5 },   // familiar
+    { correct:1, attempts:3 },   // learning
+    { correct:0, attempts:0 },   // 無視（null）
+  ];
+  const s = api.masterySummary(rows);
+  c.eq('masterySummary：total は挑戦済みのみ', s.total, 4);
+  c.eq('masterySummary：mastered=1', s.mastered, 1);
+  c.eq('masterySummary：proficient=1', s.proficient, 1);
+  c.eq('masterySummary：familiar=1', s.familiar, 1);
+  c.eq('masterySummary：learning=1', s.learning, 1);
+  c.eq('masterySummary：習得率=とくい以上/total=2/4=50%', s.pct, 50);
+  c.eq('masterySummary：空配列は0%', api.masterySummary([]).pct, 0);
+}
+
 // index.html 側は再定義せず、モジュールを読み込む
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は calcHensachiRaw を再定義しない', html.indexOf('function calcHensachiRaw(') < 0);
 c.ok('index.html は withSeed を再定義しない', html.indexOf('function withSeed(') < 0);
 c.ok('index.html は js/scoring.js を読み込む', html.indexOf('<script src="js/scoring.js') >= 0);
+c.ok('index.html は masteryTier を再定義しない（scoring.js に集約）', html.indexOf('function masteryTier(') < 0);
+c.ok('renderMastery は masteryTier/masterySummary を使う', html.indexOf('masteryTier(') >= 0 && html.indexOf('masterySummary(') >= 0);
 
 c.done();

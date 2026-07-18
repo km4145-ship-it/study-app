@@ -801,8 +801,19 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .cl-b { font-size:0.74rem; font-weight:700; padding:4px 10px; border-radius:8px; border:1px solid var(--primary-light); background:var(--card2); color:var(--primary-light); cursor:pointer; margin:0 2px; }
   @media (hover:hover) and (pointer:fine){ .cl-b:hover { background:var(--primary); color:#fff; } }
   .mas-area { font-weight:700; color:var(--gold); font-size:0.85rem; margin:8px 2px 4px; }
+  .mas-area-sum { font-weight:700; color:var(--muted); font-size:0.72rem; }
   .mas-grid { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px; }
   .mas-cell { font-size:0.66rem; font-weight:700; color:#fff; padding:3px 8px; border-radius:99px; }
+  .mas-sum { background:var(--card2,#f1f5f9); border-radius:12px; padding:10px 12px; margin:4px 0 8px; }
+  .mas-sum-top { display:flex; justify-content:space-between; align-items:baseline; }
+  .mas-sum-top b { font-size:0.9rem; color:var(--text); }
+  .mas-pct { font-size:1.25rem; font-weight:900; color:var(--primary,#0891b2); }
+  .mas-sum-legend { font-size:0.7rem; color:var(--muted); margin-top:5px; }
+  .mas-bar { height:9px; background:rgba(148,163,184,.28); border-radius:99px; overflow:hidden; margin:6px 0 2px; }
+  .mas-bar > i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#36b37e,#137a4f); transition:width .5s var(--spring,ease); }
+  .mas-bar-sm { height:6px; margin:2px 2px 6px; }
+  .mas-next { background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px; padding:9px 12px; font-size:0.8rem; font-weight:700; margin:6px 0; }
+  .mas-next b { font-weight:900; }
   .parent-box { background:var(--card2); border-radius:12px; padding:12px 14px; font-size:0.82rem; line-height:1.9; color:var(--text); }
   .parent-advice { margin-top:8px; padding-top:8px; border-top:1px dashed var(--primary-light); color:var(--primary-light); }
   .dm-test { background:#fef3c7; color:#92400e; border-radius:10px; padding:6px 10px; font-size:0.82rem; font-weight:700; text-align:center; margin-bottom:8px; }
@@ -3310,7 +3321,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/furigana.js?v=1"></script>
 <script src="js/reading-ja.js?v=3"></script>
 <script src="js/content-data.js?v=2"></script>
-<script src="js/scoring.js?v=1"></script>
+<script src="js/scoring.js?v=2"></script>
 <script src="js/ui-data.js?v=1"></script>
 <script src="js/util.js?v=2"></script>
 <script src="js/miss-types.js?v=1"></script>
@@ -8523,19 +8534,32 @@ function renderTrend(){
 function renderMastery(){
   const el=document.getElementById('rec-mastery'); if(!el) return;
   const st=lsGetJSON('topic_stats',{}); const rows=Object.keys(st).map(function(k){return st[k];});
-  if(rows.length===0){ el.innerHTML='<div class="rec-empty">問題を解くと、単元ごとの得意・苦手がここに色で出るよ。</div>'; return; }
-  let html='';
+  if(rows.length===0){ el.innerHTML='<div class="rec-empty">問題を解くと、単元ごとの習熟度（れんしゅう中→なじみ→とくい→👑マスター）がここに出るよ。</div>'; return; }
+  // 全体サマリ（習得率＝とくい以上の割合）
+  const all=masterySummary(rows);
+  let html='<div class="mas-sum"><div class="mas-sum-top"><b>ぜんたいの習得率</b><span class="mas-pct">'+all.pct+'%</span></div>'+
+    '<div class="mas-bar"><i style="width:'+all.pct+'%"></i></div>'+
+    '<div class="mas-sum-legend">👑マスター '+all.mastered+'／◎とくい '+all.proficient+'／○なじみ '+all.familiar+'／▶練習中 '+all.learning+'（全'+all.total+'単元）</div></div>';
+  // 教科ごと
   AREAS.forEach(function(a){
     const ts=rows.filter(function(r){return r.area===a.key;}); if(!ts.length) return;
-    ts.sort(function(x,y){return (x.correct/x.attempts)-(y.correct/y.attempts);});
-    html+='<div class="mas-area">'+a.icon+a.name+'</div><div class="mas-grid">'+
-      ts.map(function(t){ const rate=Math.round(t.correct/t.attempts*100);
-        // 色だけに頼らないよう、習熟度の記号（◎○△×）も併記（色覚に配慮）
-        const col=rate>=80?'#137a4f':rate>=60?'#36b37e':rate>=40?'#f59e0b':'#ef4444';
-        const mk=rate>=80?'◎':rate>=60?'○':rate>=40?'△':'×';
-        return '<span class="mas-cell" style="background:'+col+'" title="'+escapeHtml(t.sub)+'：'+rate+'%（'+t.correct+'/'+t.attempts+'）">'+mk+' '+escapeHtml(t.sub)+' '+rate+'%</span>'; }).join('')+'</div>';
+    const sum=masterySummary(ts);
+    ts.forEach(function(t){ t._t=masteryTier(t.correct,t.attempts); t._rate=Math.round(t.correct/t.attempts*100); });
+    ts.sort(function(x,y){ return (x._t.order-y._t.order) || (x._rate-y._rate); });   // 弱い→強い
+    html+='<div class="mas-area">'+a.icon+a.name+'　<span class="mas-area-sum">習得率 '+sum.pct+'%（👑'+sum.mastered+'/◎'+sum.proficient+'）</span></div>'+
+      '<div class="mas-bar mas-bar-sm"><i style="width:'+sum.pct+'%"></i></div>'+
+      '<div class="mas-grid">'+
+      ts.map(function(t){ return '<span class="mas-cell" style="background:'+t._t.col+'" title="'+escapeHtml(t.sub)+'：'+t._t.label+'　'+t._rate+'%（'+t.correct+'/'+t.attempts+'）">'+t._t.mk+' '+escapeHtml(t.sub)+' '+t._rate+'%</span>'; }).join('')+'</div>';
   });
-  el.innerHTML=html+'<div class="rec-empty" style="padding:4px">◎得意〜×にがて（緑＝得意／黄・赤＝にがて）。2回以上解いた単元を表示</div>';
+  // つぎはここ（練習中/なじみで、2回以上解いた＝取り組み中の単元を優先提示）
+  const next=rows.map(function(r){ return { sub:r.sub, area:r.area, t:masteryTier(r.correct,r.attempts), rate:Math.round(r.correct/r.attempts*100), attempts:r.attempts }; })
+    .filter(function(r){ return r.t.order<=1 && r.attempts>=2; })
+    .sort(function(x,y){ return (x.t.order-y.t.order) || (x.rate-y.rate); }).slice(0,3);
+  if(next.length){
+    html+='<div class="mas-next">🎯 つぎはここ：'+next.map(function(r){ return '<b>'+escapeHtml(r.sub)+'</b>（'+r.rate+'%）'; }).join('　')+'</div>';
+  }
+  html+='<div class="rec-empty" style="padding:4px">▶練習中→○なじみ→◎とくい→👑マスターの4段階。回数を重ねて正答率が上がると昇格。習得率は「とくい以上」の割合</div>';
+  el.innerHTML=html;
 }
 function renderWeek(){
   const el=document.getElementById('rec-week'); if(!el) return;

@@ -260,8 +260,14 @@ function srpgStart(stageId){
   }
   // 声を勇者のキャラに合わせる（読み上げ＝出題・技名・勝敗がそのキャラの声になる）
   try{ var _h = srpgHeroSpec(); if(typeof CHARS!=='undefined' && CHARS[_h.art]) currentChar = _h.art; }catch(e){}
+  // 💪にがて教科（練習レートが一番低い教科）＝この教科で正解するとボーナス
+  var _nigate = null;
+  try{
+    var _rs = ratingLoad(), _lo = 1e9;
+    SRPG_SUBJECT_KEYS.forEach(function(k){ var e = _rs.by && _rs.by[k]; if(e && e.n >= 3 && e.r < _lo){ _lo = e.r; _nigate = k; } });
+  }catch(e){}
   srpgB = {
-    stageId: stageId, stage: stage, grid: srpgGridWithBlocks(stage), units: units,
+    stageId: stageId, stage: stage, grid: srpgGridWithBlocks(stage), units: units, nigate: _nigate, nigateHits: 0, hardMode: false, missedQ: [],
     round: 1, order: [], turnPtr: -1, acted: {}, actorId: null,
     phase: 'idle', moved: false, chosenSkill: null, targetTile: null,
     hiMove: {}, hiTarget: {}, hiAoe: {}, combo: 0, over: false, busy: false,
@@ -442,11 +448,14 @@ function srpgCmdHtml(){
       var m = srpgSubjectMeta(k), kind = srpgResistKind(k, tgt);
       var fc = (_me && tgt) ? srpgForecast(_me, tgt, k, _sk0 && _sk0.kind==='atk' ? _sk0 : null) : null;
       var fcTx = !fc ? '' : (kind==='null' ? '' : (kind==='drain' ? '<small class="srpg-fc bad">敵が '+fc.dmg+' 回復!</small>' : '<small class="srpg-fc">よそう '+fc.dmg+'</small>'));
+      var nig = (srpgB.nigate === k) ? '<span class="srpg-nigate">💪にがて</span>' : '';
       return '<button class="srpg-sub '+(CLS[kind]||'')+'" onclick="srpgPickSubject(\''+k+'\')">'
-        + m.em+' '+m.label+(TAG[kind]||'')+fcTx+'</button>';
+        + m.em+' '+m.label+nig+(TAG[kind]||'')+fcTx+'</button>';
     }).join('');
+    var hardTgl = '<button class="srpg-hard-tgl'+(srpgB.hardMode?' on':'')+'" onclick="srpgToggleHard()">🔥 むずかしい もんだいで挑む（いりょく×1.3）'+(srpgB.hardMode?' ✅':'')+'</button>';
     var isDebuff = srpgB.chosenSkill && (srpgSkill(srpgB.chosenSkill)||{}).kind==='debuff';
     return '<div class="srpg-cmd-head">'+(isDebuff?'どの教科で しかける？':'どの教科で こうげきする？')+'</div><div class="srpg-subs">'+subs+'</div>'
+      + hardTgl
       + '<button class="srpg-mini" onclick="srpgCancel()">← もどる</button>';
   }
   if(srpgB.phase==='move'){
@@ -684,13 +693,32 @@ function srpgPickSubject(subjectKey){
   srpgB.subject = subjectKey;
   srpgAsk(subjectKey);
 }
+function srpgToggleHard(){ srpgB.hardMode = !srpgB.hardMode; try{ sfx('click'); }catch(e){} srpgRender(); }
 function srpgCancel(){ srpgSelectActor(); }
 
 // ================= 出題ゲート =================
 function srpgAsk(area){
-  var q = null; try{ q = genQuestion(area); }catch(e){}
+  var q = null, isRevenge = false;
+  // 🔁リベンジ：この戦闘で間違えた問題を最優先で再出題（正解すれば いりょく×1.5）
+  try{
+    var mi = (srpgB.missedQ || []).findIndex(function(e){ return e.area === area; });
+    if(mi >= 0){ q = srpgB.missedQ.splice(mi, 1)[0].q; isRevenge = true; }
+  }catch(e){}
+  if(!q){
+    try{
+      q = genQuestion(area);
+      if(srpgB.hardMode){   // 🔥むずかしい優先：★★★以上を最大12回さがす
+        for(var hi = 0; hi < 12; hi++){
+          if(q && (q.level === '★★★' || q.level === '★★★★')) break;
+          var q2 = genQuestion(area); if(q2 && q2.q) q = q2;
+        }
+      }
+    }catch(e){}
+  }
   if(!q || !q.q){ srpgResolveAttack(true); return; }   // 出題失敗時はサービスで命中
   srpgB._q = q; srpgB.busy = true;
+  srpgB._qRevenge = isRevenge;
+  srpgB._qHard = !!(srpgB.hardMode && (q.level === '★★★' || q.level === '★★★★'));
   var m = srpgSubjectMeta(area);
   var choicesHtml = '';
   if(q.type==='choice' && q.choices && q.choices.length){
@@ -704,6 +732,7 @@ function srpgAsk(area){
   var ov = document.getElementById('srpg-ask');
   ov.innerHTML = '<div class="srpg-ask-card" style="--sub:'+m.color+'">'
     + '<div class="srpg-ask-tag">'+m.em+' '+m.label+' で こうげき！</div>'
+    + (isRevenge?'<div class="srpg-ask-boost rev">🔁 リベンジ！ さっきの もんだい（正解で いりょく×1.5）</div>':(srpgB._qHard?'<div class="srpg-ask-boost hard">🔥 むずかしい '+(q.level||'')+'（正解で いりょく×1.3）</div>':''))
     + '<div class="srpg-ask-q">'+ (typeof furiganaHtml==='function' ? furiganaHtml(q.q) : escapeHtml(q.q)) +'</div>'
     + choicesHtml
     + '<div class="srpg-ask-fb" id="srpg-ask-fb"></div>'
@@ -741,6 +770,13 @@ function srpgAfterAnswer(correct){
   try{ sfx(correct?'correct':'wrong'); }catch(e){}
   // 学習の記録：偏差値にも反映（教科＝currentAreaを一時セットせず ratingRecord に直接）
   try{ if(typeof ratingRecord==='function') ratingRecord(srpgB.subject, q, correct); }catch(e){}
+  if(!correct){
+    try{ (srpgB.missedQ = srpgB.missedQ || []).push({ area:srpgB.subject, q:q }); while(srpgB.missedQ.length > 5) srpgB.missedQ.shift(); }catch(e){}
+    try{ if(typeof addMistake==='function') addMistake(q, srpgB.subject); }catch(e){}   // まちがいノートへ（あとで復習できる）
+  } else if(srpgB.nigate && srpgB.subject === srpgB.nigate){
+    srpgB.nigateHits = (srpgB.nigateHits||0) + 1;
+    try{ showToast('💪','にがてチャレンジ せいこう！','にがて教科で 正解！（かちどきで ボーナス）'); }catch(e){}
+  }
   try{ updateResBar(); }catch(e){}
   setTimeout(function(){
     var ov = document.getElementById('srpg-ask'); if(ov) ov.style.display='none';
@@ -779,6 +815,9 @@ function srpgResolveAttack(correct){
   if(!sk){ actor.mp = Math.min(actor.mpMax||6, (actor.mp||0) + 2); }   // 通常こうげき成功でMPチャージ
   var shape = sk ? sk.shape : 'single';
   var power = sk ? srpgSkillPower(sk, actor.skLv) : 100;   // とくぎLvで威力アップ
+  var qb = (srpgB._qRevenge ? 1.5 : 1) * (srpgB._qHard ? 1.3 : 1);   // 🔁リベンジ×🔥むずかしい ボーナス
+  power = Math.round(power * qb);
+  srpgB._qRevenge = false; srpgB._qHard = false;
   var cells = srpgAoeTiles(shape, tgt.x, tgt.y, srpgB.grid, actor);
   var fx = [];   // 演出は「描画のあと」にまとめて再生（renderで消えないように）
   cells.forEach(function(c){
@@ -805,6 +844,7 @@ function srpgResolveAttack(correct){
   });
   srpgRender();
   // ここから演出（描画のあと＝消えない）
+  if(qb > 1){ srpgPopupAt(tgt.x, tgt.y, (qb >= 1.9 ? '🔁🔥 ダブルボーナス!' : qb >= 1.5 ? '🔁 リベンジせいこう!' : '🔥 むずかしいボーナス!'), 'buff'); }
   srpgAtkAnim(actor);
   srpgLunge(actor, tgt.x, tgt.y);                        // 標的へ踏み込む
   srpgSkillFx(sk, srpgB.subject, cells, tgt.x, tgt.y);   // ④ とくぎ固有エフェクト
@@ -1038,6 +1078,11 @@ function srpgEnd(outcome){
       s.xp = (s.xp||0) + xp; s.level = rpgLevelForXp(s.xp);
       rpgSave(s);
     }catch(e){}
+    // 💪にがてチャレンジ：にがて教科での正解1回につき 🪙+5
+    if(srpgB.nigateHits > 0){
+      try{ var sN = rpgState(), cosN = rpgCosState(sN); cosN.coin = (cosN.coin||0) + srpgB.nigateHits * 5; rpgSave(sN); }catch(e){}
+      extra += '<div class="srpg-res-line grow">💪 にがてチャレンジ '+srpgB.nigateHits+'回 → 🪙+'+(srpgB.nigateHits*5)+'</div>';
+    }
     // 収集連動：出撃した仲間が成長＋敵をスカウト
     var grew = srpgGrowUsedAibou(srpgB.units);
     grew.forEach(function(g){ extra += '<div class="srpg-res-line grow">🍖 '+escapeHtml(g.name)+' が Lv'+g.lv+' に せいちょう！</div>'; });

@@ -115,7 +115,7 @@ function srpgTeamScreen(){
   h += '<div class="srpg-tm-grid">';
   h += card(hero, true, false);
   list.forEach(function(a){ h += card(srpgAibouSpec(a), srpgTeamSel.ids.indexOf(a.id) >= 0, true); });
-  if(!list.length) h += '<div class="srpg-tm-empty">まだ あいぼうが いないよ。<br>「🗡️ぼうけん」で バトルに かつと なかまが ふえる！</div>';
+  if(!list.length) h += '<div class="srpg-tm-empty">まだ あいぼうが いないよ。<br>「⚔️ぼうけん」で バトルに かつと なかまが ふえる！</div>';
   h += '</div>';
   h += '<div class="srpg-team-row"><button class="rpg-btn srpg-team-go" onclick="srpgTeamConfirm()">この編成で 出撃！ →</button>'
      + '<button class="rpg-btn ghost srpg-team-auto" onclick="srpgTeamAuto()">✨おまかせ</button></div>';

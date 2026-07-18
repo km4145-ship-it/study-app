@@ -2791,7 +2791,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   @keyframes rpgDefeatFade{ to{opacity:0} }
   </style>
   <div id="rpg-screen" style="display:none">
-    <div class="rpg-topbar" id="rpg-topbar" style="display:none"><button class="rpg-back" onclick="backToSubjects()">← 学習トップ</button><div class="rpg-topttl">🗡️ まなびの王国クエスト</div></div>
+    <div class="rpg-topbar" id="rpg-topbar" style="display:none"><button class="rpg-back" onclick="backToSubjects()">← 学習トップ</button><div class="rpg-topttl">🗺️ 大陸ストーリー</div></div>
     <div id="rpg-map-view"></div>
     <div id="rpg-result-view" style="display:none"></div>
   </div>
@@ -2948,7 +2948,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <!-- ボトムタブ（メインメニュー：常設・親指の届く下部） -->
 <nav id="mu-tabbar" class="mu-tabbar" aria-label="メインメニュー">
   <button class="mu-tab" data-tab="home" onclick="muNav('home')" aria-label="ホーム"><span class="mt-i">🏠</span><span class="mt-l">ホーム</span></button>
-  <button class="mu-tab mt-adv" data-tab="adv" onclick="muNav('adv')" aria-label="ぼうけん"><span class="mt-i">🗡️</span><span class="mt-l">ぼうけん</span></button>
+  <button class="mu-tab mt-adv" data-tab="adv" onclick="muNav('adv')" aria-label="ぼうけん"><span class="mt-i">⚔️</span><span class="mt-l">ぼうけん</span></button>
   <button class="mu-tab mt-gacha" data-tab="gacha" onclick="muNav('gacha')" aria-label="ガチャ"><span class="mt-i">🎁</span><span class="mt-l">ガチャ</span></button>
   <button class="mu-tab mt-dress" data-tab="dress" onclick="muNav('dress')" aria-label="きせかえ"><span class="mt-i">👕</span><span class="mt-l">きせかえ</span></button>
   <button class="mu-tab" data-tab="rec" onclick="muNav('rec')" aria-label="きろく"><span class="mt-i">📊</span><span class="mt-l">きろく</span></button>
@@ -3822,8 +3822,9 @@ function muLoadUserData(){
 function muGreetAndEnter(){
   var u=muCurrentUser(); var nm=u?u.name:'';
   var _et=rpgEquippedTitle(); var _tp=_et?('【'+_et.name+'】'):'';
-  showRpg();   // デフォルトで冒険スタート画面をひらく（ホームへは冒険画面の🏠ボタンで戻れる）
-  try{ speak(_tp+nm+'さん、こんにちは！ぼうけんを はじめよう！'); }catch(e){}
+  showSubjectSelect();   // ログイン後はホーム（ハブ）に着地＝「次に何をするか」が一目でわかる
+  try{ rpgLoginBonus(); }catch(e){}   // 日次ログインボーナスは着地(ハブ)でも取りこぼさない（日付ガード付き＝冪等）
+  try{ speak(_tp+nm+'さん、こんにちは！きょうは 何して あそぶ？'); }catch(e){}
 }
 // 管理者用ユーザー管理
 var MU_CHARS=['girl','boy','shiba','cat','rabbit','fox','bear','owl','panda','dolphin','penguin','tiger'];
@@ -5021,7 +5022,7 @@ function _rankCheckMilestone(cumTotal){
   try{ showToast(boss.emoji,'家族で魔王を討伐！', boss.name+' をたおした！（通算 '+cumTotal+'問 達成）', 6500); }catch(e){}
   // 魔王解放イベント：魔王シグマ（stage5）を家族で討伐→RPG本編の魔王城が全員に先行解放
   if(prev<RANK_MAOU_STAGE && cleared>=RANK_MAOU_STAGE){
-    setTimeout(function(){ try{ confetti(); sfx('legendary'); showToast('🏰','魔王城が かいほうされた！','かぞくの力で ふういんが とけた！「🗡️ ぼうけん」の魔王城から 決戦できるよ', 8000); }catch(e){} }, 1800);
+    setTimeout(function(){ try{ confetti(); sfx('legendary'); showToast('🏰','魔王城が かいほうされた！','かぞくの力で ふういんが とけた！「⚔️ ぼうけん」の魔王城から 決戦できるよ', 8000); }catch(e){} }, 1800);
   }
 }
 function hideMainScreens(){
@@ -5303,8 +5304,8 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   // ゲームメニュー
   h+='<div class="hub-sec">🎮 あそんで まなぶ</div>';
   h+='<div class="hub-grid">';
-  h+= hubCard('adv','⚔️','ぼうけん','タクトバトルで 偏差値65をめざす！','srpgOpen()', true);
-  h+= hubCard('quest','🗺️','大陸ストーリー','先生をたすける ものがたりクエスト','showRpg()');
+  h+= hubCard('adv','⚔️','ぼうけん（バトル）','マスの上の さくせんバトル。偏差値65をめざす！','srpgOpen()', true);
+  h+= hubCard('quest','🗺️','大陸ストーリー','先生を たすける おはなしの ぼうけん','showRpg()');
   h+= hubCard('prac','✏️','れんしゅう','教科をえらんで10問','hubPickSubject(\'practice\')');
   h+= hubCard('exam','⏱️','模試チャレンジ','本番形式で力だめし','hubPickSubject(\'exam\')');
   h+= hubCard('rev','🔁','ふくしゅう', due>0?('たまってる '+due+'問！'):'今日のふくしゅう','startReviewDue()', false, due>0?due:0);
@@ -6546,7 +6547,7 @@ function renderDailyMenu(){
       `<button class="dm-qbtn" onclick="startWeaknessDrill()">💪 苦手克服</button>`+
       `<button class="dm-qbtn" onclick="showFlashcards()">🗂️ 暗記カード</button>`+
       `<button class="dm-qbtn" onclick="showStudyNotes()">📖 学ぶ</button>`+
-      `<button class="dm-qbtn" onclick="showRpg()" style="background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff">🗡️ 冒険モード</button>`+
+      `<button class="dm-qbtn" onclick="showRpg()" style="background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff">🗺️ 大陸ストーリー</button>`+
       `<button class="dm-qbtn" onclick="startHardChallenge()">🔥 難問チャレンジ</button>`+
       `<button class="dm-qbtn" onclick="startMixedPractice()">🔀 ミックス演習</button>`+
       `<button class="dm-qbtn" onclick="showWrite()">✍️ 記述問題</button>`+
@@ -7216,7 +7217,7 @@ function rpgStoryAdvance(){
 function showRpg(){ try{window._bc&&window._bc('showRpg');}catch(_){}
   rpgBattle=null; rpgHideBattle();
   hideMainScreens();
-  setActiveTab('adv');
+  setActiveTab('home');   // 旧RPG(大陸ストーリー)はハブから入る子画面＝ホームタブを点灯（ぼうけんタブ=タクトと区別）
   document.getElementById('rpg-screen').style.display='block';
   document.body.classList.add('rpg-mode');
   var _tb=document.getElementById('rpg-topbar'); if(_tb) _tb.style.display='flex';   // 冒険マップだけ「← 学習トップ」ヘッダを出す
@@ -7332,7 +7333,7 @@ function rpgPatPet(){
 // ずかん（あつめたモンスター＆シール）
 function rpgShowDex(){
   try{ sfx('click'); }catch(e){}
-  rpgBattle=null; rpgHideBattle(); hideMainScreens(); setActiveTab('adv');   // 図鑑は冒険の子画面＝ぼうけんタブを点灯
+  rpgBattle=null; rpgHideBattle(); hideMainScreens(); setActiveTab('home');   // 図鑑は大陸ストーリーの子画面＝ホームタブを点灯
   document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
   document.getElementById('rpg-result-view').style.display='none';
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
@@ -7366,7 +7367,7 @@ function rpgShowDex(){
 // ================= あいぼう（なかまモンスター育成） =================
 function rpgShowAibou(){
   try{ sfx('click'); }catch(e){}
-  rpgBattle=null; rpgHideBattle(); hideMainScreens(); setActiveTab('adv');   // あいぼうは冒険の子画面＝ぼうけんタブを点灯
+  rpgBattle=null; rpgHideBattle(); hideMainScreens(); setActiveTab('home');   // あいぼうは大陸ストーリーの子画面＝ホームタブを点灯
   document.getElementById('rpg-screen').style.display='block'; document.body.classList.add('rpg-mode');
   document.getElementById('rpg-result-view').style.display='none';
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';

@@ -688,7 +688,7 @@ var SRPG_ENEMY_TEMPLATES = {
     resists:{ japanese:'weak', social:'half' }, skills:['bikilt'] },
   villain:{ art:'villain', name:'魔王シグマ', role:'tank',     rankBase:16, weak:'math',     resist:'japanese', boss:true,
     resists:{ math:'weak', japanese:'half', social:'null', english:'drain' }, onhit:{ kind:'poison', turns:3, chance:0.4 }, skills:['burstball','poisonbreath'],
-    phase:{ hp:0.5, atk:2, def:1, name:'かくせい', msg:'ぐ…ぬぬ！ まだ おわらん！ ほんきを だすぞ！' },
+    phase:{ hp:0.5, atk:1, def:1, name:'かくせい', msg:'ぐ…ぬぬ！ まだ おわらん！ ほんきを だすぞ！' },
     charge:{ name:'めつぼうの いちげき', aoe:'burst', power:210, mp:6, warn:'魔王が ちからを ためている…！ つぎのターン 大技が くる！ 赤いマスから にげろ！' } }
 };
 function srpgEnemyTemplate(key){ return SRPG_ENEMY_TEMPLATES[key] || SRPG_ENEMY_TEMPLATES.slime; }

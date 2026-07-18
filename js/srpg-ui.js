@@ -835,17 +835,17 @@ function srpgResolveAttack(correct){
   var actor = srpgActor(), tgt = srpgB.targetTile;
   if(!actor || !tgt){ srpgEndActorTurn(); return; }
   var sk = srpgB.chosenSkill ? srpgSkill(srpgB.chosenSkill) : null;
-  if(sk) actor.mp = Math.max(0, (actor.mp||0) - sk.mp);
   if(!correct){
     srpgB.combo = 0;
     srpgRender();
     srpgPopupAt(tgt.x, tgt.y, 'ミス！', 'miss');
     try{ sfx('wrong'); }catch(e){}
     srpgAfterResolve();
-    return;
+    return;   // とくぎ失敗でもMPは消費しない（不正解の三重罰を緩和）
   }
+  if(sk) actor.mp = Math.max(0, (actor.mp||0) - sk.mp);   // MPは成功時のみ消費
   srpgB.combo++;
-  var crit = srpgB.combo >= 3;
+  var crit = srpgB.combo >= 3; if(crit) srpgB.combo = 0;   // 会心は3連続ごと＝戦闘中ずっと会心の雪だるまを解消
   var doIt = function(){
   // デバフ（敵のステータス下げ）：ダメージ無し・単体・出題に正解で成立
   if(sk && sk.kind==='debuff'){
@@ -1104,6 +1104,7 @@ function srpgBossFireCharge(boss){
       var u = srpgUnitAt(srpgB.units, t.x, t.y);
       if(u && u.side==='ally' && !u.downed){
         var dmg = srpgDamage(boss, u, chg.power, 1, false);
+        dmg = Math.min(dmg, Math.round(u.maxHp * 0.6));   // 満タンからの即死を防ぐ（ねむり/まひで回避不能な子の救済）
         u.hp = Math.max(0, u.hp - dmg);
         var died = u.hp<=0; if(died) u.downed=true;
         hits.push({ x:t.x, y:t.y, dmg:dmg, died:died });
@@ -1314,7 +1315,7 @@ function srpgEnd(outcome){
   var stars = 0;
   if(win){
     var downed = srpgB.units.filter(function(x){ return x.side==='ally' && x.downed; }).length;
-    stars = srpgStars(true, downed, srpgB.round||1, srpgB.stage.par||6);
+    stars = srpgStars(true, downed, srpgB.round||1, srpgB.stage.par || (4 + srpgB.stage.enemies.length + (srpgB.stage.waves||[]).length*2));
     if(!isLoop){ try{ var sm2 = lsGetJSON('srpg_stars', {})||{}; if((sm2[srpgB.stageId]||0) < stars){ sm2[srpgB.stageId]=stars; lsSetJSON('srpg_stars', sm2); } }catch(e){} }
   }
   // ⑤ 勝利の決めポーズ：生き残った味方が とびはねる（リーダーは大きく中央）

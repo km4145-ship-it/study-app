@@ -105,4 +105,13 @@ c.ok('タクト解答がrecordTactAnswerを呼ぶ', srpgUi.indexOf('recordTactAn
 // ---- #4 大技チャージの安全弁（発動者が倒れたら予告を破棄）----
 c.ok('チャージ発動者死亡で予告を破棄', srpgUi.indexOf('srpgUnitById(srpgB.charge.by); if(!_co || _co.downed){ srpgB.charge = null;') >= 0);
 
+// ---- バランス（公平性）：即死回避・コンボ会心リセット・とくぎ失敗のMP温存・かくせい緩和・par ----
+const srpgJs = fs.readFileSync(path.join(ROOT, 'js', 'srpg.js'), 'utf8');
+c.ok('大技ダメージに上限（満タン即死を防ぐ）', srpgUi.indexOf('Math.min(dmg, Math.round(u.maxHp * 0.6))') >= 0);
+c.ok('コンボ会心は3連続ごとにリセット（雪だるま解消）', srpgUi.indexOf('if(crit) srpgB.combo = 0;') >= 0);
+c.ok('とくぎのMPは成功時のみ消費', srpgUi.indexOf('if(sk) actor.mp = Math.max(0, (actor.mp||0) - sk.mp);   // MPは成功時のみ消費') >= 0);
+c.ok('とくぎ失敗前にMPを消費しない', srpgUi.indexOf('srpgSkill(srpgB.chosenSkill) : null;\n  if(sk) actor.mp') < 0);
+c.ok('かくせいの攻撃上昇を緩和(+1段)', srpgJs.indexOf("phase:{ hp:0.5, atk:1, def:1, name:'かくせい'") >= 0);
+c.ok('★3のparが難易度で自動スケール', srpgUi.indexOf('srpgB.stage.par || (4 + srpgB.stage.enemies.length') >= 0);
+
 c.done();

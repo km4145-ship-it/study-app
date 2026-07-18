@@ -3882,7 +3882,7 @@ function refreshSettingsDisp(){
   try{ ttsFillJaVoices(); }catch(e){}
   try{ _sfxBtnSync(); }catch(e){}
   const td=safeLS.getItem('testdate'); const t=document.getElementById('testdate-disp'); if(t) t.textContent= td?('（'+td+'／あと'+daysUntilTest()+'日）'):'（未設定）';
-  const rw=lsGetJSON('reward',null); const r=document.getElementById('reward-disp'); if(r) r.textContent= rw?('（'+rw.points+'pt で '+rw.text+'）'):'（未設定）';
+  const rw=lsGetJSON('reward',null); const r=document.getElementById('reward-disp'); if(r) r.textContent= rw?('（'+rw.points+'ポイント で '+rw.text+'）'):'（未設定）';
   const re=getRealExams(); const rd=document.getElementById('realexam-disp');
   if(rd){ if(re.length){ const offs=AREAS.map(function(a){const o=calibOffset(a.key); return o!==0?(a.icon+(o>0?'+':'')+o):null;}).filter(Boolean); rd.textContent='（'+re.length+'件入力済み'+(offs.length?('／補正 '+offs.join(' ')):'')+'）'; } else rd.textContent='（未入力）'; }
   const er=document.getElementById('examrange-disp'); if(er) er.textContent= examRange()==='aug'?'（いま：中1・8月まで）':'（いま：中1・全範囲）';
@@ -4635,7 +4635,7 @@ function handleAnswer(correct, correctAns) {
     setCharacter(char);
     const charMsgs = (CHARS[char] && CHARS[char].praise) || ['正解！すごい！','やったね！','大正解！'];
     const msg = charMsgs[Math.floor(Math.random()*charMsgs.length)];
-    setLunaText(msg + (totalStreak >= 3 ? ` 🔥${totalStreak}連続！+${bonus}pt！` : ` +${bonus}pt`));
+    setLunaText(msg + (totalStreak >= 3 ? ` 🔥${totalStreak}連続！+${bonus}ポイント！` : ` +${bonus}ポイント`));
     speak(msg + ((currentQuestions[currentIndex]&&currentQuestions[currentIndex].explain) ? '。 かいせつだよ。 ' + currentQuestions[currentIndex].explain : ''));   // 解説も読み上げ
     feedback.className = 'feedback correct';
     const explainTextC = (currentQuestions[currentIndex] && currentQuestions[currentIndex].explain) ? currentQuestions[currentIndex].explain : '';
@@ -5299,7 +5299,7 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   // リボン（テスト・ごほうび）
   var rib='';
   if(td!==null) rib+='<span class="hub-rib rib-test">📅 テストまで '+(td<0?'おわり':'あと<b>'+td+'</b>日')+'</span>';
-  if(rw){ rib+='<span class="hub-rib rib-rew">🎁 '+escapeHtml(rw.text)+' '+pts+'/'+rw.points+'pt</span>'; }
+  if(rw){ rib+='<span class="hub-rib rib-rew">🎁 '+escapeHtml(rw.text)+' '+pts+'/'+rw.points+'ポイント</span>'; }
   if(rib) h+='<div class="hub-ribbons">'+rib+'</div>';
   // 今日のおすすめ（ヒーローCTA）
   h+='<button class="hub-hero" onclick="startRecommended()">'+
@@ -6548,7 +6548,7 @@ function renderDailyMenu(){
   const _td=daysUntilTest(); const _rw=lsGetJSON('reward',null);
   let _ban='';
   if(_td!==null){ _ban += `<div class="dm-test">📅 テストまで あと <b>${_td<0?'おわり':_td+'日'}</b></div>`; }
-  if(_rw){ const _p=Math.min(100,Math.round(totalPoints/_rw.points*100)); _ban += `<div class="dm-reward">🎁 ごほうび「${escapeHtml(_rw.text)}」まで ${totalPoints}/${_rw.points}pt<div class="dm-bar-wrap" style="margin-top:4px"><div class="dm-bar" style="width:${_p}%;background:linear-gradient(90deg,#f59e0b,#ec4899)"></div></div></div>`; }
+  if(_rw){ const _p=Math.min(100,Math.round(totalPoints/_rw.points*100)); _ban += `<div class="dm-reward">🎁 ごほうび「${escapeHtml(_rw.text)}」まで ${totalPoints}/${_rw.points}ポイント<div class="dm-bar-wrap" style="margin-top:4px"><div class="dm-bar" style="width:${_p}%;background:linear-gradient(90deg,#f59e0b,#ec4899)"></div></div></div>`; }
   el.innerHTML = rmHomeCard() + _ban +
     `<div class="dm-head"><span class="dm-title">📅 今日の学習</span><span class="dm-streak">🔥 ${st}日連続</span></div>`+
     `<div class="dm-bar-wrap"><div class="dm-bar" style="width:${pct}%;background:${cnt>=goal?'var(--success)':'linear-gradient(90deg,#0891b2,#ec4899)'}"></div></div>`+
@@ -7033,9 +7033,9 @@ function rpgMissions(){ return [
 ]; }
 function rpgCheckMissions(){
   var s=rpgState(), d=rpgDailyGet(s), ms=rpgMissions(), cos=rpgCosState(s), changed=false, allDone=true;
-  ms.forEach(function(m){ if(d.claimed[m.id]) return; if(m.get(d)>=m.goal){ d.claimed[m.id]=1; totalPoints+=m.pts; cos.coin=(cos.coin||0)+12; changed=true; try{ showToast(m.icon,'ミッション たっせい！',m.text+'  ＋'+m.pts+'pt ・ 🪙+12'); sfx('coin'); }catch(e){} } });
+  ms.forEach(function(m){ if(d.claimed[m.id]) return; if(m.get(d)>=m.goal){ d.claimed[m.id]=1; totalPoints+=m.pts; cos.coin=(cos.coin||0)+12; changed=true; try{ showToast(m.icon,'ミッション たっせい！',m.text+'  ＋'+m.pts+'ポイント ・ 🪙+12'); sfx('coin'); }catch(e){} } });
   ms.forEach(function(m){ if(!d.claimed[m.id]) allDone=false; });
-  if(allDone && !d.claimed.all){ d.claimed.all=1; var st=rpgGiveSticker(s); totalPoints+=30; cos.coin=(cos.coin||0)+40; changed=true; try{ showToast('🎉','きょうの ミッション ぜんぶ たっせい！','シール「'+st+'」＋30pt ・ 🪙+40！'); sfx('fanfare'); confetti(); }catch(e){} }
+  if(allDone && !d.claimed.all){ d.claimed.all=1; var st=rpgGiveSticker(s); totalPoints+=30; cos.coin=(cos.coin||0)+40; changed=true; try{ showToast('🎉','きょうの ミッション ぜんぶ たっせい！','シール「'+st+'」＋30ポイント ・ 🪙+40！'); sfx('fanfare'); confetti(); }catch(e){} }
   if(changed){ safeLS.setItem('c_points', totalPoints); try{ updateScoreBar(); }catch(e){} rpgSave(s); }
 }
 function rpgLoginBonus(){
@@ -7047,7 +7047,7 @@ function rpgLoginBonus(){
   var cos=rpgCosState(s); cos.coin=(cos.coin||0)+coins;
   s.login={last:rpgToday(),streak:streak}; totalPoints+=pts; safeLS.setItem('c_points', totalPoints); rpgSave(s);
   try{ updateScoreBar(); }catch(e){}
-  try{ setTimeout(function(){ showToast('🎁','ログインボーナス '+streak+'日め！','🪙＋'+coins+' コイン ・ ＋'+pts+'pt もらった！'); sfx('fanfare'); confetti(); }, 350); }catch(e){}
+  try{ setTimeout(function(){ showToast('🎁','ログインボーナス '+streak+'日め！','🪙＋'+coins+' コイン ・ ＋'+pts+'ポイント もらった！'); sfx('fanfare'); confetti(); }, 350); }catch(e){}
 }
 function rpgPetStageFor(wins){ var st=0; for(var i=0;i<PET_WINS_FOR.length;i++){ if(wins>=PET_WINS_FOR[i]) st=i; } return st; }
 // ===== あいぼう（なかまモンスター）の状態層 =====
@@ -7390,7 +7390,7 @@ function rpgShowAibou(){
   var s=rpgState(), ai=rpgAibouState(s); rpgSave(s);   // 正規化＋旧ペット移行をここで確定保存
   var ids=Object.keys(ai.roster);
   var h='<button class="rpg-back" onclick="backToSubjects()">← ホームへ</button>';
-  h+='<div class="rpg-world-title">🐾 あいぼう</div>';
+  h+='<div class="rpg-world-title">🐾 なかま</div>';
   h+='<div class="rpg-aibou-bar"><span class="rpg-aibou-chip">🍖 エサ <b>'+(ai.food||0)+'</b></span><span class="rpg-aibou-chip">🐾 なかま <b>'+ids.length+'</b><small>/'+AIBOU_ROSTER_MAX+'</small></span>'
     +((ai.charm||0)>0?'<span class="rpg-aibou-chip" title="つぎのスカウトでレアが出やすい（ふくしゅう限定）">🌈 <b>'+ai.charm+'</b></span>':'')+'</div>';
   h+='<div class="rpg-aibou-sec">🎒 パーティ（いっしょに たたかう 3びき）</div><div class="rpg-aibou-party">';
@@ -8491,7 +8491,7 @@ function rpgRenderResult(b, victory, xp, pt, leveled, firstClear){
   var _rmsg=victory ? (acc>=100?'イェーイ！ ぜんもん せいかい！🎉 さいこうに かがやいてたよ！':'イェーイ！ かったね！🎉 その ちょうしで つぎも いこう！')
                     : 'あせらなくて 大丈夫。まちがえた ところが 明日の のびしろ。すこし 休んで、また いっしょに いこうね。';
   L+='<div class="rpg-res-react"><div class="rpg-res-react-face">'+_charStill(_rk)+'</div><div class="rpg-res-react-bubble"><b>'+escapeHtml((CHARS[_rk]&&CHARS[_rk].name)||'')+'</b><br>'+_rmsg+'</div></div>';
-  L+='<div class="rpg-res-xp">＋'+xp+' けいけんち'+(pt?('　＋'+pt+'pt🌺'):'')+'</div>';
+  L+='<div class="rpg-res-xp">＋'+xp+' けいけんち'+(pt?('　＋'+pt+'ポイント🌺'):'')+'</div>';
   if(b.coinGain) L+='<div class="rpg-res-xp">🪙 ＋'+b.coinGain+' コイン（きせかえに使えるよ）</div>';
   if(b.gotTicket) L+='<div class="rpg-res-levelup">🎁 たからばこチケットを 1まい ゲット！</div>';
   if(b.foodGain) L+='<div class="rpg-res-xp">🍖 エサ ＋'+b.foodGain+'（あいぼうに あげて そだてよう）</div>';
@@ -8725,7 +8725,7 @@ function checkQuests(){
   let changed=false;
   QUESTS.forEach(function(qd){
     if(done[k][qd.id]) return;
-    if(qd.get(s)>=qd.goal){ done[k][qd.id]=1; changed=true; totalPoints+=qd.pts; showToast(qd.icon,'⭐ クエスト達成！', qd.title+'｜+'+qd.pts+'pt', 4200); }
+    if(qd.get(s)>=qd.goal){ done[k][qd.id]=1; changed=true; totalPoints+=qd.pts; showToast(qd.icon,'⭐ クエスト達成！', qd.title+'｜+'+qd.pts+'ポイント', 4200); }
   });
   if(changed){ lsSetJSON('quest_done',done); updateScoreBar(); saveStats(); confetti(); }
 }

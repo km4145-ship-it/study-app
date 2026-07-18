@@ -111,11 +111,11 @@ function srpgTeamScreen(){
   var h = '<div class="srpg-team">';
   var trait = srpgLeaderTrait((srpgTeamSel.leader==='hero'?hero:(function(){ var a=list.filter(function(x){return x.id===srpgTeamSel.leader;})[0]; return a?srpgAibouSpec(a):hero; })()).role);
   h += '<div class="srpg-team-lead">👑 リーダー特性：<b>'+(trait?trait.name:'—')+'</b><br><small>'+(trait?trait.desc:'')+'</small></div>';
-  h += '<div class="srpg-tm-count">出撃：'+(1+srpgTeamSel.ids.length)+' / 5（勇者＋あいぼう最大4）</div>';
+  h += '<div class="srpg-tm-count">出撃：'+(1+srpgTeamSel.ids.length)+' / 5（勇者＋なかま最大4）</div>';
   h += '<div class="srpg-tm-grid">';
   h += card(hero, true, false);
   list.forEach(function(a){ h += card(srpgAibouSpec(a), srpgTeamSel.ids.indexOf(a.id) >= 0, true); });
-  if(!list.length) h += '<div class="srpg-tm-empty">まだ あいぼうが いないよ。<br>「⚔️ぼうけん」で バトルに かつと なかまが ふえる！</div>';
+  if(!list.length) h += '<div class="srpg-tm-empty">まだ なかまが いないよ。<br>「⚔️ぼうけん」で バトルに かつと なかまが ふえる！</div>';
   h += '</div>';
   h += '<div class="srpg-team-row"><button class="rpg-btn srpg-team-go" onclick="srpgTeamConfirm()">この編成で 出撃！ →</button>'
      + '<button class="rpg-btn ghost srpg-team-auto" onclick="srpgTeamAuto()">✨おまかせ</button></div>';
@@ -129,7 +129,7 @@ function srpgTeamToggle(id){
   try{ sfx('click'); }catch(e){}
   var i = srpgTeamSel.ids.indexOf(id);
   if(i >= 0){ srpgTeamSel.ids.splice(i, 1); if(srpgTeamSel.leader === id) srpgTeamSel.leader = 'hero'; }
-  else { if(srpgTeamSel.ids.length >= 4){ try{ showToast('⚠️','これ以上 えらべないよ','あいぼうは 4体まで（勇者と合わせて5体）'); }catch(e){} return; } srpgTeamSel.ids.push(id); }
+  else { if(srpgTeamSel.ids.length >= 4){ try{ showToast('⚠️','これ以上 えらべないよ','なかまは 4体まで（勇者と合わせて5体）'); }catch(e){} return; } srpgTeamSel.ids.push(id); }
   srpgTeamScreen();
 }
 function srpgTeamSetLeader(id){ try{ sfx('click'); }catch(e){} srpgTeamSel.leader = id; srpgTeamScreen(); }
@@ -1575,7 +1575,7 @@ function srpgDexScreen(){
   var rwList = SRPG_DEX_REWARDS.map(function(r){ return '<span class="'+(cos.dexRw[r.id]?'done':'')+'">'+(cos.dexRw[r.id]?'✅':'🎁')+' '+r.label+'</span>'; }).join('');
   document.getElementById('srpg-body').innerHTML =
     '<div class="srpg-dex">'
-    + '<div class="srpg-select-lead">📖 なかま ずかん<br><small>これまでに 仲間にした モンスターの きろく</small></div>'
+    + '<div class="srpg-select-lead">📖 なかま ずかん<br><small>これまでに なかまにした モンスターの きろく</small></div>'
     + '<div class="srpg-dex-prog"><div class="srpg-pity-bar"><i style="width:'+prog.pct+'%"></i></div><b>'+prog.count+' / '+prog.total+'</b> しゅるい</div>'
     + rwMsg
     + '<div class="srpg-dex-rw">'+rwList+'</div>'

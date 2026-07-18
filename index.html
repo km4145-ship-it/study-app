@@ -3397,7 +3397,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,hensa_disp:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1,onboarded:1,diag_done:1,
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,hensa_disp:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1,onboarded:1,diag_done:1,comeback_seen:1,
   srpg_cleared:1,srpg_maou_cleared:1,srpg_stars:1,srpg_tower_best:1,srpg_tower_save:1,srpg_team:1,srpg_daily_done:1,srpg_loss:1,srpg_scout_free:1,srpg_tut:1,srpg_story_seen:1,srpg_auto:1,scout_log:1};   // タクトの進捗もユーザー別＋クラウド同期（scout_logは容量対策で端末ローカル＝isMemberKeyが除外）
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
@@ -4019,8 +4019,30 @@ function muGreetAndEnter(){
   var _et=rpgEquippedTitle(); var _tp=_et?('【'+_et.name+'】'):'';
   showSubjectSelect();   // ログイン後はホーム（ハブ）に着地＝「次に何をするか」が一目でわかる
   try{ rpgLoginBonus(); }catch(e){}   // 日次ログインボーナスは着地(ハブ)でも取りこぼさない（日付ガード付き＝冪等）
-  if(_onboarded()){ try{ speak(_tp+nm+'さん、こんにちは！きょうは 何して あそぶ？'); }catch(e){} }
+  if(_onboarded()){ try{ speak(_tp+nm+'さん、こんにちは！きょうは 何して あそぶ？'); }catch(e){} try{ maybeShowComeback(); }catch(e){} }
   else { try{ maybeShowOnboarding(); }catch(e){} }   // 初回だけ：アプリの使い方ガイド（5タブ・最初の一手）
+}
+// 数日ぶりの復帰を前向きに迎える（不安を煽らない・小さく再開）。通知は使わずアプリ内で完結。
+function _lastActivityGapDays(){
+  try{
+    var ds=getStudyDates(); if(!ds.length) return -1;
+    var last=_toDate(ds[ds.length-1]); var today=new Date(); today.setHours(0,0,0,0);
+    return Math.round((today-last)/86400000);
+  }catch(e){ return -1; }
+}
+function maybeShowComeback(){
+  try{
+    if(!_onboarded()) return;
+    var gap=_lastActivityGapDays();
+    if(gap<2 || gap>60) return;                       // 毎日／60日超のブランクは対象外
+    var tk=todayKey();
+    if(safeLS.getItem('comeback_seen')===tk) return;  // 今日は1回だけ
+    safeLS.setItem('comeback_seen', tk);
+    var u=muCurrentUser(); var nm=(u&&u.name)||'';
+    var msg = (gap<=3) ? 'また あえて うれしい！ きょうは 軽く 3問から いこう。'
+                       : 'ひさしぶり！ ムリせず 1問からでも OK。すこしずつ もどそう。';
+    setTimeout(function(){ try{ showToast('👋','おかえり、'+nm+'さん！', msg); sfx('coin'); }catch(e){} }, 900);
+  }catch(e){}
 }
 // ===== 初回オンボーディング（1度だけ）：アプリの目的・下の5タブ・最初の一手を案内 =====
 function _onboarded(){ try{ return safeLS.getItem('onboarded')==='1'; }catch(e){ return true; } }

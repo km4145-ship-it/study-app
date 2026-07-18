@@ -2175,6 +2175,21 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   /* きょうのタクト（ホームの進捗ウィジェット） */
   .hub-tact-w{ display:flex; width:100%; gap:6px; border:none; cursor:pointer; font-family:inherit; background:linear-gradient(135deg,#1e293b,#312e81); border-radius:var(--r-m); padding:10px 12px; margin-top:10px; box-shadow:var(--sh-2); transition:transform .15s var(--spring); }
   .hub-tact-w:active{ transform:scale(.98); }
+  /* きょうの目標（デイリーミッション）カード */
+  .hub-missions{ background:var(--card); border:1px solid var(--card-brd,rgba(0,0,0,.06)); border-radius:var(--r-m); padding:11px 13px; margin-top:10px; box-shadow:var(--sh-1); }
+  .hm-head{ font-weight:900; font-size:.95rem; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .hm-cnt{ font-size:.8rem; color:#fff; background:var(--primary,#0891b2); border-radius:999px; padding:1px 9px; font-weight:800; }
+  .hm-clear{ font-size:.82rem; color:#fff; background:linear-gradient(135deg,#10b981,#059669); border-radius:999px; padding:1px 10px; font-weight:900; }
+  .hm-row{ display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .hm-ic{ flex:0 0 auto; font-size:1.05rem; width:1.4em; text-align:center; }
+  .hm-tx{ flex:0 0 auto; font-size:.82rem; font-weight:700; color:var(--text); min-width:0; }
+  .hm-bar{ flex:1; height:8px; background:rgba(0,0,0,.08); border-radius:999px; overflow:hidden; min-width:40px; }
+  .hm-bar i{ display:block; height:100%; background:linear-gradient(90deg,#0891b2,#ec4899); border-radius:999px; transition:width .5s var(--spring); }
+  .hm-n{ flex:0 0 auto; font-size:.76rem; font-weight:800; color:var(--muted,#5b7a88); font-variant-numeric:tabular-nums; }
+  .hm-row.done .hm-tx{ color:var(--muted,#5b7a88); text-decoration:line-through; }
+  .hm-row.done .hm-bar i{ background:#10b981; }
+  .hm-foot{ font-size:.72rem; color:var(--muted,#5b7a88); font-weight:600; margin-top:8px; }
+  @media (prefers-color-scheme:dark){ .hub-missions{ background:#1e293b; border-color:rgba(148,163,184,.2); } .hm-tx,.hm-head{ color:#e2e8f0; } .hm-bar{ background:rgba(255,255,255,.12); } }
   .htw-item{ flex:1; text-align:center; color:#cbd5e1; font-size:11px; font-weight:800; line-height:1.5; }
   .htw-item b{ display:block; color:#fff; font-size:13px; }
   .htw-item.hot b{ color:#fde047; } .htw-item.done b{ color:#6ee7b7; }
@@ -4716,7 +4731,7 @@ function handleAnswer(correct, correctAns) {
     if(correct){ sfx(totalStreak>=3?'crit':'correct'); vibe(20); sparkleBurst(document.getElementById('feedback')); }
     else { sfx('wrong'); vibe([30,50,30]); }
   }
-  if(correct){ rpgBumpDailyCorrect(totalStreak); }  // 今日のミッション用（全モードの正解を集計）
+  if(correct){ rpgBumpDailyCorrect(totalStreak); try{ rpgCheckMissions(); }catch(e){} }  // 今日のミッション：全モードの正解を集計＋その場で達成判定・付与
   if(rpgBattle) rpgAfterAnswer(correct);
   document.getElementById('btn-next').classList.add('show');
 }
@@ -5276,6 +5291,25 @@ function hubCard(cls, icon, name, desc, onclick, big, badge){
     '<span class="hub-card-tx"><span class="hub-card-nm">'+name+'</span>'+
     '<span class="hub-card-ds">'+desc+'</span></span></button>';
 }
+// きょうの目標（デイリーミッション）カード：進捗バー＋達成でチェック。全達成でお祝い。
+function _hubMissionsHtml(){
+  try{
+    if(typeof rpgMissions!=='function' || typeof rpgDailyGet!=='function') return '';
+    var s=rpgState(), d=rpgDailyGet(s), ms=rpgMissions();
+    var done=0;
+    var rows=ms.map(function(m){
+      var cur=Math.min(m.get(d), m.goal), pct=Math.round(cur/m.goal*100), ok=cur>=m.goal; if(ok) done++;
+      return '<div class="hm-row'+(ok?' done':'')+'"><span class="hm-ic">'+(ok?'✅':m.icon)+'</span>'
+        + '<span class="hm-tx">'+escapeHtml(m.text)+'</span>'
+        + '<span class="hm-bar"><i style="width:'+pct+'%"></i></span>'
+        + '<span class="hm-n">'+cur+'/'+m.goal+'</span></div>';
+    }).join('');
+    var allDone = done>=ms.length;
+    var head = '🎯 きょうの目標 '+(allDone?'<span class="hm-clear">ぜんぶ達成🎉</span>':('<span class="hm-cnt">'+done+'/'+ms.length+'</span>'));
+    return '<div class="hub-missions"><div class="hm-head">'+head+'</div>'+rows
+      + '<div class="hm-foot">'+(allDone?'あした また あたらしい 目標が でるよ！':'達成すると ⭐ポイント＆🪙コイン。ぜんぶで シールも！')+'</div></div>';
+  }catch(e){ return ''; }
+}
 function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   var host=document.getElementById('game-hub'); if(!host) return;
   var u=(typeof muCurrentUser==='function' && muCurrentUser())||{};
@@ -5332,6 +5366,9 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
       +'<span class="htw-item">⭐ あつめた星<b>'+_stars+'</b></span>'
       +'</button>';
   }catch(e){}
+  // きょうの目標（デイリーミッション）＝毎日戻る動機。ハブに常設し、その場で達成判定
+  try{ rpgCheckMissions(); }catch(e){}
+  h += _hubMissionsHtml();
   // ゲームメニュー
   h+='<div class="hub-sec">🎮 あそんで まなぶ</div>';
   h+='<div class="hub-grid">';
@@ -7060,10 +7097,11 @@ function rpgDateStr(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDat
 function rpgYesterday(){ return rpgDateStr(new Date(Date.now()-86400000)); }
 function rpgDailyGet(s){ if(!s.daily || s.daily.date!==rpgToday()) s.daily={date:rpgToday(),correct:0,wins:0,maxStreak:0,claimed:{}}; if(!s.daily.claimed) s.daily.claimed={}; return s.daily; }
 function rpgBumpDailyCorrect(streak){ try{ var s=rpgState(); var d=rpgDailyGet(s); d.correct++; if((streak||0)>d.maxStreak) d.maxStreak=streak; rpgSave(s); }catch(e){} }
+function rpgBumpDailyWin(){ try{ var s=rpgState(); var d=rpgDailyGet(s); d.wins=(d.wins||0)+1; rpgSave(s); }catch(e){} }   // タクト勝利で今日のミッション用にカウント
 function rpgMissions(){ return [
-  { id:'m1', icon:'🎯', text:'もんだいに 8もん せいかい', goal:8, pts:10, get:function(d){ return d.correct; } },
-  { id:'m2', icon:'⚔️', text:'バトルに 1かい かつ',      goal:1, pts:10, get:function(d){ return d.wins; } },
-  { id:'m3', icon:'🔥', text:'3もん れんぞくで せいかい', goal:3, pts:10, get:function(d){ return d.maxStreak; } }
+  { id:'m1', icon:'🎯', text:'もんだいに 10もん せいかい', goal:10, pts:10, get:function(d){ return d.correct; } },
+  { id:'m2', icon:'⚔️', text:'タクトバトルに 1かい かつ',  goal:1,  pts:10, get:function(d){ return d.wins||0; } },
+  { id:'m3', icon:'🔥', text:'5もん れんぞくで せいかい',  goal:5,  pts:10, get:function(d){ return d.maxStreak; } }
 ]; }
 function rpgCheckMissions(){
   var s=rpgState(), d=rpgDailyGet(s), ms=rpgMissions(), cos=rpgCosState(s), changed=false, allDone=true;

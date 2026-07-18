@@ -1303,6 +1303,7 @@ function srpgEnd(outcome){
     if(scout && scout.mon){ extra += '<div class="srpg-res-line scout">🎉 '+escapeHtml(scout.mon.name)+'（'+scout.mon.rank+'）が なかまに なった！'+(scout.inParty?'（パーティ入り）':'')+'</div>'; }
     else if(scout && scout.full){ extra += '<div class="srpg-res-line">🐾 なかまが いっぱい…🍖エサ+10</div>'; }
     try{ updateResBar(); }catch(e){}
+    try{ if(typeof rpgBumpDailyWin==='function'){ rpgBumpDailyWin(); rpgCheckMissions(); } }catch(e){}   // きょうの目標：タクト勝利をカウント＋達成判定
     try{ if(typeof bgmPlay==='function') bgmPlay('map'); }catch(e){}
   }
   // ★クリア星評価（★1=勝利 ★2=全員生存 ★3=規定ラウンド以内）

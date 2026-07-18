@@ -62,4 +62,10 @@ c.ok('ステージ選択にクリスタルバー', srpgUi.indexOf('srpgCrystalBa
 c.ok('大陸初クリアでクリスタル獲得', srpgUi.indexOf('cryFirst') >= 0 && srpgUi.indexOf('srpgCrystalFor(srpgB.stageId)') >= 0);
 c.ok('魔王城カードはクリスタル条件を表示', srpgUi.indexOf('5つの クリスタルで ひらく') >= 0);
 
+// ---- きょうの目標（デイリーミッション）が旧RPG非表示後も機能・ハブに表示 ----
+c.ok('回答時にミッション達成判定が走る', html.indexOf('rpgBumpDailyCorrect(totalStreak); try{ rpgCheckMissions(); }') >= 0);
+c.ok('タクト勝利で勝利ミッションを加算', srpgUi.indexOf('rpgBumpDailyWin(); rpgCheckMissions();') >= 0 && html.indexOf('function rpgBumpDailyWin') >= 0);
+c.ok('ハブにきょうの目標カードがある', html.indexOf('function _hubMissionsHtml') >= 0 && html.indexOf('h += _hubMissionsHtml();') >= 0);
+c.ok('ハブ描画でミッション達成判定が走る', html.indexOf('try{ rpgCheckMissions(); }catch(e){}\n  h += _hubMissionsHtml();') >= 0);
+
 c.done();

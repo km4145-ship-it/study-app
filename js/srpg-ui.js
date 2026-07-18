@@ -390,6 +390,14 @@ function srpgStart(stageId){
     else { goStory(); }
     return;
   }
+  // 魔王城：突入シーン（5先生合流・レン参戦・シグマの真実）を初回だけ立ち絵つきで再生
+  if(stageId==='q_maou'){
+    var maouScenes = (!srpgStorySeen('maou_intro')) ? _srpgStory('maou_intro') : null;
+    if(maouScenes && maouScenes.length){
+      srpgMarkStorySeen('maou_intro'); srpgRender();
+      try{ rpgStoryPlay(maouScenes, srpgDeployBegin); return; }catch(e){}
+    }
+  }
   // 初回だけ：あそびかたのチュートリアル（タップ送り・読み上げつき）→ そのままステージの物語へ
   var lines = (stage.story && stage.story.length) ? stage.story.slice() : [];
   if(!_srpgFlag('srpg_tut')){ _srpgSetFlag('srpg_tut'); lines = SRPG_TUT_LINES.concat(lines); }
@@ -1296,6 +1304,14 @@ var SRPG_MAOU_LINES = [
   { em:'✨', tx:'……でも、ほんとうの ぼうけんは これからだ。つぎの きみに 会えるのを たのしみにしてる！' }
 ];
 function srpgMaouFinale(){
+  // 初回は 救済エンディングの物語シーン（立ち絵）→ そのあと お祝いパネル
+  if(!srpgStorySeen('maou_clear')){
+    var scenes = _srpgStory('maou_clear');
+    if(scenes && scenes.length){ srpgMarkStorySeen('maou_clear'); try{ rpgStoryPlay(scenes, _srpgMaouFinalePanel); return; }catch(e){} }
+  }
+  _srpgMaouFinalePanel();
+}
+function _srpgMaouFinalePanel(){
   try{ safeLS.setItem('srpg_maou_cleared', '1'); }catch(e){}
   var host = document.getElementById('srpg-body'); if(!host) return;
   var ov = document.createElement('div'); ov.className = 'srpg-finale';

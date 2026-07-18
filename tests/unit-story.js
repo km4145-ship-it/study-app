@@ -179,4 +179,14 @@ c.ok('社会 clearにクマ(bear)', story.social_clear.some(function (l) { retur
 // 幹部portrait が index.html にある
 ['lt_jp', 'lt_en', 'lt_sci', 'lt_soc'].forEach(function (k) { c.ok('_rpgPortrait に ' + k, html.indexOf("char==='" + k + "'") >= 0); });
 
+// ===== P4：魔王城アーク（最終決戦＋救済エンディング） =====
+c.ok('maou_intro がある', Array.isArray(story.maou_intro) && story.maou_intro.length > 0);
+c.ok('maou_clear がある', Array.isArray(story.maou_clear) && story.maou_clear.length > 0);
+c.ok('maou_intro に5先生が集結', ['shiba', 'cat', 'rabbit', 'fox', 'bear'].every(function (ch) { return story.maou_intro.some(function (l) { return l.char === ch; }); }));
+c.ok('maou_intro にシグマの真実(villain)', story.maou_intro.some(function (l) { return l.char === 'villain'; }));
+c.ok('maou_intro にレン参戦(rival)', story.maou_intro.some(function (l) { return l.char === 'rival'; }));
+c.ok('maou_clear にシグマ(救済)', story.maou_clear.some(function (l) { return l.char === 'villain'; }));
+c.ok('srpgStart が q_maou に maou_intro を配線', ui.indexOf("stageId==='q_maou'") >= 0 && ui.indexOf("_srpgStory('maou_intro')") >= 0);
+c.ok('srpgMaouFinale が maou_clear→パネル', ui.indexOf("_srpgStory('maou_clear')") >= 0 && ui.indexOf('function _srpgMaouFinalePanel') >= 0);
+
 c.done();

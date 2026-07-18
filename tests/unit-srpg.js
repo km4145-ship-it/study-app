@@ -692,4 +692,27 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.ok('supportのスキルはheal', S.srpgSkill(act.skillId).kind==='heal');
 }
 
+// ================= 進化（ランクアップ）=================
+{
+  c.eq('進化の次ランク F→E', S.srpgEvolveNextRank('F'), 'E');
+  c.eq('進化の次ランク SS→SSS', S.srpgEvolveNextRank('SS'), 'SSS');
+  c.eq('SSSは進化の上限（次なし）', S.srpgEvolveNextRank('SSS'), null);
+  c.eq('LGは進化対象外（次なし）', S.srpgEvolveNextRank('LG'), null);
+  const cF = S.srpgEvolveCost('F');
+  c.ok('F進化コスト：ダブり1体＋コイン', cF.next==='E' && cF.dupes===1 && cF.coins===150);
+  const cSS = S.srpgEvolveCost('SS');
+  c.ok('SS進化コスト：ダブり5体＋コイン', cSS.next==='SSS' && cSS.dupes===5 && cSS.coins===750);
+  c.eq('SSSのコストはnull（進化不可）', S.srpgEvolveCost('SSS'), null);
+  // 判定：素材とコインが足りるか
+  const base={ rank:'D' };  // D→C は ダブり2体＋300
+  c.ok('素材もコインも足りれば進化OK', S.srpgEvolveCanDo(base, 2, 300).ok===true);
+  c.ok('ダブり不足はNG（reason=mats）', S.srpgEvolveCanDo(base, 1, 300).ok===false && S.srpgEvolveCanDo(base,1,300).reason==='mats');
+  c.ok('コイン不足はNG（reason=coin）', S.srpgEvolveCanDo(base, 2, 100).ok===false && S.srpgEvolveCanDo(base,2,100).reason==='coin');
+  c.ok('ランクMAXはNG（reason=max）', S.srpgEvolveCanDo({rank:'SSS'}, 9, 9999).reason==='max');
+  // 進化でランクが上がると基礎ちからが跳ねる（makeUnitで検証）
+  const before = S.srpgMakeUnit({ id:'x', side:'ally', name:'x', art:'slime', role:'attacker', rankBase:4, lvl:5 });  // D相当
+  const after  = S.srpgMakeUnit({ id:'x', side:'ally', name:'x', art:'slime', role:'attacker', rankBase:5, lvl:5 });  // C相当
+  c.ok('ランクが上がると攻撃が増える', after.atk > before.atk && after.maxHp > before.maxHp);
+}
+
 c.done();

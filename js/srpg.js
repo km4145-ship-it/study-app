@@ -461,6 +461,31 @@ function srpgSkillUpCanFuse(base, mat, partyIds){
   return true;
 }
 
+// ===== 進化（ランクアップ）：同じ種のダブりを重ねて ランクを1つ上げる =====
+// 効果：ランクが上がると 基礎ちからが跳ね上がり（AIBOU_RANK_BASE）、レベル上限も上がる。
+//       進化は SSS まで（LG＝スカウト限定の伝説ランクには 進化では到達できない＝レア性を保つ）。
+var SRPG_RANK_ORDER = ['F','E','D','C','B','A','S','SS','SSS'];
+var SRPG_EVOLVE_DUPES = { F:1, E:1, D:2, C:2, B:3, A:3, S:4, SS:5 };   // 現ランク→次へ 上げるのに必要なダブり数
+function srpgEvolveNextRank(rank){
+  var i = SRPG_RANK_ORDER.indexOf(rank);
+  return (i >= 0 && i < SRPG_RANK_ORDER.length - 1) ? SRPG_RANK_ORDER[i + 1] : null;
+}
+function srpgEvolveCost(rank){
+  var next = srpgEvolveNextRank(rank);
+  if(!next) return null;
+  var dupes = SRPG_EVOLVE_DUPES[rank] || 1;
+  return { next: next, dupes: dupes, coins: dupes * 150 };
+}
+// 進化できるか：SSS未満・別個体のダブりが必要数以上・コイン足りる（素材はパーティ外＝呼び出し側で除外）
+function srpgEvolveCanDo(base, matCount, coins){
+  if(!base) return { ok:false, reason:'none' };
+  var cost = srpgEvolveCost(base.rank || 'F');
+  if(!cost) return { ok:false, reason:'max' };
+  if((matCount || 0) < cost.dupes) return { ok:false, reason:'mats', cost:cost };
+  if((coins || 0) < cost.coins) return { ok:false, reason:'coin', cost:cost };
+  return { ok:true, cost:cost };
+}
+
 // ===== ウェーブ制（増援）：stage.waves = 追加の敵陣。1陣を全滅させると次が現れる =====
 // waveIdx は 0=初期配置。srpgWaveUnits(stage, 1) が2陣目の敵ユニット配列を返す。
 function srpgWaveUnits(stage, waveIdx){
@@ -795,6 +820,7 @@ if(typeof module !== 'undefined' && module.exports){
     SRPG_SCOUT_PITY_MAX: SRPG_SCOUT_PITY_MAX, srpgScoutApplyPity: srpgScoutApplyPity, srpgScoutPickups: srpgScoutPickups, srpgScoutArt: srpgScoutArt,
     SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS,
     srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
-    SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse
+    SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse,
+    SRPG_RANK_ORDER: SRPG_RANK_ORDER, SRPG_EVOLVE_DUPES: SRPG_EVOLVE_DUPES, srpgEvolveNextRank: srpgEvolveNextRank, srpgEvolveCost: srpgEvolveCost, srpgEvolveCanDo: srpgEvolveCanDo
   };
 }

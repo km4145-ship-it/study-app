@@ -120,7 +120,7 @@ function srpgTeamScreen(){
   h += '<div class="srpg-team-row"><button class="rpg-btn srpg-team-go" onclick="srpgTeamConfirm()">この編成で 出撃！ →</button>'
      + '<button class="rpg-btn ghost srpg-team-auto" onclick="srpgTeamAuto()">✨おまかせ</button></div>';
   h += '<div class="srpg-team-row"><button class="rpg-btn ghost srpg-team-scout" onclick="srpgScoutScreen()">🔮 スカウト</button>'
-     + '<button class="rpg-btn ghost srpg-team-fuse" onclick="srpgSkillUpScreen()">⚗️ とくぎ強化</button></div>';
+     + '<button class="rpg-btn ghost srpg-team-fuse" onclick="srpgSkillUpScreen()">🌟 育成（進化・とくぎ）</button></div>';
   h += '</div>';
   document.getElementById('srpg-body').innerHTML = h;
   try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
@@ -1545,12 +1545,19 @@ function srpgScoutResults(got, revealed){
   try{ sfx(['SSS','SS','S'].indexOf(best) >= 0 ? 'fanfare' : 'levelup'); if(['SSS','SS'].indexOf(best) >= 0 && typeof confetti === 'function') confetti(); }catch(e){}
 }
 
-// ================= とくぎ強化（ダブり合成）：同じ種のなかまで とくぎLvを上げる =================
+// ================= なかまの育成（ダブり合成）：とくぎ強化／進化（ランクアップ） =================
+var SRPG_RANK_SCORE = ['F','E','D','C','B','A','S','SS','SSS','LG'];
+// ダブりを「弱い順」に（進化の素材は 弱い個体から消費し、育てた個体を守る）
+function _srpgDupeSort(a, b){
+  return (SRPG_RANK_SCORE.indexOf(a.rank||'F') - SRPG_RANK_SCORE.indexOf(b.rank||'F'))
+      || ((a.lv||1) - (b.lv||1)) || ((a.skLv||1) - (b.skLv||1));
+}
 function srpgSkillUpScreen(){
   srpgB = null;
-  document.getElementById('srpg-title').textContent = 'とくぎ強化';
+  document.getElementById('srpg-title').textContent = 'なかまの育成';
   var s, ai; try{ s = rpgState(); ai = rpgAibouState(s); }catch(e){ return; }
   var party = ai.party || [];
+  var coin = 0; try{ coin = rpgCoin(); }catch(e){}
   // artごとにグループ（2体以上いる種＝合成できる）
   var byArt = {};
   Object.keys(ai.roster).forEach(function(id){ var a = ai.roster[id]; if(!a) return; (byArt[a.art] = byArt[a.art] || []).push(a); });
@@ -1561,27 +1568,81 @@ function srpgSkillUpScreen(){
     // ベース＝いちばん強い個体／素材＝パーティ外のダブり
     g.sort(function(a, b){ return (RANKS.indexOf(b.rank||'F') - RANKS.indexOf(a.rank||'F')) || ((b.lv||1) - (a.lv||1)); });
     var base = g[0];
-    var mats = g.filter(function(m){ return srpgSkillUpCanFuse(base, m, party); });
+    var dupes = g.filter(function(m){ return m.id !== base.id && party.indexOf(m.id) < 0; });   // パーティ外のダブり（進化の素材）
+    var skMats = dupes.filter(function(m){ return srpgSkillUpCanFuse(base, m, party); });        // とくぎ強化に使える素材
     var artHtml = (typeof srpgMonArt==='function' && srpgMonArt(art)) || _monStill(art);
-    var maxed = (base.skLv||1) >= SRPG_SKLV_MAX;
+    var skMaxed = (base.skLv||1) >= SRPG_SKLV_MAX;
+    // --- 進化ボタン ---
+    var evo = srpgEvolveCost(base.rank || 'F');
+    var evoBtn;
+    if(!evo){ evoBtn = '<span class="srpg-fuse-max evo">ランクMAX</span>'; }
+    else {
+      var can = srpgEvolveCanDo(base, dupes.length, coin);
+      var costTxt = 'ダブり'+evo.dupes+'体＋🪙'+evo.coins;
+      if(can.ok){ evoBtn = '<button class="rpg-btn srpg-evo-btn" onclick="srpgEvolveDo(\''+base.id+'\')">✨ 進化 → '+evo.next+'<small>'+costTxt+'</small></button>'; }
+      else { evoBtn = '<span class="srpg-fuse-none evo">✨→'+evo.next+'<small>'+costTxt+'</small><em>'+(can.reason==='coin'?'コイン不足':'素材不足')+'</em></span>'; }
+    }
+    // --- とくぎ強化ボタン ---
+    var skBtn = skMaxed ? '<span class="srpg-fuse-max">とくぎMAX</span>'
+      : (skMats.length ? '<button class="rpg-btn srpg-fuse-btn" onclick="srpgSkillUpDo(\''+base.id+'\',\''+skMats[0].id+'\')">⚗️ とくぎ強化</button>'
+         : '<span class="srpg-fuse-none">素材なし</span>');
     rows += '<div class="srpg-fuse-row">'
       + '<div class="srpg-fuse-art">'+artHtml+'</div>'
-      + '<div class="srpg-fuse-info"><b>'+escapeHtml(base.name||'なかま')+'</b> <small>'+(base.rank||'F')+' Lv'+(base.lv||1)+'</small>'
+      + '<div class="srpg-fuse-info"><b>'+escapeHtml(base.name||'なかま')+'</b> <small class="srpg-fuse-rank r-'+(base.rank||'F')+'">'+(base.rank||'F')+'</small> <small>Lv'+(base.lv||1)+'</small>'
       + '<div class="srpg-fuse-lv">とくぎLv '+(base.skLv||1)+' / '+SRPG_SKLV_MAX+'　<small>いりょく+'+((Math.min(SRPG_SKLV_MAX,base.skLv||1)-1)*10)+'%</small></div>'
-      + '<small class="srpg-fuse-n">ダブり '+mats.length+'体</small></div>'
-      + (maxed ? '<span class="srpg-fuse-max">MAX</span>'
-         : (mats.length ? '<button class="rpg-btn srpg-fuse-btn" onclick="srpgSkillUpDo(\''+base.id+'\',\''+mats[0].id+'\')">⚗️ 強化</button>'
-            : '<span class="srpg-fuse-none">素材なし</span>'))
+      + '<small class="srpg-fuse-n">ダブり '+dupes.length+'体</small></div>'
+      + '<div class="srpg-fuse-acts">'+evoBtn+skBtn+'</div>'
       + '</div>';
   });
-  if(!rows) rows = '<div class="srpg-tm-empty">おなじ種類の なかまが 2体いると 強化できるよ。<br>🔮スカウトや バトルで ダブりを あつめよう！</div>';
+  if(!rows) rows = '<div class="srpg-tm-empty">おなじ種類の なかまが 2体いると 育成できるよ。<br>🔮スカウトや バトルで ダブりを あつめよう！</div>';
   document.getElementById('srpg-body').innerHTML =
     '<div class="srpg-fuse">'
-    + '<div class="srpg-select-lead">⚗️ とくぎ強化<br><small>おなじ種類の なかまを 合成すると、とくぎLvが 上がる！（いりょく+10%・状態異常の確率+5% ずつ）</small></div>'
-    + '<div class="srpg-fuse-top"><span>🐾 なかま '+Object.keys(ai.roster).length+' / '+AIBOU_ROSTER_MAX+'</span><button class="srpg-mini2" onclick="srpgCleanupDo()">🧹 おかたづけ（ダブり→エサ）</button></div>'
+    + '<div class="srpg-select-lead">🌟 なかまの育成<br><small>おなじ種類の ダブりを つかって、<b>✨進化</b>でランクUP（つよさ大アップ・Lv上限も上がる）／<b>⚗️とくぎ強化</b>でとくぎLv UP！</small></div>'
+    + '<div class="srpg-fuse-top"><span>🐾 なかま '+Object.keys(ai.roster).length+' / '+AIBOU_ROSTER_MAX+'</span><span>🪙 <b>'+coin+'</b></span><button class="srpg-mini2" onclick="srpgCleanupDo()">🧹 おかたづけ</button></div>'
     + rows
     + '<button class="srpg-mini" onclick="srpgTeamScreen()">← 編成へもどる</button></div>';
   try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+// ✨進化：ベースのランクを1つ上げる。素材は弱いダブりから必要数＋コインを消費。
+function srpgEvolveDo(baseId){
+  try{ sfx('click'); }catch(e){}
+  var s, ai; try{ s = rpgState(); ai = rpgAibouState(s); }catch(e){ return; }
+  var cos; try{ cos = rpgCosState(s); }catch(e){ return; }
+  var base = ai.roster[baseId]; if(!base){ return; }
+  var party = ai.party || [];
+  var dupes = Object.keys(ai.roster).map(function(id){ return ai.roster[id]; })
+    .filter(function(m){ return m && m.art === base.art && m.id !== base.id && party.indexOf(m.id) < 0; })
+    .sort(_srpgDupeSort);   // 弱い順＝弱いダブりから消費
+  var can = srpgEvolveCanDo(base, dupes.length, cos.coin || 0);
+  if(!can.ok){
+    var msg = can.reason==='coin' ? 'コインが たりないよ（'+(can.cost?can.cost.coins:'?')+'ひつよう）'
+      : can.reason==='max' ? 'もう これいじょう 進化できないよ（ランクMAX）'
+      : 'ダブりが たりないよ（'+(can.cost?can.cost.dupes:'?')+'体ひつよう）';
+    try{ sfx('wrong'); showToast('✨','進化できないよ',msg); }catch(e){} return;
+  }
+  var cost = can.cost;
+  var mats = dupes.slice(0, cost.dupes);
+  if(!confirm('✨ 進化（ランクアップ）\n\n「'+(base.name||'なかま')+'」を '+(base.rank||'F')+' → '+cost.next+' に します。\n\nつかうもの：おなじ種の ダブり '+cost.dupes+'体 ＋ 🪙'+cost.coins+'\n（素材の なかまは いなくなります。育てた子・パーティは のこります）\n\nよろしいですか？')) return;
+  cos.coin = (cos.coin||0) - cost.coins;
+  base.rank = cost.next;
+  if(!ai.gone) ai.gone = {};
+  mats.forEach(function(m){ ai.gone[m.id] = 1; delete ai.roster[m.id]; });   // 墓標＝同期しても復活しない
+  rpgSave(s);
+  try{ sfx('levelup'); }catch(e){ try{ sfx('coin'); }catch(e2){} }
+  try{ srpgEvolveFx(base, cost.next); }catch(e){}
+  try{ showToast('✨','しんか！ '+(base.name||'なかま')+' が '+cost.next+' に！','つよさが 大アップ！ レベル上限も 上がったよ'); }catch(e){}
+  try{ if(typeof updateResBar==='function') updateResBar(); }catch(e){}
+  srpgSkillUpScreen();
+}
+// 進化の演出（画面フラッシュ＋ランク帯の表示）
+function srpgEvolveFx(base, rank){
+  try{
+    var host = document.getElementById('srpg-body'); if(!host) return;
+    var o = document.createElement('div'); o.className = 'srpg-evo-flash';
+    o.innerHTML = '<div class="srpg-evo-burst">✨</div><div class="srpg-evo-rank r-'+rank+'">'+rank+'</div><div class="srpg-evo-word">しんか！</div>';
+    host.appendChild(o);
+    setTimeout(function(){ try{ host.removeChild(o); }catch(e){} }, 1600);
+  }catch(e){}
 }
 // 🧹おかたづけ：各種類（art）で いちばん強い1体を残し、パーティ外のダブりを一括でエサに
 function srpgCleanupDo(){

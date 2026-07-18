@@ -7,7 +7,7 @@ const c = makeChecker('unit-util');
 
 const code = fs.readFileSync(path.join(ROOT, 'js', 'util.js'), 'utf8');
 const api = (new Function(code +
-  '\nreturn { escapeHtml, topicKey, dateKeyOffset, todayKey, fmtTime, _toDate, revTip };'))();
+  '\nreturn { escapeHtml, topicKey, dateKeyOffset, todayKey, fmtTime, _toDate, revTip, interleaveBySub };'))();
 
 ['escapeHtml', 'topicKey', 'dateKeyOffset', 'todayKey', 'fmtTime', '_toDate']
   .forEach((f) => c.ok(f + ' が関数', typeof api[f] === 'function'));
@@ -53,8 +53,27 @@ c.eq('revTip：空はから文字', api.revTip(''), '');
 c.eq('revTip：null安全', api.revTip(null), '');
 c.ok('revTip：長すぎる考え方は省略(…)', api.revTip('【考え方】' + 'あ'.repeat(80)).length <= 48 && /…$/.test(api.revTip('【考え方】' + 'あ'.repeat(80))));
 
+// interleaveBySub：同一単元が隣り合わないよう並べ替え（要素は保存）
+{
+  const q = (sub, i) => ({ sub, q: sub + i, ans: '1' });
+  const inp = [q('計算',1), q('計算',2), q('計算',3), q('図形',1), q('図形',2), q('文章',1)];
+  const out = api.interleaveBySub(inp);
+  c.eq('要素数は保存', out.length, inp.length);
+  c.eq('元の全問がそろう（欠落/重複なし）', new Set(out.map(x=>x.q)).size, inp.length);
+  let adj = 0; for (let i=1;i<out.length;i++){ if(out[i].sub===out[i-1].sub) adj++; }
+  // 計算3・図形2・文章1（最多3個 ≤ 残り3個+1）＝隣接ゼロで並べられるはず
+  c.eq('同一単元の隣接が0にできる', adj, 0);
+  // 全部同じ単元でも落ちない（並べ替えられないが要素は保存）
+  const same = api.interleaveBySub([q('計算',1), q('計算',2), q('計算',3)]);
+  c.eq('全同一単元でも要素保存', same.length, 3);
+  c.eq('空配列は空', api.interleaveBySub([]).length, 0);
+}
+
 // index.html 側は再定義せず、モジュールを読み込む
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+c.ok('練習ビルダーは _interleaveQs で単元インターリーブ（本文つきはガード）',
+  html.indexOf('function _interleaveQs(') >= 0 && html.indexOf('_interleaveQs(shuffleArr(qs).slice(0,10))') >= 0 && html.indexOf('q.passage') >= 0);
+c.ok('index.html は interleaveBySub を再定義しない（util.jsに集約）', html.indexOf('function interleaveBySub(') < 0);
 c.ok('index.html は escapeHtml を再定義しない', html.indexOf('function escapeHtml(') < 0);
 c.ok('index.html は fmtTime を再定義しない', html.indexOf('function fmtTime(') < 0);
 c.ok('index.html は js/util.js を読み込む', html.indexOf('<script src="js/util.js') >= 0);

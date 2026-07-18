@@ -3357,7 +3357,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/content-data.js?v=2"></script>
 <script src="js/scoring.js?v=4"></script>
 <script src="js/ui-data.js?v=1"></script>
-<script src="js/util.js?v=3"></script>
+<script src="js/util.js?v=4"></script>
 <script src="js/miss-types.js?v=1"></script>
 <script src="js/coverage.js?v=1"></script>
 <script src="js/rating.js?v=3"></script>
@@ -5883,7 +5883,7 @@ function startDifficulty(area, tier){
     if(guard<700 && q.level && !want[q.level]) continue;   // 目標難易度に寄せる（無ければ後半で許可）
     seen[q.q]=1; qs.push(q);
   }
-  currentQuestions=shuffleArr(qs).slice(0,10); currentIndex=0; score=0;
+  currentQuestions=_interleaveQs(shuffleArr(qs).slice(0,10)); currentIndex=0; score=0;
   hideMainScreens();
   document.getElementById('quiz-screen').style.display='block';
   document.getElementById('exam-timer').style.display='none';
@@ -6171,13 +6171,19 @@ function backToModeSelect(){
   if(!currentArea){ showSubjectSelect(); return; }
   selectArea(currentArea);
 }
+// 単元インターリービング（同一単元の連打を避ける）。ただし本文(passage)つきが混ざるときは
+// 本文の再読を避けるためそのまま。挙動安全（純関数 interleaveBySub は js/util.js）。
+function _interleaveQs(arr){
+  try{ if(!arr || arr.some(function(q){ return q && q.passage; })) return arr;
+       return (typeof interleaveBySub==='function') ? interleaveBySub(arr) : arr; }catch(e){ return arr; }
+}
 function startGradePractice(area){
   currentArea=area; currentMode='practice'; isExam=false; isGenPractice=true; stopExamTimer();
   currentSubject=area;
   var qs=[],seen={},guard=0;
   var _ar=adaptiveRating(area);   // 実力レート（適応出題の目標難易度）
   while(qs.length<10 && guard<250){ guard++; var q=pickLeveled(function(){return genQuestion(area);}, adaptiveWant(_ar)); if(q&&q.q&&!seen[q.q]){ seen[q.q]=1; qs.push(q); } }
-  currentQuestions=qs; currentIndex=0; score=0;
+  currentQuestions=_interleaveQs(qs); currentIndex=0; score=0;
   hideMainScreens();
   document.getElementById('quiz-screen').style.display='block';
   document.getElementById('exam-timer').style.display='none';

@@ -7,6 +7,21 @@ function dateKeyOffset(off){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmtTime(sec){ sec=Math.round(sec||0); if(sec<60) return sec+'秒'; const m=Math.floor(sec/60); if(m<60) return m+'分'; return Math.floor(m/60)+'時間'+(m%60)+'分'; }
 function _toDate(s){ const a=s.split('-').map(Number); return new Date(a[0],a[1]-1,a[2]); }
+// 同じ単元(sub)が隣り合わないよう貪欲に並べ替える（できる範囲で）。
+// ブロック練習(同一単元の連打)→インターリービング(単元を混ぜる)にして転移・長期定着を上げる。
+// 読解など本文(passage)つきが混ざる場合は、本文の再読を避けるため並べ替えない（呼び出し側でガード）。
+function interleaveBySub(qs){
+  var arr = (qs || []).slice();
+  var out = [], lastSub = null;
+  while(arr.length){
+    var idx = -1;
+    for(var i = 0; i < arr.length; i++){ if((arr[i].sub || '') !== lastSub){ idx = i; break; } }
+    if(idx < 0) idx = 0;                       // 残り全部が同じ単元＝仕方なく先頭
+    var pick = arr.splice(idx, 1)[0];
+    out.push(pick); lastSub = pick.sub || '';
+  }
+  return out;
+}
 // 解説（【考え方】【手順】【ポイント】）から「解き直しの一言ヒント」を1行だけ抜く。
 // まちがい→リベンジ問題で「さっき学んだ考え方」を運んで、worked example を即適用させる（retrieval×worked example）。
 function revTip(explain){

@@ -130,6 +130,19 @@ function ratingAreaR(area){
   return ratingOverall(st);
 }
 
+// ===== リアルタイム難易度（フロー維持）=====
+// 直近の正答率が高すぎ(≥0.85)なら次の1問を1段むずかしく、低すぎ(≤0.5)なら1段やさしく寄せる。
+// フロー帯(0.5〜0.85＝適度な挑戦)では変えない。セッション開始時の一括生成に加えて、
+// 解くたびに「次の1問だけ」実測ベースで微調整する（Math Garden の即時適応の思想）。
+var FLOW_LEVELS = ['★☆☆', '★★☆', '★★★', '★★★★'];
+function flowTargetLevel(recentAcc, curLevel){
+  var i = FLOW_LEVELS.indexOf(curLevel); if(i < 0) i = 1;
+  if(recentAcc >= 0.85) i = Math.min(FLOW_LEVELS.length - 1, i + 1);
+  else if(recentAcc <= 0.5) i = Math.max(0, i - 1);
+  else return null;                       // フロー帯は変えない
+  return FLOW_LEVELS[i];
+}
+
 // ===== 診断プレイスメント（初回の実力推定）=====
 // 少ない問題数（教科2問など）で開始点を素早く決めるため、通常より大きめのKで Elo を回す。
 // 通常の毎問更新（K=1.5〜6）は収束が緩やかで数問では動きにくいため、診断専用に強めのKを使う。

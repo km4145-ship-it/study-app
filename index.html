@@ -3360,7 +3360,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/util.js?v=3"></script>
 <script src="js/miss-types.js?v=1"></script>
 <script src="js/coverage.js?v=1"></script>
-<script src="js/rating.js?v=2"></script>
+<script src="js/rating.js?v=3"></script>
 <script src="js/teach.js?v=2"></script>
 <script src="js/duel.js?v=1"></script>
 <script src="js/ranking.js?v=3"></script>
@@ -5098,6 +5098,23 @@ function handleAnswer(correct, correctAns) {
     else { sfx('wrong'); vibe([30,50,30]); }
   }
   if(correct){ rpgBumpDailyCorrect(totalStreak); try{ rpgCheckMissions(); checkAchievements(); }catch(e){} }  // 今日のミッション：全モードの正解を集計＋その場で達成判定・付与
+  // リアルタイム難易度（フロー維持）：直近正答率で「次の1問だけ」難易度を寄せる。
+  // 単一教科のジェネレータ練習のみ・リベンジ問題は尊重・drill/mistake/mix(__…)は currentSubject≠currentArea で除外。
+  try{
+    if(!isExam && !rpgBattle && !isMistakePractice && !_duel && !_familyDaily && isGenPractice
+       && currentSubject===currentArea && typeof flowTargetLevel==='function' && currentIndex+1<currentQuestions.length){
+      var _nq=currentQuestions[currentIndex+1];
+      if(_nq && !_nq._revenge){
+        var _tl=flowTargetLevel(recentAccuracy(), _nq.level);
+        if(_tl && _tl!==_nq.level){
+          var _rep=null;
+          for(var _k=0;_k<200;_k++){ var _c=genQuestion(currentArea);
+            if(_c&&_c.q&&_c.ans!==undefined&&_c.level===_tl&&_c.q!==_nq.q&&!currentQuestions.some(function(x){return x.q===_c.q;})){ _rep=_c; break; } }
+          if(_rep) currentQuestions[currentIndex+1]=_rep;
+        }
+      }
+    }
+  }catch(e){}
   document.getElementById('btn-next').classList.add('show');
 }
 

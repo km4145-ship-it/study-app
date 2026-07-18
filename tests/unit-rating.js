@@ -11,7 +11,7 @@ const code = fs.readFileSync(path.join(ROOT, 'js', 'rating.js'), 'utf8');
 try { new Function(code)(); c.ok('rating.js 単体loadで例外なし', true); }
 catch (e) { c.ok('rating.js 単体loadで例外なし: ' + e.message, false); }
 const api = (new Function(code +
-  '\nreturn { ratingItemDiff, ratingGuess, ratingExpected, ratingK, ratingStep, ratingOverallOf, ratingDelta7, ratingTier, ratingFuzzTier, RATING_START, hensaDispStep, HENSA_FIRST_N, HENSA_BATCH_N, HENSA_STEP_MAX, diagEstimateR, diagEstimateAll, diagNextTier, diagSeedInto, RATING_MIN, RATING_MAX };'))();
+  '\nreturn { ratingItemDiff, ratingGuess, ratingExpected, ratingK, ratingStep, ratingOverallOf, ratingDelta7, ratingTier, ratingFuzzTier, RATING_START, hensaDispStep, HENSA_FIRST_N, HENSA_BATCH_N, HENSA_STEP_MAX, diagEstimateR, diagEstimateAll, diagNextTier, diagSeedInto, RATING_MIN, RATING_MAX, flowTargetLevel };'))();
 
 // ---- 難易度・当て推量 ----
 c.eq('★=42', api.ratingItemDiff('★☆☆'), 42);
@@ -175,6 +175,29 @@ c.ok('タクトの解答も実績にカウント', srpgUi.indexOf('hensaOnAnswer
   c.eq('診断seed：n<5 の english は上書き', st.by.english.r, 48);
   c.eq('診断seed：english の重みは seedN', st.by.english.n, 3);
   c.eq('診断seed：新規 science は種を入れる', st.by.science.r, 52);
+}
+
+// ===== リアルタイム難易度（フロー維持）=====
+{
+  c.eq('高正答(0.9)は1段むずかしく（std→adv）', api.flowTargetLevel(0.9, '★★☆'), '★★★');
+  c.eq('低正答(0.4)は1段やさしく（std→basic）', api.flowTargetLevel(0.4, '★★☆'), '★☆☆');
+  c.eq('フロー帯(0.7)は変えない', api.flowTargetLevel(0.7, '★★☆'), null);
+  c.eq('フロー帯下端(0.55)も変えない', api.flowTargetLevel(0.55, '★★☆'), null);
+  c.eq('最上段で高正答はhardにクランプ', api.flowTargetLevel(0.95, '★★★★'), '★★★★');
+  c.eq('最下段で低正答はbasicにクランプ', api.flowTargetLevel(0.2, '★☆☆'), '★☆☆');
+  c.eq('未知レベルはstd扱い→高正答でadv', api.flowTargetLevel(0.9, '???'), '★★★');
+  c.eq('境界0.85は上げる', api.flowTargetLevel(0.85, '★★☆'), '★★★');
+  c.eq('境界0.5は下げる', api.flowTargetLevel(0.5, '★★☆'), '★☆☆');
+}
+
+// ===== リアルタイム難易度の配線（index.html・安全ガード）=====
+{
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  c.ok('handleAnswer が flowTargetLevel を使う', html.indexOf('flowTargetLevel(recentAccuracy()') >= 0);
+  c.ok('リベンジ問題は上書きしない（!_nq._revenge ガード）', /flowTargetLevel[\s\S]{0,300}!_nq\._revenge/.test(html) || /!_nq\._revenge[\s\S]{0,300}flowTargetLevel/.test(html));
+  c.ok('単一教科ジェネ練習に限定（isGenPractice && currentSubject===currentArea）',
+    /isGenPractice[\s\S]{0,80}currentSubject===currentArea[\s\S]{0,200}flowTargetLevel/.test(html));
+  c.ok('模試/バトル/まちがい/対戦/家族は除外', /!isExam && !rpgBattle && !isMistakePractice && !_duel && !_familyDaily && isGenPractice[\s\S]{0,120}flowTargetLevel/.test(html));
 }
 
 // ===== 診断UIの配線（index.html）=====

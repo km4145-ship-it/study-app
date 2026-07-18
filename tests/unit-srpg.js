@@ -661,8 +661,16 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   const p = S.srpgDexProgress({ wolf:1, slime:1, ghost:0 }, 22);
   c.eq('図鑑進捗：met数', p.count, 2);
   c.eq('図鑑進捗：%', p.pct, Math.round(2/22*100));
-  c.ok('節目報酬は4段階・needが昇順', S.SRPG_DEX_REWARDS.length === 4 && S.SRPG_DEX_REWARDS[0].need < S.SRPG_DEX_REWARDS[3].need);
-  c.ok('最終節目は全121種（基本21＋変種100）', S.SRPG_DEX_REWARDS[3].need === 121);
+  {
+    const dr = S.SRPG_DEX_REWARDS;
+    let asc = true; for (let i = 1; i < dr.length; i++) { if (!(dr[i].need > dr[i-1].need)) asc = false; }
+    const ids = dr.map(function(r){ return r.id; });
+    c.ok('節目報酬は複数段階・needが厳密昇順', dr.length >= 4 && asc);
+    c.ok('各節目に id/coin/label がそろう', dr.every(function(r){ return r.id && r.coin > 0 && r.label; }));
+    c.ok('id に重複がない（受領フラグ衝突なし）', new Set(ids).size === ids.length);
+    c.ok('既存idを温存（d10/d40/d80/d121）＝過去の受領が生きる', ['d10','d40','d80','d121'].every(function(id){ return ids.indexOf(id) >= 0; }));
+    c.ok('最終節目は全121種（基本21＋変種100）', dr[dr.length-1].need === 121);
+  }
   // LG：天井・自動編成・とくぎ継承
   c.ok('LGでも天井リセット', S.srpgScoutApplyPity(['LG'], 29, 30).pity === 0);
   const lgPick = S.srpgAutoPick([{id:'x',rank:'LG',lv:1,sp:'beast'},{id:'y',rank:'SSS',lv:99,sp:'beast'}], 1);

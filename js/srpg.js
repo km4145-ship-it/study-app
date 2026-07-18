@@ -620,10 +620,15 @@ function srpgDexProgress(metArts, total){
   return { count:count, total:total, pct: total ? Math.round(count / total * 100) : 0 };
 }
 // 図鑑の節目ほうび（受領フラグは cos.dexRw に union 保存）
+// 節目は「つねに次の目標が見える」よう細分化（長期エンゲージメント）。既存id(d10/d40/d80/d121)は
+// 温存＝過去に受領済みの子のフラグ(cos.dexRw)がそのまま生きる。d20/d60/d100 は後から追加した中間節目。
 var SRPG_DEX_REWARDS = [
   { id:'d10',  need:10,  coin:300,  label:'10種で 🪙300' },
+  { id:'d20',  need:20,  coin:500,  label:'20種で 🪙500' },
   { id:'d40',  need:40,  coin:1000, label:'40種で 🪙1000' },
+  { id:'d60',  need:60,  coin:1600, label:'60種で 🪙1600' },
   { id:'d80',  need:80,  coin:2500, label:'80種で 🪙2500' },
+  { id:'d100', need:100, coin:4000, label:'100種で 🪙4000' },
   { id:'d121', need:121, coin:8000, label:'ぜんぶ（121種）で 🪙8000' }
 ];
 

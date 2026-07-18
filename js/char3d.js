@@ -635,13 +635,29 @@ function _c3dMonRobe(g, spec){
   var head = new THREE.Group(); head.position.set(0, 1.42, 0); g.add(head); head.userData.isHead = true;
   _c3dAdd(head, _c3dSphere(.34, spec.main), 0, 0, 0, 1, .95, .95);
   if (spec.demon){
-    _c3dAdd(head, _c3dSphere(.32, spec.inner), 0, -.02, .12, .92, .85, .8); // フードの闇
+    // フードの闇：顔前に沈む影（前面に少し出して"暗い顔"を作る）
+    _c3dAdd(head, _c3dSphere(.29, spec.inner), 0, -.01, .2, .95, .9, .5);
+    _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.27,.52,16), _c3dMat(spec.main)), 0, .33, -.03, 1, 1, 1, -.12, 0, 0); // 尖ったフードの先
     [-1,1].forEach(function(s){
-      _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.08,.34,8), _c3dMat(spec.horns)), s*.24, .3, 0, 1, 1, 1, -.1, 0, s*-.7);
-      var e = new THREE.Mesh(new THREE.SphereGeometry(.06, 12, 12), new THREE.MeshBasicMaterial({ color: spec.eye }));
-      _c3dAdd(head, e, s*.13, .02, .3, 1, 1.3, .6);
+      // 太く反り返る魔の角（2段：太い根元＋細い先端＝耳でなく角）
+      _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.12,.36,10), _c3dMat(spec.horns)), s*.21, .3, -.02, 1, 1, 1, -.16, 0, s*-.62);
+      _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.06,.34,10), _c3dMat('#e6ddf5')), s*.35, .52, -.1, 1, 1, 1, -.5, 0, s*-1.05);
+      // 尖った肩スパイク
+      _c3dAdd(g, new THREE.Mesh(new THREE.ConeGeometry(.1,.36,8), _c3dMat(spec.main)), s*.5, .9, .05, 1, 1, 1, 0, 0, s*-1.05);
+      // 光る眼＋発光ハロー（闇のフードより前面に出して確実に見せる）
+      _c3dAdd(head, new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 12), new THREE.MeshBasicMaterial({ color: spec.eye, transparent: true, opacity: .3 })), s*.14, .03, .37, 1, 1.05, .5);
+      var e = new THREE.Mesh(new THREE.SphereGeometry(.075, 14, 14), new THREE.MeshBasicMaterial({ color: spec.eye }));
+      _c3dAdd(head, e, s*.14, .03, .41, 1, 1.35, .7);
       e.userData = { isEye: true };
+      // 眼の光点
+      _c3dAdd(head, new THREE.Mesh(new THREE.SphereGeometry(.022, 8, 8), new THREE.MeshBasicMaterial({ color: '#fff5f5' })), s*.14, .07, .47);
+      // 牙（下向き）
+      _c3dAdd(head, new THREE.Mesh(new THREE.ConeGeometry(.03,.11,6), _c3dMat('#ffffff')), s*.08, -.17, .4, 1, 1, 1, Math.PI, 0, 0);
     });
+    // 額に光る魔の宝石（σの位置）
+    _c3dAdd(head, new THREE.Mesh(new THREE.OctahedronGeometry(.06,0), new THREE.MeshBasicMaterial({ color: spec.trim })), 0, .18, .4);
+    // まとう紫のオーラ（半透明の大球）
+    _c3dAdd(g, _c3dSphere(.74, spec.trim, { opacity: .06 }), 0, .82, 0, 1, 1.18, 1);
     g.userData.float = true;
   } else {
     _c3dMonFace(head, spec, .04, .3);

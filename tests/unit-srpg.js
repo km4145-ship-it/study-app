@@ -715,4 +715,34 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.ok('ランクが上がると攻撃が増える', after.atk > before.atk && after.maxHp > before.maxHp);
 }
 
+// ================= ボスの山場：かくせい判定・大技のねらい =================
+{
+  const boss = S.srpgMakeUnit({ id:'b', side:'enemy', name:'ボス', art:'villain', role:'tank', rankBase:16, lvl:10,
+    phase:{ hp:0.5, atk:2, def:1, name:'かくせい', msg:'…！' } });
+  c.ok('HP満タンではかくせいしない', S.srpgBossPhaseReady(boss)===null);
+  boss.hp = Math.floor(boss.maxHp*0.5) - 1;  // 閾値を割る
+  const ph = S.srpgBossPhaseReady(boss);
+  c.ok('HPが半分以下でかくせい可', ph && ph.name==='かくせい' && ph.atk===2);
+  boss.phaseDone = true;
+  c.ok('一度かくせいしたら再発動しない', S.srpgBossPhaseReady(boss)===null);
+  const noPhase = S.srpgMakeUnit({ id:'z', side:'enemy', name:'ざこ', art:'slime', role:'attacker', rankBase:5, lvl:1 });
+  noPhase.hp = 1;
+  c.ok('phase未設定の敵はかくせいなし', S.srpgBossPhaseReady(noPhase)===null);
+  c.ok('倒れた敵はかくせいなし', S.srpgBossPhaseReady(Object.assign({}, boss, {downed:true, phaseDone:false, hp:1}))===null);
+
+  // 大技のねらい：味方が固まっている中心を選ぶ
+  const G3 = { w:6, h:7 };
+  const units = [
+    { side:'ally', downed:false, x:3, y:3 },
+    { side:'ally', downed:false, x:3, y:4 },
+    { side:'ally', downed:false, x:4, y:3 },
+    { side:'ally', downed:false, x:0, y:0 },
+    { side:'enemy', downed:false, x:3, y:0 }
+  ];
+  const best = S.srpgAoeBestCenter('burst', units, G3);   // 3x3で3体まとめて狙える
+  c.ok('固まった味方を最も巻き込む中心を返す', best && best.hits>=3);
+  c.ok('中心マスは盤内', best.x>=0 && best.x<G3.w && best.y>=0 && best.y<G3.h);
+  c.ok('味方ゼロならnull', S.srpgAoeBestCenter('burst', [{side:'enemy',downed:false,x:1,y:1}], G3)===null);
+}
+
 c.done();

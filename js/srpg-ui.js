@@ -285,7 +285,7 @@ function srpgStart(stageId){
     round: 1, order: [], turnPtr: -1, acted: {}, actorId: null,
     phase: 'idle', moved: false, chosenSkill: null, targetTile: null,
     hiMove: {}, hiTarget: {}, hiAoe: {}, combo: 0, over: false, busy: false,
-    zoneSet: {}, deploySel: null
+    zoneSet: {}, deploySel: null, charge: null
   };
   document.getElementById('srpg-title').textContent = stage.name;
   try{ if(typeof bgmPlay==='function') bgmPlay((stage.type==='quest' && stage.boss) ? 'boss' : 'battle'); }catch(e){}
@@ -360,6 +360,9 @@ function srpgRender(){
   html += '<div class="srpg-field '+srpgFieldSkyClass()+'"><div class="srpg-stage3d"><div class="srpg-grid" style="grid-template-columns:repeat('+g.w+',var(--st));grid-template-rows:repeat('+g.h+',var(--st))">';
   var byPos = {};
   srpgB.units.forEach(function(u){ if(!u.downed) byPos[u.x+','+u.y] = u; });
+  // 大技の予告（チャージ中・発動者が生きているあいだ 赤マスを塗り続ける）
+  var chgOn = false;
+  if(srpgB.charge){ var _co = srpgUnitById(srpgB.charge.by); chgOn = !!(_co && !_co.downed); }
   for(var y=0; y<g.h; y++) for(var x=0; x<g.w; x++){
     var key = x+','+y;
     var cls = 'srpg-tile';
@@ -368,6 +371,7 @@ function srpgRender(){
     if(srpgB.hiAtk && srpgB.hiAtk[key]) cls += ' hi-atk';
     if(srpgB.hiTarget[key]) cls += ' hi-target';
     if(srpgB.hiAoe[key]) cls += ' hi-aoe';
+    if(chgOn && srpgB.charge.set[key]) cls += ' hi-charge';
     if(srpgB.phase==='deploy' && srpgB.zoneSet[key]) cls += ' hi-deploy';
     var actor = srpgActor();
     if(actor && actor.x===x && actor.y===y && !actor.downed) cls += ' actor';
@@ -439,7 +443,8 @@ function srpgTurnbarHtml(){
   var alive = order.filter(function(u){ return u && !u.downed; });
   var actor = srpgActor();
   var _wv = (srpgB.stage && srpgB.stage.waves && srpgB.stage.waves.length) ? '<span class="srpg-wave">🌊 '+((srpgB.waveIdx||0)+1)+'/'+ (srpgB.stage.waves.length+1)+'陣</span>' : '';
-  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span>'+_wv+'<button class="srpg-spd'+(_srpgSpd()===2?' on':'')+'" onclick="srpgToggleSpeed()">⏩×2</button><div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
+  var _chg = srpgB.charge ? '<span class="srpg-charge-warn">☢️ '+escapeHtml(srpgB.charge.name||'大技')+'くる！赤マスから にげろ</span>' : '';
+  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span>'+_wv+_chg+'<button class="srpg-spd'+(_srpgSpd()===2?' on':'')+'" onclick="srpgToggleSpeed()">⏩×2</button><div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
     var art = srpgUnitArt(u);
     return '<span class="srpg-tb-face '+u.side+(actor&&u.id===actor.id?' now':'')+'">'+art+'</span>';
   }).join('<span class="srpg-tb-arrow">›</span>');
@@ -922,6 +927,7 @@ function srpgAfterResolve(){
     srpgClearHi();
     var oc = srpgOutcome(srpgB.units);
     if(oc){ srpgEnd(oc); return; }
+    if(srpgBossWatch()){ setTimeout(srpgEndActorTurn, _sd(1200)); return; }   // 攻撃で閾値を割ったら かくせい演出を見せてから
     srpgEndActorTurn();
   }, _sd(780));
 }
@@ -936,6 +942,12 @@ function srpgEndActorTurn(){
 // ================= 敵のターン（自動） =================
 function srpgEnemyTurn(enemy){
   if(!srpgB || srpgB.over) return;
+  // ① ためた大技を放つ（前のターンに予告した charge の発動者）
+  if(srpgB.charge && srpgB.charge.by === enemy.id){ srpgBossFireCharge(enemy); return; }
+  // ② かくせい（HPが閾値以下になっていたら 自分のターン開始で発動）
+  if(srpgBossWatch()){ setTimeout(function(){ srpgEnemyTurn(enemy); }, _sd(1100)); return; }
+  // ③ 大技をためる判断（かくせい後の魔王など）
+  if(srpgEnemyMayCharge(enemy)){ srpgBossBeginCharge(enemy); return; }
   var act = srpgEnemyAction(enemy, srpgB.grid, srpgB.units);
   var _efx = enemy.x, _efy = enemy.y;
   enemy.x = act.moveTo.x; enemy.y = act.moveTo.y;
@@ -1000,6 +1012,89 @@ function srpgEnemySupport(enemy, act){
   }
   try{ sfx('powerup'); }catch(e){}
   srpgEnemyAfter();
+}
+// ================= ボスの山場：かくせい（フェーズ変化）＆ 大技（予告→回避）=================
+// 全敵をスキャンし、HPが閾値以下に落ちたボスを1体 かくせいさせる（演出つき）。true=発動。
+function srpgBossWatch(){
+  if(!srpgB || srpgB.over) return false;
+  for(var i=0;i<srpgB.units.length;i++){
+    var u = srpgB.units[i];
+    if(u.side!=='enemy' || u.downed) continue;
+    var ph = (typeof srpgBossPhaseReady==='function') ? srpgBossPhaseReady(u) : null;
+    if(ph){ srpgBossEnrage(u, ph); return true; }
+  }
+  return false;
+}
+function srpgBossEnrage(boss, phase){
+  boss.phaseDone = true;
+  srpgSetMod(boss, 'atk', phase.atk||0, 99);
+  srpgSetMod(boss, 'def', phase.def||0, 99);
+  boss.mp = boss.mpMax || 6;   // かくせい直後は 大技も撃てる
+  srpgRender();                // 強化の矢印を反映
+  try{ sfx('powerup'); }catch(e){}
+  try{ vibe(60); }catch(e){}
+  srpgShakeTile(boss.x, boss.y); srpgFlashSprite(boss.id, 'hit');
+  srpgFxOverlay(boss.x, boss.y, 'fx-buff', '🔥', 900);
+  try{
+    var host=document.getElementById('srpg-body');
+    if(host){
+      var o=document.createElement('div'); o.className='srpg-enrage-flash';
+      o.innerHTML='<div class="srpg-enrage-word">'+escapeHtml(phase.name||'かくせい')+'！</div><div class="srpg-enrage-boss">'+escapeHtml(boss.name||'ボス')+'</div>';
+      host.appendChild(o);
+      setTimeout(function(){ try{ host.removeChild(o); }catch(e){} }, 1400);
+    }
+  }catch(e){}
+  try{ if(phase.msg) showToast('👹', (boss.name||'ボス')+' '+(phase.name||'かくせい')+'！', phase.msg); }catch(e){}
+}
+// 大技をためる判断：ボスで charge を持ち、かくせい後・クールダウン明け・味方がいる。
+// （MPだと通常とくぎに消費され溜まらないので、大技は専用クールダウン制＝確実に周期発動）
+function srpgEnemyMayCharge(enemy){
+  if(!enemy || !enemy.charge || srpgB.charge) return false;
+  if(!enemy.phaseDone) return false;                       // かくせい後だけ大技を使う
+  if((enemy._chgCd||0) > 0){ enemy._chgCd--; return false; }
+  return srpgB.units.some(function(u){ return u.side==='ally' && !u.downed; });
+}
+// 大技の予告：いちばん巻き込める中心にAoEを表示し、次のターンに放つ。今ターンは ためるだけ。
+function srpgBossBeginCharge(boss){
+  var ch = boss.charge;
+  var best = (typeof srpgAoeBestCenter==='function') ? srpgAoeBestCenter(ch.aoe, srpgB.units, srpgB.grid) : null;
+  if(!best){ setTimeout(function(){ srpgEnemyAfter(); }, _sd(300)); return; }
+  boss._chgCd = (ch.cd || 3);   // 次の大技まで ボスの手番 3回ぶん あける
+  var set={}; best.tiles.forEach(function(t){ set[t.x+','+t.y]=1; });
+  srpgB.charge = { by:boss.id, set:set, tiles:best.tiles, power:ch.power||180, name:ch.name||'大技' };
+  srpgClearHi(); srpgRender();   // 赤い予告マスを描画
+  srpgFlashSprite(boss.id, 'heal'); srpgFxOverlay(boss.x, boss.y, 'fx-buff', '⚡', 900);
+  try{ sfx('powerup'); }catch(e){}
+  try{ showToast('☢️', (boss.name||'ボス')+'「'+(ch.name||'大技')+'」を ためた！', ch.warn||'つぎのターン 赤いマスに 大技がくる！ にげろ！'); }catch(e){}
+  setTimeout(function(){ srpgEnemyAfter(); }, _sd(950));
+}
+// 大技の発動：予告マスに残っている味方に大ダメージ。逃げた味方は無傷。
+function srpgBossFireCharge(boss){
+  var chg = srpgB.charge; srpgB.charge = null;
+  if(!chg || boss.downed){ srpgEnemyAfter(); return; }
+  srpgClearHi();
+  srpgCutin(boss, chg.name, null, function(){
+    var hits = [];
+    (chg.tiles||[]).forEach(function(t){
+      var u = srpgUnitAt(srpgB.units, t.x, t.y);
+      if(u && u.side==='ally' && !u.downed){
+        var dmg = srpgDamage(boss, u, chg.power, 1, false);
+        u.hp = Math.max(0, u.hp - dmg);
+        var died = u.hp<=0; if(died) u.downed=true;
+        hits.push({ x:t.x, y:t.y, dmg:dmg, died:died });
+      }
+    });
+    srpgRender();
+    (chg.tiles||[]).forEach(function(t){ srpgPoof(t.x, t.y); });
+    hits.forEach(function(h){
+      srpgShakeTile(h.x, h.y);
+      srpgPopupAt(h.x, h.y, h.dmg, 'dmg-e');
+      if(h.died){ srpgPopupAt(h.x, h.y, 'たおれた…', 'down'); }
+    });
+    try{ sfx('wrong'); vibe(80); }catch(e){}
+    if(!hits.length){ try{ showToast('💨','大技を かわした！','赤いマスから ぜんいん にげきった！ ナイス回避！'); }catch(e){} }
+    setTimeout(function(){ srpgClearHi(); srpgEnemyAfter(); }, _sd(950));
+  });
 }
 function srpgEnemySkill(enemy, act){
   var sk = srpgSkill(act.skillId); if(!sk){ srpgEnemyAttack(enemy, (act.targetIds||[])[0]); return; }

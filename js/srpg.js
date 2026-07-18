@@ -486,6 +486,28 @@ function srpgEvolveCanDo(base, matCount, coins){
   return { ok:true, cost:cost };
 }
 
+// ===== ボスの山場：フェーズ変化（かくせい）＆ 大技（ためて放つ範囲攻撃を予告→回避）=====
+// かくせい：HPが phase.hp（割合）以下に落ちた最初の瞬間に1度だけ発動できる。
+function srpgBossPhaseReady(u){
+  if(!u || u.downed || !u.phase || u.phaseDone) return null;
+  if(u.hp > u.maxHp * (u.phase.hp || 0.5)) return null;
+  return u.phase;
+}
+// 大技のねらい：AoE形状で いま いちばん多く味方を巻き込める中心マスを返す（純粋）。
+// ＝予告の時点での最善位置。実際は次のターンに放つので、味方は逃げれば回避できる。
+function srpgAoeBestCenter(shape, units, grid){
+  var allies = (units || []).filter(function(u){ return u && u.side === 'ally' && !u.downed; });
+  if(!allies.length) return null;
+  var best = null;
+  for(var y = 0; y < grid.h; y++) for(var x = 0; x < grid.w; x++){
+    var tiles = srpgAoeTiles(shape, x, y, grid);
+    var set = {}; tiles.forEach(function(t){ set[t.x + ',' + t.y] = 1; });
+    var hits = allies.filter(function(a){ return set[a.x + ',' + a.y]; }).length;
+    if(hits > 0 && (!best || hits > best.hits)) best = { x:x, y:y, hits:hits, tiles:tiles };
+  }
+  return best;
+}
+
 // ===== ウェーブ制（増援）：stage.waves = 追加の敵陣。1陣を全滅させると次が現れる =====
 // waveIdx は 0=初期配置。srpgWaveUnits(stage, 1) が2陣目の敵ユニット配列を返す。
 function srpgWaveUnits(stage, waveIdx){
@@ -496,7 +518,7 @@ function srpgWaveUnits(stage, waveIdx){
     return srpgMakeUnit({
       id:'enemy_w' + waveIdx + '_' + i, side:'enemy', name:t.name, art:t.art, role:t.role,
       rankBase:t.rankBase, lvl:e.lvl || 1, weak:t.weak, resist:t.resist,
-      resists:t.resists, onhit:t.onhit, skills:(t.skills || []), x:e.x, y:e.y
+      resists:t.resists, onhit:t.onhit, skills:(t.skills || []), phase:t.phase, charge:t.charge, tmplKey:e.key, x:e.x, y:e.y
     });
   });
 }
@@ -619,7 +641,7 @@ function srpgMakeUnit(spec){
     skills: (spec.skills !== undefined ? spec.skills.slice() : role.skills.slice(0, srpgSkillCount(lvl))),
     lvl: lvl, awaken: srpgSkillCount(lvl), skLv: Math.max(1, Math.min(SRPG_SKLV_MAX, spec.skLv || 1)),
     weak: spec.weak || null, resist: spec.resist || null, resists: spec.resists || null,
-    onhit: spec.onhit || null,
+    onhit: spec.onhit || null, phase: spec.phase || null, charge: spec.charge || null, tmplKey: spec.tmplKey || null, phaseDone: false,
     status: {}, mods: { atk:0, def:0, spd:0 }, modTurns: { atk:0, def:0, spd:0 },
     x: spec.x || 0, y: spec.y || 0, acted: false, downed: false
   };
@@ -648,7 +670,9 @@ var SRPG_ENEMY_TEMPLATES = {
   cheerer:{ art:'grammaro', name:'おうえんのホン', role:'mage',  rankBase:7,  weak:'japanese', resist:'social',
     resists:{ japanese:'weak', social:'half' }, skills:['bikilt'] },
   villain:{ art:'villain', name:'魔王シグマ', role:'tank',     rankBase:16, weak:'math',     resist:'japanese', boss:true,
-    resists:{ math:'weak', japanese:'half', social:'null', english:'drain' }, onhit:{ kind:'poison', turns:3, chance:0.4 }, skills:['burstball','poisonbreath'] }
+    resists:{ math:'weak', japanese:'half', social:'null', english:'drain' }, onhit:{ kind:'poison', turns:3, chance:0.4 }, skills:['burstball','poisonbreath'],
+    phase:{ hp:0.5, atk:2, def:1, name:'かくせい', msg:'ぐ…ぬぬ！ まだ おわらん！ ほんきを だすぞ！' },
+    charge:{ name:'めつぼうの いちげき', aoe:'burst', power:210, mp:6, warn:'魔王が ちからを ためている…！ つぎのターン 大技が くる！ 赤いマスから にげろ！' } }
 };
 function srpgEnemyTemplate(key){ return SRPG_ENEMY_TEMPLATES[key] || SRPG_ENEMY_TEMPLATES.slime; }
 
@@ -788,7 +812,7 @@ function srpgBuildUnits(stage, allySpecs){
     units.push(srpgMakeUnit({
       id:'enemy' + i, side:'enemy', name:t.name, art:t.art, role:t.role,
       rankBase:t.rankBase, lvl:e.lvl || 1, weak:t.weak, resist:t.resist,
-      resists:t.resists, onhit:t.onhit, skills:(t.skills || []), x:e.x, y:e.y
+      resists:t.resists, onhit:t.onhit, skills:(t.skills || []), phase:t.phase, charge:t.charge, tmplKey:e.key, x:e.x, y:e.y
     }));
   });
   return units;
@@ -821,6 +845,7 @@ if(typeof module !== 'undefined' && module.exports){
     SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS,
     srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
     SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse,
-    SRPG_RANK_ORDER: SRPG_RANK_ORDER, SRPG_EVOLVE_DUPES: SRPG_EVOLVE_DUPES, srpgEvolveNextRank: srpgEvolveNextRank, srpgEvolveCost: srpgEvolveCost, srpgEvolveCanDo: srpgEvolveCanDo
+    SRPG_RANK_ORDER: SRPG_RANK_ORDER, SRPG_EVOLVE_DUPES: SRPG_EVOLVE_DUPES, srpgEvolveNextRank: srpgEvolveNextRank, srpgEvolveCost: srpgEvolveCost, srpgEvolveCanDo: srpgEvolveCanDo,
+    srpgBossPhaseReady: srpgBossPhaseReady, srpgAoeBestCenter: srpgAoeBestCenter
   };
 }

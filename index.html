@@ -4776,7 +4776,9 @@ function handleAnswer(correct, correctAns) {
   const feedback = document.getElementById('feedback');
   if (correct) {
     score++; totalCorrect++; totalStreak++;
-    const bonus = totalStreak >= 5 ? 30 : totalStreak >= 3 ? 20 : 10;
+    var _lvMult = { '★☆☆':1, '★★☆':1.2, '★★★':1.5, '★★★★':2 };   // むずかしい問題ほど 高ポイント＝易問グラインド対策
+    var _dm = (currentQuestions[currentIndex] && _lvMult[currentQuestions[currentIndex].level]) || 1;
+    const bonus = Math.round((totalStreak >= 5 ? 30 : totalStreak >= 3 ? 20 : 10) * _dm);
     totalPoints += bonus;
 
     const char = getCharForContext(currentSubject, false);
@@ -5442,7 +5444,8 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   var td=null; try{ td=daysUntilTest(); }catch(e){}
   var rw=lsGetJSON('reward',null);
   var avatar=''; try{ avatar=_charStill(u.char||currentChar||'shiba'); }catch(e){}
-  var rec = nb>0 ? ('まちがい直し '+nb+'問' ) : 'おまかせ10問';
+  // ヒーローCTA(startRecommended)は 期限の来た復習を最優先で始める。ラベルもそれに合わせて『復習』を前面に＝準強制の導線。
+  var rec = due>0 ? ('🔁 ふくしゅう '+due+'問（わすれる前に！）') : (nb>0 ? ('まちがい直し '+nb+'問') : 'おまかせ10問');
   var h='';
   // プレイヤーストリップ
   h+='<div class="hub-player">'+
@@ -6561,6 +6564,12 @@ function srsCorrect(q){
   if(!q||!q.q) return;
   const arr=getMistakes(); const i=arr.findIndex(m=>m.q===q.q); if(i<0) return;
   bumpWeekSrs();
+  // まぐれ正解対策：選択式(4択)は 1回の当てずっぽうで卒業させない。2回 正解して初めて箱を進める。
+  if((arr[i].type||q.type)==='choice'){
+    var cc=(arr[i].cc||0)+1;
+    if(cc<2){ arr[i].cc=cc; arr[i].due=dateKeyOffset(1); saveMistakes(arr); return; }   // 1回目は箱据え置き＝翌日また確認
+    arr[i].cc=0;
+  }
   const box=(arr[i].box||0)+1; const sub=arr[i].sub||'';
   if(box>=SRS_INT.length){ arr.splice(i,1); saveMistakes(arr); sessionGraduated++; showToast('🎓','卒業！','「'+sub+'」を克服'); checkBadges({event:'graduate'}); }
   else { arr[i].box=box; arr[i].due=dateKeyOffset(SRS_INT[box]); saveMistakes(arr); }
@@ -6582,7 +6591,7 @@ function addMistake(q, area){
   if(!q || !q.q) return;
   const arr = getMistakes();
   const i = arr.findIndex(m => m.q === q.q);
-  if(i>=0){ arr[i].wrongCount = (arr[i].wrongCount||1) + 1; arr[i].ts = Date.now(); arr[i].box = 0; arr[i].due = dateKeyOffset(1); }
+  if(i>=0){ arr[i].wrongCount = (arr[i].wrongCount||1) + 1; arr[i].ts = Date.now(); arr[i].box = 0; arr[i].cc = 0; arr[i].due = dateKeyOffset(1); }
   else {
     arr.push({ q:q.q, sub:q.sub||'', ans:q.ans, choices:q.choices||null, type:q.type||'choice',
                explain:q.explain||'', hint:q.hint||'', level:q.level||'', figure:q.figure||null,

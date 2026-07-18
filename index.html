@@ -3356,7 +3356,16 @@ function muCurrentId(){ return _rawGet('mu_current') || ''; }
 function muKey(key){ if(MU_PER_USER[key]){ var u=muCurrentId(); if(u) return 'u:'+u+':'+key; } return key; }
 const safeLS = {
   getItem(key) { try { return localStorage.getItem(muKey(key)); } catch(e) { return null; } },
-  setItem(key, val) { try { localStorage.setItem(muKey(key), val); } catch(e) {} },
+  setItem(key, val) {
+    try { localStorage.setItem(muKey(key), val); return true; }
+    catch(e) {
+      // 保存失敗（多くは容量オーバー）を握りつぶさず記録＋一度だけ通知。子の進捗が黙って消えるのを防ぐ。
+      try{ if(window._bc) window._bc('LS setItem失敗:'+key); }catch(_){}
+      try{ if(window._errSink) window._errSink({ t:Date.now(), m:'LS setItem失敗:'+String(key).slice(0,40)+' / '+String(e&&e.name||e).slice(0,40), s:'safeLS', l:0 }); }catch(_){}
+      try{ if(!safeLS._quotaWarned && typeof showToast==='function'){ safeLS._quotaWarned=true; showToast('⚠️','ほぞんが できなかったよ','ようりょうが いっぱいかも。せっていの「💾 書き出し」で バックアップしてね。'); } }catch(_){}
+      return false;
+    }
+  },
   removeItem(key){ try { localStorage.removeItem(muKey(key)); } catch(e) {} }
 };
 // 開発モード：URLに ?dev=1 を付けると有効化（localStorageに保存）。テスト用チート等の危険機能はこれが真のときだけ。
@@ -7362,16 +7371,23 @@ function renderAchievements(){
   }).join('');
   el.innerHTML='<div class="ach-head">あつめた称号 <b>'+n+' / '+list.length+'</b>　<small>タップで つけかえ</small></div><div class="ach-grid">'+grid+'</div>';
 }
+// 連続ログインの長期マイルストーン（節目で一度だけ大ボーナス＝続ける長期目標）
+var LOGIN_MILESTONES={7:200,14:400,30:1000,50:1800,100:4000,200:9000,365:20000};
 function rpgLoginBonus(){
   var s=rpgState(), lg=s.login||{last:'',streak:0};
   if(lg.last===rpgToday()) return;
   var streak=(lg.last===rpgYesterday())?((lg.streak||0)+1):1;
-  var pts=20+Math.min(streak,7)*5;
-  var coins=15+Math.min(streak,7)*5;   // ガチャ用コインも付与（連続で増える／最大50）
-  var cos=rpgCosState(s); cos.coin=(cos.coin||0)+coins;
-  s.login={last:rpgToday(),streak:streak}; totalPoints+=pts; safeLS.setItem('c_points', totalPoints); rpgSave(s);
+  var pts=20+Math.min(streak,14)*5;
+  var coins=15+Math.min(streak,14)*5;   // 連続で増える（14日で頭打ち＝日次はインフレ抑制）
+  // 節目（7/14/30/50/100/200/365日）で一度だけ大ボーナス。長期に続ける理由を作る。
+  lg.miles = lg.miles || {};
+  var mileCoin=0, mileHit=0;
+  if(LOGIN_MILESTONES[streak] && !lg.miles[streak]){ mileCoin=LOGIN_MILESTONES[streak]; mileHit=streak; lg.miles[streak]=1; }
+  var cos=rpgCosState(s); cos.coin=(cos.coin||0)+coins+mileCoin;
+  s.login={last:rpgToday(),streak:streak,miles:lg.miles}; totalPoints+=pts; safeLS.setItem('c_points', totalPoints); rpgSave(s);
   try{ updateScoreBar(); }catch(e){}
   try{ setTimeout(function(){ showToast('🎁','ログインボーナス '+streak+'日め！','🪙＋'+coins+' コイン ・ ＋'+pts+'ポイント もらった！'); sfx('fanfare'); confetti(); }, 350); }catch(e){}
+  if(mileHit){ try{ setTimeout(function(){ showToast('🏆','れんぞく '+mileHit+'日 たっせい！','ごほうびの コイン 🪙＋'+mileCoin+'！ すごい つづけ方だね！'); sfx('legendary'); confetti(); }, 1400); }catch(e){} }
 }
 function rpgPetStageFor(wins){ var st=0; for(var i=0;i<PET_WINS_FOR.length;i++){ if(wins>=PET_WINS_FOR[i]) st=i; } return st; }
 // ===== あいぼう（なかまモンスター）の状態層 =====

@@ -6275,6 +6275,21 @@ function onAnswered(q, correct){
   else addMistake(q, area);
   checkQuests();
 }
+// タクト等クイズ画面外の解答も、今日の目標/通算/苦手分析/ミッション・実績に集計する共通処理。
+// ※ratingRecord/hensaOnAnswer/addMistake は呼び出し側(srpgAfterAnswer)で実施済みなので ここでは重複させない。
+function recordTactAnswer(area, sub, correct){
+  try{
+    area = area || 'math'; sub = sub || 'その他';
+    totalAnswered++; safeLS.setItem('c_answered', totalAnswered);   // 通算＝実績a_ans100/1000
+    markAreaPlayed(area);
+    recordTopicStat(area, sub, correct);   // 苦手分析
+    pushRecent(correct);
+    bumpDaily();                           // 今日の目標リング＋学習日
+    logQuestion(area, sub, correct);
+    if(correct){ rpgBumpDailyCorrect(0); rpgCheckMissions(); checkAchievements(); }   // ミッションm1「10問正解」＋実績
+    checkQuests();
+  }catch(e){}
+}
 
 // ⚡ 解いている最中に常時見える「じつりょくメーター」（練習Elo＝正式な偏差値ではない。毎問リアルタイム表示）。
 //    模試・家族もんだいは別計算なので非表示。animate=true で変動フラッシュ（＋/−）。

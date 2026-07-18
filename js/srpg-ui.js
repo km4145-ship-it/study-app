@@ -814,6 +814,7 @@ function srpgAfterAnswer(correct){
   // 学習の記録：偏差値にも反映（教科＝currentAreaを一時セットせず ratingRecord に直接）
   try{ if(typeof ratingRecord==='function') ratingRecord(srpgB.subject, q, correct); }catch(e){}
   try{ if(typeof hensaOnAnswer==='function') hensaOnAnswer(); }catch(e){}   // 確定偏差値のカウント（タクトの解答も実績）
+  try{ if(typeof recordTactAnswer==='function') recordTactAnswer(srpgB.subject, q&&q.sub, correct); }catch(e){}   // 今日の目標/通算/苦手/ミッション・実績にも集計
   if(!correct){
     try{ (srpgB.missedQ = srpgB.missedQ || []).push({ area:srpgB.subject, q:q }); while(srpgB.missedQ.length > 5) srpgB.missedQ.shift(); }catch(e){}
     try{ if(typeof addMistake==='function') addMistake(q, srpgB.subject); }catch(e){}   // まちがいノートへ（あとで復習できる）
@@ -1038,6 +1039,9 @@ function srpgEnemySupport(enemy, act){
 // 全敵をスキャンし、HPが閾値以下に落ちたボスを1体 かくせいさせる（演出つき）。true=発動。
 function srpgBossWatch(){
   if(!srpgB || srpgB.over) return false;
+  // 安全弁：大技チャージの発動者が倒れていたら 予告を破棄（残留で警告が残り、以後どのボスも大技を
+  // ためられなくなる＝srpgEnemyMayChargeの『|| srpgB.charge』ガードが恒久無効化するのを防ぐ）
+  if(srpgB.charge){ var _co = srpgUnitById(srpgB.charge.by); if(!_co || _co.downed){ srpgB.charge = null; srpgClearHi(); } }
   for(var i=0;i<srpgB.units.length;i++){
     var u = srpgB.units[i];
     if(u.side!=='enemy' || u.downed) continue;

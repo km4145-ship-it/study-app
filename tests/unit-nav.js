@@ -97,4 +97,12 @@ c.ok('ガイドは5タブを説明する', html.indexOf("['🏠','ホーム'") >
   c.ok('cloud-sync は scout_log を同期除外', /scout_log/.test(cs) && /q_log\|gacha_log\|scout_log/.test(cs));
 }
 
+// ---- #3 タクトの正解が今日の目標/通算/苦手/ミッションに集計される ----
+c.ok('recordTactAnswer が定義されている', html.indexOf('function recordTactAnswer') >= 0);
+c.ok('recordTactAnswerが通算・目標・ミッションを集計', html.indexOf("safeLS.setItem('c_answered', totalAnswered)") >= 0 && /function recordTactAnswer[\s\S]*bumpDaily\(\);[\s\S]*rpgBumpDailyCorrect\(0\); rpgCheckMissions\(\); checkAchievements\(\);/.test(html));
+c.ok('タクト解答がrecordTactAnswerを呼ぶ', srpgUi.indexOf('recordTactAnswer(srpgB.subject, q&&q.sub, correct)') >= 0);
+
+// ---- #4 大技チャージの安全弁（発動者が倒れたら予告を破棄）----
+c.ok('チャージ発動者死亡で予告を破棄', srpgUi.indexOf('srpgUnitById(srpgB.charge.by); if(!_co || _co.downed){ srpgB.charge = null;') >= 0);
+
 c.done();

@@ -1750,6 +1750,24 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-cry-hint{ font-size:.72rem; color:#c7d2fe; font-weight:700; }
   .srpg-cry-hint.done{ color:#fde68a; font-weight:900; }
   @media (prefers-reduced-motion:reduce){ .srpg-cry.got{ animation:none; } }
+  /* 物語モード：大陸→章→ノードの階層ナビ */
+  .srpg-chap{ border:1px solid rgba(148,163,184,.28); background:linear-gradient(135deg,#18233a,#1f2c47); border-radius:15px; padding:11px 13px; margin-bottom:11px; }
+  .srpg-chap.locked{ opacity:.5; filter:grayscale(.6); }
+  .srpg-chap.done{ border-color:rgba(52,211,153,.5); }
+  .srpg-chap.cur{ border-color:rgba(251,191,36,.65); box-shadow:0 0 0 1px rgba(251,191,36,.4), 0 8px 22px rgba(0,0,0,.35); }
+  .srpg-chap-head{ display:flex; align-items:center; gap:8px; font-weight:900; font-size:.98rem; color:#eaf1ff; }
+  .srpg-chap-head b{ flex:1; }
+  .srpg-chap-no{ font-size:.66rem; font-weight:900; background:rgba(96,165,250,.22); color:#bfdbfe; padding:2px 8px; border-radius:999px; }
+  .srpg-chap-topic{ font-size:.74rem; color:#9fb0d4; font-weight:800; margin:4px 0 8px; }
+  .srpg-chap-boss{ font-size:.7rem; font-weight:900; color:#fca5a5; }
+  .srpg-chap-nodes{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+  .srpg-node{ text-align:center; border:1px solid rgba(148,163,184,.3); background:rgba(148,163,184,.1); color:#e8eefc; border-radius:11px; padding:8px 4px; cursor:pointer; font-family:inherit; font-weight:800; font-size:.72rem; line-height:1.25; transition:transform .12s var(--spring); }
+  .srpg-node:active{ transform:scale(.95); }
+  .srpg-node.boss{ background:linear-gradient(135deg,#3b1f2b,#4a2534); border-color:rgba(248,113,113,.5); }
+  .srpg-node.done{ border-color:rgba(52,211,153,.6); background:rgba(16,185,129,.14); }
+  .srpg-node.locked{ opacity:.45; filter:grayscale(.6); cursor:not-allowed; }
+  .srpg-node-ic{ display:block; font-size:1.1rem; margin-bottom:2px; }
+  .srpg-chap-lock{ font-size:.72rem; color:#94a3b8; font-weight:800; }
   /* 盤（クォータービュー：rotateXで傾ける） */
   .srpg-field{ --st:46px; position:relative; margin:6px auto 10px; padding:26px 0 10px; border-radius:18px; overflow:hidden; box-shadow:inset 0 2px 20px rgba(0,0,0,.5); }
   .srpg-field.sky-math{ background:linear-gradient(180deg,#1e3a8a,#2563eb 70%,#60a5fa); }
@@ -3289,6 +3307,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/char3d.js?v=11"></script>
 <script src="js/srpg.js?v=2"></script>
 <script src="js/srpg-mons.js?v=2"></script>
+<script src="js/story-data.js?v=1"></script>
 <script src="js/srpg-ui.js?v=2"></script>
 <script>
 // =================== CHARACTER SVGs ===================
@@ -3318,7 +3337,7 @@ let currentChar     = 'owl';
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
 var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,hensa_disp:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1,onboarded:1,
-  srpg_cleared:1,srpg_maou_cleared:1,srpg_stars:1,srpg_tower_best:1,srpg_tower_save:1,srpg_team:1,srpg_daily_done:1,srpg_loss:1,srpg_scout_free:1,srpg_tut:1,scout_log:1};   // タクトの進捗もユーザー別＋クラウド同期（scout_logは容量対策で端末ローカル＝isMemberKeyが除外）
+  srpg_cleared:1,srpg_maou_cleared:1,srpg_stars:1,srpg_tower_best:1,srpg_tower_save:1,srpg_team:1,srpg_daily_done:1,srpg_loss:1,srpg_scout_free:1,srpg_tut:1,srpg_story_seen:1,scout_log:1};   // タクトの進捗もユーザー別＋クラウド同期（scout_logは容量対策で端末ローカル＝isMemberKeyが除外）
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -3912,7 +3931,7 @@ function muLoadUserData(){
 // srpg進捗のper-user化(2026-07)に伴う一度きり移行：既存の素キー(全ユーザー共有だった)を
 // 現ユーザーの u:uid: へ引っ越す。素キーは消さない（多ユーザー時の誤消し防止＋ロールバック余地）。
 // 以後の読み書きは safeLS＝per-user側になる。RAWフラグ＝端末で1回だけ（＝最初にログインした子に帰属）。
-var SRPG_MIGRATE_KEYS=['srpg_cleared','srpg_maou_cleared','srpg_stars','srpg_tower_best','srpg_tower_save','srpg_team','srpg_daily_done','srpg_loss','srpg_scout_free','srpg_tut','scout_log'];
+var SRPG_MIGRATE_KEYS=['srpg_cleared','srpg_maou_cleared','srpg_stars','srpg_tower_best','srpg_tower_save','srpg_team','srpg_daily_done','srpg_loss','srpg_scout_free','srpg_tut','srpg_story_seen','scout_log'];
 function _srpgKeyMigrate(){
   try{
     if(_rawGet('srpg_migrated_v1')==='1') return;
@@ -7489,6 +7508,9 @@ function _rpgPortrait(char){
   if(char==='villain') return RPG_SVG.villain;
   if(char==='scroll') return '<div class="rpg-narr">📜</div>';
   if(char==='merchant') return '<div class="rpg-narr">🦝</div>';   // ふしぎな行商人 たぬすけ（gacha-story.js）
+  if(char==='rival') return '<div class="rpg-narr">🗡️</div>';      // ライバル見習い勇者 レン
+  if(char==='moog') return '<div class="rpg-narr">🧚</div>';        // 相棒の精霊 モーグ
+  if(char==='zeron') return '<div class="rpg-narr">⚖️</div>';       // シグマ幹部 天秤の魔神ゼロン
   if(char && typeof CHARS!=='undefined' && CHARS[char]) return CHARS[char].svg;
   return '<div class="rpg-narr">✨</div>';
 }

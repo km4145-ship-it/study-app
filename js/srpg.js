@@ -682,6 +682,8 @@ var SRPG_ENEMY_TEMPLATES = {
     resists:{ social:'weak', math:'null' }, onhit:{ kind:'paralyze', turns:1, chance:0.3 }, skills:['numbing'] },
   dragon: { art:'dragon',  name:'ドラゴン',   role:'attacker', rankBase:13, weak:'math',     resist:'english',
     resists:{ math:'weak', english:'half', japanese:'drain' }, skills:['line'] },
+  slugking:{ art:'slugking', name:'スラッグ王', role:'tank',   rankBase:10, weak:'math',     resist:'english',
+    resists:{ math:'weak', english:'half' }, onhit:{ kind:'poison', turns:2, chance:0.3 }, skills:['line'] },
   mender: { art:'qbird',   name:'いやしのトリ', role:'healer',  rankBase:7,  weak:'english',  resist:'japanese',
     resists:{ english:'weak', japanese:'half' }, skills:['heal'] },
   cheerer:{ art:'grammaro', name:'おうえんのホン', role:'mage',  rankBase:7,  weak:'japanese', resist:'social',
@@ -809,6 +811,76 @@ function srpgTowerStage(floor){
     boss:(boss ? '魔王シグマ' : null), allySlots:SRPG_STD_SLOTS.slice(), terrain:terr, blocks:blocks, enemies:enemies };
 }
 
+// ===== 物語モード：大陸アーク（1大陸＝10章、1章＝3ノード＝雑魚2＋章ボス） =====
+// データ駆動。SRPG_CONTINENTS から srpgChapterStage() がステージを動的生成する。
+// forceWeak: その大陸の教科を全敵の弱点にして、学習（教科えらび攻撃）と物語を一致させる。
+var SRPG_CONTINENTS = {
+  math: {
+    name:'数の大陸', subject:'math', teacher:'コタロウ先生', teacherArt:'shiba',
+    crystalId:'q_math', crystalName:'かずのクリスタル', emoji:'🔢',
+    chapters:[
+      { title:'計算の平原',   topic:'整数と小数',       lvl:1,  mons:['slime','goblin'], boss:'計算王スラッグ',    bossMon:'slugking', nodes:['たしざんの野原','ひきざんの丘','スラッグ王の砦'] },
+      { title:'分数の谷',     topic:'分数のかけ算・わり算', lvl:2,  mons:['slime','wolf'],   boss:'通分キングスラッグ', bossMon:'slugking', nodes:['やくぶんの谷','つうぶんの淵','キングの間'] },
+      { title:'正負の草原',   topic:'正負の数',         lvl:3,  mons:['goblin','bat'],   boss:'正負王スラッグ',    bossMon:'slugking', nodes:['プラスの丘','マイナスの沼','ぜったいちの祭壇'] },
+      { title:'文字式の森',   topic:'文字と式',         lvl:4,  mons:['trent','slime'],  boss:'式変形スラッグ',    bossMon:'slugking', nodes:['文字の茂み','代入の泉','移項の広場'] },
+      { title:'方程式の遺跡', topic:'一次方程式',       lvl:5,  mons:['ghost','wolf'],   boss:'天秤の魔神ゼロン',  bossMon:'dragon',   nodes:['移項の回廊','解の間','天秤の祭壇'], lieutenant:true },
+      { title:'比例の丘',     topic:'比例と反比例',     lvl:6,  mons:['wolf','trent'],   boss:'関数竜プロポル',    bossMon:'dragon',   nodes:['比例の坂','反比例の谷','グラフの丘'] },
+      { title:'図形の神殿',   topic:'平面と空間の図形', lvl:7,  mons:['trent','ghost'],  boss:'図形竜ジオドラ',    bossMon:'dragon',   nodes:['おうぎ形の門','立体の広間','展開図の回廊'] },
+      { title:'連立の魔洞',   topic:'連立方程式と一次関数', lvl:8, mons:['ghost','wolf'], boss:'関数魔竜リニア',    bossMon:'dragon',   nodes:['連立の洞','代入の淵','交点の間'] },
+      { title:'証明の霊峰',   topic:'図形の証明と確率', lvl:9,  mons:['ghost','trent'],  boss:'証明幻竜プルーフ',  bossMon:'dragon',   nodes:['合同の尾根','証明の頂','確率の祠'] },
+      { title:'入試の魔宮',   topic:'規則性・関数と図形の融合', lvl:10, mons:['ghost','wolf'], boss:'入試魔竜ファイナル', bossMon:'dragon', nodes:['規則性の間','融合の回廊','ファイナルの玉座'], finale:true }
+    ]
+  }
+};
+function srpgContinent(area){ return SRPG_CONTINENTS[area] || null; }
+function srpgChapterCount(area){ var c = SRPG_CONTINENTS[area]; return c ? c.chapters.length : 0; }
+function srpgNodeCount(){ return 3; } // 1章 = 3ノード（雑魚2 + 章ボス）
+// 章IDのパース/生成：'c_<area>_<ci>_<ni>'
+function srpgChapterId(area, ci, ni){ return 'c_' + area + '_' + ci + '_' + ni; }
+function srpgParseChapterId(id){
+  if(typeof id !== 'string' || id.indexOf('c_') !== 0) return null;
+  var p = id.split('_'); if(p.length < 4) return null;
+  var ci = parseInt(p[2],10), ni = parseInt(p[3],10);
+  if(isNaN(ci) || isNaN(ni)) return null;
+  return { area:p[1], ci:ci, ni:ni };
+}
+// 章データからステージを動的生成（純粋）。ni: 0,1=雑魚ノード / 2=章ボス。
+function srpgChapterStage(area, ci, ni){
+  var cont = SRPG_CONTINENTS[area]; if(!cont) return null;
+  var ch = cont.chapters[ci]; if(!ch) return null;
+  ni = ni | 0; if(ni < 0 || ni > 2) return null;
+  var isBoss = (ni === 2);
+  var lv = ch.lvl;
+  var m0 = ch.mons[0], m1 = ch.mons[1] || ch.mons[0];
+  var enemies, terrain = [];
+  if(isBoss){
+    enemies = [
+      { key:m0, x:1, y:1, lvl:lv },
+      { key:ch.bossMon, x:3, y:0, lvl:lv + 2 },
+      { key:m1, x:4, y:1, lvl:lv }
+    ];
+    terrain = [{ x:2, y:2, kind:'fire' }, { x:3, y:2, kind:'fire' }, { x:0, y:5, kind:'heal' }];
+  } else {
+    enemies = [
+      { key:m0, x:1, y:1, lvl:lv },
+      { key:m1, x:4, y:1, lvl:lv },
+      { key:(ni === 0 ? m0 : m1), x:3, y:2, lvl:Math.max(1, lv - 1) }
+    ];
+    if(lv >= 4){ terrain = [{ x:2, y:3, kind:'poison' }, { x:0, y:5, kind:'heal' }]; }
+  }
+  var nodeName = (ch.nodes && ch.nodes[ni]) || ch.title;
+  return {
+    id: srpgChapterId(area, ci, ni),
+    name: cont.name + ' ' + (ci + 1) + '-' + (ni + 1) + '：' + nodeName,
+    grid:{ w:6, h:7 }, continent:area, type:'chapter',
+    chapter:ci, node:ni, isBoss:isBoss, topic:ch.topic, forceWeak:cont.subject,
+    boss: isBoss ? ch.boss : null,
+    allySlots: SRPG_STD_SLOTS.slice(),
+    terrain: terrain, enemies: enemies,
+    par: 3 + enemies.length + (isBoss ? 2 : 0)
+  };
+}
+
 // 味方スペック配列＋ステージから、配置済みの戦闘ユニット一覧を組み立てる（純粋）。
 // allySpecs: [{ id,name,art,role,lvl,rankBase }]（最大5・弱点耐性は持たない）
 function srpgBuildUnits(stage, allySpecs){
@@ -826,10 +898,15 @@ function srpgBuildUnits(stage, allySpecs){
   }
   (stage.enemies || []).forEach(function(e, i){
     var t = srpgEnemyTemplate(e.key);
+    var weak = t.weak, resist = t.resist, resists = t.resists;
+    if(stage.forceWeak){
+      // 物語モード：大陸の教科を全敵の弱点に統一（その教科でこうげき＝つよめ）。
+      weak = stage.forceWeak; resist = null; resists = {}; resists[stage.forceWeak] = 'weak';
+    }
     units.push(srpgMakeUnit({
       id:'enemy' + i, side:'enemy', name:t.name, art:t.art, role:t.role,
-      rankBase:t.rankBase, lvl:e.lvl || 1, weak:t.weak, resist:t.resist,
-      resists:t.resists, onhit:t.onhit, skills:(t.skills || []), phase:t.phase, charge:t.charge, tmplKey:e.key, x:e.x, y:e.y
+      rankBase:t.rankBase, lvl:e.lvl || 1, weak:weak, resist:resist,
+      resists:resists, onhit:t.onhit, skills:(t.skills || []), phase:t.phase, charge:t.charge, tmplKey:e.key, x:e.x, y:e.y
     }));
   });
   return units;
@@ -855,6 +932,8 @@ if(typeof module !== 'undefined' && module.exports){
     srpgMakeUnit: srpgMakeUnit, srpgEnemyTemplate: srpgEnemyTemplate, srpgStage: srpgStage,
     srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits,
     srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage,
+    SRPG_CONTINENTS: SRPG_CONTINENTS, srpgContinent: srpgContinent, srpgChapterCount: srpgChapterCount, srpgNodeCount: srpgNodeCount,
+    srpgChapterId: srpgChapterId, srpgParseChapterId: srpgParseChapterId, srpgChapterStage: srpgChapterStage,
     SRPG_MON_SKILL: SRPG_MON_SKILL, srpgMonSkill: srpgMonSkill,
     srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
     SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,

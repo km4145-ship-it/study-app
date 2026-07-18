@@ -255,8 +255,9 @@ function srpgStageSelect(){
   var trains = Object.keys(SRPG_STAGES).filter(function(id){ return SRPG_STAGES[id].type !== 'quest'; });
   var questCards = quests.map(function(id, i){
     var locked = i > 0 && !cleared[quests[i-1]];
-    // 物語モード化した大陸（数の大陸）は 章一覧を開く「ものがたり」カードに差し替え
-    if(id==='q_math' && typeof SRPG_CONTINENTS!=='undefined' && SRPG_CONTINENTS.math){ return srpgContinentCard('math', locked); }
+    // 物語モード化した大陸は 章一覧を開く「ものがたり」カードに差し替え（q_math→math など）
+    var area = id.indexOf('q_')===0 ? id.slice(2) : null;
+    if(area && typeof SRPG_CONTINENTS!=='undefined' && SRPG_CONTINENTS[area]){ return srpgContinentCard(area, locked); }
     return srpgStageCard(id, locked);
   }).join('');
   var trainCards = trains.map(function(id, i){

@@ -116,7 +116,7 @@ c.ok('srpg_story_seen がマイグレーション対象', html.indexOf("'srpg_st
 const ui = fs.readFileSync(path.join(ROOT, 'js', 'srpg-ui.js'), 'utf8');
 c.ok('srpgContinentScreen が定義', ui.indexOf('function srpgContinentScreen') >= 0);
 c.ok('srpgContinentCard が定義', ui.indexOf('function srpgContinentCard') >= 0);
-c.ok('ステージ選択で数の大陸を物語カードに差し替え', ui.indexOf("id==='q_math'") >= 0 && ui.indexOf('srpgContinentCard') >= 0);
+c.ok('ステージ選択で全大陸を物語カードに差し替え', ui.indexOf('SRPG_CONTINENTS[area]') >= 0 && ui.indexOf('srpgContinentCard(area') >= 0);
 c.ok('srpgStart が章IDを解決', ui.indexOf('srpgParseChapterId(stageId)') >= 0 && ui.indexOf('srpgChapterStage(') >= 0);
 c.ok('章ノード0の初回に導入シーン', ui.indexOf('_srpgChapterIntroScenes') >= 0);
 c.ok('章ボス勝利/大陸クリアのシーン再生', ui.indexOf('storyAfter') >= 0 && ui.indexOf('rpgStoryPlay(storyAfter') >= 0);
@@ -124,5 +124,59 @@ c.ok('最終章クリアで大陸IDにクリスタル記録', ui.indexOf('srpgMa
 c.ok('進行判定 srpgChapUnlocked/srpgNodeUnlocked', ui.indexOf('function srpgChapUnlocked') >= 0 && ui.indexOf('function srpgNodeUnlocked') >= 0);
 // srpgEnemyKey は tmplKey を優先（art共有ボス zeron/voltdrake・mathfinal/dragon の取り違え＝ボス判定漏れを防ぐ）
 c.ok('srpgEnemyKey が tmplKey を優先', /u\.tmplKey && SRPG_ENEMY_TEMPLATES\[u\.tmplKey\]/.test(ui));
+
+// ===== P3：全5大陸（量産）の整合 =====
+const AREAS = ['math', 'japanese', 'english', 'science', 'social'];
+const LT = { math: 'zeron', japanese: 'jp_lt', english: 'en_lt', science: 'sci_lt', social: 'so_lt' };
+const FIN = { math: 'mathfinal', japanese: 'jp_fin', english: 'en_fin', science: 'sci_fin', social: 'so_fin' };
+AREAS.forEach(function (area) {
+  c.eq(area + ' は10章', S.srpgChapterCount(area), 10);
+  const cont = S.srpgContinent(area);
+  c.ok(area + ' 大陸メタ(crystalId/teacherArt)', !!(cont && cont.crystalId === 'q_' + area && cont.teacherArt));
+  let bosses = 0;
+  for (let ci = 0; ci < 10; ci++) {
+    for (let ni = 0; ni < 3; ni++) {
+      const st = S.srpgChapterStage(area, ci, ni);
+      c.ok(area + ' 生成 ' + ci + '-' + ni, !!st && st.forceWeak === area);
+      st.enemies.forEach(function (e) {
+        c.ok(area + ' 敵実在 ' + e.key, !!S.SRPG_ENEMY_TEMPLATES[e.key]);
+        c.ok(area + ' 盤内 ' + e.key, e.x >= 0 && e.x < 6 && e.y >= 0 && e.y < 7);
+      });
+      if (ni === 2) bosses++;
+    }
+  }
+  c.eq(area + ' 章ボス10体', bosses, 10);
+  c.eq(area + ' 5章ボスは幹部', S.srpgChapterStage(area, 4, 2).enemies.some(function (e) { return e.key === LT[area]; }), true);
+  c.eq(area + ' 10章ボスは最終', S.srpgChapterStage(area, 9, 2).enemies.some(function (e) { return e.key === FIN[area]; }), true);
+  [LT[area], FIN[area]].forEach(function (k) {
+    const t = S.SRPG_ENEMY_TEMPLATES[k];
+    c.ok(area + ' ' + k + ' boss:true', !!(t && t.boss));
+    c.ok(area + ' ' + k + ' phase+charge(山場)', !!(t && t.phase && t.charge && t.charge.warn && t.charge.power > 0));
+  });
+  // forceWeak：最終ボスの弱点=その大陸の教科（学習と物語の一致）
+  S.srpgBuildUnits(S.srpgChapterStage(area, 9, 2), [{ id: 'h', art: 'cat', role: 'attacker', lvl: 6, rankBase: 8 }])
+    .filter(function (u) { return u.side === 'enemy'; })
+    .forEach(function (u) { c.eq(area + ' 最終ボス弱点=' + area, S.srpgResistKind(area, u), 'weak'); });
+});
+// 教科モンスターが敵テンプレに存在（zako＋通常ボス）
+['inkblob', 'fudebird', 'kanjioni', 'abcube', 'qbird', 'grammaro', 'microbe', 'flaskun', 'mapmoth', 'haniwa', 'tokiou'].forEach(function (k) {
+  c.ok('教科モンスター敵テンプレ ' + k, !!S.SRPG_ENEMY_TEMPLATES[k]);
+});
+// story-data：全5大陸に intro(10)/win(9)/clear
+AREAS.forEach(function (area) {
+  for (let ci = 0; ci < 10; ci++) { c.ok(area + ' 章導入 ' + ci, Array.isArray(story[area + '_ch' + ci + '_intro']) && story[area + '_ch' + ci + '_intro'].length > 0); }
+  for (let ci = 0; ci <= 8; ci++) { c.ok(area + ' 章勝利 ' + ci, Array.isArray(story[area + '_ch' + ci + '_win']) && story[area + '_ch' + ci + '_win'].length > 0); }
+  c.ok(area + ' 大陸クリア', Array.isArray(story[area + '_clear']) && story[area + '_clear'].length > 0);
+});
+// 全シーンの char が有効キーのみ（誤字＝立ち絵が✨になる不具合を防ぐ）
+const VALID_CHARS = ['owl', 'shiba', 'cat', 'rabbit', 'fox', 'bear', 'villain', 'merchant', 'scroll', 'rival', 'moog', 'zeron', 'lt_jp', 'lt_en', 'lt_sci', 'lt_soc'];
+Object.keys(story).forEach(function (k) { story[k].forEach(function (l) { c.ok(k + ' char有効(' + l.char + ')', VALID_CHARS.indexOf(l.char) >= 0); }); });
+// 各大陸の先生が clear シーンに登場（救出）
+c.ok('ことば clearにミケ(cat)', story.japanese_clear.some(function (l) { return l.char === 'cat'; }));
+c.ok('英語 clearにラビィ(rabbit)', story.english_clear.some(function (l) { return l.char === 'rabbit'; }));
+c.ok('理科 clearにナナ(fox)', story.science_clear.some(function (l) { return l.char === 'fox'; }));
+c.ok('社会 clearにクマ(bear)', story.social_clear.some(function (l) { return l.char === 'bear'; }));
+// 幹部portrait が index.html にある
+['lt_jp', 'lt_en', 'lt_sci', 'lt_soc'].forEach(function (k) { c.ok('_rpgPortrait に ' + k, html.indexOf("char==='" + k + "'") >= 0); });
 
 c.done();

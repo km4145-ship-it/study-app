@@ -693,6 +693,46 @@ var SRPG_ENEMY_TEMPLATES = {
     resists:{ math:'weak', english:'half' }, onhit:{ kind:'poison', turns:2, chance:0.3 }, skills:['line','burstball'],
     phase:{ hp:0.5, atk:1, def:1, name:'さいしゅう けいたい', msg:'まだだ！ 入試は ここからが 本番だぞ…！' },
     charge:{ name:'ファイナル・ジャッジ', aoe:'burst', power:190, mp:6, warn:'ファイナルが ちからを ためている…！ つぎのターン 超大技！ 赤いマスから にげろ！' } },
+  // ===== 教科モンスター（他4大陸の物語モード用。zako＝雑魚 / boss＝章ボス / lt＝5章幹部 / fin＝10章最終） =====
+  // ことばの大陸（japanese）
+  inkblob: { art:'inkblob',  name:'インクブロブ',   role:'mage',    rankBase:7,  weak:'japanese', resist:'math',   resists:{ japanese:'weak', math:'half' }, skills:['poisonbreath'] },
+  fudebird:{ art:'fudebird', name:'ふでどり',       role:'attacker',rankBase:7,  weak:'japanese', resist:'social', resists:{ japanese:'weak', social:'half' }, onhit:{ kind:'paralyze', turns:1, chance:0.2 } },
+  kanjioni:{ art:'kanjioni', name:'漢字おに',       role:'tank',    rankBase:10, weak:'japanese', resist:'math',   resists:{ japanese:'weak', math:'half' }, onhit:{ kind:'seal', turns:1, chance:0.25 }, skills:['line'] },
+  jp_lt:   { art:'kanjioni', name:'静寂の魔神サイレント', role:'tank', rankBase:12, weak:'japanese', resist:'math', boss:true, resists:{ japanese:'weak', math:'half' }, onhit:{ kind:'seal', turns:1, chance:0.3 }, skills:['line'],
+    phase:{ hp:0.45, atk:1, def:0, name:'せいじゃく かくせい', msg:'…しずかに しろ。言葉など 消えて しまえ！' },
+    charge:{ name:'サイレンス', aoe:'cross', power:150, mp:5, warn:'サイレントが 音を 消していく…！ つぎのターン 大技！ 赤いマスから にげろ！' } },
+  jp_fin:  { art:'kanjioni', name:'国語魔王おに', role:'tank', rankBase:15, weak:'japanese', resist:'math', boss:true, resists:{ japanese:'weak', math:'half' }, onhit:{ kind:'seal', turns:2, chance:0.3 }, skills:['line','burstball'],
+    phase:{ hp:0.5, atk:1, def:1, name:'ことば かいほう', msg:'まだ 言葉は のこっている…！ おまえの 声で しめして みろ！' },
+    charge:{ name:'ことだま・ほうかい', aoe:'burst', power:185, mp:6, warn:'国語魔王が ちからを ためている…！ つぎのターン 超大技！ 赤いマスから にげろ！' } },
+  // アルファベット大陸（english）
+  abcube:  { art:'abcube',   name:'ABキューブ',     role:'tank',    rankBase:8,  weak:'english',  resist:'science',resists:{ english:'weak', science:'half' } },
+  qbird:   { art:'qbird',    name:'クエスチョンバード', role:'attacker', rankBase:7, weak:'english', resist:'math', resists:{ english:'weak', math:'half' } },
+  grammaro:{ art:'grammaro', name:'文法モロー',     role:'mage',    rankBase:10, weak:'english',  resist:'science',resists:{ english:'weak', science:'half' }, skills:['burstball'] },
+  en_lt:   { art:'grammaro', name:'混沌の魔神バベル', role:'mage', rankBase:12, weak:'english', resist:'science', boss:true, resists:{ english:'weak', science:'half' }, onhit:{ kind:'paralyze', turns:1, chance:0.25 }, skills:['burstball'],
+    phase:{ hp:0.45, atk:1, def:0, name:'こんとん かくせい', msg:'言葉を もっと バラバラに してやる！' },
+    charge:{ name:'バベル・ノイズ', aoe:'cross', power:150, mp:5, warn:'バベルが 言葉を みだしている…！ つぎのターン 大技！ 赤いマスから にげろ！' } },
+  en_fin:  { art:'grammaro', name:'英語魔王モロー', role:'mage', rankBase:15, weak:'english', resist:'science', boss:true, resists:{ english:'weak', science:'half' }, onhit:{ kind:'paralyze', turns:1, chance:0.3 }, skills:['burstball','line'],
+    phase:{ hp:0.5, atk:1, def:1, name:'さいご の こうぶん', msg:'まだ 文は こわれておらん！ 主語と 動詞、思い出して みろ！' },
+    charge:{ name:'グランド・グラマー', aoe:'burst', power:185, mp:6, warn:'英語魔王が ちからを ためている…！ つぎのターン 超大技！ 赤いマスから にげろ！' } },
+  // じっけんの大陸（science／通常ボスは既存 voltdrake を流用）
+  microbe: { art:'microbe',  name:'びせいぶつ',     role:'healer',  rankBase:6,  weak:'science',  resist:'social', resists:{ science:'weak', social:'half' }, skills:['heal'] },
+  flaskun: { art:'flaskun',  name:'フラスコん',     role:'mage',    rankBase:7,  weak:'science',  resist:'english',resists:{ science:'weak', english:'half' }, onhit:{ kind:'poison', turns:2, chance:0.25 }, skills:['poisonbreath'] },
+  sci_lt:  { art:'voltdrake',name:'まやかしの魔神ペテル', role:'mage', rankBase:12, weak:'science', resist:'social', boss:true, resists:{ science:'weak', social:'half' }, onhit:{ kind:'paralyze', turns:1, chance:0.25 }, skills:['numbing'],
+    phase:{ hp:0.45, atk:1, def:0, name:'まやかし かくせい', msg:'世界の しくみなど、見せて やらぬ！' },
+    charge:{ name:'まやかしの いかずち', aoe:'cross', power:150, mp:5, warn:'ペテルが まやかしを ためている…！ つぎのターン 大技！ 赤いマスから にげろ！' } },
+  sci_fin: { art:'voltdrake',name:'理科魔王ボルト', role:'mage', rankBase:15, weak:'science', resist:'social', boss:true, resists:{ science:'weak', social:'half' }, onhit:{ kind:'paralyze', turns:1, chance:0.3 }, skills:['numbing','burstball'],
+    phase:{ hp:0.5, atk:1, def:1, name:'さいだい しゅつりょく', msg:'なぜ？の こころが ある かぎり…だが、まだ 終わらぬ！' },
+    charge:{ name:'ギガ・ボルテージ', aoe:'burst', power:185, mp:6, warn:'理科魔王が ちからを ためている…！ つぎのターン 超大技！ 赤いマスから にげろ！' } },
+  // れきしの大陸（social）
+  mapmoth: { art:'mapmoth',  name:'マップモス',     role:'attacker',rankBase:7,  weak:'social',   resist:'japanese',resists:{ social:'weak', japanese:'half' } },
+  haniwa:  { art:'haniwa',   name:'はにわ',         role:'tank',    rankBase:8,  weak:'social',   resist:'math',   resists:{ social:'weak', math:'half' } },
+  tokiou:  { art:'tokiou',   name:'トキ王',         role:'attacker',rankBase:10, weak:'social',   resist:'japanese',resists:{ social:'weak', japanese:'half' }, onhit:{ kind:'sleep', turns:1, chance:0.2 }, skills:['line'] },
+  so_lt:   { art:'tokiou',   name:'忘却の魔神レーテ', role:'tank', rankBase:12, weak:'social', resist:'japanese', boss:true, resists:{ social:'weak', japanese:'half' }, onhit:{ kind:'sleep', turns:1, chance:0.25 }, skills:['line'],
+    phase:{ hp:0.45, atk:1, def:0, name:'ぼうきゃく かくせい', msg:'すべて 忘れて しまえ…！ 過去など いらぬ！' },
+    charge:{ name:'わすれの きり', aoe:'cross', power:150, mp:5, warn:'レーテが 記憶を けしていく…！ つぎのターン 大技！ 赤いマスから にげろ！' } },
+  so_fin:  { art:'tokiou',   name:'社会魔王トキ', role:'attacker', rankBase:15, weak:'social', resist:'japanese', boss:true, resists:{ social:'weak', japanese:'half' }, onhit:{ kind:'sleep', turns:1, chance:0.3 }, skills:['line','burstball'],
+    phase:{ hp:0.5, atk:1, def:1, name:'れきし さいげん', msg:'まだ 歴史は おわらぬ！ 昨日を 知る者だけが、明日を えらべる…！' },
+    charge:{ name:'エターナル・エラ', aoe:'burst', power:185, mp:6, warn:'社会魔王が ちからを ためている…！ つぎのターン 超大技！ 赤いマスから にげろ！' } },
   mender: { art:'qbird',   name:'いやしのトリ', role:'healer',  rankBase:7,  weak:'english',  resist:'japanese',
     resists:{ english:'weak', japanese:'half' }, skills:['heal'] },
   cheerer:{ art:'grammaro', name:'おうえんのホン', role:'mage',  rankBase:7,  weak:'japanese', resist:'social',
@@ -838,6 +878,70 @@ var SRPG_CONTINENTS = {
       { title:'連立の魔洞',   topic:'連立方程式と一次関数', lvl:8, mons:['ghost','wolf'], boss:'関数魔竜リニア',    bossMon:'dragon',   nodes:['連立の洞','代入の淵','交点の間'] },
       { title:'証明の霊峰',   topic:'図形の証明と確率', lvl:9,  mons:['ghost','trent'],  boss:'証明幻竜プルーフ',  bossMon:'dragon',   nodes:['合同の尾根','証明の頂','確率の祠'] },
       { title:'入試の魔宮',   topic:'規則性・関数と図形の融合', lvl:10, mons:['ghost','wolf'], boss:'入試魔竜ファイナル', bossMon:'mathfinal', nodes:['規則性の間','融合の回廊','ファイナルの玉座'], finale:true }
+    ]
+  },
+  japanese: {
+    name:'ことばの大陸', subject:'japanese', teacher:'ミケ先生', teacherArt:'cat',
+    crystalId:'q_japanese', crystalName:'ことばのクリスタル', emoji:'📖',
+    chapters:[
+      { title:'ことばの野原', topic:'漢字の読み書き', lvl:1, mons:['inkblob','fudebird'], boss:'漢字おに小僧', bossMon:'kanjioni', nodes:['音読みインク','訓読みふでどり','漢字おに小僧'] },
+      { title:'ことわざの林', topic:'語句・ことわざ', lvl:2, mons:['fudebird','inkblob'], boss:'語句おに', bossMon:'kanjioni', nodes:['ことわざふでどり','慣用句インク','語句おに'] },
+      { title:'品詞の谷', topic:'言葉の種類・品詞', lvl:3, mons:['inkblob','fudebird'], boss:'品詞おに', bossMon:'kanjioni', nodes:['名詞インク','動詞ふでどり','品詞おに'] },
+      { title:'文の森', topic:'文の組み立て・文節', lvl:4, mons:['fudebird','inkblob'], boss:'文法おに大将', bossMon:'kanjioni', nodes:['文節ふでどり','主語インク','文法おに大将'] },
+      { title:'説明文の遺跡', topic:'説明文の読解', lvl:5, mons:['inkblob','fudebird'], boss:'静寂の魔神サイレント', bossMon:'jp_lt', nodes:['段落インク','要点ふでどり','静寂の魔神サイレント'], lieutenant:true },
+      { title:'物語の館', topic:'小説・物語の読解', lvl:6, mons:['fudebird','inkblob'], boss:'物語おに', bossMon:'kanjioni', nodes:['心情ふでどり','情景インク','物語おに'] },
+      { title:'詩歌の丘', topic:'詩・短歌・俳句', lvl:7, mons:['inkblob','fudebird'], boss:'詩歌おに', bossMon:'kanjioni', nodes:['短歌インク','俳句ふでどり','詩歌おに'] },
+      { title:'古文の社', topic:'古文入門', lvl:8, mons:['fudebird','inkblob'], boss:'古文魔おに', bossMon:'kanjioni', nodes:['歴史仮名ふでどり','古語インク','古文魔おに'] },
+      { title:'記述の霊堂', topic:'記述・要約', lvl:9, mons:['inkblob','fudebird'], boss:'記述幻おに', bossMon:'kanjioni', nodes:['要約インク','記述ふでどり','記述幻おに'] },
+      { title:'論説の魔殿', topic:'論説文・要旨', lvl:10, mons:['fudebird','inkblob'], boss:'国語魔王おに', bossMon:'jp_fin', nodes:['論理ふでどり','要旨インク','国語魔王おに'], finale:true }
+    ]
+  },
+  english: {
+    name:'アルファベット大陸', subject:'english', teacher:'ラビィ先生', teacherArt:'rabbit',
+    crystalId:'q_english', crystalName:'英語のクリスタル', emoji:'🔤',
+    chapters:[
+      { title:'アルファベット草原', topic:'アルファベットとローマ字', lvl:1, mons:['abcube','qbird'], boss:'文法モロー見習い', bossMon:'grammaro', nodes:['大文字キューブ','小文字バード','文法モロー見習い'] },
+      { title:'あいさつの村', topic:'あいさつ・基本単語', lvl:2, mons:['qbird','abcube'], boss:'あいさつモロー', bossMon:'grammaro', nodes:['グリーティングバード','単語キューブ','あいさつモロー'] },
+      { title:'be動詞の丘', topic:'be動詞', lvl:3, mons:['abcube','qbird'], boss:'be動詞モロー', bossMon:'grammaro', nodes:['am/isキューブ','areバード','be動詞モロー'] },
+      { title:'動詞の森', topic:'一般動詞', lvl:4, mons:['qbird','abcube'], boss:'動詞モロー将軍', bossMon:'grammaro', nodes:['三単現バード','否定doキューブ','動詞モロー将軍'] },
+      { title:'複数形の谷', topic:'名詞の複数形', lvl:5, mons:['abcube','qbird'], boss:'混沌の魔神バベル', bossMon:'en_lt', nodes:['複数sキューブ','esバード','混沌の魔神バベル'], lieutenant:true },
+      { title:'進行形の湖', topic:'代名詞・現在進行形', lvl:6, mons:['qbird','abcube'], boss:'進行モロー', bossMon:'grammaro', nodes:['代名詞バード','ingキューブ','進行モロー'] },
+      { title:'過去の遺跡', topic:'canや過去形', lvl:7, mons:['abcube','qbird'], boss:'過去モロー', bossMon:'grammaro', nodes:['canキューブ','過去形バード','過去モロー'] },
+      { title:'比較の魔峠', topic:'不定詞・比較', lvl:8, mons:['qbird','abcube'], boss:'比較魔モロー', bossMon:'grammaro', nodes:['不定詞バード','比較級キューブ','比較魔モロー'] },
+      { title:'完了の霊塔', topic:'受け身・現在完了', lvl:9, mons:['abcube','qbird'], boss:'完了幻モロー', bossMon:'grammaro', nodes:['受け身キューブ','現在完了バード','完了幻モロー'] },
+      { title:'長文の魔城', topic:'長文読解・整序英作文', lvl:10, mons:['qbird','abcube'], boss:'英語魔王モロー', bossMon:'en_fin', nodes:['長文バード','整序キューブ','英語魔王モロー'], finale:true }
+    ]
+  },
+  science: {
+    name:'じっけんの大陸', subject:'science', teacher:'ナナ博士', teacherArt:'fox',
+    crystalId:'q_science', crystalName:'理科のクリスタル', emoji:'🧪',
+    chapters:[
+      { title:'観察の草はら', topic:'身のまわりの生物', lvl:1, mons:['microbe','flaskun'], boss:'観察ボルト', bossMon:'voltdrake', nodes:['ルーペびせいぶつ','こんちゅうフラスコ','観察ボルト'] },
+      { title:'天気の丘', topic:'天気と季節', lvl:2, mons:['flaskun','microbe'], boss:'天気ボルト', bossMon:'voltdrake', nodes:['雲フラスコ','気温びせいぶつ','天気ボルト'] },
+      { title:'植物の森', topic:'植物のつくり', lvl:3, mons:['microbe','flaskun'], boss:'植物ボルト', bossMon:'voltdrake', nodes:['葉っぱびせいぶつ','花フラスコ','植物ボルト'] },
+      { title:'物質の実験室', topic:'身のまわりの物質', lvl:4, mons:['flaskun','microbe'], boss:'物質ボルト', bossMon:'voltdrake', nodes:['金属フラスコ','気体びせいぶつ','物質ボルト'] },
+      { title:'光と音の谷', topic:'光・音・力', lvl:5, mons:['flaskun','microbe'], boss:'まやかしの魔神ペテル', bossMon:'sci_lt', nodes:['反射フラスコ','音波びせいぶつ','まやかしの魔神ペテル'], lieutenant:true },
+      { title:'水溶液の湖', topic:'水溶液と状態変化', lvl:6, mons:['microbe','flaskun'], boss:'溶液電竜ボルト', bossMon:'voltdrake', nodes:['溶解びせいぶつ','ろ過フラスコ','溶液電竜ボルト'] },
+      { title:'大地の洞窟', topic:'大地の変化', lvl:7, mons:['flaskun','microbe'], boss:'大地電竜ボルト', bossMon:'voltdrake', nodes:['地層フラスコ','火山びせいぶつ','大地電竜ボルト'] },
+      { title:'化学変化の魔炉', topic:'化学変化と原子・分子', lvl:8, mons:['flaskun','microbe'], boss:'化学魔竜ボルト', bossMon:'voltdrake', nodes:['化学式フラスコ','酸化びせいぶつ','化学魔竜ボルト'] },
+      { title:'電流の霊塔', topic:'電流と磁界', lvl:9, mons:['microbe','flaskun'], boss:'電流幻竜ボルト', bossMon:'voltdrake', nodes:['オームびせいぶつ','電流フラスコ','電流幻竜ボルト'] },
+      { title:'理科の魔天文台', topic:'総合・記述', lvl:10, mons:['flaskun','microbe'], boss:'理科魔王ボルト', bossMon:'sci_fin', nodes:['天体フラスコ','遺伝びせいぶつ','理科魔王ボルト'], finale:true }
+    ]
+  },
+  social: {
+    name:'れきしの大陸', subject:'social', teacher:'クマ先生', teacherArt:'bear',
+    crystalId:'q_social', crystalName:'社会のクリスタル', emoji:'🗺️',
+    chapters:[
+      { title:'地図の平野', topic:'地図と都道府県', lvl:1, mons:['mapmoth','haniwa'], boss:'地図王トキ', bossMon:'tokiou', nodes:['方位マップモス','県庁はにわ','地図王トキ'] },
+      { title:'くらしの里', topic:'日本のくらしと産業', lvl:2, mons:['haniwa','mapmoth'], boss:'産業王トキ', bossMon:'tokiou', nodes:['農業はにわ','工業マップモス','産業王トキ'] },
+      { title:'世界の大地', topic:'世界の姿と地理', lvl:3, mons:['mapmoth','haniwa'], boss:'世界王トキ', bossMon:'tokiou', nodes:['六大陸マップモス','三海洋はにわ','世界王トキ'] },
+      { title:'日本の山河', topic:'日本の地形と気候', lvl:4, mons:['haniwa','mapmoth'], boss:'地形王トキ', bossMon:'tokiou', nodes:['山脈はにわ','気候マップモス','地形王トキ'] },
+      { title:'地方の街道', topic:'日本の地域', lvl:5, mons:['mapmoth','haniwa'], boss:'忘却の魔神レーテ', bossMon:'so_lt', nodes:['地方マップモス','人口はにわ','忘却の魔神レーテ'], lieutenant:true },
+      { title:'古代の遺跡', topic:'古代の日本', lvl:6, mons:['haniwa','mapmoth'], boss:'古代王トキ', bossMon:'tokiou', nodes:['縄文はにわ','古墳はにわ','古代王トキ'] },
+      { title:'中世の城下', topic:'中世の日本', lvl:7, mons:['haniwa','mapmoth'], boss:'中世魔王トキ', bossMon:'tokiou', nodes:['武士はにわ','幕府マップモス','中世魔王トキ'] },
+      { title:'近世の城', topic:'近世の日本', lvl:8, mons:['mapmoth','haniwa'], boss:'近世魔王トキ', bossMon:'tokiou', nodes:['天下統一マップモス','鎖国はにわ','近世魔王トキ'] },
+      { title:'近代の霊道', topic:'近代から現代', lvl:9, mons:['haniwa','mapmoth'], boss:'近代幻王トキ', bossMon:'tokiou', nodes:['明治はにわ','大戦マップモス','近代幻王トキ'] },
+      { title:'公民の魔議堂', topic:'公民・資料読み取り', lvl:10, mons:['mapmoth','haniwa'], boss:'社会魔王トキ', bossMon:'so_fin', nodes:['憲法マップモス','経済はにわ','社会魔王トキ'], finale:true }
     ]
   }
 };

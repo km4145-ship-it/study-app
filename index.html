@@ -7510,7 +7510,11 @@ function _rpgPortrait(char){
   if(char==='merchant') return '<div class="rpg-narr">🦝</div>';   // ふしぎな行商人 たぬすけ（gacha-story.js）
   if(char==='rival') return '<div class="rpg-narr">🗡️</div>';      // ライバル見習い勇者 レン
   if(char==='moog') return '<div class="rpg-narr">🧚</div>';        // 相棒の精霊 モーグ
-  if(char==='zeron') return '<div class="rpg-narr">⚖️</div>';       // シグマ幹部 天秤の魔神ゼロン
+  if(char==='zeron') return '<div class="rpg-narr">⚖️</div>';       // シグマ幹部 天秤の魔神ゼロン（数）
+  if(char==='lt_jp') return '<div class="rpg-narr">🤫</div>';       // 静寂の魔神サイレント（ことば）
+  if(char==='lt_en') return '<div class="rpg-narr">🌀</div>';       // 混沌の魔神バベル（英語）
+  if(char==='lt_sci') return '<div class="rpg-narr">⚗️</div>';      // まやかしの魔神ペテル（理科）
+  if(char==='lt_soc') return '<div class="rpg-narr">⏳</div>';      // 忘却の魔神レーテ（社会）
   if(char && typeof CHARS!=='undefined' && CHARS[char]) return CHARS[char].svg;
   return '<div class="rpg-narr">✨</div>';
 }

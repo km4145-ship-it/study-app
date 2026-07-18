@@ -4908,17 +4908,18 @@ function genFrom(gens){ const f=pick(gens); let q; for(let i=0;i<5;i++){ q=f(); 
 // レベル別に問題を作る
 function buildMixLeveled(area, count, level){
   const out=[]; const seen=new Set(); let guard=0;
+  var _ar=adaptiveRating(area);   // 実力レート（適応出題の目標難易度）
   if(level==='elem'){
-    while(out.length<count && guard<count*12){ const q=genFrom(elemGens[area]||[genQuestion.bind(null,area)]); guard++; if(q&&!seen.has(q.q)){ seen.add(q.q); out.push(q);} }
+    while(out.length<count && guard<count*12){ const q=pickLeveled(function(){return genFrom(elemGens[area]||[genQuestion.bind(null,area)]);}, adaptiveWant(_ar)); guard++; if(q&&!seen.has(q.q)){ seen.add(q.q); out.push(q);} }
     return shuffleArr(out).slice(0,count);
   }
   // mid8：生成6割＋8月範囲内の既存バンク4割
   const pool = ((BANK[area]&&BANK[area].practice)||[]).filter(q=>inAugustRange(area,q));
   const genN = Math.max(1, Math.round(count*0.6));
   const gens = mid8Gens[area] || [genQuestion.bind(null,area)];
-  while(out.length<genN && guard<count*10){ const q=genFrom(gens); guard++; if(q&&!seen.has(q.q)){ seen.add(q.q); out.push(q);} }
+  while(out.length<genN && guard<count*10){ const q=pickLeveled(function(){return genFrom(gens);}, adaptiveWant(_ar)); guard++; if(q&&!seen.has(q.q)){ seen.add(q.q); out.push(q);} }
   shuffleArr(pool).filter(q=>!seen.has(q.q)).slice(0, count-out.length).forEach(q=>{ seen.add(q.q); out.push(q); });
-  while(out.length<count){ const q=genFrom(gens); if(q&&!seen.has(q.q)){ seen.add(q.q); out.push(q);} else if(guard++>count*14) break; }
+  while(out.length<count){ const q=pickLeveled(function(){return genFrom(gens);}, adaptiveWant(_ar)); if(q&&!seen.has(q.q)){ seen.add(q.q); out.push(q);} else if(guard++>count*14) break; }
   return shuffleArr(out).slice(0,count);
 }
 
@@ -5389,6 +5390,24 @@ function _tierLevels(tier){
   if(tier==='hard') return {'★★★★':1,'★★★':1};
   return null;   // おまかせ
 }
+// ===== 適応出題（③）：練習の難易度を実力(rating)に合わせる ＝ 適応練習の中核 =====
+// これまで練習は一様ランダムで、優秀なEloが出題に繋がっていなかった。実力レートから
+// 目標難易度を出し、その★に寄せて出題する（正答率~75%帯＝productive struggle）。
+// データが無い/寄せられない時は従来どおり（＝安全なフォールバック）。
+function adaptiveRating(area){
+  try{ if(typeof ratingAreaR==='function'){ var r=ratingAreaR(area); return (typeof r==='number')?r:null; } }catch(e){}
+  return null;
+}
+function adaptiveWant(r){   // r=実力レート(数値) or null。呼ぶたび ±1段のゆらぎで目標★セットを返す
+  if(r==null || typeof ratingFuzzTier!=='function') return null;
+  try{ return _tierLevels(ratingFuzzTier(r, Math.random())); }catch(e){ return null; }
+}
+// 生成関数 genFn を くり返し、目標★(want)に合う問題を優先して返す（tries回で妥協＝枯渇しない）
+function pickLeveled(genFn, want, tries){
+  var q=null;
+  for(var i=0;i<(tries||10);i++){ q=genFn(); if(q&&q.q){ if(!want || !q.level || want[q.level]) return q; } }
+  return q;
+}
 // 選んだ難易度で10問（genQuestion を level で絞る）。教科は正しく記録される。
 function startDifficulty(area, tier){
   var want=_tierLevels(tier);
@@ -5702,7 +5721,8 @@ function startGradePractice(area){
   currentArea=area; currentMode='practice'; isExam=false; isGenPractice=true; stopExamTimer();
   currentSubject=area;
   var qs=[],seen={},guard=0;
-  while(qs.length<10 && guard<250){ guard++; var q=genQuestion(area); if(q&&q.q&&!seen[q.q]){ seen[q.q]=1; qs.push(q); } }
+  var _ar=adaptiveRating(area);   // 実力レート（適応出題の目標難易度）
+  while(qs.length<10 && guard<250){ guard++; var q=pickLeveled(function(){return genQuestion(area);}, adaptiveWant(_ar)); if(q&&q.q&&!seen[q.q]){ seen[q.q]=1; qs.push(q); } }
   currentQuestions=qs; currentIndex=0; score=0;
   hideMainScreens();
   document.getElementById('quiz-screen').style.display='block';

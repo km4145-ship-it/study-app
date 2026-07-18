@@ -11,7 +11,7 @@ const code = fs.readFileSync(path.join(ROOT, 'js', 'rating.js'), 'utf8');
 try { new Function(code)(); c.ok('rating.js 単体loadで例外なし', true); }
 catch (e) { c.ok('rating.js 単体loadで例外なし: ' + e.message, false); }
 const api = (new Function(code +
-  '\nreturn { ratingItemDiff, ratingGuess, ratingExpected, ratingK, ratingStep, ratingOverallOf, ratingDelta7, ratingTier, RATING_START, hensaDispStep, HENSA_FIRST_N, HENSA_BATCH_N, HENSA_STEP_MAX };'))();
+  '\nreturn { ratingItemDiff, ratingGuess, ratingExpected, ratingK, ratingStep, ratingOverallOf, ratingDelta7, ratingTier, ratingFuzzTier, RATING_START, hensaDispStep, HENSA_FIRST_N, HENSA_BATCH_N, HENSA_STEP_MAX };'))();
 
 // ---- 難易度・当て推量 ----
 c.eq('★=42', api.ratingItemDiff('★☆☆'), 42);
@@ -88,6 +88,10 @@ c.ok('MU_PER_USER に practice_rating 登録（ユーザー別保存・同期）
 c.ok('結果画面に変動表示', html.indexOf("id='result-rating'") >= 0 || html.indexOf('result-rating') >= 0);
 c.ok('記録画面に実力メーターカード', html.indexOf('_practiceRatingHtml') >= 0);
 c.ok('おまかせがレーティング連動', html.indexOf('ratingTier(ratingAreaR(area))') >= 0);
+c.ok('適応出題ヘルパー(pickLeveled/adaptiveWant)がある', html.indexOf('function pickLeveled')>=0 && html.indexOf('function adaptiveWant')>=0);
+c.ok('小学生の主練習が適応出題', html.indexOf('pickLeveled(function(){return genQuestion(area);}, adaptiveWant(_ar))')>=0);
+c.ok('buildMixLeveledが適応出題', html.indexOf('pickLeveled(function(){return genFrom(gens);}, adaptiveWant(_ar))')>=0);
+c.ok('模試は適応化しない（固定枠を維持）', html.indexOf('const quota=_examQuota(area)')>=0);
 // ---- 確定偏差値（表示用バッチ更新）----
 {
   c.eq('初回は20問で確定', api.HENSA_FIRST_N, 20);
@@ -118,4 +122,19 @@ c.ok('解答時に hensaOnAnswer が呼ばれる', html.indexOf('hensaOnAnswer()
 c.ok('上部バーが確定値を表示', html.indexOf('hd.val.toFixed(1)') >= 0);
 const srpgUi = fs.readFileSync(path.join(ROOT, 'js', 'srpg-ui.js'), 'utf8');
 c.ok('タクトの解答も実績にカウント', srpgUi.indexOf('hensaOnAnswer') >= 0);
+// ---- 適応出題：実力→目標難易度（±1段ゆらぎ）----
+{
+  // rnd>=0.4 は ゆらぎなし＝素のtier
+  c.eq('低実力(42)→basic（ゆらぎ無し）', api.ratingFuzzTier(42, 0.9), 'basic');
+  c.eq('標準(50)→std（ゆらぎ無し）', api.ratingFuzzTier(50, 0.9), 'std');
+  c.eq('やや上(60)→adv（ゆらぎ無し）', api.ratingFuzzTier(60, 0.9), 'adv');
+  c.eq('高実力(66)→hard（ゆらぎ無し）', api.ratingFuzzTier(66, 0.9), 'hard');
+  // rnd<0.2 は1段下、0.2<=rnd<0.4 は1段上
+  c.eq('std から下ゆらぎ→basic', api.ratingFuzzTier(50, 0.1), 'basic');
+  c.eq('std から上ゆらぎ→adv', api.ratingFuzzTier(50, 0.3), 'adv');
+  // 端はクランプ（basicの下・hardの上は はみ出さない）
+  c.eq('basicの下ゆらぎはbasicにクランプ', api.ratingFuzzTier(40, 0.1), 'basic');
+  c.eq('hardの上ゆらぎはhardにクランプ', api.ratingFuzzTier(70, 0.3), 'hard');
+}
+
 c.done();

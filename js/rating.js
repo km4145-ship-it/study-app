@@ -70,6 +70,16 @@ function ratingTier(r){
   if (r < 63) return 'adv';
   return 'hard';
 }
+// 適応出題：実力 r から目標難易度 tier を出し、±1段の「ゆらぎ」を加えて最終 tier を返す（純粋）。
+// rnd は [0,1)。40%の確率で±1段ずらす（下20%/上20%）＝Math Garden流に正答率~75%帯へ寄せつつ
+// 単調にならないよう上下を適度に混ぜる。基礎に張り付いた子も時々1段上に挑戦できる。
+var RATING_TIER_ORDER = ['basic', 'std', 'adv', 'hard'];
+function ratingFuzzTier(r, rnd){
+  var i = RATING_TIER_ORDER.indexOf(ratingTier(r));
+  if (i < 0) i = 1;
+  if (rnd < 0.4) i += (rnd < 0.2 ? -1 : 1);
+  return RATING_TIER_ORDER[Math.max(0, Math.min(RATING_TIER_ORDER.length - 1, i))];
+}
 
 // ---- 保存・更新（実行時のみ。lsGetJSON/lsSetJSON/todayKey はメイン script 定義） ----
 function ratingLoad(){

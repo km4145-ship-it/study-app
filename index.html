@@ -5321,7 +5321,7 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   h+='<div class="hub-sec">🎮 あそんで まなぶ</div>';
   h+='<div class="hub-grid">';
   h+= hubCard('adv','⚔️','ぼうけん（バトル）','マスの上の さくせんバトル。偏差値65をめざす！','srpgOpen()', true);
-  h+= hubCard('quest','🗺️','大陸ストーリー','先生を たすける おはなしの ぼうけん','showRpg()');
+  h+= hubCard('aibou','🐾','なかま','エサやり・なまえ・パーティ','rpgShowAibou()');   // タクトのなかま管理（旧RPGマップからハブへ移設）
   h+= hubCard('prac','✏️','れんしゅう','教科をえらんで10問','hubPickSubject(\'practice\')');
   h+= hubCard('exam','⏱️','模試チャレンジ','本番形式で力だめし','hubPickSubject(\'exam\')');
   h+= hubCard('rev','🔁','ふくしゅう', due>0?('たまってる '+due+'問！'):'今日のふくしゅう','startReviewDue()', false, due>0?due:0);
@@ -6563,7 +6563,7 @@ function renderDailyMenu(){
       `<button class="dm-qbtn" onclick="startWeaknessDrill()">💪 苦手克服</button>`+
       `<button class="dm-qbtn" onclick="showFlashcards()">🗂️ 暗記カード</button>`+
       `<button class="dm-qbtn" onclick="showStudyNotes()">📖 学ぶ</button>`+
-      `<button class="dm-qbtn" onclick="showRpg()" style="background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff">🗺️ 大陸ストーリー</button>`+
+      `<button class="dm-qbtn" onclick="rpgShowAibou()" style="background:linear-gradient(135deg,#0891b2,#7c3aed);color:#fff">🐾 なかま</button>`+
       `<button class="dm-qbtn" onclick="startHardChallenge()">🔥 難問チャレンジ</button>`+
       `<button class="dm-qbtn" onclick="startMixedPractice()">🔀 ミックス演習</button>`+
       `<button class="dm-qbtn" onclick="showWrite()">✍️ 記述問題</button>`+
@@ -7354,7 +7354,7 @@ function rpgShowDex(){
   document.getElementById('rpg-result-view').style.display='none';
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
   var s=rpgState(), mons=rpgAllMonsters(), ai=rpgAibouState(s);
-  var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
+  var h='<button class="rpg-back" onclick="backToSubjects()">← ホームへ</button>';
   h+='<div class="rpg-world-title">📖 モンスターずかん（'+Object.keys(s.dex).length+' / '+mons.length+'）</div>';
   h+='<div class="rpg-dex-grid">';
   // 出会ったモンスターを前に集める。未発見の？は少数だけ出して「＋ほか◯たい」に圧縮
@@ -7389,7 +7389,7 @@ function rpgShowAibou(){
   var mv=document.getElementById('rpg-map-view'); mv.style.display='block';
   var s=rpgState(), ai=rpgAibouState(s); rpgSave(s);   // 正規化＋旧ペット移行をここで確定保存
   var ids=Object.keys(ai.roster);
-  var h='<button class="rpg-back" onclick="showRpg()">← もどる</button>';
+  var h='<button class="rpg-back" onclick="backToSubjects()">← ホームへ</button>';
   h+='<div class="rpg-world-title">🐾 あいぼう</div>';
   h+='<div class="rpg-aibou-bar"><span class="rpg-aibou-chip">🍖 エサ <b>'+(ai.food||0)+'</b></span><span class="rpg-aibou-chip">🐾 なかま <b>'+ids.length+'</b><small>/'+AIBOU_ROSTER_MAX+'</small></span>'
     +((ai.charm||0)>0?'<span class="rpg-aibou-chip" title="つぎのスカウトでレアが出やすい（ふくしゅう限定）">🌈 <b>'+ai.charm+'</b></span>':'')+'</div>';

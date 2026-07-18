@@ -48,4 +48,13 @@ c.ok('srpgMaouFinale が定義されている', srpgUi.indexOf('function srpgMao
 c.ok('q_maou初制覇でフィナーレを自動再生', srpgUi.indexOf('maouFirst') >= 0 && srpgUi.indexOf("srpgB.stageId === 'q_maou'") >= 0);
 c.ok('結果画面にエンディング再生ボタン', srpgUi.indexOf("onclick=\"srpgMaouFinale()\"") >= 0);
 
+// ---- 旧RPGをハブから引っ込め、あいぼう管理をハブへ移設（孤立防止）----
+c.ok('ハブに旧RPG(大陸ストーリー)カードが無い', html.indexOf(">大陸ストーリー<") < 0 || html.indexOf("'大陸ストーリー','先生を たすける") < 0);
+c.ok('ハブにあいぼう管理カードがある', html.indexOf("hubCard('aibou','🐾','なかま'") >= 0);
+c.ok('あいぼう/ずかんの戻るはハブへ（旧マップを開かない）', (html.match(/onclick="showRpg\(\)">← もどる/g) || []).length === 0);
+c.ok('あいぼうの戻り先はbackToSubjects', html.indexOf('onclick="backToSubjects()">← ホームへ') >= 0);
+// ハブの主要導線に showRpg（旧RPGマップ）入口が残っていない（内部ナビ/中断復帰は除外）
+const hubBody = html.slice(html.indexOf('function renderGameHub'), html.indexOf('function renderGameHub') + 4500);
+c.ok('ハブ本体に旧RPGマップ(showRpg)入口が無い', hubBody.indexOf('showRpg()') < 0);
+
 c.done();

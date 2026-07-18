@@ -2271,6 +2271,37 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .ob-next:active{ transform:scale(.98); }
   @media (prefers-color-scheme:dark){ .ob-card{ background:#1e293b; } .ob-tab{ background:#273449; } .ob-ttl,.ob-body,.ob-tab-tx b{ color:#e2e8f0; } }
   @media (prefers-reduced-motion:reduce){ .ob-ov,.ob-card,.ob-em{ animation:none!important; } }
+  /* 診断プレイスメント */
+  .diag-ov{ position:fixed; inset:0; z-index:3100; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,.66); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+  .diag-ov.open{ display:flex; }
+  .diag-card{ position:relative; width:100%; max-width:400px; background:var(--card,#fff); border-radius:20px; padding:20px 18px 18px; box-shadow:0 18px 50px rgba(0,0,0,.4); animation:obPop .35s cubic-bezier(.2,1.5,.4,1) both; }
+  .diag-x{ position:absolute; top:10px; right:12px; background:none; border:none; color:var(--muted,#5b7a88); font-size:1.3rem; font-weight:800; cursor:pointer; line-height:1; padding:2px 6px; }
+  .diag-top{ display:flex; justify-content:space-between; align-items:baseline; font-weight:900; color:var(--text); font-size:1rem; }
+  .diag-prog{ font-size:.82rem; color:var(--muted); font-weight:800; }
+  .diag-bar{ height:8px; background:rgba(148,163,184,.28); border-radius:99px; overflow:hidden; margin:8px 0 12px; }
+  .diag-bar > i{ display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#0891b2,#ec4899); transition:width .3s ease; }
+  .diag-subj{ font-weight:800; color:var(--primary,#0891b2); font-size:.85rem; margin-bottom:4px; }
+  .diag-q{ font-size:1.06rem; font-weight:800; color:var(--text); line-height:1.6; margin-bottom:12px; white-space:pre-wrap; }
+  .diag-body{ display:flex; flex-direction:column; gap:8px; }
+  .diag-opt{ text-align:left; padding:12px 14px; border:1.5px solid var(--line,#e2e8f0); border-radius:12px; background:#fff; color:var(--text); font-size:1rem; font-weight:700; font-family:inherit; cursor:pointer; }
+  .diag-opt:active{ transform:scale(.98); }
+  @media (hover:hover){ .diag-opt:hover{ border-color:var(--primary-vivid,#06b6d4); } }
+  body.dark .diag-opt{ background:#1c2733; border-color:rgba(148,163,184,.32); }
+  .diag-input{ padding:12px 14px; border:1.5px solid var(--line,#e2e8f0); border-radius:12px; font-size:1.05rem; font-family:inherit; }
+  body.dark .diag-input{ background:#1c2733; border-color:rgba(148,163,184,.32); color:var(--text); }
+  .diag-go{ padding:12px; border:none; border-radius:12px; background:linear-gradient(135deg,#0891b2,#ec4899); color:#fff; font-size:1rem; font-weight:900; font-family:inherit; cursor:pointer; }
+  .diag-go-big{ width:100%; margin-top:14px; padding:14px; font-size:1.05rem; }
+  .diag-skip{ display:block; width:100%; margin-top:12px; padding:9px; border:none; border-radius:10px; background:var(--card2,#f1f5f9); color:var(--muted,#5b7a88); font-weight:800; font-size:.85rem; cursor:pointer; font-family:inherit; }
+  .diag-result{ text-align:center; }
+  .diag-em{ font-size:3rem; line-height:1; }
+  .diag-rt{ font-size:1.3rem; font-weight:900; color:var(--text); margin:6px 0 8px; }
+  .diag-ovr{ font-size:.9rem; color:var(--muted); margin-bottom:10px; } .diag-ovr b{ display:block; font-size:1.5rem; color:var(--primary,#0891b2); margin-top:2px; }
+  .diag-rlist{ text-align:left; background:var(--card2,#f1f5f9); border-radius:12px; padding:8px 12px; }
+  .diag-r-row{ display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-weight:800; color:var(--text); font-size:.92rem; }
+  .diag-r-row + .diag-r-row{ border-top:1px solid rgba(148,163,184,.2); }
+  .diag-note{ font-size:.78rem; color:var(--muted); line-height:1.7; margin:10px 2px; }
+  @media (prefers-color-scheme:dark){ .diag-card{ background:#1e293b; } }
+  @media (prefers-reduced-motion:reduce){ .diag-card{ animation:none!important; } }
   .htw-item{ flex:1; text-align:center; color:#cbd5e1; font-size:11px; font-weight:800; line-height:1.5; background:rgba(255,255,255,.04); border:none; border-radius:10px; padding:6px 4px; font-family:inherit; cursor:pointer; transition:background .15s; }
   .htw-item:active{ transform:scale(.96); } @media(hover:hover){ .htw-item:hover{ background:rgba(255,255,255,.12); } }
   .htw-item b{ display:block; color:#fff; font-size:13px; }
@@ -2946,6 +2977,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
     <div class="screen-title">📊 きろく</div>
     <div class="rec-hub">
       <button class="rec-hub-btn" onclick="showRanking()"><span>🏆</span>家族ランキング</button>
+      <button class="rec-hub-btn" onclick="diagStart()"><span>🎯</span>じつりょくしんだん</button>
       <button class="rec-hub-btn" onclick="showRoadmap()"><span>🗺️</span>計画</button>
       <button class="rec-hub-btn" onclick="showMistakes()"><span>📕</span>まちがいノート</button>
       <button class="rec-hub-btn" onclick="showCharacters()"><span>🐾</span>キャラ紹介</button>
@@ -3328,7 +3360,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/util.js?v=3"></script>
 <script src="js/miss-types.js?v=1"></script>
 <script src="js/coverage.js?v=1"></script>
-<script src="js/rating.js?v=1"></script>
+<script src="js/rating.js?v=2"></script>
 <script src="js/teach.js?v=2"></script>
 <script src="js/duel.js?v=1"></script>
 <script src="js/ranking.js?v=3"></script>
@@ -3365,7 +3397,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,hensa_disp:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1,onboarded:1,
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,hensa_disp:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1,onboarded:1,diag_done:1,
   srpg_cleared:1,srpg_maou_cleared:1,srpg_stars:1,srpg_tower_best:1,srpg_tower_save:1,srpg_team:1,srpg_daily_done:1,srpg_loss:1,srpg_scout_free:1,srpg_tut:1,srpg_story_seen:1,srpg_auto:1,scout_log:1};   // タクトの進捗もユーザー別＋クラウド同期（scout_logは容量対策で端末ローカル＝isMemberKeyが除外）
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
@@ -4063,6 +4095,141 @@ function obFinish(){
   var ov=document.getElementById('onboarding-ov');
   if(ov){ ov.classList.add('ob-closing'); setTimeout(function(){ try{ ov.parentNode&&ov.parentNode.removeChild(ov); }catch(e){} }, 250); }
   try{ sfx('coin'); }catch(e){}
+  // 新規ユーザーは学年選択に続けて「じつりょくしんだん」で開始難易度を最適化（スキップ可）
+  try{ if(diagAvailable()){ setTimeout(function(){ try{ if(diagAvailable()) diagStart(); }catch(e){} }, 500); } }catch(e){}
+}
+
+// ===== 診断プレイスメント：初回の実力チェックで開始難易度を最適化 =====
+// メインのクイズループは使わず自己完結（レート毎問更新/連続/ポイント/SRS等の副作用を切り離す）。
+// 教科ごとに2問、1問目=標準→以降 直前結果で上下。全10問の結果から教科レートを推定し、
+// practice_rating へ種を蒔く（本物の練習履歴 n>=5 は壊さない）。純ロジックは js/rating.js。
+var _diag=null;
+function diagAvailable(){
+  try{ if(safeLS.getItem('diag_done')==='1') return false; }catch(e){}
+  var answered=0; try{ answered=parseInt(safeLS.getItem('c_answered')||'0',10)||0; }catch(e){}
+  return answered < 20;
+}
+function diagStart(){
+  var areas=AREAS.map(function(a){return a.key;});
+  _diag={ areas:areas, ai:0, qn:0, perN:2, prevTier:null, prevCorrect:false, answers:[], cur:null, total:areas.length*2 };
+  var ov=document.getElementById('diag-ov');
+  if(!ov){ ov=document.createElement('div'); ov.id='diag-ov'; ov.className='diag-ov'; document.body.appendChild(ov); }
+  ov.classList.add('open');
+  try{ speak('じつりょくしんだんを はじめるよ。ぜんぶで 10もん。わからなければ とばしても いいよ。'); }catch(e){}
+  _diagAsk();
+}
+function _diagPickQ(area, tier){
+  var want=_tierLevels(tier), q=null, fallback=null;
+  for(var i=0;i<400;i++){
+    var c=null; try{ c=genQuestion(area); }catch(e){ break; }
+    if(!c||!c.q||c.ans===undefined) continue;
+    if(!fallback) fallback=c;
+    if(!want || (c.level && want[c.level])){ q=c; break; }
+  }
+  return q||fallback;
+}
+function _diagAsk(){
+  if(!_diag) return;
+  if(_diag.ai>=_diag.areas.length){ _diagFinish(); return; }
+  var tier=(_diag.qn===0)?'std':diagNextTier(_diag.prevTier, _diag.prevCorrect);
+  var area=_diag.areas[_diag.ai];
+  var q=_diagPickQ(area, tier);
+  if(!q){ _diagAdvanceArea(); return; }   // その教科が出せなければ次へ
+  _diag.cur={ area:area, q:q, tier:tier }; _diag.prevTier=tier;
+  _diagRender();
+}
+function _diagAdvanceArea(){
+  _diag.ai++; _diag.qn=0; _diag.prevTier=null;
+  if(_diag.ai>=_diag.areas.length) _diagFinish(); else _diagAsk();
+}
+function _diagNorm(s){
+  return String(s).replace(/[０-９Ａ-Ｚａ-ｚ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);})
+    .replace(/\s/g,'').replace(/[＋]/g,'+').replace(/[－−ｰ]/g,'-').replace(/[×]/g,'x').replace(/[÷／]/g,'/')
+    .replace(/[．]/g,'.').replace(/[（]/g,'(').replace(/[）]/g,')').replace(/[＝]/g,'=').replace(/[，、]/g,',').toLowerCase();
+}
+function _diagRender(){
+  var ov=document.getElementById('diag-ov'); if(!ov||!_diag||!_diag.cur) return;
+  var q=_diag.cur.q; var a=AREAS.find(function(x){return x.key===_diag.cur.area;})||{name:'',icon:'✏️'};
+  var done=_diag.answers.length, total=_diag.total, pct=Math.round(done/total*100);
+  var card=document.createElement('div'); card.className='diag-card';
+  card.innerHTML='<button class="diag-x" onclick="_diagAbort()" aria-label="とじる">×</button>'+
+    '<div class="diag-top">🎯 じつりょくしんだん<span class="diag-prog">'+(done+1)+' / '+total+'</span></div>'+
+    '<div class="diag-bar"><i style="width:'+pct+'%"></i></div>'+
+    '<div class="diag-subj">'+a.icon+' '+escapeHtml(a.name)+'</div>'+
+    '<div class="diag-q" id="diag-q"></div>'+
+    '<div class="diag-body" id="diag-body"></div>'+
+    '<button class="diag-skip" onclick="_diagAnswer(false)">？ わからない（つぎへ）</button>';
+  ov.innerHTML=''; ov.appendChild(card);
+  document.getElementById('diag-q').textContent=q.q;
+  var body=document.getElementById('diag-body');
+  if(q.type==='choice'){
+    shuffleArr(q.choices.slice()).forEach(function(c){
+      var b=document.createElement('button'); b.className='diag-opt'; b.textContent=c;
+      b.onclick=(function(val){ return function(){ _diagAnswer(val===q.ans); }; })(c);
+      body.appendChild(b);
+    });
+  } else {
+    var inp=document.createElement('input'); inp.className='diag-input'; inp.id='diag-input'; inp.type='text'; inp.setAttribute('inputmode','text'); inp.placeholder='こたえを いれてね';
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter') _diagSubmitFree(); });
+    var sub=document.createElement('button'); sub.className='diag-go'; sub.textContent='こたえる'; sub.onclick=_diagSubmitFree;
+    body.appendChild(inp); body.appendChild(sub);
+    setTimeout(function(){ try{ inp.focus(); }catch(e){} },80);
+  }
+}
+function _diagSubmitFree(){
+  if(!_diag||!_diag.cur) return;
+  var inp=document.getElementById('diag-input'); if(!inp) return;
+  var ua=_diagNorm(inp.value.trim()); if(!inp.value.trim()) return;
+  var q=_diag.cur.q;
+  var ok = ua===_diagNorm(q.ans) || (q.altAns||[]).map(_diagNorm).indexOf(ua)>=0;
+  _diagAnswer(ok);
+}
+function _diagAnswer(correct){
+  if(!_diag||!_diag.cur) return;
+  var q=_diag.cur.q;
+  _diag.answers.push({ area:_diag.cur.area, level:q.level||'★★☆', correct:!!correct, type:q.type });
+  _diag.prevCorrect=!!correct;
+  try{ sfx(correct?'correct':'click'); }catch(e){}
+  _diag.qn++;
+  if(_diag.qn>=_diag.perN) _diagAdvanceArea(); else _diagAsk();
+}
+function _diagFinish(){
+  var est={}; try{ est=diagEstimateAll(_diag.answers); }catch(e){}
+  try{
+    var st=(typeof ratingLoad==='function')?ratingLoad():{v:1,by:{},hist:{}};
+    diagSeedInto(st, est, 3);
+    try{ if(typeof todayKey==='function') st.hist[todayKey()]=ratingOverall(st); }catch(e){}
+    if(typeof lsSetJSON==='function') lsSetJSON('practice_rating', st);
+  }catch(e){}
+  try{ safeLS.setItem('diag_done','1'); }catch(e){}
+  _diagResult(est);
+}
+function _diagResult(est){
+  var ov=document.getElementById('diag-ov'); if(!ov) return;
+  var tl={basic:'🌱 きそ',std:'📗 ひょうじゅん',adv:'🔥 おうよう',hard:'👑 なんかん'};
+  var rows=AREAS.map(function(a){ var r=est[a.key]; if(r==null) return '';
+    var t=(typeof ratingTier==='function')?ratingTier(r):'std';
+    return '<div class="diag-r-row"><span>'+a.icon+' '+escapeHtml(a.name)+'</span><b>'+tl[t]+'</b></div>'; }).join('');
+  var ovr=50; try{ ovr=ratingOverall(ratingLoad()); }catch(e){}
+  var card=document.createElement('div'); card.className='diag-card diag-result';
+  card.innerHTML='<div class="diag-em">🎉</div><div class="diag-rt">しんだん かんりょう！</div>'+
+    '<div class="diag-ovr">いまの じつりょく（めやす）<b>偏差値 '+Math.round(ovr)+'</b></div>'+
+    '<div class="diag-rlist">'+rows+'</div>'+
+    '<div class="diag-note">この けっかに あわせて、ちょうど いい むずかしさの 問題が 出るよ。れんしゅうすると どんどん 上がっていくよ！</div>'+
+    '<button class="diag-go diag-go-big" onclick="_diagClose()">▶ はじめる！</button>';
+  ov.innerHTML=''; ov.appendChild(card);
+  try{ confetti(); }catch(e){}
+  try{ speak('しんだん かんりょう！ いまの じつりょくは 偏差値 やく '+Math.round(ovr)+' だよ。ちょうど いい むずかしさで はじめよう！'); }catch(e){}
+}
+function _diagAbort(){   // 途中でやめる（種まきも done も記録しない＝またあとで受けられる）
+  var ov=document.getElementById('diag-ov'); if(ov){ ov.classList.remove('open'); setTimeout(function(){ try{ ov.parentNode&&ov.parentNode.removeChild(ov); }catch(e){} },200); } _diag=null;
+}
+function _diagClose(){
+  var ov=document.getElementById('diag-ov'); if(ov){ ov.classList.remove('open'); setTimeout(function(){ try{ ov.parentNode&&ov.parentNode.removeChild(ov); }catch(e){} },200); }
+  _diag=null;
+  try{ muUpdateHeader(); }catch(e){}
+  try{ updateResBar(); }catch(e){}
+  try{ if(typeof renderHome==='function') renderHome(); }catch(e){}
 }
 // 管理者用ユーザー管理
 var MU_CHARS=['girl','boy','shiba','cat','rabbit','fox','bear','owl','panda','dolphin','penguin','tiger'];

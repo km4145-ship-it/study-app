@@ -11,7 +11,7 @@ const code = fs.readFileSync(path.join(ROOT, 'js', 'rating.js'), 'utf8');
 try { new Function(code)(); c.ok('rating.js 単体loadで例外なし', true); }
 catch (e) { c.ok('rating.js 単体loadで例外なし: ' + e.message, false); }
 const api = (new Function(code +
-  '\nreturn { ratingItemDiff, ratingGuess, ratingExpected, ratingK, ratingStep, ratingOverallOf, ratingDelta7, ratingTier, ratingFuzzTier, RATING_START, hensaDispStep, HENSA_FIRST_N, HENSA_BATCH_N, HENSA_STEP_MAX };'))();
+  '\nreturn { ratingItemDiff, ratingGuess, ratingExpected, ratingK, ratingStep, ratingOverallOf, ratingDelta7, ratingTier, ratingFuzzTier, RATING_START, hensaDispStep, HENSA_FIRST_N, HENSA_BATCH_N, HENSA_STEP_MAX, diagEstimateR, diagEstimateAll, diagNextTier, diagSeedInto, RATING_MIN, RATING_MAX };'))();
 
 // ---- 難易度・当て推量 ----
 c.eq('★=42', api.ratingItemDiff('★☆☆'), 42);
@@ -135,6 +135,61 @@ c.ok('タクトの解答も実績にカウント', srpgUi.indexOf('hensaOnAnswer
   // 端はクランプ（basicの下・hardの上は はみ出さない）
   c.eq('basicの下ゆらぎはbasicにクランプ', api.ratingFuzzTier(40, 0.1), 'basic');
   c.eq('hardの上ゆらぎはhardにクランプ', api.ratingFuzzTier(70, 0.3), 'hard');
+}
+
+// ===== 診断プレイスメント =====
+{
+  // 全問正解（標準→応用）は 50 より上、全問不正解（標準→基礎）は 50 より下へ振れる
+  const hi = api.diagEstimateR([{level:'★★☆',correct:true,type:'choice'},{level:'★★★',correct:true,type:'choice'}]);
+  const lo = api.diagEstimateR([{level:'★★☆',correct:false,type:'choice'},{level:'★☆☆',correct:false,type:'choice'}]);
+  c.ok('診断：全問正解は50超（'+hi+'）', hi > api.RATING_START);
+  c.ok('診断：全問不正解は50未満（'+lo+'）', lo < api.RATING_START);
+  c.ok('診断：正解ケースは不正解ケースより高い', hi > lo);
+  c.ok('診断：推定はクランプ内', hi <= api.RATING_MAX && lo >= api.RATING_MIN);
+  c.eq('診断：空はスタート値', api.diagEstimateR([]), api.RATING_START);
+
+  // 難問正解は 易問正解より高く推定される（同じ1問でも）
+  const hardOK = api.diagEstimateR([{level:'★★★★',correct:true,type:'free'}]);
+  const easyOK = api.diagEstimateR([{level:'★☆☆',correct:true,type:'free'}]);
+  c.ok('診断：難問正解 > 易問正解', hardOK > easyOK);
+
+  // 教科ごとに分けて推定
+  const all = api.diagEstimateAll([
+    {area:'math',level:'★★☆',correct:true,type:'choice'},
+    {area:'math',level:'★★★',correct:true,type:'choice'},
+    {area:'japanese',level:'★★☆',correct:false,type:'choice'},
+  ]);
+  c.ok('診断：教科別に推定（math>50, japanese<50）', all.math > 50 && all.japanese < 50);
+
+  // 次難易度：1問目std、正解で1段上・不正解で1段下、端はクランプ
+  c.eq('診断tier：初手はstd', api.diagNextTier(null, false), 'std');
+  c.eq('診断tier：std正解→adv', api.diagNextTier('std', true), 'adv');
+  c.eq('診断tier：std不正解→basic', api.diagNextTier('std', false), 'basic');
+  c.eq('診断tier：basic不正解はbasicにクランプ', api.diagNextTier('basic', false), 'basic');
+  c.eq('診断tier：hard正解はhardにクランプ', api.diagNextTier('hard', true), 'hard');
+
+  // 種まき：実績のある教科(n>=5)は上書きしない・新規は種を入れる
+  const st = { v:1, by:{ math:{ r:70, n:40 }, english:{ r:55, n:2 } }, hist:{} };
+  api.diagSeedInto(st, { math:45, english:48, science:52 }, 3);
+  c.eq('診断seed：実績ある math は守る', st.by.math.r, 70);
+  c.eq('診断seed：n<5 の english は上書き', st.by.english.r, 48);
+  c.eq('診断seed：english の重みは seedN', st.by.english.n, 3);
+  c.eq('診断seed：新規 science は種を入れる', st.by.science.r, 52);
+}
+
+// ===== 診断UIの配線（index.html）=====
+{
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  c.ok('診断UI関数が定義（diagStart/_diagAsk/_diagFinish）',
+    html.indexOf('function diagStart(') >= 0 && html.indexOf('function _diagAsk(') >= 0 && html.indexOf('function _diagFinish(') >= 0);
+  c.ok('診断は practice_rating へ種まき（diagSeedInto→lsSetJSON）',
+    /diagSeedInto\(st, est[\s\S]{0,200}lsSetJSON\('practice_rating'/.test(html));
+  c.ok('新規ユーザーはオンボ後に診断を提案（obFinish→diagAvailable→diagStart）',
+    /function obFinish\(\)[\s\S]{0,400}diagAvailable\(\)[\s\S]{0,120}diagStart\(\)/.test(html));
+  c.ok('記録ハブに じつりょくしんだん の入口', html.indexOf('onclick="diagStart()"') >= 0);
+  c.ok('診断は毎問更新の副作用を避ける（ratingRecordを診断で呼ばない）',
+    html.indexOf('function _diagAnswer(') >= 0 && html.slice(html.indexOf('function _diagAnswer('), html.indexOf('function _diagFinish(')).indexOf('ratingRecord(') < 0);
+  c.ok('diag_done は per-user 同期対象（MU_PER_USER）', html.indexOf('diag_done:1') >= 0);
 }
 
 c.done();

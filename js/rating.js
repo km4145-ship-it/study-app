@@ -129,3 +129,46 @@ function ratingAreaR(area){
   if (a && a.n >= 5) return a.r;
   return ratingOverall(st);
 }
+
+// ===== 診断プレイスメント（初回の実力推定）=====
+// 少ない問題数（教科2問など）で開始点を素早く決めるため、通常より大きめのKで Elo を回す。
+// 通常の毎問更新（K=1.5〜6）は収束が緩やかで数問では動きにくいため、診断専用に強めのKを使う。
+var DIAG_K = [9, 7, 5];   // 教科内の n 問目ごとの更新幅（1問目が最も大きい）
+// answers=[{level,correct,type}] → その教科の推定レート（偏差値スケール・クランプ）
+function diagEstimateR(answers){
+  var r = RATING_START;
+  (answers || []).forEach(function(a, i){
+    var b = ratingItemDiff(a.level);
+    var e = ratingExpected(r, b, ratingGuess(a.type));
+    var k = DIAG_K[Math.min(i, DIAG_K.length - 1)];
+    r = r + k * ((a.correct ? 1 : 0) - e);
+  });
+  return Math.max(RATING_MIN, Math.min(RATING_MAX, Math.round(r * 100) / 100));
+}
+// 診断の全回答 [{area,level,correct,type}] → 教科ごとの推定レート {area:r}
+function diagEstimateAll(answers){
+  var byA = {};
+  (answers || []).forEach(function(a){ (byA[a.area] = byA[a.area] || []).push(a); });
+  var out = {};
+  Object.keys(byA).forEach(function(area){ out[area] = diagEstimateR(byA[area]); });
+  return out;
+}
+// 教科内の次の難易度：1問目は標準、以降は直前正解で1段上げ・不正解で1段下げ（純粋）
+var DIAG_TIER_ORDER = ['basic', 'std', 'adv', 'hard'];
+function diagNextTier(prevTier, prevCorrect){
+  if (prevTier == null) return 'std';
+  var i = DIAG_TIER_ORDER.indexOf(prevTier); if (i < 0) i = 1;
+  i += prevCorrect ? 1 : -1;
+  return DIAG_TIER_ORDER[Math.max(0, Math.min(DIAG_TIER_ORDER.length - 1, i))];
+}
+// 既存レートを壊さず種を蒔く：診断結果を practice_rating.by へ。
+// 既に実績のある教科（n>=5）は上書きしない（子の本物の履歴を守る）。seedN=種の重み。
+function diagSeedInto(st, estimates, seedN){
+  st = st || { v:1, by:{}, hist:{} }; st.by = st.by || {}; st.hist = st.hist || {};
+  Object.keys(estimates || {}).forEach(function(area){
+    var cur = st.by[area];
+    if (cur && cur.n >= 5) return;                 // 本物の練習履歴があるので触らない
+    st.by[area] = { r: estimates[area], n: (seedN == null ? 3 : seedN) };
+  });
+  return st;
+}

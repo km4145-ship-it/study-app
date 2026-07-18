@@ -207,4 +207,49 @@ c.ok('srpgStart が q_secret に secret_intro を配線', ui.indexOf("stageId===
 c.ok('q_secret 勝利で secret_clear を再生', ui.indexOf("_srpgStory('secret_clear')") >= 0);
 c.ok('裏ボスは魔王城クリアまで隠す', ui.indexOf("id !== 'q_secret'") >= 0);
 
+// ===== レビュー修正 A/#1：章ボスの固有名＋boss標識（VS演出/王冠/BGMを正しく） =====
+AREAS.forEach(function (area) {
+  for (let ci = 0; ci < 10; ci++) {
+    const st = S.srpgChapterStage(area, ci, 2);
+    const bossE = st.enemies[1];
+    c.ok(area + ' ch' + ci + ' ボス敵にboss標識', bossE.boss === true);
+    c.ok(area + ' ch' + ci + ' ボス敵に固有名=' + st.boss, bossE.name === st.boss && st.boss.length > 0);
+    const units = S.srpgBuildUnits(st, [{ id: 'h', art: 'cat', role: 'attacker', lvl: 5, rankBase: 8 }]).filter(function (u) { return u.side === 'enemy'; });
+    c.eq(area + ' ch' + ci + ' ユニットのボスは1体', units.filter(function (u) { return u.boss; }).length, 1);
+    c.ok(area + ' ch' + ci + ' ボスユニット名一致', units.filter(function (u) { return u.boss; })[0].name === st.boss);
+  }
+});
+c.ok('srpgIsBossUnit をVS選出/王冠で使用', ui.indexOf('function srpgIsBossUnit') >= 0 && ui.indexOf('enemies.filter(srpgIsBossUnit)') >= 0 && ui.indexOf('var isBoss = srpgIsBossUnit(u)') >= 0);
+c.ok('ボスBGMは stage.boss で判定', ui.indexOf("bgmPlay(stage.boss ? 'boss' : 'battle')") >= 0);
+
+// ===== レビュー修正 C：進行/クリスタル判定の実挙動（純関数＝off-by-one を実検出） =====
+AREAS.forEach(function (area) {
+  // 最終章ボス判定：(9,2)のみ true
+  c.ok(area + ' 最終ボスは(9,2)のみ', S.srpgIsFinalBoss(area, 9, 2) === true && S.srpgIsFinalBoss(area, 8, 2) === false && S.srpgIsFinalBoss(area, 9, 1) === false);
+  const empty = {};
+  c.ok(area + ' 空clearedで1章のみ解放', S.srpgChapUnlockedIn(area, 0, empty) === true && S.srpgChapUnlockedIn(area, 1, empty) === false);
+  const c1 = {}; c1[S.srpgChapterId(area, 0, 2)] = 1;
+  c.ok(area + ' 1章クリアで2章解放・3章未解放', S.srpgChapUnlockedIn(area, 1, c1) === true && S.srpgChapUnlockedIn(area, 2, c1) === false);
+  c.ok(area + ' ch1はnode0のみ解放', S.srpgNodeUnlockedIn(area, 0, 0, empty) === true && S.srpgNodeUnlockedIn(area, 0, 1, empty) === false && S.srpgNodeUnlockedIn(area, 0, 2, empty) === false);
+  const n0 = {}; n0[S.srpgChapterId(area, 0, 0)] = 1;
+  c.ok(area + ' node0クリアでnode1解放・node2未解放', S.srpgNodeUnlockedIn(area, 0, 1, n0) === true && S.srpgNodeUnlockedIn(area, 0, 2, n0) === false);
+  const n1 = {}; n1[S.srpgChapterId(area, 0, 0)] = 1; n1[S.srpgChapterId(area, 0, 1)] = 1;
+  c.ok(area + ' node1クリアでnode2解放', S.srpgNodeUnlockedIn(area, 0, 2, n1) === true);
+  c.ok(area + ' 未解放章のnode0もロック', S.srpgNodeUnlockedIn(area, 5, 0, empty) === false);
+  // クリスタル授与は最終章ボスのみ（非最終章の章ノードidはクリスタルに一致しない＝早期授与しない）
+  const cont = S.srpgContinent(area);
+  c.ok(area + ' 最終章で ' + cont.crystalId + ' クリスタル定義あり', !!S.srpgCrystalFor(cont.crystalId));
+  c.ok(area + ' 非最終章はクリスタル無し(早期授与しない)', S.srpgCrystalFor(S.srpgChapterId(area, 0, 2)) === null && S.srpgCrystalFor(S.srpgChapterId(area, 8, 2)) === null);
+});
+c.ok('srpg-uiが純関数に委譲(srpgChapUnlockedIn等)', ui.indexOf('srpgChapUnlockedIn(area') >= 0 && ui.indexOf('srpgNodeUnlockedIn(area') >= 0 && ui.indexOf('srpgIsFinalBoss(chapWin.area') >= 0);
+// 導入シーンの既読は「再生後」にマーク（途中離脱で見逃す事故を防ぐ）
+c.ok('章導入の既読は再生後にマーク(marks)', ui.indexOf('chIntro.marks.forEach(srpgMarkStorySeen)') >= 0);
+c.ok('魔王城/裏ボス突入も再生後マーク', ui.indexOf("srpgMarkStorySeen('maou_intro'); srpgDeployBegin()") >= 0 && ui.indexOf("srpgMarkStorySeen('secret_intro'); srpgDeployBegin()") >= 0);
+c.ok('フィナーレパネル二重生成ガード', ui.indexOf("host.querySelector('.srpg-finale')") >= 0);
+
+// ===== レビュー修正 B：クラウド同期のマージ規則（進捗/既読を端末間で失わない） =====
+const cs = fs.readFileSync(path.join(ROOT, 'cloud-sync.js'), 'utf8');
+c.ok('srpg_cleared/srpg_story_seen は union マージ', /isUnionObj[\s\S]{0,120}srpg_cleared/.test(cs) && /isUnionObj[\s\S]{0,120}srpg_story_seen/.test(cs));
+c.ok('srpg_stars は max マージ', /isObjMax[\s\S]{0,120}srpg_stars/.test(cs));
+
 c.done();

@@ -970,6 +970,13 @@ function srpgParseChapterId(id){
   if(isNaN(ci) || isNaN(ni)) return null;
   return { area:p[1], ci:ci, ni:ni };
 }
+// ===== 進行判定（純粋関数。cleared＝クリア済みノードIDの集合を注入＝テスト可能） =====
+// この大陸の最終章ボスか（＝大陸クリア＝クリスタル授与の判定）。
+function srpgIsFinalBoss(area, ci, ni){ return ni === 2 && ci === (srpgChapterCount(area) - 1); }
+function srpgNodeDoneIn(area, ci, ni, cleared){ cleared = cleared || {}; return !!cleared[srpgChapterId(area, ci, ni)]; }
+function srpgChapDoneIn(area, ci, cleared){ return srpgNodeDoneIn(area, ci, 2, cleared); }   // 章ボス(node2)クリア＝章クリア
+function srpgChapUnlockedIn(area, ci, cleared){ return ci === 0 || srpgChapDoneIn(area, ci - 1, cleared); }
+function srpgNodeUnlockedIn(area, ci, ni, cleared){ return srpgChapUnlockedIn(area, ci, cleared) && (ni === 0 || srpgNodeDoneIn(area, ci, ni - 1, cleared)); }
 // 章データからステージを動的生成（純粋）。ni: 0,1=雑魚ノード / 2=章ボス。
 function srpgChapterStage(area, ci, ni){
   var cont = SRPG_CONTINENTS[area]; if(!cont) return null;
@@ -982,7 +989,7 @@ function srpgChapterStage(area, ci, ni){
   if(isBoss){
     enemies = [
       { key:m0, x:1, y:1, lvl:lv },
-      { key:ch.bossMon, x:3, y:0, lvl:lv + 2 },
+      { key:ch.bossMon, x:3, y:0, lvl:lv + 2, name:ch.boss, boss:true },   // 章の固有ボス名＋ボス標識（VS演出/王冠/BGMを正しく）
       { key:m1, x:4, y:1, lvl:lv }
     ];
     terrain = [{ x:2, y:2, kind:'fire' }, { x:3, y:2, kind:'fire' }, { x:0, y:5, kind:'heal' }];
@@ -1029,11 +1036,13 @@ function srpgBuildUnits(stage, allySpecs){
       // 物語モード：大陸の教科を全敵の弱点に統一（その教科でこうげき＝つよめ）。
       weak = stage.forceWeak; resist = null; resists = {}; resists[stage.forceWeak] = 'weak';
     }
-    units.push(srpgMakeUnit({
-      id:'enemy' + i, side:'enemy', name:t.name, art:t.art, role:t.role,
+    var eu = srpgMakeUnit({
+      id:'enemy' + i, side:'enemy', name:(e.name || t.name), art:t.art, role:t.role,
       rankBase:t.rankBase, lvl:e.lvl || 1, weak:weak, resist:resist,
       resists:resists, onhit:t.onhit, skills:(t.skills || []), phase:t.phase, charge:t.charge, tmplKey:e.key, x:e.x, y:e.y
-    }));
+    });
+    if(e.boss || t.boss) eu.boss = true;   // ステージ定義のボス指定 or テンプレのboss＝ボス標識（章ボスはテンプレ非boss流用でも立つ）
+    units.push(eu);
   });
   return units;
 }
@@ -1060,6 +1069,8 @@ if(typeof module !== 'undefined' && module.exports){
     srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage,
     SRPG_CONTINENTS: SRPG_CONTINENTS, srpgContinent: srpgContinent, srpgChapterCount: srpgChapterCount, srpgNodeCount: srpgNodeCount,
     srpgChapterId: srpgChapterId, srpgParseChapterId: srpgParseChapterId, srpgChapterStage: srpgChapterStage,
+    srpgIsFinalBoss: srpgIsFinalBoss, srpgNodeDoneIn: srpgNodeDoneIn, srpgChapDoneIn: srpgChapDoneIn,
+    srpgChapUnlockedIn: srpgChapUnlockedIn, srpgNodeUnlockedIn: srpgNodeUnlockedIn,
     SRPG_MON_SKILL: SRPG_MON_SKILL, srpgMonSkill: srpgMonSkill,
     srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
     SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,

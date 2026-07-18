@@ -190,11 +190,11 @@ function srpgCrystalBarHtml(cleared){
     + '<div class="srpg-cry-row">'+gems+'</div>'
     + '<div class="srpg-cry-hint'+(n>=5?' done':'')+'">'+hint+'</div></div>';
 }
-// ===== 物語モード：進行の判定（srpg_cleared に章ノードID 'c_area_ci_ni' が入る） =====
-function srpgNodeDone(area, ci, ni){ return !!srpgClearedSet()[srpgChapterId(area, ci, ni)]; }
-function srpgChapDone(area, ci){ return srpgNodeDone(area, ci, 2); }   // 章ボス（node2）クリア＝章クリア
-function srpgChapUnlocked(area, ci){ return ci===0 || srpgChapDone(area, ci-1); }
-function srpgNodeUnlocked(area, ci, ni){ return srpgChapUnlocked(area, ci) && (ni===0 || srpgNodeDone(area, ci, ni-1)); }
+// ===== 物語モード：進行の判定（純粋関数 srpg*In に srpg_cleared を注入して委譲＝テスト可能） =====
+function srpgNodeDone(area, ci, ni){ return srpgNodeDoneIn(area, ci, ni, srpgClearedSet()); }
+function srpgChapDone(area, ci){ return srpgChapDoneIn(area, ci, srpgClearedSet()); }   // 章ボス（node2）クリア＝章クリア
+function srpgChapUnlocked(area, ci){ return srpgChapUnlockedIn(area, ci, srpgClearedSet()); }
+function srpgNodeUnlocked(area, ci, ni){ return srpgNodeUnlockedIn(area, ci, ni, srpgClearedSet()); }
 function srpgContinentDoneCount(area){ var n=0, c=srpgChapterCount(area); for(var i=0;i<c;i++){ if(srpgChapDone(area,i)) n++; } return n; }
 // ステージ選択に出す「大陸（物語）」カード。章の進捗を見せ、タップで章一覧へ。
 function srpgContinentCard(area, locked){
@@ -378,15 +378,20 @@ function srpgStart(stageId){
     zoneSet: {}, deploySel: null, charge: null
   };
   document.getElementById('srpg-title').textContent = stage.name;
-  try{ if(typeof bgmPlay==='function') bgmPlay((stage.type==='quest' && stage.boss) ? 'boss' : 'battle'); }catch(e){}
+  try{ if(typeof bgmPlay==='function') bgmPlay(stage.boss ? 'boss' : 'battle'); }catch(e){}   // ボス名があればボス曲（章ボスノード・大陸/魔王/裏ボス 共通）
   srpgApplyRescue();   // まけつづけたステージは おうえんバフ付きで再挑戦
   // 物語モード（大陸アーク）：章ノード0の初回だけ 立ち絵つき導入シーン。あそびかた説明も初回のみ。
   if(_pc){
     srpgRender();
-    var chScenes = (_pc.ni === 0) ? _srpgChapterIntroScenes(stageId) : null;
+    var chIntro = (_pc.ni === 0) ? _srpgChapterIntroScenes(stageId) : null;
+    var chScenes = chIntro ? chIntro.scenes : null;
+    var markIntro = function(){ if(chIntro){ chIntro.marks.forEach(srpgMarkStorySeen); } };   // 既読は再生後にだけ
     var firstEver = !_srpgFlag('srpg_tut'); if(firstEver) _srpgSetFlag('srpg_tut');
     var goDeploy = function(){ srpgDeployBegin(); };
-    var goStory = function(){ if(chScenes && chScenes.length){ try{ rpgStoryPlay(chScenes, goDeploy); return; }catch(e){} } goDeploy(); };
+    var goStory = function(){
+      if(chScenes && chScenes.length){ try{ rpgStoryPlay(chScenes, function(){ markIntro(); goDeploy(); }); return; }catch(e){} }
+      markIntro(); goDeploy();   // シーン無し/再生失敗時もフラグは進める（無限リトライ防止）
+    };
     // 導入シーンを流すときは あそびかたの世界観説明（先頭3行）を省いて重複を避ける
     if(firstEver){ srpgStoryIntro(SRPG_TUT_LINES.slice(chScenes && chScenes.length ? 3 : 0), goStory); }
     else { goStory(); }
@@ -396,16 +401,16 @@ function srpgStart(stageId){
   if(stageId==='q_maou'){
     var maouScenes = (!srpgStorySeen('maou_intro')) ? _srpgStory('maou_intro') : null;
     if(maouScenes && maouScenes.length){
-      srpgMarkStorySeen('maou_intro'); srpgRender();
-      try{ rpgStoryPlay(maouScenes, srpgDeployBegin); return; }catch(e){}
+      srpgRender();
+      try{ rpgStoryPlay(maouScenes, function(){ srpgMarkStorySeen('maou_intro'); srpgDeployBegin(); }); return; }catch(e){}   // 既読は再生後
     }
   }
   // 裏ボス（エンドゲーム）：真の決戦の突入シーンを初回だけ再生
   if(stageId==='q_secret'){
     var secScenes = (!srpgStorySeen('secret_intro')) ? _srpgStory('secret_intro') : null;
     if(secScenes && secScenes.length){
-      srpgMarkStorySeen('secret_intro'); srpgRender();
-      try{ rpgStoryPlay(secScenes, srpgDeployBegin); return; }catch(e){}
+      srpgRender();
+      try{ rpgStoryPlay(secScenes, function(){ srpgMarkStorySeen('secret_intro'); srpgDeployBegin(); }); return; }catch(e){}   // 既読は再生後
     }
   }
   // 初回だけ：あそびかたのチュートリアル（タップ送り・読み上げつき）→ そのままステージの物語へ
@@ -420,14 +425,15 @@ function _srpgPrologue(){ try{ return (typeof RPG_STORY!=='undefined' && RPG_STO
 function srpgStorySeenSet(){ try{ return lsGetJSON('srpg_story_seen', {}) || {}; }catch(e){ return {}; } }
 function srpgStorySeen(key){ return !!srpgStorySeenSet()[key]; }
 function srpgMarkStorySeen(key){ try{ var s=srpgStorySeenSet(); s[key]=1; lsSetJSON('srpg_story_seen', s); }catch(e){} }
-// 章ノード0 の初回に流す導入シーン（プロローグ＋章導入）。既読は保存して2回目以降はスキップ。
+// 章ノード0 の初回に流す導入シーン（プロローグ＋章導入）。
+// 既読マークは「再生後」に行うため、ここでは付けずに marks で返す（途中離脱で見逃す事故を防ぐ）。
 function _srpgChapterIntroScenes(stageId){
   var pc = srpgParseChapterId(stageId); if(!pc || pc.ni !== 0) return null;
-  var seq = [];
-  if(!srpgStorySeen('prologue')){ var pro=_srpgPrologue(); if(pro && pro.length){ seq=seq.concat(pro); } srpgMarkStorySeen('prologue'); }
+  var seq = [], marks = [];
+  if(!srpgStorySeen('prologue')){ var pro=_srpgPrologue(); if(pro && pro.length){ seq=seq.concat(pro); } marks.push('prologue'); }
   var key = pc.area + '_ch' + pc.ci + '_intro';
-  if(!srpgStorySeen(key)){ var intro=_srpgStory(key); if(intro && intro.length){ seq=seq.concat(intro); } srpgMarkStorySeen(key); }
-  return seq.length ? seq : null;
+  if(!srpgStorySeen(key)){ var intro=_srpgStory(key); if(intro && intro.length){ seq=seq.concat(intro); } marks.push(key); }
+  return (seq.length || marks.length) ? { scenes:seq, marks:marks } : null;
 }
 // ---- 配置フェーズ（戦闘前に 味方を マスへ 並べる）----
 function srpgDeployBegin(){
@@ -478,7 +484,7 @@ function srpgBattleBegin(){
   srpgRender();
   var lead = srpgB.units.filter(function(u){ return u.side==='ally' && u.isLeader; })[0] || srpgB.units.filter(function(u){ return u.side==='ally'; })[0];
   var enemies = srpgB.units.filter(function(u){ return u.side==='enemy'; });
-  var boss = enemies.filter(function(u){ var k=srpgEnemyKey(u); return k && SRPG_ENEMY_TEMPLATES[k] && SRPG_ENEMY_TEMPLATES[k].boss; })[0] || enemies[enemies.length-1];
+  var boss = enemies.filter(srpgIsBossUnit)[0] || enemies[enemies.length-1];
   srpgVsIntro(lead, boss, function(){
     srpgChapterHint(srpgB.stage);   // 単元・弱点教科・先生の一言（学習の接続）
     if(lead && lead.leaderTrait){ try{ showToast('👑', 'リーダー特性 発動！', lead.leaderTrait.name+'：'+lead.leaderTrait.desc); }catch(e){} }
@@ -568,7 +574,7 @@ function srpgUnitPlate(u){
   ['poison','paralyze','sleep','seal'].forEach(function(k){ if(stt[k]>0) sIcons+=SRPG_STATUS_META[k].em; });
   var md=u.mods||{}, mUp=(md.atk>0||md.def>0||md.spd>0), mDn=(md.atk<0||md.def<0||md.spd<0);
   var stBar=(sIcons||mUp||mDn) ? ('<div class="srpg-stbar">'+sIcons+(mUp?'<span class="srpg-buf up">⬆</span>':'')+(mDn?'<span class="srpg-buf dn">⬇</span>':'')+'</div>') : '';
-  var isBoss = u.side==='enemy'&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)]&&SRPG_ENEMY_TEMPLATES[srpgEnemyKey(u)].boss;
+  var isBoss = srpgIsBossUnit(u);
   var act = srpgActor();
   var isActor = act && act.id===u.id;
   var done = srpgB.acted && srpgB.acted[u.id] && !isActor;   // このラウンドで手番を終えた＝グレーアウト
@@ -590,6 +596,14 @@ function srpgEnemyKey(u){
   var keys = Object.keys(SRPG_ENEMY_TEMPLATES);
   for(var i=0;i<keys.length;i++){ if(SRPG_ENEMY_TEMPLATES[keys[i]].art===u.art) return keys[i]; }
   return null;
+}
+// このユニットが「ボス」か（VS演出・王冠・BGM判定の単一の真実源）。
+// ユニット標識 u.boss（章ステージが boss指定）＋テンプレの boss:true（villain/幹部/最終/裏ボス）の両対応。
+function srpgIsBossUnit(u){
+  if(!u || u.side!=='enemy') return false;
+  if(u.boss) return true;
+  var k = srpgEnemyKey(u);
+  return !!(k && SRPG_ENEMY_TEMPLATES[k] && SRPG_ENEMY_TEMPLATES[k].boss);
 }
 function srpgTurnbarHtml(){
   var order = srpgB.order && srpgB.order.length ? srpgB.order : srpgTurnOrder(srpgB.units);
@@ -1342,6 +1356,7 @@ function srpgMaouFinale(){
 function _srpgMaouFinalePanel(){
   try{ safeLS.setItem('srpg_maou_cleared', '1'); }catch(e){}
   var host = document.getElementById('srpg-body'); if(!host) return;
+  if(host.querySelector('.srpg-finale')) return;   // 二重生成ガード（自動再生とボタンが競合しても1枚だけ）
   var ov = document.createElement('div'); ov.className = 'srpg-finale';
   ov.innerHTML = '<div class="srpg-finale-sky"></div>'
     + '<div class="srpg-finale-em">🏰✨</div>'
@@ -1405,7 +1420,7 @@ function srpgEnd(outcome){
     chapWin = srpgParseChapterId(srpgB.stageId);
     if(chapWin){
       var _cont = srpgContinent(chapWin.area);
-      var _isFinal = (chapWin.ni===2 && chapWin.ci === srpgChapterCount(chapWin.area)-1);
+      var _isFinal = srpgIsFinalBoss(chapWin.area, chapWin.ci, chapWin.ni);   // 純関数で最終章ボス判定（テスト可能）
       if(_isFinal && _cont){
         cryDef = srpgCrystalFor(_cont.crystalId);                        // クリスタルは大陸ID（q_math等）に付与
         cryFirst = cryDef && !srpgClearedSet()[_cont.crystalId];

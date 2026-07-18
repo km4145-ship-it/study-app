@@ -38,9 +38,9 @@ window.FIREBASE_CONFIG = {
   // ---- マージ規則（v1と同じ・キー名のサフィックスで判定）----
   function isArr(k){ return /:(study_log|mistake_notebook|real_exams|paper_sheets)$/.test(k) || k==='extra_questions'; }
   function isCounter(k){ return /:(c_correct|c_streak|c_points|c_beststreak|c_answered|c_seconds|gacha_pulls|gacha_stamp_claims)$/.test(k); }   // gacha_*はスタンプカード（増えるだけ＝maxマージで安全）
-  function isObjMax(k){ return /:(daily_hist|study_seconds|week_srs|careless_log)$/.test(k) || k==='mu_deleted'; }
+  function isObjMax(k){ return /:(daily_hist|study_seconds|week_srs|careless_log|srpg_stars)$/.test(k) || k==='mu_deleted'; }   // srpg_stars=ステージ毎の最高星は端末間でmax
   function isTopic(k){ return /:topic_stats$/.test(k); }
-  function isUnionObj(k){ return /:(quest_done|badges)$/.test(k); }
+  function isUnionObj(k){ return /:(quest_done|badges|srpg_cleared|srpg_story_seen)$/.test(k); }   // srpg_cleared=章/大陸クリア・クリスタル, srpg_story_seen=既読物語は端末間で和集合（進捗を失わない）
   function keyOfEntry(e){ if(e&&e.q) return 'q'+e.q; if(e&&e.id) return 'i'+e.id; if(e&&e.ts) return 't'+e.ts; return JSON.stringify(e); }
   function mergeArr(a,b){ try{ var x=JSON.parse(a||'[]'),y=JSON.parse(b||'[]'),map={},order=[];
     x.concat(y).forEach(function(e){ var key=keyOfEntry(e); if(map[key]===undefined){ map[key]=e; order.push(key); }

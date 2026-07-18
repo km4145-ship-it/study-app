@@ -115,6 +115,21 @@ const mathGens = [
   function(){ const e2=rint(1,3), e3=rint(0,2), e5=rint(0,1); const n=Math.pow(2,e2)*Math.pow(3,e3)*Math.pow(5,e5); const cnt=(e2+1)*(e3+1)*(e5+1); if(n<6||n>400) return mathGens[0](); return {q:`${n} の約数は全部で何個？`, sub:'約数の個数', level:'★★★', hint:'素因数分解して各指数+1をかける', type:'free', ans:`${cnt}`, altAns:[`${cnt}個`], explain:`【考え方】各指数に1を足してかける。\n【手順】${n}を素因数分解し、各指数+1をかけると約数の個数=${cnt}個\n【ポイント】約数の個数＝(各指数+1)の積。`}; },
   function(){ const p1=pick([60,80,90,100]); const p2=p1+pick([30,40,50]); const total=pick([8,10,12]); const x=rint(2,total-2); const cost=p1*x+p2*(total-x); return {q:`1個${p1}円と1個${p2}円の品を合わせて${total}個買うと代金${cost}円。${p1}円の品は何個？`, sub:'方程式の文章題', level:'★★★', hint:`${p1}x+${p2}(${total}-x)=${cost}`, type:'free', ans:`${x}`, altAns:[`${x}個`], explain:`【考え方】一方を(全体−x)とおいて方程式。\n【手順】${p1}x+${p2}(${total}-x)=${cost} を解くと x=${x}個\n【ポイント】合計個数を使って残りを表す。`}; },
 ];
+// ---- 中学：文章題（立式）を強化＝偏差値55→65で差がつく思考問題を追加 ----
+mathGens.push(
+ // ある数（一次方程式）
+ function(){ var x=rint(3,12), a=rint(2,5), b=rint(3,15), r=a*x+b; return {q:'ある数を'+a+'倍して'+b+'をたすと'+r+'になった。ある数は？', sub:'方程式の文章題（ある数）', level:'★★★', hint:'ある数をxとして '+a+'x+'+b+'='+r, type:'free', ans:''+x, altAns:[''+x], explain:'【考え方】わからない数をxとおいて式にする。\n【手順】'+a+'x+'+b+'='+r+' → '+a+'x='+(r-b)+' → x='+x+'\n【ポイント】文を そのまま 式に する。'}; },
+ // 和差算（合計と差）
+ function(){ var big=rint(8,20), small=rint(3,big-2), s=big+small, d=big-small; return {q:'えんぴつとペンを 合わせて'+s+'本 買った。えんぴつは ペンより'+d+'本 多い。えんぴつは 何本？', sub:'方程式の文章題（和差）', level:'★★★', hint:'ペンをxとして (x+'+d+')+x='+s, type:'free', ans:''+big, altAns:[big+'本'], explain:'【考え方】少ない方をxとおく。\n【手順】x+(x+'+d+')='+s+' → 2x='+(s-d)+' → x='+small+'、多い方は'+big+'本\n【ポイント】和と差から2つを もとめる。'}; },
+ // 連続する2つの整数
+ function(){ var n=rint(5,30), s=n+(n+1); return {q:'連続する2つの整数の 和が'+s+'。小さい方の整数は？', sub:'方程式の文章題（連続整数）', level:'★★★', hint:'小さい方をxとして x+(x+1)='+s, type:'free', ans:''+n, altAns:[''+n], explain:'【考え方】連続する整数は x と x+1。\n【手順】x+(x+1)='+s+' → 2x+1='+s+' → x='+n+'\n【ポイント】連続整数は 1ちがい。'}; },
+ // 過不足算（配った数＋あまり＝全体）
+ function(){ var kids=rint(4,9), each=rint(3,6), sur=rint(2,5); var total=each*kids+sur; return {q:'あめを 1人に'+each+'個ずつ 配ると'+sur+'個 あまる。全部で'+total+'個 あるとき、子どもは 何人？', sub:'方程式の文章題（過不足）', level:'★★★', hint:each+'x+'+sur+'='+total, type:'free', ans:''+kids, altAns:[kids+'人'], explain:'【考え方】人数をxとして 配った数＋あまり＝全体。\n【手順】'+each+'x+'+sur+'='+total+' → '+each+'x='+(total-sur)+' → x='+kids+'\n【ポイント】あまりは たす。'}; },
+ // 速さ（道のり＝速さ×時間の文章）
+ function(){ var v=pick([60,70,80,90]); var t=rint(3,12); var dist=v*t; return {q:'家から 学校まで 分速'+v+'mで 歩くと'+t+'分 かかった。家から 学校までの 道のりは？（m）', sub:'速さの文章題', level:'★★★', hint:'道のり＝速さ×時間', type:'free', ans:''+dist, altAns:[dist+'m'], explain:'【考え方】道のり＝速さ×時間。\n【手順】'+v+'×'+t+'='+dist+'m\n【ポイント】単位（分速×分）をそろえる。'}; },
+ // 割合（もとにする量）＝くらべる量÷割合。baseは100の倍数で amt は必ず整数
+ function(){ var base=rint(1,6)*100; var p=pick([20,25,40,50,60,75]); var amt=base*p/100; return {q:'ある数の'+p+'%が'+amt+'。ある数は？', sub:'割合の文章題（もとにする量）', level:'★★★★', hint:'ある数×'+(p/100)+'='+amt, type:'free', ans:''+base, altAns:[''+base], explain:'【考え方】もとにする量＝くらべる量÷割合。\n【手順】'+amt+'÷'+(p/100)+'='+base+'\n【ポイント】％は 小数（'+(p/100)+'）に 直す。'}; }
+);
 // ---- 理科ジェネレーター ----
 const sciGens = [
   function(){ const v=rint(2,9)*10; const d=pick([2,2.5,4,5,8]); const m=Math.round(d*v); return {q:`体積${v}cm³、密度${d}g/cm³の物体の質量は？（g）`, sub:'密度の計算', level:'★★★', hint:'質量=密度×体積', type:'free', ans:`${m}`, altAns:[`${m}g`], explain:`【考え方】質量＝密度×体積。\n【手順】${d}×${v}=${m}g\n【ポイント】密度の式は÷と×を使い分ける。`}; },
@@ -263,6 +278,29 @@ g4MathGens = g4MathGens.concat([
  function(){ var y=rint(2,9),k=rint(2,9); return {q:'□ × '+k+' = '+(y*k)+'　□は？', sub:'□を使った式', level:'★★☆', hint:'わり算でもとめる', type:'free', ans:''+y, altAns:[''+y], explain:'【考え方】□＝積÷かける数。\n【手順】'+(y*k)+'÷'+k+'='+y+'\n【ポイント】逆算する。'}; },
  function(){ var b=rint(2,8),q=rint(2,9),a=b*q,c=rint(2,9); return {q:a+' ÷ '+b+' + '+c+' = ?', sub:'計算の順序', level:'★★☆', hint:'÷を先に', type:'free', ans:''+(q+c), altAns:[''+(q+c)], explain:'【考え方】×÷が先、＋−が後。\n【手順】'+a+'÷'+b+'='+q+'、+'+c+'='+(q+c)+'\n【ポイント】わり算を先に。'}; },
  function(){ var data=[['9時',rint(8,14)],['12時',rint(16,24)],['15時',rint(15,23)],['18時',rint(10,16)]]; var mx=data.slice().sort(function(p,q){return q[1]-p[1];})[0]; return {q:'気温の記録… '+data.map(function(x){return x[0]+'='+x[1]+'℃';}).join('、')+'。いちばん高いのは？', sub:'折れ線グラフ・表', level:'★★☆', hint:'数をくらべる', type:'choice', choices:data.map(function(x){return x[0];}), ans:mx[0], explain:'【考え方】表やグラフは数を読み取る。\n【手順】いちばん大きいのは'+mx[0]+'（'+mx[1]+'℃）\n【ポイント】変化は折れ線で。'}; },
+]);
+
+// ---- 小5-6：分数の四則（異分母加減・約分・通分・分数×÷）＝いちばん手薄だった山を補強 ----
+function _gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ var t=b; b=a%b; a=t; } return a||1; }
+// 分数 n/d を約分して「n/d」か整数の文字列に（d=1なら整数）
+function _fracStr(n,d){ var g=_gcd(n,d); n/=g; d/=g; return d===1 ? (''+n) : (n+'/'+d); }
+g4MathGens = g4MathGens.concat([
+ // 約分
+ function(){ var g=rint(2,6), a=rint(1,5), b=rint(a+1,7); if(_gcd(a,b)!==1){ b=a+1; } var n=a*g, d=b*g; return {q:n+'/'+d+' を これ以上 約分できないところまで 約分すると？', sub:'約分', level:'★★☆', hint:'分母と分子を 同じ数で わる', type:'free', ans:a+'/'+b, altAns:[a+'/'+b], explain:'【考え方】分母と分子の 最大公約数で わる。\n【手順】'+n+'と'+d+'を '+g+'で わって '+a+'/'+b+'\n【ポイント】これ以上われない形が答え。'}; },
+ // 異分母のたし算（分母は倍数関係でやさしめ）
+ function(){ var b=rint(2,5), k=rint(2,4), d=b*k, a=rint(1,b-1), c=rint(1,d-1); var n1=a*k, sum=n1+c; if(sum>=d){ c=1; sum=n1+1; } var ans=_fracStr(sum,d); return {q:a+'/'+b+' + '+c+'/'+d+' = ?', sub:'分数のたし算（異分母）', level:'★★★', hint:'分母を '+d+' にそろえる（通分）', type:'free', ans:ans, altAns:[ans,sum+'/'+d], explain:'【考え方】分母をそろえて（通分）から たす。\n【手順】'+a+'/'+b+'='+n1+'/'+d+'、'+n1+'/'+d+'+'+c+'/'+d+'='+sum+'/'+d+'→'+ans+'\n【ポイント】通分してから 分子をたす。'}; },
+ // 異分母のひき算
+ function(){ var b=rint(2,5), k=rint(2,4), d=b*k, a=rint(1,b-1), n1=a*k, c=rint(1,n1-1), dif=n1-c; var ans=_fracStr(dif,d); return {q:a+'/'+b+' − '+c+'/'+d+' = ?', sub:'分数のひき算（異分母）', level:'★★★', hint:'分母を '+d+' にそろえる', type:'free', ans:ans, altAns:[ans,dif+'/'+d], explain:'【考え方】通分してから ひく。\n【手順】'+a+'/'+b+'='+n1+'/'+d+'、'+n1+'/'+d+'−'+c+'/'+d+'='+dif+'/'+d+'→'+ans+'\n【ポイント】分母をそろえて 分子をひく。'}; },
+ // 分数×整数
+ function(){ var b=rint(3,7), a=rint(1,b-1), m=rint(2,5); var ans=_fracStr(a*m,b); return {q:a+'/'+b+' × '+m+' = ?', sub:'分数×整数', level:'★★★', hint:'分子に かける', type:'free', ans:ans, altAns:[ans,(a*m)+'/'+b], explain:'【考え方】分子に整数をかける。\n【手順】('+a+'×'+m+')/'+b+'='+(a*m)+'/'+b+'→'+ans+'\n【ポイント】分母はそのまま。'}; },
+ // 分数÷整数
+ function(){ var b=rint(2,5), a=rint(1,b-1), m=rint(2,4); var ans=_fracStr(a,b*m); return {q:a+'/'+b+' ÷ '+m+' = ?', sub:'分数÷整数', level:'★★★', hint:'分母に かける', type:'free', ans:ans, altAns:[ans,a+'/'+(b*m)], explain:'【考え方】÷整数は 分母にかける。\n【手順】'+a+'/('+b+'×'+m+')='+a+'/'+(b*m)+'→'+ans+'\n【ポイント】分子はそのまま、分母に。'}; },
+ // 分数×分数
+ function(){ var b=rint(2,5), a=rint(1,b-1), d=rint(2,5), c=rint(1,d-1); var ans=_fracStr(a*c,b*d); return {q:a+'/'+b+' × '+c+'/'+d+' = ?', sub:'分数×分数', level:'★★★', hint:'分子×分子／分母×分母', type:'free', ans:ans, altAns:[ans,(a*c)+'/'+(b*d)], explain:'【考え方】分子どうし・分母どうしを かける。\n【手順】('+a+'×'+c+')/('+b+'×'+d+')='+(a*c)+'/'+(b*d)+'→'+ans+'\n【ポイント】さいごに 約分。'}; },
+ // 分数÷分数（逆数をかける）
+ function(){ var b=rint(2,5), a=rint(1,b-1), d=rint(2,5), c=rint(1,d-1); var ans=_fracStr(a*d,b*c); return {q:a+'/'+b+' ÷ '+c+'/'+d+' = ?', sub:'分数÷分数', level:'★★★', hint:'わる分数を ひっくり返して かける', type:'free', ans:ans, altAns:[ans,(a*d)+'/'+(b*c)], explain:'【考え方】÷分数は 逆数をかける。\n【手順】'+a+'/'+b+' × '+d+'/'+c+' =('+a+'×'+d+')/('+b+'×'+c+')='+(a*d)+'/'+(b*c)+'→'+ans+'\n【ポイント】ひっくり返して かける。'}; },
+ // 通分（共通の分母を答える）
+ function(){ var b=rint(2,6), d=rint(2,6); while(d===b){ d=rint(2,6); } var lcm=b*d/_gcd(b,d); return {q:'1/'+b+' と 1/'+d+' を 通分すると、共通の分母は？', sub:'通分', level:'★★☆', hint:'分母の 最小公倍数', type:'free', ans:''+lcm, altAns:[''+lcm], explain:'【考え方】通分の分母は 最小公倍数。\n【手順】'+b+'と'+d+'の最小公倍数は '+lcm+'\n【ポイント】そろえた分母で くらべ・計算。'}; },
 ]);
 g4JpGens = g4JpGens.concat([
  function(){ var w=pick([['あんない','案内'],['えいご','英語'],['きぼう','希望'],['けっか','結果'],['せいこう','成功'],['きょうりょく','協力'],['かんさつ','観察'],['けんこう','健康']]); var o=shuffleArr(['案内','英語','希望','結果','成功','協力','観察','健康']).filter(function(x){return x!==w[1];}).slice(0,3); return {q:'「'+w[0]+'」を漢字で書くと？', sub:'漢字の書き（4年）', level:'★★☆', hint:'意味から', type:'choice', choices:shuffleArr([w[1]].concat(o)), ans:w[1], explain:'【考え方】読みと意味から選ぶ。\n【手順】'+w[0]+'＝'+w[1]+'\n【ポイント】書いて覚える。'}; },

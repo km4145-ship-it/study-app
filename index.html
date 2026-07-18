@@ -7725,10 +7725,10 @@ function _gachaPool(banner){ var pool=[]; ['hero','pet','aibou'].forEach(functio
   var g=COS_DATA[kind]; for(var sl in g){ g[sl].forEach(function(it){ pool.push({kind:kind,slot:sl,it:it}); }); } });
   if(!pool.length) pool=_gachaPool();              // 空プール（データ欠落）は常設に安全フォールバック
   return pool; }
-var COS_RANK={N:0,HN:1,R:2,HR:3,SR:4,SSR:5,UR:6,LR:7};
+var COS_RANK={N:0,HN:1,R:2,S:2,HR:3,SR:4,SSR:5,UR:6,LR:7};
 function _cosRank(r){ return COS_RANK[r||'N']||0; }
 // 排出率（アイテム1個あたりの重み）：確率表示（_gachaRates）と抽選（_gachaPick）で共有する
-var GACHA_W={N:400,HN:250,R:160,HR:90,SR:55,SSR:28,UR:12,LR:5};
+var GACHA_W={N:400,HN:250,R:160,S:160,HR:90,SR:55,SSR:28,UR:12,LR:5};
 function _gachaPick(banner){ var pool=_gachaPool(banner), tot=0, weighted=[];
   // 週替わりピックアップ（gacha-story.js）：ピックアップ宝箱では対象セットのアイテムが重み3倍。
   // 未ロード環境（テスト抽出）ではスキップ＝決定性を維持

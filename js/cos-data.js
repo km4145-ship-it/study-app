@@ -173,6 +173,7 @@ var COS_RARITY={
   N:{name:'ノーマル',cls:'cos-n'},
   HN:{name:'ハイノーマル',cls:'cos-hn'},
   R:{name:'レア',cls:'cos-r'},
+  S:{name:'スペシャルレア',cls:'cos-r'},
   HR:{name:'ハイパーレア',cls:'cos-hr'},
   SR:{name:'スーパーレア',cls:'cos-sr'},
   SSR:{name:'ダブルスーパーレア',cls:'cos-ssr'},

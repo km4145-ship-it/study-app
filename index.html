@@ -214,6 +214,7 @@
   body.kai-mode .header p, body.kai-mode .wave-deco { color: #fda4af; }
   .speaking-dot { display: inline-block; width: 7px; height: 7px; background: var(--pink); border-radius: 50%; margin-left: 5px; animation: blink 0.8s infinite; vertical-align: middle; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+  @media (prefers-reduced-motion:reduce){ .char-svg, .char-svg.kai, .start-chars svg{ animation:none!important; } .speaking-dot{ animation:none!important; opacity:1; } }
 
   /* Level tabs */
   .level-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -268,6 +269,8 @@
   @media (hover:hover) and (pointer:fine){ .option-btn:hover:not(:disabled) { border-color: var(--primary-vivid); background: #f0fbfe; color: var(--text); transform: translateY(-2px); box-shadow: var(--sh-2); } }
   .option-btn.correct { border-color: var(--success); background: rgba(16,185,129,0.14); color: var(--success); box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
   .option-btn.wrong { border-color: var(--error); background: rgba(239,68,68,0.1); color: var(--error); }
+  .option-btn.correct::after{ content:" ✓"; font-weight:900; }   /* 色覚に頼らず正誤がわかる */
+  .option-btn.wrong::after{ content:" ✗"; font-weight:900; }
   .option-btn:disabled { cursor: default; }
 
   /* Input */
@@ -369,7 +372,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rec-hist-item { background:var(--card); border-radius:10px; padding:9px 12px; margin-bottom:7px; font-size:0.82rem; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
   .rec-hist-item .rh-badge { font-size:0.7rem; padding:1px 8px; border-radius:99px; color:#fff; }
   .rh-exam { background:#dc2626; } .rh-practice { background:#0891b2; }
-  .rec-empty { text-align:center; color:#94a3b8; padding:30px; }
+  .rec-empty { text-align:center; color:#64748b; padding:30px; }
   .danger-link { color:#f87171; font-size:0.76rem; background:none; border:none; cursor:pointer; text-decoration:underline; }
   /* 設定モーダル */
   .settings-modal {
@@ -399,7 +402,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
     display: flex; flex-direction: column; gap: 10px;
   }
   .settings-section h3 { font-size: 1rem; color: var(--primary-light); }
-  .settings-hint { font-size: 0.74rem; color: #94a3b8; line-height: 1.5; }
+  .settings-hint { font-size: 0.74rem; color: #64748b; line-height: 1.5; }
   .settings-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .settings-row label { font-size: 0.82rem; white-space: nowrap; min-width: 56px; color: var(--primary-light); }
   .settings-row input {
@@ -1276,7 +1279,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .hub-hensa b{ font-weight:900; color:#0b63c4; }
   .hub-ring{ width:58px; height:58px; flex:0 0 58px; border-radius:50%; background:conic-gradient(#f59e0b calc(var(--p)*1%), #e6f4fc 0); display:flex; align-items:center; justify-content:center; }
   .hub-ring-in{ width:44px; height:44px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; color:var(--text); }
-  .hub-ring-in small{ font-size:10px; font-weight:600; color:#94a3b8; }
+  .hub-ring-in small{ font-size:10px; font-weight:700; color:#64748b; }
   /* リボン */
   .hub-ribbons{ display:flex; gap:8px; flex-wrap:wrap; }
   .hub-rib{ font-size:12px; font-weight:700; border-radius:999px; padding:5px 12px; }
@@ -1590,7 +1593,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-party-mem{ width:46px; height:56px; border-radius:12px; background:var(--card); border:2px solid var(--primary-light); display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .rpg-party-mem svg{ width:90%; height:90%; }
   .rpg-party-mem.locked{ filter:grayscale(1) brightness(.75); }
-  .rpg-party-q{ font-size:1.4rem; color:#94a3b8; font-weight:900; }
+  .rpg-party-q{ font-size:1.4rem; color:#64748b; font-weight:900; }
   .rpg-castle-card{ display:flex; align-items:center; gap:12px; width:100%; margin-top:14px; border-radius:16px; padding:14px 16px; font-family:inherit; text-align:left; border:2px solid; }
   .rpg-castle-card .rpg-castle-em{ font-size:2.4rem; flex:0 0 auto; }
   .rpg-castle-card.ready{ background:linear-gradient(135deg,#7f1d1d,#b91c1c); color:#fff; border-color:var(--rpg-gold,#fcd34d); cursor:pointer; animation:rpgBtnBob 2s ease-in-out infinite; }

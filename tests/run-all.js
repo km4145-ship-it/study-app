@@ -29,6 +29,7 @@ const TESTS = [
   ['tests/unit-generators-pack.js'],
   ['tests/unit-generators-pack2.js'],
   ['tests/unit-generators-pack3.js'],
+  ['tests/unit-generators-elem23.js'],
   ['tests/unit-srpg.js'],
   ['tests/unit-srpg-mons.js'],
   ['tests/unit-story.js'],

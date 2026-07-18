@@ -787,6 +787,7 @@ function srpgAfterAnswer(correct){
   try{ sfx(correct?'correct':'wrong'); }catch(e){}
   // 学習の記録：偏差値にも反映（教科＝currentAreaを一時セットせず ratingRecord に直接）
   try{ if(typeof ratingRecord==='function') ratingRecord(srpgB.subject, q, correct); }catch(e){}
+  try{ if(typeof hensaOnAnswer==='function') hensaOnAnswer(); }catch(e){}   // 確定偏差値のカウント（タクトの解答も実績）
   if(!correct){
     try{ (srpgB.missedQ = srpgB.missedQ || []).push({ area:srpgB.subject, q:q }); while(srpgB.missedQ.length > 5) srpgB.missedQ.shift(); }catch(e){}
     try{ if(typeof addMistake==='function') addMistake(q, srpgB.subject); }catch(e){}   // まちがいノートへ（あとで復習できる）

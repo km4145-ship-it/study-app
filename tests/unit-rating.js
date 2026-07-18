@@ -11,7 +11,7 @@ const code = fs.readFileSync(path.join(ROOT, 'js', 'rating.js'), 'utf8');
 try { new Function(code)(); c.ok('rating.js 単体loadで例外なし', true); }
 catch (e) { c.ok('rating.js 単体loadで例外なし: ' + e.message, false); }
 const api = (new Function(code +
-  '\nreturn { ratingItemDiff, ratingGuess, ratingExpected, ratingK, ratingStep, ratingOverallOf, ratingDelta7, ratingTier, RATING_START };'))();
+  '\nreturn { ratingItemDiff, ratingGuess, ratingExpected, ratingK, ratingStep, ratingOverallOf, ratingDelta7, ratingTier, RATING_START, hensaDispStep, HENSA_FIRST_N, HENSA_BATCH_N, HENSA_STEP_MAX };'))();
 
 // ---- 難易度・当て推量 ----
 c.eq('★=42', api.ratingItemDiff('★☆☆'), 42);
@@ -88,4 +88,34 @@ c.ok('MU_PER_USER に practice_rating 登録（ユーザー別保存・同期）
 c.ok('結果画面に変動表示', html.indexOf("id='result-rating'") >= 0 || html.indexOf('result-rating') >= 0);
 c.ok('記録画面に実力メーターカード', html.indexOf('_practiceRatingHtml') >= 0);
 c.ok('おまかせがレーティング連動', html.indexOf('ratingTier(ratingAreaR(area))') >= 0);
+// ---- 確定偏差値（表示用バッチ更新）----
+{
+  c.eq('初回は20問で確定', api.HENSA_FIRST_N, 20);
+  c.eq('以降は10問ごと', api.HENSA_BATCH_N, 10);
+  // 19問目までは未確定（計測中）
+  let d = { val:null, pend:0 };
+  for(let i=0;i<19;i++){ const r=api.hensaDispStep(d, 55); c.ok('途中は未確定 '+(i+1)+'問目', !r.updated || i===19); d=r.disp; }
+  c.ok('19問では まだ確定しない', d.val===null && d.pend===19);
+  // 20問目で仮確定（初回はクランプなし＝そのままの値）
+  const first = api.hensaDispStep(d, 58.4);
+  c.ok('20問目で確定する', first.updated===true && first.disp.val===58.4 && first.disp.pend===0);
+  c.ok('初回の prev は null', first.prev===null);
+  // 以降は10問ごと・変動は±3まで
+  d = first.disp;
+  for(let i=0;i<9;i++){ const r=api.hensaDispStep(d, 70); c.ok('9問までは動かない', !r.updated); d=r.disp; }
+  const up = api.hensaDispStep(d, 70);
+  c.ok('10問目で更新・上げ幅は+3まで', up.updated===true && up.disp.val===58.4+3);
+  const down = api.hensaDispStep({ val:50, pend:9 }, 30);
+  c.ok('下げ幅も-3まで', down.updated===true && down.disp.val===47);
+  const small = api.hensaDispStep({ val:50, pend:9 }, 51.23);
+  c.ok('±3以内なら そのまま（丸めは0.1）', small.disp.val===51.2);
+  c.ok('残り問数を返す', api.hensaDispStep({ val:50, pend:0 }, 50).left===9);
+}
+
+// ---- 確定偏差値の配線（HTML側）----
+c.ok('MU_PER_USER に hensa_disp 登録', html.indexOf('hensa_disp:1') >= 0);
+c.ok('解答時に hensaOnAnswer が呼ばれる', html.indexOf('hensaOnAnswer();') >= 0);
+c.ok('上部バーが確定値を表示', html.indexOf('hd.val.toFixed(1)') >= 0);
+const srpgUi = fs.readFileSync(path.join(ROOT, 'js', 'srpg-ui.js'), 'utf8');
+c.ok('タクトの解答も実績にカウント', srpgUi.indexOf('hensaOnAnswer') >= 0);
 c.done();

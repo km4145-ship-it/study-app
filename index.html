@@ -3200,7 +3200,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1};
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,hensa_disp:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1};
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -5199,8 +5199,12 @@ function updateResBar(){
   var st=document.getElementById('rb-streak'); if(st){ try{ st.textContent=currentStreak(); }catch(e){} }
   var hs=document.getElementById('rb-hensa');
   if(hs){ try{
-    var rst=ratingLoad(), n=0; Object.keys(rst.by||{}).forEach(function(k){ n+=(rst.by[k].n||0); });
-    if(n){ hs.textContent=ratingOverall(rst).toFixed(1); } else { hs.textContent='--'; }
+    var hd=hensaDisp();
+    if(hd.val!=null){
+      hs.textContent=hd.val.toFixed(1);
+      var _need=(hd.val==null)?20:10;
+      try{ hs.parentElement.title='かくてい偏差値（目標65）・つぎの更新まで あと'+Math.max(1,_need-(hd.pend||0))+'問'; }catch(e){}
+    } else { hs.textContent='--'; try{ hs.parentElement.title='20問とくと 偏差値が でるよ'; }catch(e){} }
   }catch(e){ hs.textContent='--'; } }
 }
 
@@ -5220,7 +5224,7 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   var lv=1; try{ lv=(rpgState().level)||1; }catch(e){}
   var st=0; try{ st=currentStreak(); }catch(e){}
   var pts=totalPoints||0;
-  var hensa=''; try{ var _rs=ratingLoad(), _hn=0; Object.keys(_rs.by||{}).forEach(function(k){ _hn+=(_rs.by[k].n||0); }); hensa=_hn? ratingOverall(_rs).toFixed(1) : ''; }catch(e){}
+  var hensa='', hensaSub=''; try{ var _hd=hensaDisp(); if(_hd.val!=null){ hensa=_hd.val.toFixed(1); } else { hensaSub='（あと'+Math.max(1,20-(_hd.pend||0))+'問で でるよ）'; } }catch(e){}
   var goal=getDailyGoal(), cnt=getDailyProg().count, pct=Math.min(100,Math.round(cnt/goal*100));
   var due=0; try{ due=dueCount(); }catch(e){}
   var nb=0; try{ nb=getMistakes().length; }catch(e){}
@@ -5233,7 +5237,7 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   h+='<div class="hub-player">'+
      '<div class="hub-ava">'+avatar+'</div>'+
      '<div class="hub-pinfo"><div class="hub-pname">'+escapeHtml(name)+(grade?' <span class="hub-grade">'+grade+'</span>':'')+'</div>'+
-     '<div class="hub-chips"><span class="hub-chip hub-hensa" title="いまの偏差値（目標65）">📈 偏差値 <b>'+(hensa||'計測中')+'</b></span><span class="hub-chip">⭐ '+pts+'</span><span class="hub-chip">🔥 '+st+'日</span><span class="hub-chip">Lv '+lv+'</span></div></div>'+
+     '<div class="hub-chips"><span class="hub-chip hub-hensa" title="かくてい偏差値（目標65）・10問ごとに更新">📈 偏差値 <b>'+(hensa||'計測中')+'</b>'+(hensaSub?'<small style="font-weight:700"> '+hensaSub+'</small>':'')+'</span><span class="hub-chip">⭐ '+pts+'</span><span class="hub-chip">🔥 '+st+'日</span><span class="hub-chip">Lv '+lv+'</span></div></div>'+
      '<div class="hub-ring" style="--p:'+pct+'"><div class="hub-ring-in">'+cnt+'<small>/'+goal+'</small></div></div>'+
      '</div>';
   // 🛡️ データ保護のおすすめ（端末内のみ＝バックアップ無しのとき。アカウントで消えても復活・別端末でも遊べる）
@@ -5987,6 +5991,26 @@ function showToast(emoji, title, sub, ms){
 }
 
 // ---- JSONストレージ補助 ----
+// ===== 確定偏差値（表示用）：問題を1問とくたび pend を進め、バッチ到達で確定更新 =====
+function hensaDisp(){ return lsGetJSON('hensa_disp', { val:null, pend:0 }) || { val:null, pend:0 }; }
+function hensaOnAnswer(){
+  try{
+    if(typeof hensaDispStep!=='function') return;
+    var st = ratingLoad();
+    var res = hensaDispStep(hensaDisp(), ratingOverall(st));
+    lsSetJSON('hensa_disp', res.disp);
+    if(res.updated){
+      var v = res.disp.val, pv = res.prev;
+      var msg = (pv == null) ? ('はじめての 偏差値が でたよ：' + v.toFixed(1))
+        : (v > pv ? ('▲ ' + pv.toFixed(1) + ' → ' + v.toFixed(1) + '　アップ！')
+        : v < pv ? ('▼ ' + pv.toFixed(1) + ' → ' + v.toFixed(1))
+        : ('キープ：' + v.toFixed(1)));
+      try{ showToast('📈','偏差値が こうしんされた！', msg + '（つぎは 10問ごとに更新）'); }catch(e){}
+      try{ var pe = document.getElementById('rb-hensa'); if(pe){ pe.classList.remove('score-pop'); void pe.offsetWidth; pe.classList.add('score-pop'); } }catch(e){}
+    }
+    try{ updateResBar(); }catch(e){}
+  }catch(e){}
+}
 function lsGetJSON(key, def){ try { const v = safeLS.getItem(key); return v ? JSON.parse(v) : def; } catch(e){ return def; } }
 function lsSetJSON(key, val){ try { safeLS.setItem(key, JSON.stringify(val)); } catch(e){} }
 
@@ -6003,7 +6027,8 @@ function onAnswered(q, correct){
   logQuestion(area, sub, correct);
   // ⚡れんしゅう偏差値（実力メーター）：練習・バトルの全問で更新（模試は正式偏差値なので対象外）
   if(!isExam && !_familyDaily){ try{ if(typeof ratingRecord==='function') ratingRecord(area, q, correct); }catch(e){} }   // 家族もんだいは教科混合＝currentAreaのレートを汚さない
-  try{ updateQuizHensachi(true); }catch(e){}   // 解いている最中の偏差値を毎問リアルタイム更新（変動フラッシュ付き）
+  try{ hensaOnAnswer(); }catch(e){}   // 確定偏差値のバッチカウント（10問ごとに更新）
+  try{ updateQuizHensachi(true); }catch(e){}   // クイズ内の表示（確定値＋つぎの更新まで）
   try{ updateResBar(); }catch(e){}   // 上部バーの偏差値も毎問同期（全画面で常に最新）
   if(correct) srsCorrect(q);
   else addMistake(q, area);
@@ -6016,23 +6041,22 @@ var _quizHensLast=null;
 function updateQuizHensachi(animate){
   try{
     var el=document.getElementById('quiz-hensachi'); if(!el) return;
-    if(isExam || _familyDaily || typeof ratingLoad!=='function' || typeof ratingOverall!=='function'){ el.style.display='none'; _quizHensLast=null; return; }
-    var st=ratingLoad(), n=0; Object.keys(st.by||{}).forEach(function(k){ n+=(st.by[k].n||0); });
-    if(!n){ el.style.display='flex'; el.innerHTML='<span class="qh-l">⚡偏差値</span><span class="qh-goal">問題をとくと 「ふだんの実力」が ここに出るよ</span>'; _quizHensLast=null; return; }
-    var r=ratingOverall(st);
+    if(isExam || _familyDaily || typeof ratingLoad!=='function'){ el.style.display='none'; return; }
+    var hd=hensaDisp();
+    el.style.display='flex';
+    if(hd.val==null){
+      var left0=Math.max(1,20-(hd.pend||0));
+      el.innerHTML='<span class="qh-l">⚡偏差値</span><span class="qh-goal">あと '+left0+'問 とくと ふだんの実力が でるよ</span>';
+      return;
+    }
+    var r=hd.val;
     var pct=Math.max(2,Math.min(100,Math.round((r-40)/(70-40)*100)));
     var col = r>=65?'#10b981' : r>=55?'#0891b2' : r>=45?'#f59e0b' : '#ef4444';
+    var left=Math.max(1,10-(hd.pend||0));
     var goal = r>=65 ? '🎉 目標65 とうたつ！' : ('目標65まで あと '+(65-r).toFixed(1));
-    var delta = (_quizHensLast!=null) ? (r-_quizHensLast) : 0;
-    el.style.display='flex';
     el.innerHTML='<span class="qh-l">⚡偏差値</span><b class="qh-v" style="color:'+col+'">'+r.toFixed(1)+'</b>'+
       '<span class="qh-bar"><i style="width:'+pct+'%;background:'+col+'"></i></span>'+
-      '<span class="qh-goal">'+goal+'</span>';
-    if(animate && _quizHensLast!=null && Math.abs(delta)>=0.05){
-      el.classList.remove('up','down'); void el.offsetWidth; el.classList.add(delta>0?'up':'down');
-      try{ var f=document.createElement('span'); f.className='qh-delta '+(delta>0?'up':'down'); f.textContent=(delta>0?'▲+':'▼')+Math.abs(delta).toFixed(1); el.appendChild(f); setTimeout(function(){ try{ el.removeChild(f); }catch(e2){} },1200); }catch(e){}
-    }
-    _quizHensLast=r;
+      '<span class="qh-goal">'+goal+'　<small>こうしんまで あと'+left+'問</small></span>';
   }catch(e){}
 }
 // ---- 問題単位のログ（詳細分析用・端末内のみ） ----

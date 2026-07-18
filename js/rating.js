@@ -77,6 +77,23 @@ function ratingLoad(){
   return { v:1, by:{}, hist:{} };
 }
 function ratingOverall(st){ return ratingOverallOf((st || {}).by); }
+
+// ===== 表示用の「確定偏差値」＝実際の偏差値のように まとまった実績ごとに更新 =====
+// 内部レート(practice_rating)は毎問更新のまま（適応出題に必要）。表示だけをバッチ確定にする。
+//   ・初回は20問といた時点で仮確定（それまでは「計測中」）
+//   ・以降は10問ごとに確定しなおす。1回の変動は±3.0まで（実際の偏差値らしくジワジワ動く）
+var HENSA_FIRST_N = 20, HENSA_BATCH_N = 10, HENSA_STEP_MAX = 3.0;
+function hensaDispStep(disp, overallNow){
+  var d = { val:(disp && disp.val != null) ? disp.val : null, pend:((disp && disp.pend) || 0) + 1 };
+  var need = (d.val == null) ? HENSA_FIRST_N : HENSA_BATCH_N;
+  if(d.pend < need) return { disp:d, updated:false, left:need - d.pend };
+  var nv = overallNow;
+  if(d.val != null) nv = Math.max(d.val - HENSA_STEP_MAX, Math.min(d.val + HENSA_STEP_MAX, nv));
+  var prev = d.val;
+  d.val = Math.round(nv * 10) / 10;
+  d.pend = 0;
+  return { disp:d, updated:true, prev:prev, left:HENSA_BATCH_N };
+}
 // 1問の結果を反映して保存。更新後の状態を返す
 function ratingRecord(area, q, correct){
   if (!q) return null;

@@ -207,8 +207,64 @@ const JP_YOJI = [['単刀直入','単'],['心機一転','心'],['弱肉強食','
 const jpGens = [
   function(){ const w=pick(JP_READ); const others=shuffleArr(JP_READ.filter(x=>x!==w)).slice(0,3).map(x=>x[1]); return {q:`「${w[0]}」の読みは？`, sub:'漢字の読み', level:'★★★', hint:'熟語の読み', type:'choice', choices:shuffleArr([w[1],...others]), ans:w[1], explain:`【考え方】熟語の読みを覚える。\n【手順】${w[0]}＝${w[1]}\n【ポイント】音読み・訓読みを意識する。`}; },
   function(){ const w=pick(JP_ANTONYM); const others=shuffleArr(JP_ANTONYM.filter(x=>x!==w)).slice(0,3).map(x=>x[1]); return {q:`「${w[0]}」の対義語は？`, sub:'対義語', level:'★★★', hint:'反対の意味', type:'choice', choices:shuffleArr([w[1],...others]), ans:w[1], explain:`【考え方】反対の意味の語を選ぶ。\n【手順】${w[0]}⇔${w[1]}\n【ポイント】ペアで覚えると語彙が増える。`}; },
-  function(){ const w=pick(JP_YOJI); const blanked=w[0].replace(w[1],'□'); const others=shuffleArr(['新','真','信','回','他','背','単','心','水','明'].filter(c=>c!==w[1])).slice(0,3); return {q:`四字熟語「${blanked}」の□に入る漢字は？`, sub:'四字熟語', level:'★★★', hint:'よく使う四字熟語', type:'choice', choices:shuffleArr([w[1],...others]), ans:w[1], explain:`【考え方】□に入る漢字を考える。\n【手順】正しくは ${w[0]}\n【ポイント】意味と一緒に覚える。`}; },
+  function(){ const w=pick(JP_YOJI); const blanked=w[0].replace(w[1],'□'); const others=shuffleArr(['新','真','信','回','他','背','単','心','水','明'].filter(c=>c!==w[1])).slice(0,3); return {q:`四字熟語「${blanked}`, sub:'四字熟語', level:'★★★', hint:'意味から', type:'choice', choices:shuffleArr([w[1]].concat(others)), ans:w[1], explain:`【考え方】四字熟語は意味ごと覚える。\n【手順】${w[0]}\n【ポイント】漢字1字を補う。`}; },
 ];
+// ================= 中学：基礎(★☆☆)・標準(★★☆)の増産 ＝適応出題の「かんたん」供給 =================
+// 苦手な子(tier=basic)に基礎を届けられるよう各教科に易しめを追加。国語は★★★のみだったのを是正。
+// --- 数学 基礎 ---
+mathGens.push(
+ function(){ var a=rint(2,9),b=rint(2,9); return {q:'(−'+a+') ＋ (−'+b+') を計算しよう', sub:'正負の数（加法・基礎）', level:'★☆☆', hint:'同符号は 絶対値の和に 同じ符号', type:'free', ans:''+(-a-b), altAns:[''+(-a-b)], explain:'【考え方】同符号どうしは 絶対値をたして 同じ符号。\n【手順】'+a+'＋'+b+'='+(a+b)+'、符号は− → '+(-a-b)+'\n【ポイント】負＋負は 負。'}; },
+ function(){ var a=rint(2,9),b=rint(2,9); return {q:'('+a+') − (−'+b+') を計算しよう', sub:'正負の数（減法・基礎）', level:'★☆☆', hint:'ひく−は たす＋に なおす', type:'free', ans:''+(a+b), altAns:[''+(a+b)], explain:'【考え方】−(−'+b+')=＋'+b+'。\n【手順】'+a+'＋'+b+'='+(a+b)+'\n【ポイント】マイナスのマイナスは プラス。'}; },
+ function(){ var a=rint(2,9); return {q:''+a+'² を計算しよう', sub:'累乗（基礎）', level:'★☆☆', hint:'同じ数を 2回かける', type:'free', ans:''+(a*a), altAns:[''+(a*a)], explain:'【考え方】a²＝a×a。\n【手順】'+a+'×'+a+'='+(a*a)+'\n【ポイント】2乗は 2回かける。'}; },
+ function(){ var a=rint(2,6),x=rint(2,9); return {q:'x='+x+' のとき '+a+'x の値は？', sub:'式の値（基礎）', level:'★☆☆', hint:'xに 数を 代入', type:'free', ans:''+(a*x), altAns:[''+(a*x)], explain:'【考え方】xに数をあてはめる。\n【手順】'+a+'×'+x+'='+(a*x)+'\n【ポイント】'+a+'x は '+a+'×x。'}; },
+ function(){ var a=rint(2,6),b=rint(2,6); return {q:''+a+'x ＋ '+b+'x を計算しよう', sub:'同類項（基礎）', level:'★☆☆', hint:'係数（数の部分）を たす', type:'free', ans:(a+b)+'x', altAns:[(a+b)+'x'], explain:'【考え方】同じ文字どうしは 係数をたす。\n【手順】('+a+'＋'+b+')x='+(a+b)+'x\n【ポイント】xは そのまま。'}; },
+ function(){ var a=rint(2,6); return {q:'1個 x円の ノートを '+a+'冊 買ったときの 代金は？（円）', sub:'数量を文字で表す（基礎）', level:'★☆☆', hint:'単価×個数', type:'choice', choices:shuffleArr([a+'x','x＋'+a,a+'＋x','x−'+a]), ans:a+'x', explain:'【考え方】単価×個数を 文字で表す。\n【手順】x×'+a+'='+a+'x\n【ポイント】×は 省いて '+a+'x。'}; }
+);
+// --- 理科 基礎 ---
+var _SCI_BASIC=[
+ ['光合成に 必要な 気体は？','二酸化炭素',['酸素','ちっ素','水素']],
+ ['光合成で つくられる 養分は？','デンプン',['タンパク質','しぼう','水']],
+ ['力の 大きさの 単位は？','N（ニュートン）',['g（グラム）','℃','mL']],
+ ['質量100gの 物体に はたらく 重力は およそ？','1N',['100N','10N','0.1N']],
+ ['水に とけにくい 気体の 集め方は？','水上置換法',['上方置換法','下方置換法','ろ過']],
+ ['光が はね返るとき、入射角と 等しいのは？','反射角',['屈折角','直角','半径']],
+ ['花を さかせて 種子で ふえる 植物を 何という？','種子植物',['シダ植物','コケ植物','そう類']],
+ ['水が こおって 氷になると、体積は どうなる？','ふえる',['へる','変わらない','半分になる']]
+];
+sciGens.push(function(){ var d=pick(_SCI_BASIC); return {q:d[0], sub:'中1理科（基礎）', level:'★☆☆', hint:'用語を おぼえよう', type:'choice', choices:shuffleArr([d[1]].concat(d[2])), ans:d[1], explain:'【考え方】基本の用語。\n【手順】'+d[0].replace('？','')+'→'+d[1]+'\n【ポイント】教科書の 太字を おさえる。'}; });
+// --- 社会 基礎 ---
+var _SOC_BASIC=[
+ ['世界で いちばん 大きい 大陸は？','ユーラシア大陸',['アフリカ大陸','北アメリカ大陸','南アメリカ大陸']],
+ ['世界で いちばん 大きい 海洋は？','太平洋',['大西洋','インド洋','北極海']],
+ ['赤道の 緯度は 何度？','0度',['90度','180度','45度']],
+ ['本初子午線（経度0度）が 通る 都市は？','ロンドン',['東京','ニューヨーク','パリ']],
+ ['日本で いちばん 大きい 島は？','本州',['北海道','九州','四国']],
+ ['日本の 標準時子午線は 東経 何度？','135度',['0度','90度','180度']],
+ ['三大洋は 太平洋・大西洋と あと 一つは？','インド洋',['地中海','日本海','カリブ海']],
+ ['地球を ぐるっと 一周すると 経度は 何度？','360度',['180度','90度','100度']]
+];
+socGens.push(function(){ var d=pick(_SOC_BASIC); return {q:d[0], sub:'中学地理（基礎）', level:'★☆☆', hint:'地図で かくにん', type:'choice', choices:shuffleArr([d[1]].concat(d[2])), ans:d[1], explain:'【考え方】地理の基本。\n【手順】'+d[0].replace('？','')+'→'+d[1]+'\n【ポイント】地図帳で 位置も 確認。'}; });
+// --- 国語 基礎（部首・品詞・対義語・送りがな）---
+var _JP_BUSHU=[['河','さんずい（氵）',['きへん','くさかんむり','ひへん']],['花','くさかんむり（艹）',['さんずい','たけかんむり','いとへん']],['時','ひへん（日）',['にんべん','さんずい','てへん']],['語','ごんべん（訁）',['きへん','くちへん','いとへん']],['海','さんずい（氵）',['つち','き','ひ']]];
+var _JP_HINSHI=[['走る','動詞',['名詞','形容詞','副詞']],['赤い','形容詞',['動詞','名詞','助詞']],['本','名詞',['動詞','形容詞','助動詞']],['しずかだ','形容動詞',['動詞','名詞','副詞']],['食べる','動詞',['形容詞','名詞','接続詞']]];
+var _JP_ANT2=[['大きい','小さい',['多い','長い','高い']],['明るい','暗い',['白い','広い','重い']],['始まり','終わり',['真ん中','入口','左']],['増える','減る',['進む','開く','上がる']]];
+var _JP_OKURI=[['あたらしい','新しい',['新らしい','新い','新しいい']],['たのしい','楽しい',['楽い','楽のしい','楽しいい']],['はしる','走る',['走しる','走はる','走るる']]];
+jpGens.push(
+ function(){ var d=pick(_JP_BUSHU); return {q:'「'+d[0]+'」の 部首は？', sub:'部首（基礎）', level:'★☆☆', hint:'意味の もとに なる 部分', type:'choice', choices:shuffleArr([d[1]].concat(d[2])), ans:d[1], explain:'【考え方】部首は 漢字の 意味の 手がかり。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】水に 関係＝さんずい など。'}; },
+ function(){ var d=pick(_JP_HINSHI); return {q:'「'+d[0]+'」の 品詞は？', sub:'品詞（基礎）', level:'★☆☆', hint:'動き？ようす？もの？', type:'choice', choices:shuffleArr([d[1]].concat(d[2])), ans:d[1], explain:'【考え方】動き＝動詞・ようす＝形容詞/形容動詞・もの＝名詞。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】言い切りの 形で 見分ける。'}; },
+ function(){ var d=pick(_JP_ANT2); var o=shuffleArr(_JP_ANT2.filter(function(x){return x[0]!==d[0];}).map(function(x){return x[1];})).slice(0,3); return {q:'「'+d[0]+'」の 対義語は？', sub:'対義語（基礎）', level:'★★☆', hint:'反対の 意味', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】対義語は 対で 覚える。\n【手順】'+d[0]+'⇔'+d[1]+'\n【ポイント】セットで 暗記。'}; },
+ function(){ var d=pick(_JP_OKURI); return {q:'「'+d[0]+'」を 漢字と 送りがなで 正しく 書くと？', sub:'送りがな（基礎）', level:'★★☆', hint:'活用する ところから 送る', type:'choice', choices:shuffleArr([d[1]].concat(d[2])), ans:d[1], explain:'【考え方】送りがなは 変化する 部分。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】「新しい」は「新」＋「しい」。'}; }
+);
+// --- 英語 基礎（be動詞・3単現・複数形・疑問詞）---
+var _EN_BE=[['I','am'],['You','are'],['He','is'],['She','is'],['We','are'],['They','are'],['It','is']];
+var _EN_Q=[['何','what'],['だれ','who'],['どこ','where'],['いつ','when'],['どうやって','how']];
+var _EN_PLURAL=[['book','books'],['pen','pens'],['dog','dogs'],['box','boxes'],['cat','cats'],['apple','apples']];
+engGens.push(
+ function(){ var d=pick(_EN_BE); return {q:'( ) に 入る be動詞は？　'+d[0]+' ( ) a student.', sub:'be動詞（基礎）', level:'★☆☆', hint:'主語で am/is/are を えらぶ', type:'choice', choices:shuffleArr([d[1]].concat(['am','is','are'].filter(function(x){return x!==d[1];}))), ans:d[1], explain:'【考え方】I→am、He/She/It→is、You/We/They→are。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】主語で be動詞が 決まる。'}; },
+ function(){ var d=pick([['plays','play'],['likes','like'],['runs','run'],['goes','go']]); return {q:'( ) に 入る 形は？　He ( ) soccer. （'+d[1]+'）', sub:'3人称単数現在（基礎）', level:'★★☆', hint:'He/She/It は 動詞に s', type:'choice', choices:shuffleArr([d[0]].concat([d[1], d[1]+'ing', d[1]+'ed'])), ans:d[0], explain:'【考え方】主語が He/She/It のとき 一般動詞に s(es)。\n【手順】'+d[1]+'→'+d[0]+'\n【ポイント】三単現の s。'}; },
+ function(){ var d=pick(_EN_PLURAL); return {q:'「'+d[0]+'」の 複数形は？', sub:'名詞の複数形（基礎）', level:'★☆☆', hint:'ふつうは s、x/o などは es', type:'choice', choices:shuffleArr([d[1]].concat([d[0], d[0]+'es', d[0]+"'s"].filter(function(x){return x!==d[1];}).slice(0,3))), ans:d[1], explain:'【考え方】数えられる名詞は 複数で s(es)。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】box→boxes（x は es）。'}; },
+ function(){ var d=pick(_EN_Q); var o=shuffleArr(_EN_Q.filter(function(x){return x[0]!==d[0];}).map(function(x){return x[1];})).slice(0,3); return {q:'「'+d[0]+'」を あらわす 疑問詞は？', sub:'疑問詞（基礎）', level:'★☆☆', hint:'5W1H', type:'choice', choices:shuffleArr([d[1]].concat(o)), ans:d[1], explain:'【考え方】疑問詞は 文の 最初。\n【手順】'+d[0]+'→'+d[1]+'\n【ポイント】what/who/where/when/how。'}; }
+);
 
 // ================= 小学4年生コンテンツ（5教科）=================
 // 算数

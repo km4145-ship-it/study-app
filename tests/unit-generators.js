@@ -66,4 +66,25 @@ c.ok('読み込み順: questions-extra が generators の前', html.indexOf('js/
   c.ok('中学：文章題が複数種 出題される', Object.keys(jhsSubs).length>=5);
   c.ok('中学文章題の答えが計算と一致（'+jhsChk+'件検算）', jhsChk>200 && jhsBad===0);
 }
+
+// ---- 適応出題の是正：中学各教科に★☆☆(基礎)が供給される＋choiceの健全性 ----
+{
+  ['math','japanese','english','science','social'].forEach(function(area){
+    var basic=0, tot=0, bad=0;
+    for(var i=0;i<8000;i++){ var q=gqJhs(area); if(!q||!q.level) continue; tot++;
+      if(q.level==='★☆☆') basic++;
+      if(q.type==='choice' && (!Array.isArray(q.choices) || q.choices.indexOf(q.ans)<0)) bad++;
+    }
+    c.ok('中学'+area+'に★☆☆(基礎)が供給される（'+(basic/tot*100).toFixed(0)+'%）', basic>0);
+    c.ok('中学'+area+'のchoiceは答えが選択肢に含まれる', bad===0);
+  });
+  // 国語は以前★★★のみだった＝★★☆も出るようになったか
+  var jpLv={}; for(var k=0;k<6000;k++){ var qj=gqJhs('japanese'); if(qj&&qj.level) jpLv[qj.level]=1; }
+  c.ok('中学国語は★★★一辺倒でなく基礎/標準も出る', jpLv['★☆☆'] && jpLv['★★☆']);
+}
+
+// ---- pickLeveled のフォールバック：基礎狙いなら易しめ・難関狙いなら難しめ ----
+c.ok('pickLeveledに難易度ランク表がある', html.indexOf('var _LVL_RANK={') >= 0);
+c.ok('pickLeveledが基礎狙いで易しめ/難関狙いで難しめを返す', html.indexOf('wmid<=2.5 ? easy : hard') >= 0);
+
 c.done();

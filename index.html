@@ -5565,11 +5565,24 @@ function adaptiveWant(r){   // r=実力レート(数値) or null。呼ぶたび 
   if(r==null || typeof ratingFuzzTier!=='function') return null;
   try{ return _tierLevels(ratingFuzzTier(r, Math.random())); }catch(e){ return null; }
 }
-// 生成関数 genFn を くり返し、目標★(want)に合う問題を優先して返す（tries回で妥協＝枯渇しない）
+// 生成関数 genFn を くり返し、目標★(want)に合う問題を優先して返す（tries回で妥協＝枯渇しない）。
+// 目標が無い在庫のときのフォールバックが肝：基礎/標準を望むのに叶わなければ「一番やさしいの」を、
+// 応用/難関を望むなら「一番むずかしいの」を返す。＝苦手な子に最難問を浴びせる逆効果を防ぐ。
+var _LVL_RANK={ '★☆☆':1, '★★☆':2, '★★★':3, '★★★★':4 };
 function pickLeveled(genFn, want, tries){
-  var q=null;
-  for(var i=0;i<(tries||10);i++){ q=genFn(); if(q&&q.q){ if(!want || !q.level || want[q.level]) return q; } }
-  return q;
+  var q=null, easy=null, easyR=99, hard=null, hardR=0;
+  var n=tries||12;
+  for(var i=0;i<n;i++){
+    q=genFn(); if(!q||!q.q) continue;
+    if(!want || !q.level || want[q.level]) return q;   // 目標どんぴしゃ
+    var r=_LVL_RANK[q.level]||3;
+    if(r<easyR){ easyR=r; easy=q; }
+    if(r>hardR){ hardR=r; hard=q; }
+  }
+  if(!want) return q;
+  var ks=Object.keys(want).map(function(k){ return _LVL_RANK[k]||3; });
+  var wmid=ks.reduce(function(a,b){ return a+b; }, 0) / ks.length;   // 望んだ難易度の中央
+  return (wmid<=2.5 ? easy : hard) || q;                            // 基礎寄り→易しめ／難関寄り→難しめ
 }
 // 選んだ難易度で10問（genQuestion を level で絞る）。教科は正しく記録される。
 function startDifficulty(area, tier){

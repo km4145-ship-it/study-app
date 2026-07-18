@@ -79,8 +79,22 @@ c.ok('実績由来の称号がCOS_TITLESにある', cosData.indexOf('a_maou:{') 
 // ---- 初回オンボーディング（使い方ガイド・1度だけ）----
 c.ok('初回ガイド showOnboarding がある', html.indexOf('function showOnboarding') >= 0 && html.indexOf('var OB_SLIDES') >= 0);
 c.ok('着地で未オンボーディングならガイド表示', html.indexOf('else { try{ maybeShowOnboarding(); }catch(e){} }') >= 0);
-c.ok('ガイドは1度だけ（onboardedフラグ）', html.indexOf("safeLS.setItem('onboarded','1')") >= 0 && html.indexOf('onboarded:1};') >= 0);
+c.ok('ガイドは1度だけ（onboardedフラグ）', html.indexOf("safeLS.setItem('onboarded','1')") >= 0 && html.indexOf('onboarded:1') >= 0);
 c.ok('設定から使い方を再表示できる', html.indexOf('onclick="showOnboarding()">❓ もう一度みる') >= 0);
 c.ok('ガイドは5タブを説明する', html.indexOf("['🏠','ホーム'") >= 0 && html.indexOf("['📊','きろく'") >= 0);
+
+// ---- データ整合性：タクト進捗がユーザー別＋同期＋移行される（家族利用のデータ混線/喪失を防ぐ）----
+{
+  const muLine = html.slice(html.indexOf('var MU_PER_USER'), html.indexOf('var MU_PER_USER') + 900);
+  ['srpg_cleared','srpg_maou_cleared','srpg_stars','srpg_tower_best','srpg_tower_save','srpg_team','srpg_daily_done','scout_log'].forEach(function(k){
+    c.ok('MU_PER_USERにタクト進捗 '+k+' が登録（per-user化）', muLine.indexOf(k+':1') >= 0);
+  });
+  c.ok('srpg進捗の一度きり移行がある', html.indexOf('function _srpgKeyMigrate') >= 0 && html.indexOf('_srpgKeyMigrate();') >= 0);
+  c.ok('移行はRAWフラグで端末1回', html.indexOf("_rawGet('srpg_migrated_v1')") >= 0);
+  // cloud-sync：u:接頭のsrpg進捗は同期対象・scout_logは除外
+  const cs = fs.readFileSync(path.join(ROOT, 'cloud-sync.js'), 'utf8');
+  c.ok('cloud-sync isMemberKey が u: を同期', cs.indexOf("k.indexOf('u:')===0") >= 0);
+  c.ok('cloud-sync は scout_log を同期除外', /scout_log/.test(cs) && /q_log\|gacha_log\|scout_log/.test(cs));
+}
 
 c.done();

@@ -60,7 +60,7 @@ window.addEventListener("load",function(){
           var rr=document.getElementById("result-rating");
           var rating=null; try{ rating=JSON.parse(localStorage.getItem("u:u1:practice_rating")); }catch(e){}
           R.session={ result:true,
-            ratingShown: !!(rr && rr.textContent.indexOf("実力メーター")>=0),
+            ratingShown: !!(rr && rr.textContent.indexOf("じつりょくメーター")>=0),
             ratingSaved: !!(rating && rating.by && rating.by.math && rating.by.math.n>=10) };
           R.errCount=window.__errs.length;
           document.title="E2E:"+JSON.stringify(R);
@@ -144,7 +144,7 @@ function runChrome(url) {
     c.ok('キャラが表示されている（3D or SVG）', !!(R.boot && R.boot.charDisplay));
     c.ok('スタート画面ミニキャラ12体', !!(R.boot && R.boot.minis === 12));
     c.ok('練習10問→結果画面に到達', !!(R.session && R.session.result));
-    c.ok('結果画面に実力メーター表示', !!(R.session && R.session.ratingShown));
+    c.ok('結果画面にじつりょくメーター表示', !!(R.session && R.session.ratingShown));
     c.ok('実力レートがユーザー別に保存', !!(R.session && R.session.ratingSaved));
   }
   c.done();

@@ -32,4 +32,16 @@ c.ok('タクト編成の空状態は「なかま」', srpgUi.indexOf('まだ な
 c.ok('なかまずかんの説明が「なかまにした」', srpgUi.indexOf('これまでに なかまにした モンスターの きろく') >= 0);
 c.ok('タクト編成に「あいぼう最大4」の混在が無い', srpgUi.indexOf('勇者＋あいぼう最大4') < 0);
 
+// ---- 偏差値の正直化（③B）：常時表示のElo＝「じつりょく」／本物の偏差値＝模試 ----
+c.ok('クイズの常時表示は「じつりょく」', html.indexOf('<span class="qh-l">⚡じつりょく</span>') >= 0);
+c.ok('クイズ常時表示に「偏差値」ラベルを使わない', html.indexOf('<span class="qh-l">⚡偏差値</span>') < 0);
+c.ok('ハブチップは「じつりょく」', html.indexOf('📈 じつりょく <b>') >= 0);
+c.ok('確定トーストは「じつりょく」', html.indexOf('じつりょくメーターが こうしん！') >= 0);
+c.ok('結果画面は「じつりょくメーター」', html.indexOf('⚡ じつりょくメーター ') >= 0);
+c.ok('練習メーターカードは「じつりょくメーター」', html.indexOf('⚡ じつりょくメーター <b class="pr-big">') >= 0);
+// 本物の偏差値（模試ベース）は維持されている
+c.ok('模試の偏差値（校正）は維持', html.indexOf('偏差値の校正') >= 0 && html.indexOf('calibOffset') >= 0);
+c.ok('実模試入力の校正CTAがある', html.indexOf('function _calibCtaHtml') >= 0 && html.indexOf('本物の偏差値') >= 0);
+c.ok('records偏差値65への道は模試ベース(rmHensachi/exam)を使う', html.indexOf("e.mode==='exam'&&typeof e.hensachi==='number'") >= 0);
+
 c.done();

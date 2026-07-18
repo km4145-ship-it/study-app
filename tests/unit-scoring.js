@@ -8,7 +8,7 @@ const c = makeChecker('unit-scoring');
 
 const code = fs.readFileSync(path.join(ROOT, 'js', 'scoring.js'), 'utf8');
 const api = (new Function(code +
-  '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp,masteryTier,masterySummary,MASTERY_TIERS,loginStreakUpdate};'))();
+  '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp,masteryTier,masterySummary,MASTERY_TIERS,loginStreakUpdate,srsInterval};'))();
 
 ['_seedOf', 'withSeed', 'calcHensachiRaw', 'judgeOf', 'rpgXpForLevel', 'rpgLevelForXp']
   .forEach((f) => c.ok(f + ' が関数', typeof api[f] === 'function'));
@@ -75,6 +75,18 @@ c.ok('order は 練習中<なじみ<とくい<マスター',
   c.eq('masterySummary：空配列は0%', api.masterySummary([]).pct, 0);
 }
 
+// ===== SRS間隔の簡易HLR（反応速度×誤答回数で伸縮）=====
+{
+  c.eq('SRS：秒数不明・初回は基本間隔のまま', api.srsInterval(7, null, 1), 7);
+  c.eq('SRS：速い正解(≤4s)は間隔を延ばす(×1.3)', api.srsInterval(10, 3, 1), 13);
+  c.eq('SRS：遅い正解(>12s)は縮める(×0.75)', api.srsInterval(8, 20, 1), 6);
+  c.eq('SRS：ふつうの速さは等倍', api.srsInterval(14, 8, 1), 14);
+  c.eq('SRS：何度も間違えた項目(wc>=3)は縮める', api.srsInterval(14, null, 3), 11);   // round(14*0.75)=11 (10.5→11)
+  c.eq('SRS：2回間違えた項目は少し縮める(×0.9)', api.srsInterval(10, null, 2), 9);
+  c.eq('SRS：最小1日は下回らない', api.srsInterval(1, 20, 3), 1);
+  c.ok('SRS：速い×易しめ は 遅い×難しめ より長い', api.srsInterval(7,3,1) > api.srsInterval(7,20,3));
+}
+
 // ===== ログイン連続の欠席救済（フリーズ）=====
 {
   const T='2026-07-19', Y='2026-07-18', TA='2026-07-17';
@@ -98,6 +110,8 @@ c.ok('order は 練習中<なじみ<とくい<マスター',
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('rpgLoginBonus は loginStreakUpdate を使う（欠席救済の配線）',
   /function rpgLoginBonus\(\)[\s\S]{0,400}loginStreakUpdate\(lg/.test(html));
+c.ok('srsCorrect は srsInterval で復習間隔を伸縮（HLR-lite配線）',
+  html.indexOf('function srsCorrect(q)') >= 0 && html.indexOf('srsInterval(SRS_INT[box]') >= 0);
 c.ok('index.html は calcHensachiRaw を再定義しない', html.indexOf('function calcHensachiRaw(') < 0);
 c.ok('index.html は withSeed を再定義しない', html.indexOf('function withSeed(') < 0);
 c.ok('index.html は js/scoring.js を読み込む', html.indexOf('<script src="js/scoring.js') >= 0);

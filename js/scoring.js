@@ -54,6 +54,18 @@ function masteryTier(correct, attempts){
   if(attempts >= 2 && rate >= 0.55) return MASTERY_TIERS.familiar;
   return MASTERY_TIERS.learning;
 }
+// SRS間隔の簡易HLR化：固定Leitner間隔を「反応速度×これまでの誤答回数」で伸縮する。
+// 速い正解＝よく定着→間隔を延ばす（×1.3）／遅い正解＝あやうい→縮める（×0.75）。
+// 何度も間違えた項目（wrongCount大）は忘れやすい→さらに縮める。データ(lastQSec/wrongCount)は取得済み。
+// baseDays=SRS_INT[box]、sec=その問題にかけた秒数(nullなら等倍)、wrongCount=これまでの誤答回数。
+function srsInterval(baseDays, sec, wrongCount){
+  var d = baseDays > 0 ? baseDays : 1;
+  var sf = 1;
+  if(sec != null){ if(sec <= 4) sf = 1.3; else if(sec > 12) sf = 0.75; }   // 速い/遅い
+  var wc = wrongCount || 1;
+  var df = wc >= 3 ? 0.75 : (wc === 2 ? 0.9 : 1);                           // 何度も間違えた項目は短く
+  return Math.max(1, Math.round(d * sf * df));
+}
 // ログイン連続の更新：1日の欠席は「フリーズ」で救済（7連続ごとに1回まで）。
 // 学習ストリーク(currentStreak)は既に月1回の欠席救済を持つのに、ログインボーナス側だけ
 // 1日欠席で streak=1 にリセット＝7/14/30/50/100/200/365日の大型報酬が最も脆かった。

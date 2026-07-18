@@ -3355,7 +3355,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/furigana.js?v=1"></script>
 <script src="js/reading-ja.js?v=3"></script>
 <script src="js/content-data.js?v=2"></script>
-<script src="js/scoring.js?v=3"></script>
+<script src="js/scoring.js?v=4"></script>
 <script src="js/ui-data.js?v=1"></script>
 <script src="js/util.js?v=3"></script>
 <script src="js/miss-types.js?v=1"></script>
@@ -6824,7 +6824,12 @@ function srsCorrect(q){
   }
   const box=(arr[i].box||0)+1; const sub=arr[i].sub||'';
   if(box>=SRS_INT.length){ arr.splice(i,1); saveMistakes(arr); sessionGraduated++; showToast('🎓','卒業！','「'+sub+'」を克服'); checkBadges({event:'graduate'}); }
-  else { arr[i].box=box; arr[i].due=dateKeyOffset(SRS_INT[box]); saveMistakes(arr); }
+  else {
+    // 簡易HLR：反応速度（この問題にかけた秒数）と これまでの誤答回数で復習間隔を伸縮（純ロジックは scoring.js）
+    var _sec=null; try{ if(typeof qStartTime==='number') _sec=(Date.now()-qStartTime)/1000; }catch(e){}
+    var _iv=(typeof srsInterval==='function')?srsInterval(SRS_INT[box], _sec, arr[i].wrongCount) : SRS_INT[box];
+    arr[i].box=box; arr[i].due=dateKeyOffset(_iv); saveMistakes(arr);
+  }
 }
 function runMistakeSession(items, title, intro){
   if(!items.length){ showToast('🔍','対象がありません','別のメニューを試してね'); return; }

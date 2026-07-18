@@ -208,12 +208,11 @@ function fakeView(group, monKey) {
   c.ok('bat 撃破後は翼が垂れる（|rotation.z|≈0.03）', vBat.parts.wings.every((w) => Math.abs(Math.abs(w.rotation.z) - .03) < EPS));
 }
 
-// ---- 8) index.html の統合：バトル処理からトリガーが呼ばれている ----
+// ---- 8) 旧RPGバトル撤去後：_c3dTriggerCombat のAPIはchar3d.jsに残る（index.htmlからは未使用）----
+// 旧RPGの3Dバトル演出（heroAttack等のトリガー呼び出し）はコード撤去済み。タクトは独自の2D演出を使う。
+// 戦闘クリップ生成そのものは §1〜7 で網羅済みなので、ここではAPIの存在のみ確認する。
 {
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  ['heroAttack', 'heroHit', 'heroVictory', 'heroDefeat', 'monAttack', 'monHit', 'monDefeat'].forEach((kind) => {
-    c.ok("index.html が _c3dTriggerCombat('" + kind + "') を呼ぶ", html.indexOf("_c3dTriggerCombat(hero,'" + kind + "')") >= 0 || html.indexOf("_c3dTriggerCombat(enemy,'" + kind + "')") >= 0);
-  });
+  c.ok('_c3dTriggerCombat API が char3d.js に定義されている（撤去後も残置）', code.indexOf('function _c3dTriggerCombat') >= 0);
 }
 
 c.done();

@@ -17,8 +17,9 @@ c.ok('ログイン後はハブ(showSubjectSelect)に着地する', greet.indexOf
 c.ok('ログイン着地で旧RPGマップ(showRpg)を直接開かない', greet.indexOf('showRpg()') < 0);
 c.ok('着地でも日次ログインボーナスを取りこぼさない', greet.indexOf('rpgLoginBonus()') >= 0);
 
-// ---- タブの一致：旧RPG系はホームタブを点灯（advではない） ----
-c.ok("旧RPGマップ(showRpg)はhomeタブを点灯", html.indexOf("setActiveTab('home');   // 旧RPG") >= 0);
+// ---- タブの一致：旧RPG系の子画面はホームタブを点灯（advではない）。showRpgマップ本体は撤去済み ----
+c.ok("旧RPG系の子画面(あいぼう)はhomeタブを点灯", html.indexOf("setActiveTab('home');   // あいぼうは") >= 0);
+c.ok("旧RPGマップ(showRpg)は撤去済み", html.indexOf("function showRpg(){") < 0);
 c.ok('旧RPG系にadv点灯が残っていない（嘘のタブを排除）',
   html.indexOf("hideMainScreens(); setActiveTab('adv')") < 0 &&
   html.indexOf("hideMainScreens();\n  setActiveTab('adv')") < 0);

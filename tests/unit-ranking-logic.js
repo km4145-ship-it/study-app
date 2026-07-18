@@ -138,6 +138,7 @@ c.ok('壊れた値は解放しない', api4.rankMaouFreed('abc') === false);
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は js/ranking.js を読み込む', html.indexOf('<script src="js/ranking.js') >= 0);
 c.ok('index.html は魔王解放判定（rpgFamilyMaouFreed）を持つ', html.indexOf('function rpgFamilyMaouFreed') >= 0);
-c.ok('魔王城の挑戦ゲートが家族解放を考慮する', html.indexOf("rpgCrystalCount()<5 && !rpgFamilyMaouFreed()") >= 0);
+// 旧RPGの魔王城バトルは撤去済み＝その挑戦ゲート(rpgCrystalCount<5 && !rpgFamilyMaouFreed)も消滅。
+// 家族解放イベント自体(rank milestone→トースト)は現役なので rpgFamilyMaouFreed の定義は残置。
 
 c.done();

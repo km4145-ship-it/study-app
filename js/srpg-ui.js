@@ -1163,9 +1163,9 @@ function srpgScoutSequence(got, onDone){
     if(i >= got.length){ finishAll(); return; }
     var g = got[i++];
     if(g.mon && HIGH[g.rank]){
-      // SS以上：フル登場ショー（シルエット→開眼→ランク打刻。タップ/自動で次へ）
+      // SS以上：予兆の「ため」→フル登場ショー（タップするまで先へ進まない）
       ov.onclick = null; ov.style.display = 'none';
-      srpgScoutReveal(g.mon, function(){ next(); });
+      srpgScoutOmen(g.rank, function(){ srpgScoutReveal(g.mon, function(){ next(); }); });
       return;
     }
     show(g, (g.mon && MID[g.rank]) ? 'mid' : 'low', (g.mon && MID[g.rank]) ? 950 : 460);
@@ -1620,25 +1620,67 @@ function srpgVsIntro(a, b, onDone){
   setTimeout(function(){ try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); }, 1150);
 }
 // ③ スカウトした仲間の登場演出（大アートが回転しながら光の中に登場）
+// 予兆：高レア個体の直前に流れる「…なにかが ちかづいてくる…」の暗黒のため
+function srpgScoutOmen(rank, cb){
+  var sc = document.getElementById('srpg-screen');
+  if(!sc){ cb(); return; }
+  var col = SRPG_TIER_COLOR[_scoutTier(rank||'SS')] || '#fde047';
+  var el = document.createElement('div'); el.className = 'sc-omen';
+  el.style.setProperty('--rc', col);
+  el.innerHTML = '<div class="sc-omen-heart"></div><div class="sc-omen-tx">…なにかが ちかづいてくる…</div>';
+  var done = false, t1, t2;
+  var go = function(){ if(done) return; done = true; clearTimeout(t1); clearTimeout(t2); try{ sc.removeChild(el); }catch(e){} cb(); };
+  el.onclick = go;
+  sc.appendChild(el);
+  try{ sfx('drumroll'); vibe([10,120,10,120,10]); }catch(e){}
+  t1 = setTimeout(function(){ try{ el.classList.add('near'); sfx('powerup'); }catch(e){} }, 1200);   // 光がランク色に染まり脈が速くなる
+  t2 = setTimeout(go, 2500);
+}
 function srpgScoutReveal(mon, onDone){
   var sc = document.getElementById('srpg-screen');
   if(!sc || !mon){ if(onDone) onDone(); return; }
   var art = ((typeof srpgMonArt==='function' && srpgMonArt(mon.art)) || (typeof _monStill==='function' && _monStill(mon.art)) || '👾');
-  var el = document.createElement('div'); el.className = 'srpg-scout';
-  el.innerHTML = '<div class="srpg-scout-rays"></div>'
-    + '<div class="srpg-scout-art silhou">'+art+'</div>'
+  var HIGH = { SS:1, SSS:1, LG:1 };
+  var isHigh = !!HIGH[mon.rank];
+  var col = SRPG_TIER_COLOR[_scoutTier(mon.rank||'F')] || '#a78bfa';
+  var fxRank = { low:'R', A:'SR', S:'SSR', SS:'UR', SSS:'LR', LG:'LR' }[_scoutTier(mon.rank||'F')] || 'R';
+  var el = document.createElement('div'); el.className = 'srpg-scout' + (isHigh ? ' high' : '');
+  el.style.setProperty('--rc', col);
+  el.innerHTML = '<div class="srpg-scout-rays"></div><div class="srpg-scout-rays r2"></div>'
+    + '<div class="srpg-scout-ring"></div>'
+    + '<div class="srpg-scout-shock"></div>'
+    + '<div class="srpg-scout-art silhou drop">'+art+'</div>'
     + (mon.rank?'<div class="srpg-scout-stamp rk-'+mon.rank+'">'+mon.rank+'</div>':'')
     + '<div class="srpg-scout-cap">🎉 なかまが あらわれた！</div>'
     + '<div class="srpg-scout-nm">'+escapeHtml(mon.name)+' <span>'+escapeHtml(mon.rank||'')+'</span></div>'
-    + '<div class="srpg-scout-tap">タップして つづける ▶</div>';
-  var done = false, fin = function(){ if(done) return; done = true; try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); };
-  el.onclick = fin;
+    + '<div class="srpg-scout-tap">'+(isHigh?'タップして むかえいれる ▶':'タップして つづける ▶')+'</div>';
+  var done = false, finalDone = false, timers = [];
+  function T(fn, ms){ timers.push(setTimeout(fn, ms)); }
+  var fin = function(){ if(done) return; done = true; timers.forEach(clearTimeout); try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); };
+  // 段階：①環の収縮チャージ→②シルエット降臨（衝撃波）→③静止のため→④開眼＋爆発→⑤打刻＋名前
+  var landed = function(){
+    try{ el.classList.add('landed'); var sh=el.querySelector('.srpg-scout-shock'); if(sh) sh.classList.add('go'); sfx('reveal'); vibe([20,40,20]); }catch(e){}
+  };
+  var finale = function(){
+    if(finalDone) return; finalDone = true;
+    try{
+      el.classList.remove('holdstill'); el.classList.add('landed','opened');
+      var a=el.querySelector('.srpg-scout-art'); if(a){ a.classList.remove('silhou'); }
+      var st=el.querySelector('.srpg-scout-stamp'); if(st) st.classList.add('go');
+      sfx(isHigh ? 'legendary' : 'fanfare'); vibe([30,60,30,60,100]);
+      if(window.gachaFx){ gachaFx.burst(fxRank); if(isHigh && gachaFx.rain) gachaFx.rain(fxRank); }
+      if(typeof confetti==='function'){ confetti(); setTimeout(confetti, 260); if(isHigh){ setTimeout(confetti, 560); setTimeout(confetti, 900); } }
+    }catch(e){}
+    srpgSay('やったね！ '+(mon.name||'なかま')+'が、なかまに なったよ！');
+    if(!isHigh) T(fin, 2000);   // 低中レアは自動で次へ／SS以上は タップまで止まる（一度ストップ）
+  };
+  el.onclick = function(){ if(!finalDone){ timers.forEach(clearTimeout); timers=[]; landed(); finale(); } else fin(); };
   sc.appendChild(el);
-  // 登場ショー：シルエット→0.7秒後に開眼（カラー化＋閃光）→ランクがドンと打刻
-  setTimeout(function(){ try{ var a=el.querySelector('.srpg-scout-art'); if(a) a.classList.remove('silhou'); var st=el.querySelector('.srpg-scout-stamp'); if(st) st.classList.add('go'); sfx('correct'); vibe(20); }catch(e){} }, 700);
-  try{ sfx('fanfare'); if(typeof confetti==='function') confetti(); }catch(e){}
-  srpgSay('やったね！ '+(mon.name||'なかま')+'が、なかまに なったよ！');
-  setTimeout(fin, 2800);
+  try{ sfx('charge'); if(window.gachaFx) gachaFx.charge(fxRank); }catch(e){}
+  var t1 = isHigh ? 1100 : 500;                 // 高レアは「ため」を約3倍に
+  T(function(){ landed(); }, t1);               // 降臨（ドスン＋着地衝撃波＋画面ゆれ）
+  T(function(){ try{ el.classList.add('holdstill'); }catch(e){} }, t1 + 700);   // 静止のため（無音の一瞬）
+  T(finale, isHigh ? t1 + 1500 : t1 + 800);     // 開眼＋爆発＋打刻
 }
 // ④ とくぎごとの固有エフェクト（形・状態異常で見た目を変える）
 function srpgSkillFx(sk, subj, cells, cx, cy){

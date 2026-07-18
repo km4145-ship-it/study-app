@@ -547,7 +547,9 @@ function srpgUnitPlate(u){
     + '</div>';
 }
 function srpgEnemyKey(u){
-  // artからテンプレのキーを逆引き（弱点boss判定用）
+  // まず生成時に持たせた tmplKey を優先（art を共有するテンプレ＝zeron/voltdrake, mathfinal/dragon の取り違え防止）
+  if(u && u.tmplKey && SRPG_ENEMY_TEMPLATES[u.tmplKey]) return u.tmplKey;
+  // 後方互換：art からテンプレのキーを逆引き（弱点boss判定用）
   var keys = Object.keys(SRPG_ENEMY_TEMPLATES);
   for(var i=0;i<keys.length;i++){ if(SRPG_ENEMY_TEMPLATES[keys[i]].art===u.art) return keys[i]; }
   return null;

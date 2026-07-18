@@ -37,6 +37,25 @@ c.eq('章ボスは10体', bossNodes, 10);
 c.ok('スラッグ王テンプレが存在', !!S.SRPG_ENEMY_TEMPLATES.slugking);
 c.ok('スラッグ王を使う章がある', !!usedKeys.slugking);
 
+// ---- 山場ボス（幹部ゼロン=5章・ファイナル=10章。boss:true+phase+charge＝魔王と同じ演出） ----
+['zeron', 'mathfinal'].forEach(function (k) {
+  const t = S.SRPG_ENEMY_TEMPLATES[k];
+  c.ok(k + ' テンプレが存在', !!t);
+  c.ok(k + ' は boss:true', !!(t && t.boss));
+  c.ok(k + ' に phase(かくせい)', !!(t && t.phase && t.phase.name));
+  c.ok(k + ' に charge(大技予告)', !!(t && t.charge && t.charge.warn && t.charge.power > 0));
+  c.ok(k + ' の charge形状は cross/burst', !!(t && (t.charge.aoe === 'cross' || t.charge.aoe === 'burst')));
+});
+c.eq('第5章ボスは ゼロン', S.srpgChapterStage('math', 4, 2).enemies.some(function (e) { return e.key === 'zeron'; }), true);
+c.eq('第10章ボスは ファイナル', S.srpgChapterStage('math', 9, 2).enemies.some(function (e) { return e.key === 'mathfinal'; }), true);
+// 山場ボスは 周回（きょうの挑戦・塔）には出ない
+const dailyKeys = S.srpgDailyStage('2026-07-18').enemies.map(function (e) { return e.key; });
+c.ok('デイリーに山場ボスが出ない', dailyKeys.indexOf('zeron') < 0 && dailyKeys.indexOf('mathfinal') < 0 && dailyKeys.indexOf('villain') < 0);
+// 塔のボス階(5階ごと)は魔王シグマ(villain)が意図的に出る。物語ボス(zeron/mathfinal)だけは出てはいけない。
+let towerHasStoryBoss = false;
+for (let f = 1; f <= 20; f++) { S.srpgTowerStage(f).enemies.forEach(function (e) { if (e.key === 'zeron' || e.key === 'mathfinal') towerHasStoryBoss = true; }); }
+c.ok('塔(1..20階)に物語ボス(zeron/mathfinal)が出ない', !towerHasStoryBoss);
+
 // ---- 範囲外/不正は null ----
 c.ok('章範囲外はnull', S.srpgChapterStage('math', 99, 0) === null);
 c.ok('ノード範囲外はnull', S.srpgChapterStage('math', 0, 5) === null);
@@ -72,7 +91,17 @@ for (let ci = 0; ci < 10; ci++) {
 c.ok('大陸クリアシーンがある', Array.isArray(story.math_clear) && story.math_clear.length > 0);
 c.ok('クリアシーンにコタロウ(shiba)登場', story.math_clear.some(function (l) { return l.char === 'shiba'; }));
 c.ok('ch5導入に幹部ゼロン(zeron)登場', story.math_ch4_intro.some(function (l) { return l.char === 'zeron'; }));
+c.ok('ch4導入にゼロンの予感(zeron)', story.math_ch3_intro.some(function (l) { return l.char === 'zeron'; }));
 c.ok('ch3導入にライバル レン(rival)登場', story.math_ch2_intro.some(function (l) { return l.char === 'rival'; }));
+c.ok('ch7導入にレン再会(rival)', story.math_ch6_intro.some(function (l) { return l.char === 'rival'; }));
+c.ok('ch10導入にレンの激励(rival)', story.math_ch9_intro.some(function (l) { return l.char === 'rival'; }));
+c.ok('相棒モーグ(moog)が複数章に登場', ['math_ch0_intro', 'math_ch5_intro', 'math_ch7_intro'].every(function (k) { return story[k].some(function (l) { return l.char === 'moog'; }); }));
+// 全章ボス（ci0..8）に勝利シーン。ci9は大陸クリアで代替。
+for (let ci = 0; ci <= 8; ci++) {
+  const wk = 'math_ch' + ci + '_win';
+  c.ok('章ボス勝利シーンがある ' + wk, Array.isArray(story[wk]) && story[wk].length > 0);
+}
+c.ok('ch5勝利にゼロン敗北(zeron)', story.math_ch4_win.some(function (l) { return l.char === 'zeron'; }));
 
 // ---- index.html：新キャラportrait・script読み込み・per-userキー ----
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
@@ -93,5 +122,7 @@ c.ok('章ノード0の初回に導入シーン', ui.indexOf('_srpgChapterIntroSc
 c.ok('章ボス勝利/大陸クリアのシーン再生', ui.indexOf('storyAfter') >= 0 && ui.indexOf('rpgStoryPlay(storyAfter') >= 0);
 c.ok('最終章クリアで大陸IDにクリスタル記録', ui.indexOf('srpgMarkCleared(_fc.crystalId)') >= 0);
 c.ok('進行判定 srpgChapUnlocked/srpgNodeUnlocked', ui.indexOf('function srpgChapUnlocked') >= 0 && ui.indexOf('function srpgNodeUnlocked') >= 0);
+// srpgEnemyKey は tmplKey を優先（art共有ボス zeron/voltdrake・mathfinal/dragon の取り違え＝ボス判定漏れを防ぐ）
+c.ok('srpgEnemyKey が tmplKey を優先', /u\.tmplKey && SRPG_ENEMY_TEMPLATES\[u\.tmplKey\]/.test(ui));
 
 c.done();

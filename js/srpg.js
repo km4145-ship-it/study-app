@@ -684,6 +684,15 @@ var SRPG_ENEMY_TEMPLATES = {
     resists:{ math:'weak', english:'half', japanese:'drain' }, skills:['line'] },
   slugking:{ art:'slugking', name:'スラッグ王', role:'tank',   rankBase:10, weak:'math',     resist:'english',
     resists:{ math:'weak', english:'half' }, onhit:{ kind:'poison', turns:2, chance:0.3 }, skills:['line'] },
+  // 物語モードの山場ボス（大技予告→回避＆かくせい。魔王シグマと同じ演出システムを使う）
+  zeron:{ art:'voltdrake', name:'天秤の魔神ゼロン', role:'tank', rankBase:12, weak:'math', resist:'english', boss:true,
+    resists:{ math:'weak', english:'half' }, onhit:{ kind:'paralyze', turns:1, chance:0.25 }, skills:['line'],
+    phase:{ hp:0.45, atk:1, def:0, name:'てんびん かくせい', msg:'まだだ…！ 天秤は かたむいてなど いない！' },
+    charge:{ name:'てんびん くずし', aoe:'cross', power:150, mp:5, warn:'ゼロンが 天秤を かたむけている…！ つぎのターン 大技！ 赤いマスから にげろ！' } },
+  mathfinal:{ art:'dragon', name:'入試魔竜ファイナル', role:'attacker', rankBase:15, weak:'math', resist:'english', boss:true,
+    resists:{ math:'weak', english:'half' }, onhit:{ kind:'poison', turns:2, chance:0.3 }, skills:['line','burstball'],
+    phase:{ hp:0.5, atk:1, def:1, name:'さいしゅう けいたい', msg:'まだだ！ 入試は ここからが 本番だぞ…！' },
+    charge:{ name:'ファイナル・ジャッジ', aoe:'burst', power:190, mp:6, warn:'ファイナルが ちからを ためている…！ つぎのターン 超大技！ 赤いマスから にげろ！' } },
   mender: { art:'qbird',   name:'いやしのトリ', role:'healer',  rankBase:7,  weak:'english',  resist:'japanese',
     resists:{ english:'weak', japanese:'half' }, skills:['heal'] },
   cheerer:{ art:'grammaro', name:'おうえんのホン', role:'mage',  rankBase:7,  weak:'japanese', resist:'social',
@@ -771,7 +780,7 @@ function _srpgPlaceEnemies(rng, keys, n, lvlMin, lvlVar){
 // きょうの挑戦：日付キー（例 '2026-7-17'）から敵編成・地形・大陸が日替わりで決まる
 function srpgDailyStage(dateKey){
   var rng = srpgSeedRng('daily:' + dateKey);
-  var keys = Object.keys(SRPG_ENEMY_TEMPLATES).filter(function(k){ return k !== 'villain'; });
+  var keys = Object.keys(SRPG_ENEMY_TEMPLATES).filter(function(k){ return !SRPG_ENEMY_TEMPLATES[k].boss; });   // 物語ボス（villain/zeron/mathfinal）は周回に出さない
   var cont = SRPG_SUBJECT_KEYS[Math.floor(rng()*SRPG_SUBJECT_KEYS.length)];
   var enemies = _srpgPlaceEnemies(rng, keys, 3 + Math.floor(rng()*2), 3, 3);   // 3〜4体・Lv3〜6
   var terr = [], tks = ['heal','poison','fire'], used = {};
@@ -792,7 +801,7 @@ function srpgDailyStage(dateKey){
 function srpgTowerStage(floor){
   floor = Math.max(1, floor|0);
   var rng = srpgSeedRng('tower:' + floor);
-  var keys = Object.keys(SRPG_ENEMY_TEMPLATES).filter(function(k){ return k !== 'villain'; });
+  var keys = Object.keys(SRPG_ENEMY_TEMPLATES).filter(function(k){ return !SRPG_ENEMY_TEMPLATES[k].boss; });   // ボスは塔に出さない（villain/zeron/mathfinal）
   var boss = (floor % 5 === 0);
   var n = Math.min(5, 2 + Math.floor(floor/3)) - (boss ? 1 : 0);
   var lvl = Math.min(12, 1 + floor);
@@ -823,12 +832,12 @@ var SRPG_CONTINENTS = {
       { title:'分数の谷',     topic:'分数のかけ算・わり算', lvl:2,  mons:['slime','wolf'],   boss:'通分キングスラッグ', bossMon:'slugking', nodes:['やくぶんの谷','つうぶんの淵','キングの間'] },
       { title:'正負の草原',   topic:'正負の数',         lvl:3,  mons:['goblin','bat'],   boss:'正負王スラッグ',    bossMon:'slugking', nodes:['プラスの丘','マイナスの沼','ぜったいちの祭壇'] },
       { title:'文字式の森',   topic:'文字と式',         lvl:4,  mons:['trent','slime'],  boss:'式変形スラッグ',    bossMon:'slugking', nodes:['文字の茂み','代入の泉','移項の広場'] },
-      { title:'方程式の遺跡', topic:'一次方程式',       lvl:5,  mons:['ghost','wolf'],   boss:'天秤の魔神ゼロン',  bossMon:'dragon',   nodes:['移項の回廊','解の間','天秤の祭壇'], lieutenant:true },
+      { title:'方程式の遺跡', topic:'一次方程式',       lvl:5,  mons:['ghost','wolf'],   boss:'天秤の魔神ゼロン',  bossMon:'zeron',    nodes:['移項の回廊','解の間','天秤の祭壇'], lieutenant:true },
       { title:'比例の丘',     topic:'比例と反比例',     lvl:6,  mons:['wolf','trent'],   boss:'関数竜プロポル',    bossMon:'dragon',   nodes:['比例の坂','反比例の谷','グラフの丘'] },
       { title:'図形の神殿',   topic:'平面と空間の図形', lvl:7,  mons:['trent','ghost'],  boss:'図形竜ジオドラ',    bossMon:'dragon',   nodes:['おうぎ形の門','立体の広間','展開図の回廊'] },
       { title:'連立の魔洞',   topic:'連立方程式と一次関数', lvl:8, mons:['ghost','wolf'], boss:'関数魔竜リニア',    bossMon:'dragon',   nodes:['連立の洞','代入の淵','交点の間'] },
       { title:'証明の霊峰',   topic:'図形の証明と確率', lvl:9,  mons:['ghost','trent'],  boss:'証明幻竜プルーフ',  bossMon:'dragon',   nodes:['合同の尾根','証明の頂','確率の祠'] },
-      { title:'入試の魔宮',   topic:'規則性・関数と図形の融合', lvl:10, mons:['ghost','wolf'], boss:'入試魔竜ファイナル', bossMon:'dragon', nodes:['規則性の間','融合の回廊','ファイナルの玉座'], finale:true }
+      { title:'入試の魔宮',   topic:'規則性・関数と図形の融合', lvl:10, mons:['ghost','wolf'], boss:'入試魔竜ファイナル', bossMon:'mathfinal', nodes:['規則性の間','融合の回廊','ファイナルの玉座'], finale:true }
     ]
   }
 };

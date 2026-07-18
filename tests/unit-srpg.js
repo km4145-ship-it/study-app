@@ -745,4 +745,19 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.ok('味方ゼロならnull', S.srpgAoeBestCenter('burst', [{side:'enemy',downed:false,x:1,y:1}], G3)===null);
 }
 
+// ================= ちえのクリスタル（物語の通し糸）=================
+{
+  c.eq('クリスタルは5つ', S.SRPG_CRYSTALS.length, 5);
+  c.ok('各クリスタルは実在の大陸クエストに対応', S.SRPG_CRYSTALS.every(function(cr){ return !!S.SRPG_STAGES[cr.id] && S.SRPG_STAGES[cr.id].type==='quest'; }));
+  c.ok('魔王城(q_maou)はクリスタル源ではない', S.SRPG_CRYSTALS.every(function(cr){ return cr.id!=='q_maou'; }));
+  var none = S.srpgCrystalsFrom({});
+  c.ok('未クリアは0個', none.length===5 && none.every(function(cr){ return !cr.got; }));
+  c.eq('未クリアのカウントは0', S.srpgCrystalCount({}), 0);
+  var some = S.srpgCrystalsFrom({ q_math:1, q_english:1 });
+  c.eq('2大陸クリアで2個', S.srpgCrystalCount({ q_math:1, q_english:1 }), 2);
+  c.ok('取得済みフラグが正しい', some.find(function(cr){return cr.id==='q_math';}).got===true && some.find(function(cr){return cr.id==='q_science';}).got===false);
+  c.eq('全クリアで5個', S.srpgCrystalCount({ q_math:1, q_japanese:1, q_english:1, q_science:1, q_social:1 }), 5);
+  c.ok('srpgCrystalForは大陸クエストにヒット', !!S.srpgCrystalFor('q_math') && S.srpgCrystalFor('q_maou')===null && S.srpgCrystalFor('arena1')===null);
+}
+
 c.done();

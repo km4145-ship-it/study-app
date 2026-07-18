@@ -57,4 +57,9 @@ c.ok('あいぼうの戻り先はbackToSubjects', html.indexOf('onclick="backToS
 const hubBody = html.slice(html.indexOf('function renderGameHub'), html.indexOf('function renderGameHub') + 4500);
 c.ok('ハブ本体に旧RPGマップ(showRpg)入口が無い', hubBody.indexOf('showRpg()') < 0);
 
+// ---- 物語の通し糸：クリスタル収集の可視化（④）----
+c.ok('ステージ選択にクリスタルバー', srpgUi.indexOf('srpgCrystalBarHtml(cleared)') >= 0 && srpgUi.indexOf('function srpgCrystalBarHtml') >= 0);
+c.ok('大陸初クリアでクリスタル獲得', srpgUi.indexOf('cryFirst') >= 0 && srpgUi.indexOf('srpgCrystalFor(srpgB.stageId)') >= 0);
+c.ok('魔王城カードはクリスタル条件を表示', srpgUi.indexOf('5つの クリスタルで ひらく') >= 0);
+
 c.done();

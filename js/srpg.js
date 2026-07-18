@@ -524,6 +524,23 @@ function srpgWaveUnits(stage, waveIdx){
 }
 function srpgTotalWaves(stage){ return 1 + ((stage.waves || []).length); }
 
+// ===== ちえのクリスタル：各大陸クエストをクリアで1つ手に入る（5つ集めて魔王城が開く）=====
+// これが「なぜ戦うのか＝5つのクリスタルを集めて魔王シグマを倒す」という物語の通し糸。
+// 状態は既存の srpg_cleared（クリア済みステージ）から導出＝新しい保存を増やさない。
+var SRPG_CRYSTALS = [
+  { id:'q_math',     continent:'math',     em:'🔴', name:'かずの クリスタル' },
+  { id:'q_japanese', continent:'japanese', em:'🟣', name:'ことばの クリスタル' },
+  { id:'q_english',  continent:'english',  em:'🟢', name:'えいごの クリスタル' },
+  { id:'q_science',  continent:'science',  em:'🔵', name:'かがくの クリスタル' },
+  { id:'q_social',   continent:'social',   em:'🟡', name:'れきしの クリスタル' }
+];
+function srpgCrystalsFrom(cleared){
+  cleared = cleared || {};
+  return SRPG_CRYSTALS.map(function(c){ return { id:c.id, continent:c.continent, em:c.em, name:c.name, got:!!cleared[c.id] }; });
+}
+function srpgCrystalCount(cleared){ return srpgCrystalsFrom(cleared).filter(function(c){ return c.got; }).length; }
+function srpgCrystalFor(stageId){ for(var i=0;i<SRPG_CRYSTALS.length;i++){ if(SRPG_CRYSTALS[i].id===stageId) return SRPG_CRYSTALS[i]; } return null; }
+
 // ===== おまかせ編成：ロスターから つよさ×役割バランスで自動選抜（純粋関数） =====
 // list=[{id,rank,lv,sp,...}] → 選んだidの配列（最大n体）。かいふく役を1体確保→残りは強い順。
 function srpgAutoPick(list, n){
@@ -846,6 +863,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
     SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse,
     SRPG_RANK_ORDER: SRPG_RANK_ORDER, SRPG_EVOLVE_DUPES: SRPG_EVOLVE_DUPES, srpgEvolveNextRank: srpgEvolveNextRank, srpgEvolveCost: srpgEvolveCost, srpgEvolveCanDo: srpgEvolveCanDo,
-    srpgBossPhaseReady: srpgBossPhaseReady, srpgAoeBestCenter: srpgAoeBestCenter
+    srpgBossPhaseReady: srpgBossPhaseReady, srpgAoeBestCenter: srpgAoeBestCenter,
+    SRPG_CRYSTALS: SRPG_CRYSTALS, srpgCrystalsFrom: srpgCrystalsFrom, srpgCrystalCount: srpgCrystalCount, srpgCrystalFor: srpgCrystalFor
   };
 }

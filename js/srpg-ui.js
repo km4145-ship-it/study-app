@@ -166,11 +166,26 @@ function srpgStageCard(id, locked){
   var terr = (st.terrain||[]).reduce(function(m,t){ m[t.kind]=1; return m; }, {});
   var terrIcons = Object.keys(terr).map(function(k){ return SRPG_TERRAIN_META[k].em; }).join('');
   var foot = locked ? '前を クリアで 解放' : ('敵'+st.enemies.length+'体'+(st.boss?' ・ ボス「'+st.boss+'」':'')+(terrIcons?' ・ 地形'+terrIcons:''));
+  if(id==='q_maou'){   // 魔王城＝5つのクリスタルで開く決戦（通し糸の到達点）
+    var _cn = srpgCrystalCount(cleared);
+    foot = locked ? ('💎 5つの クリスタルで ひらく（'+_cn+'/5）') : '💎 5つのクリスタルが かがやく！ さいごの決戦だ';
+  }
   return '<button class="srpg-stage-card'+(locked?' locked':'')+(done?' done':'')+(st.type==='quest'?' quest':'')+'" '+(locked?'disabled':'onclick="srpgStart(\''+id+'\')"')+'>'
     + '<div class="srpg-sc-head"><b>'+cont.emoji+' '+escapeHtml(st.name)+'</b>'+(done?('<span class="srpg-sc-stars">'+[1,2,3].map(function(i){return i<=stStars?'★':'☆';}).join('')+'</span>'):'')+(locked?'<span class="srpg-sc-lock">🔒</span>':'')+'</div>'
     + '<div class="srpg-sc-mons">'+faces+'</div>'
     + '<div class="srpg-sc-foot">'+foot+'</div>'
     + '</button>';
+}
+// ちえのクリスタル収集バー（物語の通し糸を可視化：n/5＋どの大陸のを持っているか）
+function srpgCrystalBarHtml(cleared){
+  var list = srpgCrystalsFrom(cleared), n = list.filter(function(c){ return c.got; }).length;
+  var gems = list.map(function(c){
+    return '<span class="srpg-cry'+(c.got?' got':'')+'" title="'+escapeHtml(c.name)+'">'+(c.got?c.em:'⬜')+'</span>';
+  }).join('');
+  var hint = (n>=5) ? '5つ そろった！ 魔王城で 決戦だ！' : 'ひとつずつ 集めて 魔王シグマを たおそう';
+  return '<div class="srpg-crystals"><div class="srpg-cry-head">💎 ちえのクリスタル <b>'+n+'/5</b></div>'
+    + '<div class="srpg-cry-row">'+gems+'</div>'
+    + '<div class="srpg-cry-hint'+(n>=5?' done':'')+'">'+hint+'</div></div>';
 }
 function srpgStageSelect(){
   srpgB = null;
@@ -206,6 +221,7 @@ function srpgStageSelect(){
     + '<div class="srpg-sec">🌀 まいにち <small>周回で きたえよう</small></div>'
     + '<div class="srpg-stage-list">'+loopCards+'</div>'
     + '<div class="srpg-sec">🗺️ 大陸クエスト <small>各大陸の 主を たおそう</small></div>'
+    + srpgCrystalBarHtml(cleared)
     + '<div class="srpg-stage-list">'+questCards+'</div>'
     + '<div class="srpg-sec">⚔️ 訓練場 <small>自由に れんしゅう</small></div>'
     + '<div class="srpg-stage-list">'+trainCards+'</div>'
@@ -1236,6 +1252,8 @@ function srpgEnd(outcome){
   var isLoop = (stype==='daily' || stype==='tower');
   var maouWin = win && srpgB.stageId === 'q_maou';                       // 魔王シグマ撃破＝ゲームのクライマックス
   var maouFirst = maouWin && !srpgClearedSet()['q_maou'];               // 初制覇だけ フィナーレを自動再生
+  var cryDef = win ? srpgCrystalFor(srpgB.stageId) : null;              // この大陸クエストのクリスタル
+  var cryFirst = cryDef && !srpgClearedSet()[srpgB.stageId];            // 大陸の初クリア＝クリスタル獲得
   if(!isLoop){ if(win){ srpgClearLoss(srpgB.stageId); } else { srpgNoteLoss(srpgB.stageId); } }   // 敗北救済（周回は対象外）
   if(!win && stype==='tower'){ try{ lsSetJSON('srpg_tower_save', null); }catch(e){} }   // 塔で負けたら「つづき」は消える
   if(win && isLoop){
@@ -1266,6 +1284,7 @@ function srpgEnd(outcome){
   }
   if(win){
     if(!isLoop) srpgMarkCleared(srpgB.stageId);
+    if(cryFirst){ extra += '<div class="srpg-res-line scout">'+cryDef.em+' 「'+escapeHtml(cryDef.name)+'」を 手に入れた！（ちえのクリスタル '+srpgCrystalCount(srpgClearedSet())+'/5）</div>'; }
     // ごほうび：コインとXP（既存RPGの経済＝rpgState/cosに合流）
     try{ var s = rpgState(), cos = rpgCosState(s);
       cos.coin = (cos.coin||0) + coin;
@@ -1321,6 +1340,7 @@ function srpgEnd(outcome){
   body.insertAdjacentHTML('beforeend', '<div class="srpg-result-wrap">'+card+'</div>');
   try{ sfx(win?'levelup':'wrong'); }catch(e){}
   if(win){ try{ if(typeof confetti==='function') confetti(); }catch(e){} }
+  if(cryFirst){ try{ var _cn=srpgCrystalCount(srpgClearedSet()); sfx('fanfare'); showToast(cryDef.em, '「'+cryDef.name+'」GET！', 'ちえのクリスタル '+_cn+'/5'+(_cn>=5?'　5つ そろった！ 魔王城が ひらいた！':'　のこり '+(5-_cn)+'つ！')); }catch(e){} }
   if(maouFirst){ setTimeout(function(){ try{ srpgMaouFinale(); }catch(e){} }, _sd(900)); }   // 初制覇＝結末を自動再生
   // 勝敗の声（スカウト演出があるときは そちらの声を優先＝重ねない）
   var hasScout = win && scout && scout.mon;

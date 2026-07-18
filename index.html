@@ -2004,7 +2004,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-ov.fx-zap{ color:#fde047; animation:srpgZap .5s ease-out forwards; }
   @keyframes srpgZap{ 0%,100%{ opacity:0; } 20%,60%{ opacity:1; } 40%{ opacity:.4; } }
   /* ===== ③ スカウト登場演出 ===== */
-  .srpg-scout{ position:absolute; inset:0; z-index:1650; background:radial-gradient(circle at 50% 42%, rgba(30,58,138,.72), rgba(4,8,18,.94)); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; animation:srpgFadeUnit .3s ease; }
+  /* 暗幕は別レイヤー(z1600)に分離。gachaFxのパーティクル(z1660)を暗幕とモンスターの間に挟み、
+     モンスター本体(.srpg-scout z1700)を最前面にする＝高レアの星の雨がモンスターを覆い隠さない。 */
+  .srpg-scout-bg{ position:absolute; inset:0; z-index:1600; background:radial-gradient(circle at 50% 42%, rgba(30,58,138,.72), rgba(4,8,18,.94)); animation:srpgFadeUnit .3s ease; pointer-events:none; }
+  .srpg-scout{ position:absolute; inset:0; z-index:1700; background:transparent; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; animation:srpgFadeUnit .3s ease; }
   .srpg-scout-rays{ position:absolute; top:42%; left:50%; width:360px; height:360px; transform:translate(-50%,-50%); background:conic-gradient(from 0deg, rgba(253,224,71,.26) 0 6deg, transparent 6deg 18deg); border-radius:50%; animation:srpgSpin 9s linear infinite; }
   @keyframes srpgSpin{ to{ transform:translate(-50%,-50%) rotate(360deg); } }
   .srpg-scout-art{ position:relative; width:170px; height:170px; filter:drop-shadow(0 8px 18px rgba(0,0,0,.6)); animation:srpgScoutIn .7s cubic-bezier(.2,1.4,.3,1); }

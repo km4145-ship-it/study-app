@@ -130,4 +130,8 @@ c.ok('無料スカウト可能時にぼうけんカードへバッジ', html.ind
 c.ok('きろく：今日の目標が保護者向けより上に', html.indexOf('🎯 今日の目標・連続記録') < html.indexOf('おうちの方へ（保護者向け）'));
 c.ok('きろく：保護者向けは折りたたみ', html.indexOf('<details class="rec-fold"><summary>👨‍👩‍👧 おうちの方へ') >= 0);
 c.ok('きろく：偏差値推移チャートは折りたたみ外（レイアウト0回避）', html.indexOf('id="rec-trend"') < html.indexOf('<details class="rec-fold">'));
+// ---- スカウト高レア演出：星の雨がモンスターを覆い隠さない（層分離）----
+c.ok('スカウト演出：暗幕を別レイヤーに分離', html.indexOf('.srpg-scout-bg{')>=0 && html.indexOf('z-index:1600')>=0);
+c.ok('スカウト演出：モンスターがパーティクルの前面(z1700)', html.indexOf('.srpg-scout{ position:absolute; inset:0; z-index:1700; background:transparent;')>=0);
+c.ok('パーティクルキャンバスをcharge後に下げる(1660)', srpgUi.indexOf('gachaFx.charge(fxRank); }catch(e){}\n  fxCv(1660);')>=0);
 c.done();

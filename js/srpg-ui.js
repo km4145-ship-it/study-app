@@ -2064,6 +2064,8 @@ function srpgScoutReveal(mon, onDone){
   var isHigh = !!HIGH[mon.rank];
   var col = SRPG_TIER_COLOR[_scoutTier(mon.rank||'F')] || '#a78bfa';
   var fxRank = { low:'R', A:'SR', S:'SSR', SS:'UR', SSS:'LR', LG:'LR' }[_scoutTier(mon.rank||'F')] || 'R';
+  var bg = document.createElement('div'); bg.className = 'srpg-scout-bg';   // 暗幕（パーティクルより下）
+  function fxCv(z){ try{ var cv=document.getElementById('gacha-fx-canvas'); if(cv) cv.style.zIndex=z; }catch(e){} }
   var el = document.createElement('div'); el.className = 'srpg-scout' + (isHigh ? ' high' : '');
   el.style.setProperty('--rc', col);
   el.innerHTML = '<div class="srpg-scout-rays"></div><div class="srpg-scout-rays r2"></div>'
@@ -2076,7 +2078,7 @@ function srpgScoutReveal(mon, onDone){
     + '<div class="srpg-scout-tap">'+(isHigh?'タップして むかえいれる ▶':'タップして つづける ▶')+'</div>';
   var done = false, finalDone = false, timers = [];
   function T(fn, ms){ timers.push(setTimeout(fn, ms)); }
-  var fin = function(){ if(done) return; done = true; timers.forEach(clearTimeout); try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); };
+  var fin = function(){ if(done) return; done = true; timers.forEach(clearTimeout); try{ sc.removeChild(el); }catch(e){} try{ sc.removeChild(bg); }catch(e){} fxCv(10000); if(onDone) onDone(); };
   // 段階：①環の収縮チャージ→②シルエット降臨（衝撃波）→③静止のため→④開眼＋爆発→⑤打刻＋名前
   var landed = function(){
     try{ el.classList.add('landed'); var sh=el.querySelector('.srpg-scout-shock'); if(sh) sh.classList.add('go'); sfx('reveal'); vibe([20,40,20]); }catch(e){}
@@ -2089,14 +2091,16 @@ function srpgScoutReveal(mon, onDone){
       var st=el.querySelector('.srpg-scout-stamp'); if(st) st.classList.add('go');
       sfx(isHigh ? 'legendary' : 'fanfare'); vibe([30,60,30,60,100]);
       if(window.gachaFx){ gachaFx.burst(fxRank); if(isHigh && gachaFx.rain) gachaFx.rain(fxRank); }
+      fxCv(1660);   // 念のため再適用：粒子キャンバスをモンスターの下(1660<1700)に保ち、雨で隠れないようにする
       if(typeof confetti==='function'){ confetti(); setTimeout(confetti, 260); if(isHigh){ setTimeout(confetti, 560); setTimeout(confetti, 900); } }
     }catch(e){}
     srpgSay('やったね！ '+(mon.name||'なかま')+'が、なかまに なったよ！');
     if(!isHigh) T(fin, 2000);   // 低中レアは自動で次へ／SS以上は タップまで止まる（一度ストップ）
   };
   el.onclick = function(){ if(!finalDone){ timers.forEach(clearTimeout); timers=[]; landed(); finale(); } else fin(); };
-  sc.appendChild(el);
+  sc.appendChild(bg); sc.appendChild(el);
   try{ sfx('charge'); if(window.gachaFx) gachaFx.charge(fxRank); }catch(e){}
+  fxCv(1660);   // charge がキャンバスを生成した後に z を下げる：暗幕1600 < パーティクル1660 < モンスター1700（雨がモンスターを隠さない）
   var t1 = isHigh ? 1100 : 500;                 // 高レアは「ため」を約3倍に
   T(function(){ landed(); }, t1);               // 降臨（ドスン＋着地衝撃波＋画面ゆれ）
   T(function(){ try{ el.classList.add('holdstill'); }catch(e){} }, t1 + 700);   // 静止のため（無音の一瞬）

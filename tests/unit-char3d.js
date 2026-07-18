@@ -195,4 +195,7 @@ c.ok('ガチャは宝箱フェーズ（_c3dTriggerChest）を呼ぶ', html.index
 c.ok('開封で3Dアイテムが出現（_c3dChestReveal）', html.indexOf('_c3dChestReveal(ov, it.em)') >= 0);
 c.ok('渦巻きと星の雨を呼ぶ（gachaFx.vortex/rain）', html.indexOf('gachaFx.vortex(rank)') >= 0 && html.indexOf('gachaFx.rain(rank)') >= 0);
 c.ok('LRフェイクアウトがある', html.indexOf("classList.add('fakeout')") >= 0);
+// MutationObserver は rAF デバウンス経由（毎mutationの全文書 querySelectorAll を避ける）
+c.ok('char3dObserve は _c3dHydrateSoon（rAFデバウンス）を使う',
+  code.indexOf('new MutationObserver(_c3dHydrateSoon)') >= 0 && code.indexOf('function _c3dHydrateSoon(') >= 0 && /_c3dHydrateSoon[\s\S]{0,200}requestAnimationFrame/.test(code));
 c.done();

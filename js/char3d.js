@@ -1550,10 +1550,19 @@ function char3dHydrate(root){
   var slots = scope.querySelectorAll('.c3d-slot:not([data-c3d-live])');
   for (var i = 0; i < slots.length; i++) char3dMount(slots[i]);
 }
-var _c3dObserver = null;
+var _c3dObserver = null, _c3dHydratePending = false;
+// mutation の集中発火（showQuestion 等の innerHTML 総入替）ごとに全文書 querySelectorAll する
+// のを避け、1フレームに1回へまとめる（rAFデバウンス）。挙動は不変・ホットパスの隠れコストを削減。
+function _c3dHydrateSoon(){
+  if (_c3dHydratePending) return;
+  _c3dHydratePending = true;
+  var run = function(){ _c3dHydratePending = false; try{ char3dHydrate(document); }catch(e){} };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+  else setTimeout(run, 16);
+}
 function char3dObserve(){
   if (_c3dObserver || typeof MutationObserver === 'undefined' || !document.body) return;
-  _c3dObserver = new MutationObserver(function(){ char3dHydrate(document); });
+  _c3dObserver = new MutationObserver(_c3dHydrateSoon);
   _c3dObserver.observe(document.body, { childList: true, subtree: true });
   char3dHydrate(document);
 }

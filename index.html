@@ -3932,7 +3932,18 @@ function muGreetAndEnter(){
 }
 // ===== 初回オンボーディング（1度だけ）：アプリの目的・下の5タブ・最初の一手を案内 =====
 function _onboarded(){ try{ return safeLS.getItem('onboarded')==='1'; }catch(e){ return true; } }
-function maybeShowOnboarding(){ if(_onboarded()) return; setTimeout(function(){ try{ showOnboarding(); }catch(e){} }, 450); }
+function maybeShowOnboarding(){
+  if(_onboarded()) return;
+  // 既存ユーザー（過去に学習データがある）には初回ガイドを出さない。オンボーディングは新規専用。
+  // ＝ログイン直後に見慣れたホーム（キャラ）が いきなりモーダルで覆われる違和感を防ぐ。
+  try{
+    var answered=parseInt(safeLS.getItem('c_answered')||'0',10)||0;
+    var lv=1; try{ lv=(rpgState().level)||1; }catch(e){}
+    var logLen=0; try{ logLen=(lsGetJSON('study_log',[])||[]).length; }catch(e){}
+    if(answered>0 || lv>1 || logLen>0){ safeLS.setItem('onboarded','1'); return; }   // 既存ユーザー＝済み扱い
+  }catch(e){}
+  setTimeout(function(){ try{ showOnboarding(); }catch(e){} }, 450);
+}
 var _obStep=0;
 var OB_SLIDES=[
   { em:'👋', ttl:'ようこそ！', body:'ここは、ゲームで あそびながら 勉強して「偏差値65」を めざす アプリだよ。いっしょに がんばろう！' },

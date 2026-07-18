@@ -1,7 +1,8 @@
 'use strict';
-// generators-elem2.js（小1-3 全5教科の大量増量）と generators-elem3.js（中学 基礎★☆☆＋小4-6 理社国）が、
-// 実際に各生成器プールへ登録され（const プールへも push できること）、生成物が健全（答えを含む・
-// 重複なし・undefined/NaN無し・低学年に★★★★を出さない）であることを、実挙動で検証する。
+// generators-elem2.js（小1-3 全5教科の大量増量）/ elem3.js（中学 基礎★☆☆＋小4-6 理社国）/
+// elem4.js（中学 国語・社会の基礎＋小4-6算数＋小1-3算数国語）が、実際に各生成器プールへ登録され
+// （const プールへも push できること）、生成物が健全（答えを含む・重複なし・undefined/NaN無し・
+// 低学年に★★★★を出さない）であることを、実挙動で検証する。
 const fs = require('fs');
 const path = require('path');
 const { makeChecker, ROOT } = require('./lib/assert');
@@ -12,9 +13,11 @@ const gen   = fs.readFileSync(path.join(ROOT, 'js', 'generators.js'), 'utf8');
 const elem  = fs.readFileSync(path.join(ROOT, 'js', 'generators-elem.js'), 'utf8');
 const elem2 = fs.readFileSync(path.join(ROOT, 'js', 'generators-elem2.js'), 'utf8');
 const elem3 = fs.readFileSync(path.join(ROOT, 'js', 'generators-elem3.js'), 'utf8');
+const elem4 = fs.readFileSync(path.join(ROOT, 'js', 'generators-elem4.js'), 'utf8');
+const EXTRA = elem2 + '\n' + elem3 + '\n' + elem4;
 
 const POOLS = ['g13MathGens','g13JpGens','g13EngGens','g13SciGens','g13SocGens',
-               'mathGens','engGens','sciGens','g4SciGens','g4SocGens','g4JpGens'];
+               'mathGens','engGens','sciGens','jpGens','socGens','g4MathGens','g4SciGens','g4SocGens','g4JpGens'];
 
 // プールのサイズを、指定したスクリプト群を読み込んだ後に測る
 function poolSizes(extraSrc) {
@@ -23,23 +26,23 @@ function poolSizes(extraSrc) {
 }
 
 const before = poolSizes('');
-const after  = poolSizes(elem2 + '\n' + elem3);
+const after  = poolSizes(EXTRA);
 
-// elem2 は g13*、elem3 は 中学(math/eng/sci)＋小4-6(g4Sci/Soc/Jp) を増やす
+// elem2=g13*、elem3=中学(math/eng/sci)＋小4-6(g4Sci/Soc/Jp)、elem4=中学(jp/soc)＋g4Math＋g13(math/jp) を増やす
 const GREW = ['g13MathGens','g13JpGens','g13EngGens','g13SciGens','g13SocGens',
-              'mathGens','engGens','sciGens','g4SciGens','g4SocGens','g4JpGens'];
+              'mathGens','engGens','sciGens','jpGens','socGens','g4MathGens','g4SciGens','g4SocGens','g4JpGens'];
 GREW.forEach((p) => {
-  c.ok(p + '：elem2/elem3 読み込みで生成器が増える（' + before[p] + '→' + after[p] + '）', after[p] > before[p]);
+  c.ok(p + '：elem2/3/4 読み込みで生成器が増える（' + before[p] + '→' + after[p] + '）', after[p] > before[p]);
 });
 
-// 追加総数の下限チェック（elem2=149, elem3=180 相当が入る）
+// 追加総数の下限チェック（elem2=149, elem3=180, elem4=167 相当が入る）
 const added = POOLS.reduce((s, p) => s + Math.max(0, after[p] - before[p]), 0);
-c.ok('追加された生成器の総数が 300 以上（elem2+elem3）', added >= 300);
+c.ok('追加された生成器の総数が 470 以上（elem2+elem3+elem4）', added >= 470);
 
 // 生成物の健全性：全プールから各50回引いて検証
 function makeGen(grade) {
   return (new Function('muGradeBand', 'muCurrentGrade',
-    bank + '\n' + gen + '\n' + elem + '\n' + elem2 + '\n' + elem3 + '\nreturn genQuestion;'))(
+    bank + '\n' + gen + '\n' + elem + '\n' + EXTRA + '\nreturn genQuestion;'))(
     () => (grade <= 3 ? 'elem' : grade <= 6 ? 'elem' : 'jhs'), () => grade);
 }
 
@@ -65,10 +68,10 @@ function makeGen(grade) {
   });
 });
 
-// 中学（elem3 の基礎★☆☆が mathGens/engGens/sciGens に混ざる）
+// 中学（elem3 の基礎★☆☆が math/eng/sci、elem4 が japanese/social に混ざる）
 {
   const gq = makeGen(7); // 中1相当
-  ['math', 'english', 'science'].forEach((s) => {
+  ['math', 'english', 'science', 'japanese', 'social'].forEach((s) => {
     let ok = 0, bad = 0;
     for (let i = 0; i < 60; i++) {
       const q = gq(s);
@@ -89,5 +92,6 @@ function makeGen(grade) {
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は js/generators-elem2.js を読む', html.indexOf('js/generators-elem2.js') > html.indexOf('js/generators.js?v='));
 c.ok('index.html は js/generators-elem3.js を読む', html.indexOf('js/generators-elem3.js') > html.indexOf('js/generators.js?v='));
+c.ok('index.html は js/generators-elem4.js を読む', html.indexOf('js/generators-elem4.js') > html.indexOf('js/generators.js?v='));
 
 c.done();

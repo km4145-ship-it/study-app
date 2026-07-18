@@ -1123,6 +1123,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
     <div class="settings-section">
       <h3>🎯 目標とごほうび</h3>
       <p class="settings-hint">次のテスト日を入れると、ホームにカウントダウンが出ます。ごほうびを決めると、ポイントで達成をめざせます。</p>
+      <div class="settings-row"><label>使い方ガイド</label><button class="btn-sm" onclick="showOnboarding()">❓ もう一度みる</button><span class="settings-hint">アプリの あそびかたを 最初から</span></div>
       <div class="settings-row"><label>次のテストの日</label><button class="btn-sm" onclick="setTestDate()">📅 設定</button><span class="settings-hint" id="testdate-disp"></span></div>
       <div class="settings-row"><label>ごほうび（保護者用）</label><button class="btn-sm" onclick="setReward()">🎁 設定</button><span class="settings-hint" id="reward-disp"></span></div>
     </div>
@@ -2210,6 +2211,30 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .ach-tag{ font-size:.6rem; font-weight:800; color:#fff; background:#0891b2; border-radius:999px; padding:0 7px; margin-top:2px; }
   .ach-tag.on{ background:#f59e0b; }
   @media (prefers-color-scheme:dark){ .ach.lock{ background:#243244; } .hub-eqtitle{ color:#78350f; } }
+  /* ===== 初回オンボーディング（使い方ガイド） ===== */
+  .ob-ov{ position:fixed; inset:0; z-index:3000; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.62); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); animation:obFade .3s ease; }
+  .ob-ov.ob-closing{ animation:obFade .25s ease reverse forwards; }
+  @keyframes obFade{ from{ opacity:0; } to{ opacity:1; } }
+  .ob-card{ position:relative; width:100%; max-width:360px; background:var(--card,#fff); border-radius:20px; padding:26px 22px 20px; text-align:center; box-shadow:0 18px 50px rgba(0,0,0,.4); animation:obPop .4s cubic-bezier(.2,1.5,.4,1) both; }
+  @keyframes obPop{ from{ transform:scale(.85) translateY(10px); opacity:0; } to{ transform:none; opacity:1; } }
+  .ob-skip{ position:absolute; top:12px; right:14px; background:none; border:none; color:var(--muted,#5b7a88); font-size:.78rem; font-weight:800; cursor:pointer; font-family:inherit; padding:4px 6px; }
+  .ob-em{ font-size:3.4rem; line-height:1; animation:obFloat 2.6s ease-in-out infinite; }
+  @keyframes obFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+  .ob-ttl{ font-size:1.35rem; font-weight:900; color:var(--text); margin:8px 0 10px; }
+  .ob-body{ font-size:.92rem; font-weight:600; color:var(--text); line-height:1.75; min-height:4em; }
+  .ob-tabs{ display:flex; flex-direction:column; gap:7px; margin:6px 0 4px; text-align:left; }
+  .ob-tab{ display:flex; align-items:center; gap:11px; background:var(--card2,#f1f5f9); border-radius:12px; padding:8px 12px; }
+  .ob-tab-ic{ font-size:1.5rem; flex:0 0 auto; width:1.6em; text-align:center; }
+  .ob-tab-tx{ display:flex; flex-direction:column; line-height:1.3; }
+  .ob-tab-tx b{ font-size:.92rem; color:var(--text); }
+  .ob-tab-tx small{ font-size:.74rem; color:var(--muted,#5b7a88); }
+  .ob-dots{ display:flex; justify-content:center; gap:7px; margin:14px 0; }
+  .ob-dot{ width:8px; height:8px; border-radius:50%; background:rgba(0,0,0,.15); transition:all .3s; }
+  .ob-dot.on{ background:var(--primary,#0891b2); width:22px; border-radius:999px; }
+  .ob-next{ width:100%; padding:13px; border:none; border-radius:14px; background:linear-gradient(135deg,#0891b2,#ec4899); color:#fff; font-size:1.02rem; font-weight:900; font-family:inherit; cursor:pointer; box-shadow:0 6px 16px rgba(8,145,178,.35); }
+  .ob-next:active{ transform:scale(.98); }
+  @media (prefers-color-scheme:dark){ .ob-card{ background:#1e293b; } .ob-tab{ background:#273449; } .ob-ttl,.ob-body,.ob-tab-tx b{ color:#e2e8f0; } }
+  @media (prefers-reduced-motion:reduce){ .ob-ov,.ob-card,.ob-em{ animation:none!important; } }
   .htw-item{ flex:1; text-align:center; color:#cbd5e1; font-size:11px; font-weight:800; line-height:1.5; }
   .htw-item b{ display:block; color:#fff; font-size:13px; }
   .htw-item.hot b{ color:#fde047; } .htw-item.done b{ color:#6ee7b7; }
@@ -3295,7 +3320,7 @@ let currentChar     = 'owl';
 // Safe localStorage wrapper: file:// やプライベートモード/ストレージ無効環境でも
 // 例外で全体が止まらないようにする（これが無いとロコ・カイのあいさつ前で処理が落ちる）
 // ===== マルチユーザー：学習データはユーザー別／設定は共通 =====
-var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,hensa_disp:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1};
+var MU_PER_USER = {c_correct:1,c_streak:1,c_points:1,c_beststreak:1,c_answered:1,c_seconds:1,study_seconds:1,study_log:1,daily_hist:1,daily_prog:1,daily_goal:1,topic_stats:1,mistake_notebook:1,recent_acc:1,careless_log:1,miss_types:1,practice_rating:1,hensa_disp:1,raid_claim:1,areas_played:1,badges:1,reward_done:1,q_log:1,week_srs:1,quest_done:1,paper_sheets:1,real_exams:1,exam_range:1,rpg_state:1,gacha_log:1,gacha_wish:1,gacha_pulls:1,gacha_stamp_claims:1,err_log:1,daily_family:1,onboarded:1};
 function _rawGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function _rawSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function _rawDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -3891,7 +3916,54 @@ function muGreetAndEnter(){
   var _et=rpgEquippedTitle(); var _tp=_et?('【'+_et.name+'】'):'';
   showSubjectSelect();   // ログイン後はホーム（ハブ）に着地＝「次に何をするか」が一目でわかる
   try{ rpgLoginBonus(); }catch(e){}   // 日次ログインボーナスは着地(ハブ)でも取りこぼさない（日付ガード付き＝冪等）
-  try{ speak(_tp+nm+'さん、こんにちは！きょうは 何して あそぶ？'); }catch(e){}
+  if(_onboarded()){ try{ speak(_tp+nm+'さん、こんにちは！きょうは 何して あそぶ？'); }catch(e){} }
+  else { try{ maybeShowOnboarding(); }catch(e){} }   // 初回だけ：アプリの使い方ガイド（5タブ・最初の一手）
+}
+// ===== 初回オンボーディング（1度だけ）：アプリの目的・下の5タブ・最初の一手を案内 =====
+function _onboarded(){ try{ return safeLS.getItem('onboarded')==='1'; }catch(e){ return true; } }
+function maybeShowOnboarding(){ if(_onboarded()) return; setTimeout(function(){ try{ showOnboarding(); }catch(e){} }, 450); }
+var _obStep=0;
+var OB_SLIDES=[
+  { em:'👋', ttl:'ようこそ！', body:'ここは、ゲームで あそびながら 勉強して「偏差値65」を めざす アプリだよ。いっしょに がんばろう！' },
+  { em:'📱', ttl:'したの ボタンで きりかえ', tabs:[
+      ['🏠','ホーム','きょう やること'],
+      ['⚔️','ぼうけん','タクトバトルで つよくなる'],
+      ['🎁','ガチャ','なかま・そうびを あつめる'],
+      ['👕','きせかえ','すがたを かえる'],
+      ['📊','きろく','成績・実績・称号']
+    ] },
+  { em:'▶️', ttl:'まずは これ！', body:'ホームの「▶ きょうの学習をはじめる」から スタート！ まいにち つづけると「じつりょく」が 上がって、称号も もらえるよ。' }
+];
+function showOnboarding(){
+  if(document.getElementById('onboarding-ov')) return;
+  _obStep=0;
+  var ov=document.createElement('div'); ov.id='onboarding-ov'; ov.className='ob-ov';
+  document.body.appendChild(ov);
+  obRender();
+}
+function obRender(){
+  var ov=document.getElementById('onboarding-ov'); if(!ov) return;
+  var s=OB_SLIDES[_obStep], last=_obStep>=OB_SLIDES.length-1;
+  var inner = s.tabs
+    ? '<div class="ob-tabs">'+s.tabs.map(function(t){ return '<div class="ob-tab"><span class="ob-tab-ic">'+t[0]+'</span><span class="ob-tab-tx"><b>'+t[1]+'</b><small>'+escapeHtml(t[2])+'</small></span></div>'; }).join('')+'</div>'
+    : '<div class="ob-body">'+escapeHtml(s.body)+'</div>';
+  var dots = OB_SLIDES.map(function(_,i){ return '<span class="ob-dot'+(i===_obStep?' on':'')+'"></span>'; }).join('');
+  ov.innerHTML = '<div class="ob-card">'
+    + (last?'':'<button class="ob-skip" onclick="obFinish()">スキップ</button>')
+    + '<div class="ob-em">'+s.em+'</div>'
+    + '<div class="ob-ttl">'+escapeHtml(s.ttl)+'</div>'
+    + inner
+    + '<div class="ob-dots">'+dots+'</div>'
+    + '<button class="ob-next" onclick="'+(last?'obFinish()':'obNext()')+'">'+(last?'はじめる！ ▶':'つぎへ ▶')+'</button>'
+    + '</div>';
+  try{ speak(s.ttl+'。'+(s.body||'')); }catch(e){}
+}
+function obNext(){ _obStep++; try{ sfx('click'); }catch(e){} obRender(); }
+function obFinish(){
+  try{ safeLS.setItem('onboarded','1'); }catch(e){}
+  var ov=document.getElementById('onboarding-ov');
+  if(ov){ ov.classList.add('ob-closing'); setTimeout(function(){ try{ ov.parentNode&&ov.parentNode.removeChild(ov); }catch(e){} }, 250); }
+  try{ sfx('coin'); }catch(e){}
 }
 // 管理者用ユーザー管理
 var MU_CHARS=['girl','boy','shiba','cat','rabbit','fox','bear','owl','panda','dolphin','penguin','tiger'];

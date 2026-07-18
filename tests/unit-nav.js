@@ -76,4 +76,11 @@ c.ok('記録画面に実績セクション', html.indexOf('function renderAchiev
 c.ok('勝利でも実績判定が走る', srpgUi.indexOf('checkAchievements()') >= 0);
 c.ok('実績由来の称号がCOS_TITLESにある', cosData.indexOf('a_maou:{') >= 0 && cosData.indexOf('a_crystal:{') >= 0);
 
+// ---- 初回オンボーディング（使い方ガイド・1度だけ）----
+c.ok('初回ガイド showOnboarding がある', html.indexOf('function showOnboarding') >= 0 && html.indexOf('var OB_SLIDES') >= 0);
+c.ok('着地で未オンボーディングならガイド表示', html.indexOf('else { try{ maybeShowOnboarding(); }catch(e){} }') >= 0);
+c.ok('ガイドは1度だけ（onboardedフラグ）', html.indexOf("safeLS.setItem('onboarded','1')") >= 0 && html.indexOf('onboarded:1};') >= 0);
+c.ok('設定から使い方を再表示できる', html.indexOf('onclick="showOnboarding()">❓ もう一度みる') >= 0);
+c.ok('ガイドは5タブを説明する', html.indexOf("['🏠','ホーム'") >= 0 && html.indexOf("['📊','きろく'") >= 0);
+
 c.done();

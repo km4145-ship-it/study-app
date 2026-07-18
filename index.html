@@ -1754,7 +1754,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-grid{ display:grid; gap:3px; transform:rotateX(52deg) rotateZ(0deg); transform-style:preserve-3d; }
   .srpg-tile{ width:var(--st); height:var(--st); border-radius:7px; background:rgba(255,255,255,.10); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14), 0 3px 0 rgba(0,0,0,.22); position:relative; transform-style:preserve-3d; cursor:default; }
   .srpg-tile.alt{ background:rgba(255,255,255,.055); }
-  .srpg-tile.hi-move{ background:rgba(56,132,255,.55); box-shadow:inset 0 0 0 1px rgba(191,219,254,.8), 0 0 12px rgba(56,132,255,.6); cursor:pointer; animation:srpgPulse 1.2s ease-in-out infinite; }
+  .srpg-tile.hi-move{ background:rgba(56,132,255,.6); box-shadow:inset 0 0 0 2px rgba(191,219,254,.9), 0 0 14px rgba(56,132,255,.7); cursor:pointer; animation:srpgPulse 1.2s ease-in-out infinite; }
+  .srpg-tile.hi-move::after{ content:''; position:absolute; left:50%; top:50%; width:9px; height:9px; border-radius:50%; background:rgba(219,234,254,.95); transform:translate(-50%,-50%); box-shadow:0 0 8px rgba(147,197,253,.9); pointer-events:none; }
+  .srpg-tile.hi-atk{ box-shadow:inset 0 0 0 3px rgba(248,113,113,.95), 0 0 16px rgba(239,68,68,.7); cursor:pointer; animation:srpgAtkPulse .9s ease-in-out infinite; }
+  @keyframes srpgAtkPulse{ 0%,100%{ box-shadow:inset 0 0 0 3px rgba(248,113,113,.95), 0 0 10px rgba(239,68,68,.5); } 50%{ box-shadow:inset 0 0 0 3px #fecaca, 0 0 22px rgba(239,68,68,.95); } }
+  .srpg-cmd-hint2{ font-size:.72rem; font-weight:800; color:#a9b6d6; margin-bottom:7px; }
   .srpg-tile.hi-target{ background:rgba(239,68,68,.5); box-shadow:inset 0 0 0 1px rgba(254,202,202,.85), 0 0 12px rgba(239,68,68,.6); cursor:pointer; animation:srpgPulse 1s ease-in-out infinite; }
   .srpg-tile.hi-aoe{ background:rgba(251,191,36,.6)!important; box-shadow:inset 0 0 0 1px #fde68a, 0 0 16px rgba(251,191,36,.7); }
   .srpg-tile.actor{ box-shadow:inset 0 0 0 2px #fde047, 0 0 14px rgba(253,224,71,.6); }

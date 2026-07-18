@@ -345,6 +345,7 @@ function srpgRender(){
     var cls = 'srpg-tile';
     if((x+y)%2===0) cls += ' alt';
     if(srpgB.hiMove[key]) cls += ' hi-move';
+    if(srpgB.hiAtk && srpgB.hiAtk[key]) cls += ' hi-atk';
     if(srpgB.hiTarget[key]) cls += ' hi-target';
     if(srpgB.hiAoe[key]) cls += ' hi-aoe';
     if(srpgB.phase==='deploy' && srpgB.zoneSet[key]) cls += ' hi-deploy';
@@ -466,8 +467,9 @@ function srpgCmdHtml(){
       + (SKEM[s.kind]||'🌟')+' '+s.name+' <small>'+(sealed?'ふうじ':'MP'+s.mp)+'</small></button>';
   }).join('');
   return '<div class="srpg-cmd-actor">'+actor.roleEm+' '+escapeHtml(actor.name)+' <small>HP'+actor.hp+'/'+actor.maxHp+' MP'+mp+'</small></div>'
+    + '<div class="srpg-cmd-hint2">🔷あおいマス＝いどう ・ 🔴てきをタップ＝こうげき（とおくても 自動で ちかづくよ）</div>'
     + '<div class="srpg-cmd-row">'
-    + '<button class="srpg-cmd-btn'+(srpgB.moved?' off':'')+'" '+(srpgB.moved?'disabled':'onclick="srpgCmdMove()"')+'>👣 いどう</button>'
+    + (srpgB.moved && srpgB.undoPos ? '<button class="srpg-cmd-btn" onclick="srpgCmdUndo()">↩ いどうをもどす</button>' : '')
     + '<button class="srpg-cmd-btn atk" onclick="srpgCmdAttack()">⚔️ こうげき</button>'
     + skills
     + '<button class="srpg-cmd-btn wait" onclick="srpgCmdWait()">💤 まつ</button>'
@@ -533,15 +535,34 @@ function srpgSelectActor(){
   srpgB.phase = 'select'; srpgB.chosenSkill = null; srpgB.targetTile = null;
   srpgClearHi();
   var actor = srpgActor();
-  if(actor){ try{ document.querySelector('#st-'+actor.x+'-'+actor.y).scrollIntoView({block:'center'}); }catch(e){} }
+  if(actor){
+    // 🔷 いどうできるマス（未移動なら）と 🔴 いま攻撃できる敵 を最初から見せる＝迷わない
+    if(!srpgB.moved){ srpgMoveTiles(actor, srpgB.grid, srpgB.units).forEach(function(t){ srpgB.hiMove[t.x+','+t.y] = 1; }); }
+    srpgB.hiAtk = {};
+    srpgRangeTiles(actor.x, actor.y, actor.rng, srpgB.grid).forEach(function(t){
+      var u = srpgUnitAt(srpgB.units, t.x, t.y);
+      if(u && u.side==='enemy' && !u.downed) srpgB.hiAtk[t.x+','+t.y] = 1;
+    });
+    try{ document.querySelector('#st-'+actor.x+'-'+actor.y).scrollIntoView({block:'center'}); }catch(e){}
+  }
   srpgRender();
   // 初めてのコマンド選択にだけ ヒントを1回出す
   if(!_srpgFlag('srpg_hint_sel')){ _srpgSetFlag('srpg_hint_sel');
-    try{ showToast('💡','さいしょの いっぽ','👣いどう してから ⚔️こうげき すると つよいよ！'); }catch(e){} }
+    try{ showToast('💡','さいしょの いっぽ','🔷あおいマスをタップで いどう。🔴てきをタップで こうげき（とおくても 自動で ちかづくよ）'); }catch(e){} }
 }
-function srpgClearHi(){ if(srpgB){ srpgB.hiMove = {}; srpgB.hiTarget = {}; srpgB.hiAoe = {}; } }
+function srpgClearHi(){ if(srpgB){ srpgB.hiMove = {}; srpgB.hiTarget = {}; srpgB.hiAoe = {}; srpgB.hiAtk = {}; } }
 
 // ---- コマンド ----
+function srpgCmdUndo(){
+  var u = srpgB && srpgB.undoPos; if(!u) return;
+  var actor = srpgUnitById(u.id); if(!actor) return;
+  try{ sfx('click'); }catch(e){}
+  var _fx = actor.x, _fy = actor.y;
+  actor.x = u.x; actor.y = u.y;
+  srpgB.moved = false; srpgB.undoPos = null;
+  srpgSelectActor();
+  srpgSlideUnit(actor.id, _fx, _fy);
+}
 function srpgCmdMove(){
   var actor = srpgActor(); if(!actor || srpgB.moved) return;
   try{ sfx('click'); }catch(e){}
@@ -587,11 +608,53 @@ function srpgTileTap(x, y){
   if(!srpgB || srpgB.over || srpgB.busy) return;
   if(srpgB.phase==='deploy'){ srpgDeployTap(x, y); return; }
   var key = x+','+y;
-  // コマンド選択中に ほかのユニットをタップ → 詳細パネル（能力・とくぎ・耐性表）
-  if(srpgB.phase==='select' || srpgB.phase==='enemy'){
+  // 敵ターン中のユニットタップ → 詳細パネル
+  if(srpgB.phase==='enemy'){
+    var uu0 = srpgUnitAt(srpgB.units, x, y);
+    if(uu0){ srpgShowUnitInfo(uu0.id); return; }
+  }
+  // ⚡スマート操作（コマンド選択中）：青マス=即いどう／敵=即こうげき（届かなければ近づいて攻撃）
+  if(srpgB.phase==='select'){
+    var act0 = srpgActor(); if(!act0) return;
+    if(srpgB.hiMove[key]){
+      try{ sfx('click'); }catch(e){}
+      srpgB.undoPos = { id:act0.id, x:act0.x, y:act0.y };   // ↩もどす用
+      var _mx = act0.x, _my = act0.y;
+      act0.x = x; act0.y = y; srpgB.moved = true;
+      srpgSelectActor();
+      srpgSlideUnit(act0.id, _mx, _my);
+      return;
+    }
     var uu = srpgUnitAt(srpgB.units, x, y);
-    var act0 = srpgActor();
-    if(uu && (!act0 || uu.id !== act0.id)){ srpgShowUnitInfo(uu.id); return; }
+    if(uu && uu.side==='enemy' && !uu.downed){
+      if(srpgInRange(act0.x, act0.y, x, y, act0.rng)){
+        // いま届く → そのまま教科えらびへ
+        try{ sfx('click'); }catch(e){}
+        srpgB.chosenSkill = null; srpgB.targetTile = { x:x, y:y };
+        srpgB.phase = 'pick-subject'; srpgRender();
+        return;
+      }
+      if(!srpgB.moved){
+        // 届かない → 射程に入れる移動マスへ自動で近づいて攻撃（タクトのスマートタップ）
+        var best = null, bd = 1e9;
+        srpgMoveTiles(act0, srpgB.grid, srpgB.units).forEach(function(t){
+          if(srpgInRange(t.x, t.y, x, y, act0.rng) && t.d < bd){ bd = t.d; best = t; }
+        });
+        if(best){
+          try{ sfx('click'); }catch(e){}
+          srpgB.undoPos = { id:act0.id, x:act0.x, y:act0.y };
+          var _ax = act0.x, _ay = act0.y;
+          act0.x = best.x; act0.y = best.y; srpgB.moved = true;
+          srpgB.chosenSkill = null; srpgB.targetTile = { x:x, y:y };
+          srpgB.phase = 'pick-subject'; srpgClearHi(); srpgRender();
+          srpgSlideUnit(act0.id, _ax, _ay);
+          return;
+        }
+      }
+      srpgShowUnitInfo(uu.id); return;   // どうやっても届かない敵は 詳細を見せる
+    }
+    if(uu && uu.id !== act0.id){ srpgShowUnitInfo(uu.id); return; }   // 味方=詳細
+    return;
   }
   if(srpgB.phase==='move' && srpgB.hiMove[key]){
     var actor = srpgActor();
@@ -794,6 +857,7 @@ function srpgResolveHeal(){
   });
 }
 function srpgAfterResolve(){
+  srpgB.undoPos = null;   // 攻撃したら いどうは もどせない
   var actor = srpgActor(); if(actor) srpgB.acted[actor.id] = 1;
   setTimeout(function(){
     srpgClearHi();
@@ -805,6 +869,7 @@ function srpgAfterResolve(){
 function srpgEndActorTurn(){
   var actor = srpgActor();
   if(actor){ actor.acted = true; }
+  srpgB.undoPos = null;   // 行動が確定したら いどうは もどせない
   srpgClearHi();
   srpgNextTurn();
 }

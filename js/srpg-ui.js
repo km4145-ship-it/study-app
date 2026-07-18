@@ -7,6 +7,13 @@
        → 正解＝発動（弱点教科なら つよめ×1.5）／不正解＝ミス → ターン終了 */
 
 var srpgB = null;   // 現在の戦闘状態（null＝非戦闘）
+// ⏩ばいそく：敵ターン・演出の「待ち」を半分に（保存される・出題の思考時間には影響しない）
+function _srpgSpd(){ try{ return safeLS.getItem('srpg_speed')==='2' ? 2 : 1; }catch(e){ return 1; } }
+function _sd(ms){ return Math.round(ms / _srpgSpd()); }
+function srpgToggleSpeed(){
+  try{ safeLS.setItem('srpg_speed', _srpgSpd()===2 ? '1' : '2'); sfx('click'); }catch(e){}
+  if(srpgB) srpgRender();
+}
 var SRPG_STAT_JA = { atk:'こうげき', def:'まもり', spd:'すばやさ' };
 
 // ===== 味方編成（③スカウト連動：集めたあいぼうを タクトに 出撃させる）=====
@@ -191,7 +198,8 @@ function srpgStageSelect(){
     + '<button class="srpg-stage-card quest" onclick="srpgTowerStart()">'
     + '<div class="srpg-sc-head"><b>🗼 ちょうせんの塔</b>'+(best?'<span class="srpg-sc-clear">最高 '+best+'階</span>':'')+'</div>'
     + '<div class="srpg-sc-foot">のぼるほど 敵が つよくなる ・ HPを ひきついで 連戦 ・ 5階ごとに ボス＆🎫</div>'
-    + '</button>';
+    + '</button>'
+    + (srpgTowerSave() ? '<button class="rpg-btn srpg-tower-resume" onclick="srpgTowerResume()">▶ つづきから（'+srpgTowerSave().floor+'階）</button>' : '');
   document.getElementById('srpg-body').innerHTML =
     '<div class="srpg-select">'
     + '<div class="srpg-select-top"><button class="srpg-mini2" onclick="srpgTeamScreen()">🛡️ 編成を かえる</button></div>'
@@ -232,7 +240,13 @@ function _srpgToday(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth(
 var _towerFloor = 1, _towerCarry = null;   // 塔：現在の階＆前フロアからのHP/MP引き継ぎ
 function srpgTowerBest(){ try{ return parseInt(safeLS.getItem('srpg_tower_best'),10)||0; }catch(e){ return 0; } }
 function srpgDailyDoneToday(){ try{ return safeLS.getItem('srpg_daily_done')===_srpgToday(); }catch(e){ return false; } }
-function srpgTowerStart(){ _towerFloor = 1; _towerCarry = null; srpgStart('tower'); }
+function srpgTowerSave(){ try{ return lsGetJSON('srpg_tower_save', null); }catch(e){ return null; } }
+function srpgTowerStart(){ _towerFloor = 1; _towerCarry = null; try{ lsSetJSON('srpg_tower_save', null); }catch(e){} srpgStart('tower'); }
+function srpgTowerResume(){
+  var sv = srpgTowerSave(); if(!sv){ srpgTowerStart(); return; }
+  _towerFloor = sv.floor || 1; _towerCarry = sv.carry || null;
+  srpgStart('tower');
+}
 // 塔の次の階へ：味方のHP/MP（と倒れたか）を持ち越して連戦
 function srpgTowerNext(){
   try{ sfx('click'); }catch(e){}
@@ -424,7 +438,7 @@ function srpgTurnbarHtml(){
   var order = srpgB.order && srpgB.order.length ? srpgB.order : srpgTurnOrder(srpgB.units);
   var alive = order.filter(function(u){ return u && !u.downed; });
   var actor = srpgActor();
-  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span><div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
+  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span><button class="srpg-spd'+(_srpgSpd()===2?' on':'')+'" onclick="srpgToggleSpeed()">⏩×2</button><div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
     var art = srpgUnitArt(u);
     return '<span class="srpg-tb-face '+u.side+(actor&&u.id===actor.id?' now':'')+'">'+art+'</span>';
   }).join('<span class="srpg-tb-arrow">›</span>');
@@ -515,10 +529,10 @@ function srpgTurnStart(actor){
     if(t.skip){
       srpgRender();
       srpgPopupAt(actor.x, actor.y, wasSleep ? '💤 ねむり…' : '⚡ まひ！', 'status');
-      setTimeout(function(){ srpgEndActorTurn(); }, 820);
+      setTimeout(function(){ srpgEndActorTurn(); }, _sd(820));
       return;
     }
-    if(actor.side === 'enemy'){ srpgB.phase = 'enemy'; srpgRender(); setTimeout(function(){ srpgEnemyTurn(actor); }, 480); }
+    if(actor.side === 'enemy'){ srpgB.phase = 'enemy'; srpgRender(); setTimeout(function(){ srpgEnemyTurn(actor); }, _sd(480)); }
     else { srpgSelectActor(); }
   };
   // ターン開始時のHP変化：毒（状態異常）＋地形マス（回復の泉/毒沼/炎）
@@ -537,7 +551,7 @@ function srpgTurnStart(actor){
     if(died){ srpgPoof(actor.x, actor.y); srpgPopupAt(actor.x, actor.y, 'たおれた…', 'down'); }
     var oc = srpgOutcome(srpgB.units);
     if(oc){ setTimeout(function(){ srpgEnd(oc); }, 700); return; }
-    setTimeout(proceed, 660);
+    setTimeout(proceed, _sd(660));
   } else { proceed(); }
 }
 function srpgSelectActor(){
@@ -904,7 +918,7 @@ function srpgAfterResolve(){
     var oc = srpgOutcome(srpgB.units);
     if(oc){ srpgEnd(oc); return; }
     srpgEndActorTurn();
-  }, 780);
+  }, _sd(780));
 }
 function srpgEndActorTurn(){
   var actor = srpgActor();
@@ -926,15 +940,15 @@ function srpgEnemyTurn(enemy){
     (act.aoe || []).forEach(function(c){ srpgB.hiTarget[c.x+','+c.y] = 1; });   // 範囲を赤く予告
     srpgRender();
     try{ if(typeof showToast==='function') showToast('⚠️', enemy.name+'の'+((srpgSkill(act.skillId)||{}).name||'とくぎ')+'！', 'はんい こうげきが くるぞ！'); }catch(e){}
-    setTimeout(function(){ srpgEnemySkill(enemy, act); }, 950);
+    setTimeout(function(){ srpgEnemySkill(enemy, act); }, _sd(950));
   } else if(act.kind === 'attack'){
-    setTimeout(function(){ srpgEnemyAttack(enemy, act.targetId); }, 420);
+    setTimeout(function(){ srpgEnemyAttack(enemy, act.targetId); }, _sd(420));
   } else {
-    setTimeout(function(){ var oc = srpgOutcome(srpgB.units); if(oc){ srpgEnd(oc); return; } srpgNextTurn(); }, 420);
+    setTimeout(function(){ var oc = srpgOutcome(srpgB.units); if(oc){ srpgEnd(oc); return; } srpgNextTurn(); }, _sd(420));
   }
 }
 function srpgEnemyAfter(){
-  setTimeout(function(){ var oc = srpgOutcome(srpgB.units); if(oc){ srpgEnd(oc); return; } srpgNextTurn(); }, 700);
+  setTimeout(function(){ var oc = srpgOutcome(srpgB.units); if(oc){ srpgEnd(oc); return; } srpgNextTurn(); }, _sd(700));
 }
 function srpgEnemyAttack(enemy, targetId){
   var tgt = srpgUnitById(targetId);
@@ -1050,6 +1064,7 @@ function srpgEnd(outcome){
   var stype = srpgB.stage.type;
   var isLoop = (stype==='daily' || stype==='tower');
   if(!isLoop){ if(win){ srpgClearLoss(srpgB.stageId); } else { srpgNoteLoss(srpgB.stageId); } }   // 敗北救済（周回は対象外）
+  if(!win && stype==='tower'){ try{ lsSetJSON('srpg_tower_save', null); }catch(e){} }   // 塔で負けたら「つづき」は消える
   if(win && isLoop){
     // 周回の追加報酬：デイリー初クリア＝🪙60＋🍖5／塔＝階×10コイン＆5階ごとに🎫
     try{
@@ -1061,6 +1076,12 @@ function srpgEnd(outcome){
         extra += '<div class="srpg-res-line scout">🌀 きょうの初クリア！ 🪙+60 ・ 🍖エサ+5</div>';
       }
       if(stype==='tower'){
+        // 🏰中断セーブ：勝った時点で「つぎの階＋味方の状態」を保存（あとで つづきから）
+        try{
+          var _cw = {};
+          srpgB.units.forEach(function(uu){ if(uu.side==='ally') _cw[uu.id] = { hp:uu.hp, mp:uu.mp||0, downed:!!uu.downed }; });
+          lsSetJSON('srpg_tower_save', { floor:(srpgB.stage.floor||1)+1, carry:_cw });
+        }catch(e){}
         var fl = srpgB.stage.floor || 1;
         cos2.coin = (cos2.coin||0) + fl*10;
         extra += '<div class="srpg-res-line grow">🗼 '+fl+'階 とっぱ！ 🪙+'+(fl*10)+'</div>';
@@ -1714,7 +1735,7 @@ function srpgCutin(unit, name, subjectKey, onDone){
   sc.appendChild(el);
   try{ sfx(unit.side === 'enemy' ? 'wrong' : 'levelup'); vibe(20); }catch(e){}
   if(unit.side !== 'enemy') srpgSay(name);   // 味方の技名をキャラの声で叫ぶ（必殺技ボイス）
-  setTimeout(function(){ try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); }, 820);
+  setTimeout(function(){ try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); }, _sd(820));
 }
 // バトル開始のVSカットイン（味方リーダー vs 敵ボス）
 function srpgVsIntro(a, b, onDone){
@@ -1727,7 +1748,7 @@ function srpgVsIntro(a, b, onDone){
   sc.appendChild(el);
   try{ sfx('levelup'); }catch(e){}
   srpgSay('たたかいの はじまりだ！');
-  setTimeout(function(){ try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); }, 1150);
+  setTimeout(function(){ try{ sc.removeChild(el); }catch(e){} if(onDone) onDone(); }, _sd(1150));
 }
 // ③ スカウトした仲間の登場演出（大アートが回転しながら光の中に登場）
 // 予兆：高レア個体の直前に流れる「…なにかが ちかづいてくる…」の暗黒のため

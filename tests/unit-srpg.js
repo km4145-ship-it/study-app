@@ -760,4 +760,6 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.ok('srpgCrystalForは大陸クエストにヒット', !!S.srpgCrystalFor('q_math') && S.srpgCrystalFor('q_maou')===null && S.srpgCrystalFor('arena1')===null);
 }
 
+c.ok('arena3(訓練場)は決戦ボスvillainを先食いしない', S.SRPG_STAGES.arena3.enemies.every(function(e){ return e.key!=='villain'; }));
+c.ok('arena2の敵数を緩和(<=3体)', S.SRPG_STAGES.arena2.enemies.length<=3);
 c.done();

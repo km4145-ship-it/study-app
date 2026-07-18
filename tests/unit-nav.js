@@ -121,4 +121,5 @@ c.ok('きょうのタクトstripがdaily/towerへ直リンク', html.indexOf("sr
 c.ok('なかま画面はタクト編成へ誘導（3スロット別パーティを廃止）', html.indexOf('しゅつげきメンバーは タクトの<b>「編成」</b>で えらぶよ') >= 0 && html.indexOf('🎒 パーティ（いっしょに たたかう 3びき）') < 0);
 c.ok('なかま詳細のパーティ・トグルを撤去', html.indexOf('🎒 パーティに いれる') < 0 && html.indexOf('🎒 パーティから はずす') < 0);
 
+c.ok('スカウト低ランクの基礎値に下限5(初期仲間との逆転防止)', srpgUi.indexOf('Math.max(5, (typeof AIBOU_RANK_BASE')>=0);
 c.done();

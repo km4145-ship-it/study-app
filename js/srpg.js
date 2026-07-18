@@ -703,10 +703,10 @@ var SRPG_STAGES = {
     enemies:[{key:'slime',x:2,y:1,lvl:1},{key:'goblin',x:4,y:1,lvl:1}] },
   arena2: { id:'arena2', name:'いにしえの遺跡', grid:{ w:6, h:7 }, continent:'social', type:'training',
     allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:3,y:5}],
-    enemies:[{key:'wolf',x:1,y:1,lvl:3},{key:'ghost',x:4,y:1,lvl:3},{key:'trent',x:2,y:0,lvl:3},{key:'goblin',x:3,y:2,lvl:2}] },
-  arena3: { id:'arena3', name:'魔王城の決戦', grid:{ w:6, h:7 }, continent:'math', type:'training',
+    enemies:[{key:'goblin',x:1,y:1,lvl:3},{key:'slime',x:4,y:1,lvl:3},{key:'bat',x:3,y:2,lvl:2}] },
+  arena3: { id:'arena3', name:'うでだめしの闘技場', grid:{ w:6, h:7 }, continent:'math', type:'training',
     allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
-    enemies:[{key:'voltdrake',x:1,y:1,lvl:5},{key:'dragon',x:4,y:1,lvl:5},{key:'villain',x:3,y:0,lvl:6}] },
+    enemies:[{key:'dragon',x:1,y:1,lvl:4},{key:'voltdrake',x:4,y:1,lvl:4},{key:'wolf',x:3,y:0,lvl:3}] },
   // ===== 大陸クエスト（ストーリー・地形つき。各大陸の主を タクト盤で たおす）=====
   q_math: { id:'q_math', name:'数の大陸：計算の塔', grid:{ w:6, h:7 }, continent:'math', type:'quest', boss:'ドラゴン',
     story:['数の大陸に 黒い霧が たちこめた。','塔の上で 巨竜が 数式を くるわせている！','コタロウ先生「弱点の教科で いっきに たたもう！」'],

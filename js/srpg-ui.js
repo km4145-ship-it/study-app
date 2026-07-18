@@ -44,7 +44,7 @@ function srpgHeroSpec(){
 }
 function srpgAibouSpec(a){
   var spName = (typeof AIBOU_SPECIES!=='undefined' && AIBOU_SPECIES[a.sp] && AIBOU_SPECIES[a.sp].name) || 'なかま';
-  var base = (typeof AIBOU_RANK_BASE!=='undefined' && AIBOU_RANK_BASE[a.rank||'C']) || 6;
+  var base = Math.max(5, (typeof AIBOU_RANK_BASE!=='undefined' && AIBOU_RANK_BASE[a.rank||'C']) || 6);   // スカウトした低ランクが 初期仲間(buddy)より弱い逆転を防ぐ（下限5）
   var role = SRPG_ROLE_BY_SP[a.sp] || 'attacker', lvl = a.lv || 1;
   // モンスター固有とくぎ（種の個性・Lv1から使える）＋役割とくぎ（覚醒で増える）
   var skills = ((SRPG_ROLES[role] || SRPG_ROLES.attacker).skills || []).slice(0, srpgSkillCount(lvl));

@@ -39,6 +39,13 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <title>小中学生学習アプリ📚</title>
 <style>
+  /* アクセシビリティ：キーボード/スイッチ操作の「いま どこ」を必ず見せる可視フォーカス。
+     マウス/タップ時は :focus-visible が発火しないので邪魔にならない（全ボタン/入力/リンク共通）。 */
+  :focus-visible{ outline:3px solid #f59e0b; outline-offset:2px; }
+  a:focus-visible, button:focus-visible, [role="button"]:focus-visible, [onclick]:focus-visible,
+  input:focus-visible, textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible{
+    outline:3px solid #f59e0b; outline-offset:2px; box-shadow:0 0 0 5px rgba(245,158,11,.25);
+  }
   :root {
     --primary: #0891b2;
     --primary-light: #0e7490;   /* 明るい背景でも読める濃いめのシアン */
@@ -685,6 +692,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   body.dark .cal-cell.lvl1{background:#1f4a3a;} body.dark .cal-cell.lvl2{background:#2a6e50;} body.dark .cal-cell.lvl3{background:#2f9e6e;} body.dark .cal-cell.lvl4{background:#34b37e;color:#fff;}
   body.dark .wk-dot { background:#26414e; }
   @media (hover:hover) and (pointer:fine){ body.dark .option-btn:hover:not(:disabled) { background:#2a3f4a; } }
+  /* ダークモード致命バグ修正：選択肢/回答欄は background:#fff 固定＋color:var(--text)(暗時は白系)で
+     「白背景×白文字＝問題が読めない」。暗時だけ背景を暗色に上書きして判読性を回復（文字色はvar(--text)のまま）。 */
+  body.dark .option-btn{ background:#1c2733; border-color:rgba(148,163,184,.32); }
+  body.dark .answer-input{ background:#1c2733; border-color:rgba(148,163,184,.32); }
   body.dark .settings-panel { background:#16242c; }
   body.dark .fc-x { background:#5a4a1e; color:#fde68a; }
   .imp-label { display:inline-block; }
@@ -1316,8 +1327,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .hub-card:active{ transform:scale(.955); }
   .hub-card-ic{ font-size:30px; flex:0 0 auto; width:46px; height:46px; border-radius:13px; background:rgba(255,255,255,.20); border:1px solid rgba(255,255,255,.26); display:flex; align-items:center; justify-content:center; }
   .hub-card-tx{ display:flex; flex-direction:column; min-width:0; }
-  .hub-card-nm{ font-size:16px; font-weight:900; text-shadow:0 1px 2px rgba(0,0,0,.10); }
-  .hub-card-ds{ font-size:11.5px; font-weight:600; opacity:.95; margin-top:1px; line-height:1.3; }
+  .hub-card-nm{ font-size:16px; font-weight:900; text-shadow:0 1px 3px rgba(0,0,0,.5); }
+  .hub-card-ds{ font-size:11.5px; font-weight:600; opacity:1; text-shadow:0 1px 2px rgba(0,0,0,.4); margin-top:1px; line-height:1.3; }
   .hub-card.hc-big{ grid-column:1 / -1; min-height:104px; padding:18px; background:linear-gradient(125deg,#7c3aed,#db2777); }
   .hc-big .hub-card-ic{ font-size:44px; width:64px; height:64px; border-radius:18px; }
   .hc-big .hub-card-nm{ font-size:22px; }
@@ -1325,11 +1336,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .hub-card.hc-big.hc-tact{ background:linear-gradient(125deg,#1e3a8a,#b91c1c); }
   .hub-badge{ position:absolute; top:8px; right:9px; min-width:22px; height:22px; padding:0 6px; border-radius:999px; background:#fff; color:#dc2626; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.2); }
   /* カラーバリエーション */
-  .hc-prac{ background:linear-gradient(135deg,#0891b2,#22d3ee); }
+  .hc-prac{ background:linear-gradient(135deg,#0e7490,#0ea5c4); }
   .hc-exam{ background:linear-gradient(135deg,#f97316,#ef4444); }
   .hc-rev{ background:linear-gradient(135deg,#059669,#34d399); }
-  .hc-weak{ background:linear-gradient(135deg,#d97706,#fbbf24); }
-  .hc-hard{ background:linear-gradient(135deg,#dc2626,#fb7185); }
+  .hc-weak{ background:linear-gradient(135deg,#c2660a,#f59e0b); }
+  .hc-hard{ background:linear-gradient(135deg,#c31d1d,#f43f5e); }
   .hc-mix{ background:linear-gradient(135deg,#4f46e5,#8b5cf6); }
   .hc-flash{ background:linear-gradient(135deg,#0284c7,#38bdf8); }
   .hc-write{ background:linear-gradient(135deg,#db2777,#f472b6); }
@@ -1343,11 +1354,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .hub-subj-nm{ font-size:18px; font-weight:900; color:var(--text); display:block; }
   .hub-subj-ds{ font-size:12px; font-weight:600; color:#64748b; display:block; margin-top:1px; }
   .hub-subj-go{ font-size:13px; font-weight:900; color:#fff; border-radius:999px; padding:6px 13px; white-space:nowrap; }
-  .hs-prac .hub-subj-go{ background:linear-gradient(135deg,#0891b2,#22d3ee); }
+  .hs-prac .hub-subj-go{ background:linear-gradient(135deg,#0e7490,#0ea5c4); }
   .hs-exam .hub-subj-go{ background:linear-gradient(135deg,#f97316,#ef4444); }
   .hs-prac .hub-subj-ic{ background:#e0f7fa; }
   .hs-exam .hub-subj-ic{ background:#fff1e6; }
-  .hs-diff .hub-subj-go{ background:linear-gradient(135deg,#0891b2,#22d3ee); }
+  .hs-diff .hub-subj-go{ background:linear-gradient(135deg,#0e7490,#0ea5c4); }
   .hs-basic .hub-subj-ic{ background:#dcfce7; } .hs-std .hub-subj-ic{ background:#dbeafe; }
   .hs-adv .hub-subj-ic{ background:#fee2e2; } .hs-hard .hub-subj-ic{ background:linear-gradient(135deg,#fde68a,#fca5a5); }
   .hs-all .hub-subj-ic{ background:#f3e8ff; }

@@ -438,7 +438,8 @@ function srpgTurnbarHtml(){
   var order = srpgB.order && srpgB.order.length ? srpgB.order : srpgTurnOrder(srpgB.units);
   var alive = order.filter(function(u){ return u && !u.downed; });
   var actor = srpgActor();
-  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span><button class="srpg-spd'+(_srpgSpd()===2?' on':'')+'" onclick="srpgToggleSpeed()">⏩×2</button><div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
+  var _wv = (srpgB.stage && srpgB.stage.waves && srpgB.stage.waves.length) ? '<span class="srpg-wave">🌊 '+((srpgB.waveIdx||0)+1)+'/'+ (srpgB.stage.waves.length+1)+'陣</span>' : '';
+  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span>'+_wv+'<button class="srpg-spd'+(_srpgSpd()===2?' on':'')+'" onclick="srpgToggleSpeed()">⏩×2</button><div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
     var art = srpgUnitArt(u);
     return '<span class="srpg-tb-face '+u.side+(actor&&u.id===actor.id?' now':'')+'">'+art+'</span>';
   }).join('<span class="srpg-tb-arrow">›</span>');
@@ -468,7 +469,9 @@ function srpgCmdHtml(){
     }).join('');
     var hardTgl = '<button class="srpg-hard-tgl'+(srpgB.hardMode?' on':'')+'" onclick="srpgToggleHard()">🔥 むずかしい もんだいで挑む（いりょく×1.3）'+(srpgB.hardMode?' ✅':'')+'</button>';
     var isDebuff = srpgB.chosenSkill && (srpgSkill(srpgB.chosenSkill)||{}).kind==='debuff';
+    var _cwarn = (tgt && !srpgB.chosenSkill && _me && srpgDist(_me.x,_me.y,tgt.x,tgt.y)===1 && srpgCanCounter(tgt,_me)) ? '<div class="srpg-counter-warn">⚠️ たおしきれないと はんげき されるよ</div>' : '';
     return '<div class="srpg-cmd-head">'+(isDebuff?'どの教科で しかける？':'どの教科で こうげきする？')+'</div><div class="srpg-subs">'+subs+'</div>'
+      + _cwarn
       + hardTgl
       + '<button class="srpg-mini" onclick="srpgCancel()">← もどる</button>';
   }
@@ -872,7 +875,8 @@ function srpgResolveAttack(correct){
   });
   if(crit){ try{ document.body.classList.add('srpg-flash'); setTimeout(function(){ document.body.classList.remove('srpg-flash'); }, 260); }catch(e){} }
   try{ sfx(anyHit ? (crit?'levelup':'correct') : 'click'); vibe(anyHit?15:0); }catch(e){}
-  srpgAfterResolve();
+  var _ctgt = (!sk) ? srpgUnitAt(srpgB.units, tgt.x, tgt.y) : null;   // 通常こうげきだけ反撃対象
+  if(_ctgt && _ctgt.side==='enemy'){ srpgTryCounter(_ctgt, actor, srpgAfterResolve); } else srpgAfterResolve();
   };
   if(sk){ srpgCutin(actor, sk.name, srpgB.subject, doIt); }   // とくぎは必殺技カットイン→発動
   else { doIt(); }                                            // 通常こうげきはテンポ優先
@@ -941,6 +945,8 @@ function srpgEnemyTurn(enemy){
     srpgRender();
     try{ if(typeof showToast==='function') showToast('⚠️', enemy.name+'の'+((srpgSkill(act.skillId)||{}).name||'とくぎ')+'！', 'はんい こうげきが くるぞ！'); }catch(e){}
     setTimeout(function(){ srpgEnemySkill(enemy, act); }, _sd(950));
+  } else if(act.kind === 'support'){
+    setTimeout(function(){ srpgEnemySupport(enemy, act); }, _sd(420));
   } else if(act.kind === 'attack'){
     setTimeout(function(){ srpgEnemyAttack(enemy, act.targetId); }, _sd(420));
   } else {
@@ -967,7 +973,31 @@ function srpgEnemyAttack(enemy, targetId){
     try{ sfx('wrong'); vibe(20); }catch(e){}
     if(infl){ var sm = SRPG_STATUS_META[infl]; setTimeout(function(){ srpgPopupAt(tgt.x, tgt.y, sm.em+sm.name, 'status'); }, 280); }
     if(died){ srpgPoof(tgt.x, tgt.y); srpgPopupAt(tgt.x, tgt.y, 'たおれた…', 'down'); }
+    if(!died){ srpgTryCounter(tgt, enemy, srpgEnemyAfter); return; }   // 味方の反撃
   }
+  srpgEnemyAfter();
+}
+// 敵のサポート：なかまの敵を回復／強化（先にサポート役を倒す判断が生まれる）
+function srpgEnemySupport(enemy, act){
+  var sk = srpgSkill(act.skillId), tgt = srpgUnitById(act.targetId);
+  if(!sk || !tgt || tgt.downed){ srpgEnemyAfter(); return; }
+  enemy.mp = Math.max(0, (enemy.mp||0) - sk.mp);
+  if(sk.kind === 'heal'){
+    var heal = srpgHealAmount(enemy, sk.power);
+    tgt.hp = Math.min(tgt.maxHp, tgt.hp + heal);
+    srpgRender();
+    srpgFxOverlay(tgt.x, tgt.y, 'fx-heal', '✨');
+    srpgFlashSprite(tgt.id, 'heal');
+    srpgPopupAt(tgt.x, tgt.y, '+'+heal, 'heal');
+    try{ showToast('⚠️', enemy.name+'が なかまを 回復！', 'かいふく役を 先に たおそう！'); }catch(e){}
+  } else if(sk.buff){
+    srpgSetMod(tgt, sk.buff.stat, sk.buff.stage, sk.buff.turns);
+    srpgRender();
+    srpgFxOverlay(tgt.x, tgt.y, 'fx-buff', '⬆');
+    srpgPopupAt(tgt.x, tgt.y, '⬆'+SRPG_STAT_JA[sk.buff.stat]+' アップ', 'buff');
+    try{ showToast('⚠️', enemy.name+'が なかまを 強化！', 'おうえん役を 先に たおそう！'); }catch(e){}
+  }
+  try{ sfx('powerup'); }catch(e){}
   srpgEnemyAfter();
 }
 function srpgEnemySkill(enemy, act){
@@ -1677,6 +1707,22 @@ function srpgShakeTile(x, y){
 }
 // こうげき側の気合いモーション
 function srpgAtkAnim(actor){ if(actor) srpgFlashSprite(actor.id, 'atk'); }
+// ⚔️反撃：隣接の単体こうげきを受けて生き残ったら 殴り返す（威力60%・出題なし）
+function srpgTryCounter(defender, attacker, after){
+  if(!srpgCanCounter(defender, attacker)){ after(); return; }
+  setTimeout(function(){
+    var dmg = srpgDamage(defender, attacker, 60, 1, false);
+    attacker.hp = Math.max(0, attacker.hp - dmg);
+    var died = attacker.hp <= 0; if(died) attacker.downed = true;
+    srpgRender();
+    srpgLunge(defender, attacker.x, attacker.y);
+    srpgFlashSprite(attacker.id, 'hit'); srpgShakeTile(attacker.x, attacker.y);
+    srpgPopupAt(attacker.x, attacker.y, '⚔️はんげき! '+dmg, defender.side === 'ally' ? 'dmg' : 'dmg-e');
+    if(died){ srpgPoof(attacker.x, attacker.y); srpgPopupAt(attacker.x, attacker.y, defender.side === 'ally' ? 'たおした！' : 'たおれた…', 'down'); }
+    try{ sfx('wrong'); vibe(15); }catch(e){}
+    setTimeout(after, _sd(620));
+  }, _sd(480));
+}
 // ===== 音声（タクトにもキャラの声を）＝speak()があれば読み上げ（設定・フォールバックはspeak側が処理） =====
 function srpgSay(t){ try{ if(typeof speak==='function' && t) speak(t); }catch(e){} }
 // ===== 移動アニメ（FLIP）：グリッド面の座標系でスライドさせる =====

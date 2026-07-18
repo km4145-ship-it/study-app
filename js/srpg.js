@@ -337,6 +337,13 @@ function srpgEnemyPlan(enemy, grid, units){
   return { moveTo:moveTo, targetId: canHit ? target.id : null };
 }
 
+// ===== 反撃：隣接からの単体こうげきを受けて生き残ったら 殴り返す（威力60%・両陣営対称） =====
+function srpgCanCounter(defender, attacker){
+  if(!defender || defender.downed || !attacker || attacker.downed) return false;
+  if(srpgDist(defender.x, defender.y, attacker.x, attacker.y) !== 1) return false;
+  return srpgCanAct(defender);   // ねむり・まひ中は反撃できない
+}
+
 // ===== 賢い敵AI（ボス）：とくぎ／賢い狙い／範囲の中心探索 =====
 // 狙う価値：回復役を最優先、次に瀕死（HP割合が低い）ほど高い
 function srpgTargetBonus(u){
@@ -359,8 +366,12 @@ function srpgEnemyAction(enemy, grid, units){
   var allies = (units || []).filter(function(u){ return u && u.side === 'ally' && !u.downed; });
   if(!allies.length) return { moveTo:{ x:enemy.x, y:enemy.y }, kind:'none' };
   var tiles = srpgMoveTiles(enemy, grid, units); tiles.push({ x:enemy.x, y:enemy.y, d:0 });
-  var skills = (enemy.skills || []).map(function(id){ return srpgSkill(id); })
-    .filter(function(s){ return s && s.kind === 'atk' && (enemy.mp || 0) >= s.mp; });
+  var allSk = (enemy.skills || []).map(function(id){ return srpgSkill(id); })
+    .filter(function(s){ return s && (enemy.mp || 0) >= s.mp; });
+  var skills = allSk.filter(function(s){ return s.kind === 'atk'; });
+  var healSk = allSk.filter(function(s){ return s.kind === 'heal'; })[0] || null;
+  var buffSk = allSk.filter(function(s){ return s.kind === 'buff'; })[0] || null;
+  var mates = (units || []).filter(function(u){ return u && u.side === 'enemy' && !u.downed && u.id !== enemy.id; });
   var best = null;
   function consider(cand){ if(!best || cand.score > best.score) best = cand; }
   tiles.forEach(function(t){
@@ -378,6 +389,21 @@ function srpgEnemyAction(enemy, grid, units){
           aoe:aoe, targetIds:hits.map(function(u){ return u.id; }) });
       });
     });
+    // --- サポート：負傷した なかまを回復／未強化の なかまにバフ ---
+    if(healSk){
+      mates.forEach(function(m){
+        if(m.hp >= m.maxHp * 0.65) return;
+        if(!srpgInRange(t.x, t.y, m.x, m.y, healSk.rng)) return;
+        consider({ score:1600 + (m.maxHp - m.hp) - (t.d || 0), moveTo:{ x:t.x, y:t.y }, kind:'support', skillId:healSk.id, targetId:m.id });
+      });
+    }
+    if(buffSk && buffSk.buff){
+      mates.forEach(function(m){
+        if(m.mods && m.mods[buffSk.buff.stat] > 0) return;   // すでに強化済みは重ねない
+        if(!srpgInRange(t.x, t.y, m.x, m.y, buffSk.rng)) return;
+        consider({ score:800 + srpgTargetBonus(m) * 0.3 - (t.d || 0), moveTo:{ x:t.x, y:t.y }, kind:'support', skillId:buffSk.id, targetId:m.id });
+      });
+    }
     // --- 通常こうげき：最良ターゲットを狙う ---
     var tgt = srpgEnemyPickTarget(t.x, t.y, enemy.rng, units);
     if(tgt) consider({ score:700 + srpgTargetBonus(tgt) - (t.d || 0), moveTo:{ x:t.x, y:t.y }, kind:'attack', targetId:tgt.id });
@@ -592,6 +618,10 @@ var SRPG_ENEMY_TEMPLATES = {
     resists:{ social:'weak', math:'null' }, onhit:{ kind:'paralyze', turns:1, chance:0.3 }, skills:['numbing'] },
   dragon: { art:'dragon',  name:'ドラゴン',   role:'attacker', rankBase:13, weak:'math',     resist:'english',
     resists:{ math:'weak', english:'half', japanese:'drain' }, skills:['line'] },
+  mender: { art:'qbird',   name:'いやしのトリ', role:'healer',  rankBase:7,  weak:'english',  resist:'japanese',
+    resists:{ english:'weak', japanese:'half' }, skills:['heal'] },
+  cheerer:{ art:'grammaro', name:'おうえんのホン', role:'mage',  rankBase:7,  weak:'japanese', resist:'social',
+    resists:{ japanese:'weak', social:'half' }, skills:['bikilt'] },
   villain:{ art:'villain', name:'魔王シグマ', role:'tank',     rankBase:16, weak:'math',     resist:'japanese', boss:true,
     resists:{ math:'weak', japanese:'half', social:'null', english:'drain' }, onhit:{ kind:'poison', turns:3, chance:0.4 }, skills:['burstball','poisonbreath'] }
 };
@@ -638,14 +668,14 @@ var SRPG_STAGES = {
     allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
     terrain:[{x:2,y:4,kind:'heal'},{x:4,y:3,kind:'fire'}],
     blocks:[{x:2,y:2,kind:'rock'},{x:3,y:3,kind:'rock'}],
-    waves:[[{key:'ghost',x:1,y:0,lvl:6},{key:'bat',x:4,y:0,lvl:6}]],
+    waves:[[{key:'ghost',x:1,y:0,lvl:6},{key:'mender',x:4,y:0,lvl:6}]],   // 回復役つき増援＝先に倒す判断が生まれる
     enemies:[{key:'wolf',x:1,y:2,lvl:6},{key:'ghost',x:4,y:2,lvl:6},{key:'goblin',x:2,y:1,lvl:5},{key:'dragon',x:3,y:1,lvl:8}] },
   q_maou: { id:'q_maou', name:'魔王城：さいごの決戦', grid:{ w:6, h:7 }, continent:'math', type:'quest', boss:'魔王シグマ',
     story:['5つの クリスタルが かがやきを とりもどした。','魔王シグマが さいごの 力で たちはだかる！','「いくぞ！ みんなの 力を あわせて！」'],
     allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
     terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:3,y:2,kind:'poison'}],
     blocks:[{x:0,y:4,kind:'water'},{x:5,y:4,kind:'water'}],
-    waves:[[{key:'wolf',x:0,y:1,lvl:8},{key:'ghost',x:5,y:1,lvl:8}]],
+    waves:[[{key:'wolf',x:0,y:1,lvl:8},{key:'cheerer',x:5,y:1,lvl:8}]],   // 応援役つき増援
     enemies:[{key:'voltdrake',x:1,y:2,lvl:8},{key:'dragon',x:4,y:2,lvl:8},{key:'villain',x:3,y:0,lvl:10}] }
 };
 function srpgStage(id){ return SRPG_STAGES[id] || SRPG_STAGES.arena1; }
@@ -755,7 +785,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgMoveTiles: srpgMoveTiles, srpgRangeTiles: srpgRangeTiles, srpgAoeTiles: srpgAoeTiles,
     srpgDamage: srpgDamage, srpgHealAmount: srpgHealAmount, srpgTurnOrder: srpgTurnOrder,
     srpgSideDown: srpgSideDown, srpgOutcome: srpgOutcome, srpgEnemyPlan: srpgEnemyPlan,
-    srpgTargetBonus: srpgTargetBonus, srpgEnemyPickTarget: srpgEnemyPickTarget, srpgEnemyAction: srpgEnemyAction, srpgDeployZone: srpgDeployZone,
+    srpgTargetBonus: srpgTargetBonus, srpgEnemyPickTarget: srpgEnemyPickTarget, srpgEnemyAction: srpgEnemyAction, srpgDeployZone: srpgDeployZone, srpgCanCounter: srpgCanCounter,
     srpgMakeUnit: srpgMakeUnit, srpgEnemyTemplate: srpgEnemyTemplate, srpgStage: srpgStage,
     srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits,
     srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage,

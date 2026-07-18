@@ -668,4 +668,28 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.eq('おまかせはLGを最強と判断', lgPick[0], 'x');
 }
 
+// ================= 第21弾：反撃＆敵サポートAI =================
+{
+  const mk2=(o)=>S.srpgMakeUnit(Object.assign({rankBase:8,lvl:3,art:'slime'},o));
+  const a=mk2({id:'a',side:'ally',name:'a',role:'attacker',x:2,y:2});
+  const e=mk2({id:'e',side:'enemy',name:'e',role:'attacker',x:2,y:3});
+  c.ok('隣接なら反撃できる', S.srpgCanCounter(e,a));
+  const far=mk2({id:'f',side:'enemy',name:'f',role:'attacker',x:2,y:5});
+  c.ok('離れていると反撃できない', !S.srpgCanCounter(far,a));
+  S.srpgApplyStatus(e,'sleep',2);
+  c.ok('ねむり中は反撃できない', !S.srpgCanCounter(e,a));
+  const down=mk2({id:'d',side:'enemy',name:'d',role:'attacker',x:2,y:3}); down.downed=true;
+  c.ok('たおれた者は反撃できない', !S.srpgCanCounter(down,a));
+}
+{
+  // 回復役の敵：負傷したなかまが射程内なら support を選ぶ
+  const G2={w:6,h:7};
+  const healer=S.srpgMakeUnit({id:'h',side:'enemy',name:'いやし',art:'qbird',role:'healer',rankBase:7,lvl:5,skills:['heal'],x:2,y:1}); healer.mp=6;
+  const hurt=S.srpgMakeUnit({id:'w',side:'enemy',name:'けが',art:'wolf',role:'attacker',rankBase:8,lvl:5,x:3,y:1}); hurt.hp=Math.round(hurt.maxHp*0.3);
+  const foe=S.srpgMakeUnit({id:'p',side:'ally',name:'p',art:'slime',role:'attacker',rankBase:8,lvl:5,x:2,y:6});
+  const act=S.srpgEnemyAction(healer,G2,[healer,hurt,foe]);
+  c.ok('回復役は負傷したなかまへのsupportを選ぶ', act.kind==='support' && act.targetId==='w');
+  c.ok('supportのスキルはheal', S.srpgSkill(act.skillId).kind==='heal');
+}
+
 c.done();

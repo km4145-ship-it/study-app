@@ -568,6 +568,8 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   @media (hover:hover){ .gp-cell:hover{ transform:translateY(-2px); border-color:var(--primary-vivid); box-shadow:var(--sh-2); } }
   .gp-cell:active{ transform:scale(.94); }
   .gp-cell.on{ border-color:var(--primary-vivid); background:#eefbfe; box-shadow:0 0 0 3px rgba(6,182,212,.16); }
+  body.dark .gp-cell{ background:#1c2733; border-color:rgba(148,163,184,.32); }
+  body.dark .gp-cell.on{ background:#0e3a44; }
   .gp-em{ font-size:1.9rem; line-height:1; }
   .gp-lb{ font-size:.86rem; font-weight:800; color:var(--text); }
   .gp-cancel{ display:block; width:100%; margin-top:14px; padding:11px; border:none; border-radius:var(--r-m); background:var(--card2); color:var(--muted); font-weight:800; font-size:.9rem; cursor:pointer; font-family:inherit; }
@@ -3990,6 +3992,7 @@ function maybeShowOnboarding(){
 }
 var _obStep=0;
 var OB_SLIDES=[
+  { em:'🎓', ttl:'何年生かな？', grade:true, body:'学年を えらぶと、きみに ぴったりの もんだいが 出るよ。あとで かえられるよ。' },
   { em:'👋', ttl:'ようこそ！', body:'ここは、ゲームで あそびながら 勉強して「偏差値65」を めざす アプリだよ。いっしょに がんばろう！' },
   { em:'📱', ttl:'したの ボタンで きりかえ', tabs:[
       ['🏠','ホーム','きょう やること'],
@@ -4010,9 +4013,17 @@ function showOnboarding(){
 function obRender(){
   var ov=document.getElementById('onboarding-ov'); if(!ov) return;
   var s=OB_SLIDES[_obStep], last=_obStep>=OB_SLIDES.length-1;
-  var inner = s.tabs
-    ? '<div class="ob-tabs">'+s.tabs.map(function(t){ return '<div class="ob-tab"><span class="ob-tab-ic">'+t[0]+'</span><span class="ob-tab-tx"><b>'+t[1]+'</b><small>'+escapeHtml(t[2])+'</small></span></div>'; }).join('')+'</div>'
-    : '<div class="ob-body">'+escapeHtml(s.body)+'</div>';
+  var curG=7; try{ var _u=muCurrentUser(); if(_u) curG=muGradeLevel(_u); }catch(e){}
+  var inner;
+  if(s.grade){
+    var GR=[['小1',1,'🐣'],['小2',2,'🐤'],['小3',3,'🐥'],['小4',4,'🐰'],['小5',5,'🦊'],['小6',6,'🦉'],['中1',7,'🐯'],['中2',8,'🐺'],['中3',9,'🦁']];
+    inner = '<div class="ob-body" style="min-height:auto;margin-bottom:10px">'+escapeHtml(s.body)+'</div>'
+      + '<div class="gp-grid">'+GR.map(function(g){ return '<button class="gp-cell'+(curG===g[1]?' on':'')+'" onclick="obPickGrade('+g[1]+')"><span class="gp-em">'+g[2]+'</span><span class="gp-lb">'+g[0]+'</span></button>'; }).join('')+'</div>';
+  } else if(s.tabs){
+    inner = '<div class="ob-tabs">'+s.tabs.map(function(t){ return '<div class="ob-tab"><span class="ob-tab-ic">'+t[0]+'</span><span class="ob-tab-tx"><b>'+t[1]+'</b><small>'+escapeHtml(t[2])+'</small></span></div>'; }).join('')+'</div>';
+  } else {
+    inner = '<div class="ob-body">'+escapeHtml(s.body)+'</div>';
+  }
   var dots = OB_SLIDES.map(function(_,i){ return '<span class="ob-dot'+(i===_obStep?' on':'')+'"></span>'; }).join('');
   ov.innerHTML = '<div class="ob-card">'
     + (last?'':'<button class="ob-skip" onclick="obFinish()">スキップ</button>')
@@ -4020,9 +4031,17 @@ function obRender(){
     + '<div class="ob-ttl">'+escapeHtml(s.ttl)+'</div>'
     + inner
     + '<div class="ob-dots">'+dots+'</div>'
-    + '<button class="ob-next" onclick="'+(last?'obFinish()':'obNext()')+'">'+(last?'はじめる！ ▶':'つぎへ ▶')+'</button>'
+    + (s.grade
+        ? '<button class="ob-next" onclick="obNext()" style="background:var(--card2);color:var(--muted);box-shadow:none">えらんだよ ▶</button>'
+        : '<button class="ob-next" onclick="'+(last?'obFinish()':'obNext()')+'">'+(last?'はじめる！ ▶':'つぎへ ▶')+'</button>')
     + '</div>';
   try{ speak(s.ttl+'。'+(s.body||'')); }catch(e){}
+}
+function obPickGrade(l){
+  try{ var u=muCurrentUser(); if(u){ muSetUserGrade(u.id, l); muUpdateHeader(); } }catch(e){}
+  try{ safeLS.setItem('grade_chosen','1'); }catch(e){}
+  try{ sfx('coin'); }catch(e){}
+  obNext();
 }
 function obNext(){ _obStep++; try{ sfx('click'); }catch(e){} obRender(); }
 function obFinish(){

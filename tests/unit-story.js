@@ -267,4 +267,11 @@ c.ok('決着＆離脱で停止', /srpgB\.over = true[\s\S]{0,60}srpgWatchStop\(\
 c.ok('入力待ち/出題中は監視しない', ui.indexOf("srpgB.busy || p==='select'") >= 0);
 c.ok('ハング検出で srpgNextTurn 復帰', ui.indexOf('_srpgWdN >= 6') >= 0 && ui.indexOf('srpgB.busy = false; srpgClearHi(); srpgNextTurn()') >= 0);
 
+// ===== U3：初回オンボーディングで学年を選ばせる（最大の離脱要因の解消） =====
+c.ok('OB_SLIDES 先頭が学年選択スライド(grade:true)', /var OB_SLIDES=\[\s*\{[^}]*grade:true/.test(html));
+c.ok('obRender が grade スライドで gp-grid を描く', /if\(s\.grade\)\{[\s\S]{0,320}gp-grid[\s\S]{0,220}obPickGrade\(/.test(html));
+c.ok('obPickGrade が現ユーザーの学年を設定＋ヘッダー更新＋次へ', /function obPickGrade\(l\)\{[\s\S]{0,200}muSetUserGrade\(u\.id, l\)[\s\S]{0,120}muUpdateHeader\(\)[\s\S]{0,120}obNext\(\)/.test(html));
+c.ok('grade スライドは gp-cell 9学年（小1〜中3）', (html.match(/\['小1',1,/)||[]).length >= 1 && html.indexOf("['中3',9,'🦁']") >= 0);
+c.ok('grade picker はダークモードで白×白にならない', html.indexOf('body.dark .gp-cell{') >= 0);
+
 c.done();

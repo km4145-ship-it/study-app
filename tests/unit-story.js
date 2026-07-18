@@ -189,4 +189,9 @@ c.ok('maou_clear にシグマ(救済)', story.maou_clear.some(function (l) { ret
 c.ok('srpgStart が q_maou に maou_intro を配線', ui.indexOf("stageId==='q_maou'") >= 0 && ui.indexOf("_srpgStory('maou_intro')") >= 0);
 c.ok('srpgMaouFinale が maou_clear→パネル', ui.indexOf("_srpgStory('maou_clear')") >= 0 && ui.indexOf('function _srpgMaouFinalePanel') >= 0);
 
+// ===== 物語の磨き：章バトル開始の単元ヒント（学習と戦闘の接続） =====
+c.ok('srpgChapterHint が定義', ui.indexOf('function srpgChapterHint') >= 0);
+c.ok('先生の単元ヒント SRPG_TEACHER_HINT', ui.indexOf('SRPG_TEACHER_HINT') >= 0 && /math:'（コタロウ/.test(ui));
+c.ok('VS後に単元ヒントを表示', ui.indexOf('srpgChapterHint(srpgB.stage)') >= 0);
+
 c.done();

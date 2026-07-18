@@ -444,6 +444,23 @@ function srpgDeployTap(x, y){
     try{ sfx('click'); }catch(e){} srpgRender();
   }
 }
+// 物語モード：各大陸の先生の 単元ヒント（戦闘＝学習の接続。弱点＝その教科でせめると刺さる）
+var SRPG_TEACHER_HINT = {
+  math:'（コタロウ先生）1問ずつ たしかめて いこう！',
+  japanese:'（ミケ先生）ことばを ていねいに 読むニャ！',
+  english:'（ラビィ先生）主語と 動詞を 思い出して！',
+  science:'（ナナ博士）なぜ？と 考えて みよう！',
+  social:'（クマ先生）よく 思い出して すすもう！'
+};
+// この章の単元・弱点教科・先生の一言を伝える（章バトル開始時）
+function srpgChapterHint(stage){
+  if(!stage || stage.type !== 'chapter' || !stage.topic) return;
+  try{
+    var sm = srpgSubjectMeta(stage.forceWeak || stage.continent);
+    var th = SRPG_TEACHER_HINT[stage.continent] || '';
+    srpgToast('📘 きょうの単元：' + stage.topic, '弱点は ' + sm.em + ' ' + sm.label + '！ この教科で こうげきすると つよいよ。' + (th ? '　' + th : ''));
+  }catch(e){}
+}
 function srpgBattleBegin(){
   try{ sfx('click'); }catch(e){}
   srpgB.phase = 'idle'; srpgB.deploySel = null; srpgB.zoneSet = {}; srpgB._rendered = false;
@@ -453,6 +470,7 @@ function srpgBattleBegin(){
   var enemies = srpgB.units.filter(function(u){ return u.side==='enemy'; });
   var boss = enemies.filter(function(u){ var k=srpgEnemyKey(u); return k && SRPG_ENEMY_TEMPLATES[k] && SRPG_ENEMY_TEMPLATES[k].boss; })[0] || enemies[enemies.length-1];
   srpgVsIntro(lead, boss, function(){
+    srpgChapterHint(srpgB.stage);   // 単元・弱点教科・先生の一言（学習の接続）
     if(lead && lead.leaderTrait){ try{ showToast('👑', 'リーダー特性 発動！', lead.leaderTrait.name+'：'+lead.leaderTrait.desc); }catch(e){} }
     setTimeout(srpgNextTurn, lead && lead.leaderTrait ? 700 : 350);
   });

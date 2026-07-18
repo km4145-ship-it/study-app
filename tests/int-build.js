@@ -7,6 +7,16 @@ const { spawnSync } = require('child_process');
 const { makeChecker, ROOT } = require('./lib/assert');
 const c = makeChecker('int-build');
 
+// CIで実ブラウザe2eが「黙ってスキップ→緑」にならない配線を守る（esbuild有無に依らず先に検証）
+{
+  const e2e = fs.readFileSync(path.join(ROOT, 'tests', 'e2e-smoke.js'), 'utf8');
+  c.ok('e2e-smoke は E2E_REQUIRED=1 のとき Chrome不在を失敗にする',
+    e2e.indexOf("E2E_REQUIRED === '1'") >= 0 && e2e.indexOf('CI設定を直すこと') >= 0);
+  const ci = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
+  c.ok('ci.yml は Chrome を導入し e2e を必須化（setup-chrome＋E2E_REQUIRED=1）',
+    ci.indexOf('setup-chrome') >= 0 && ci.indexOf("E2E_REQUIRED: '1'") >= 0);
+}
+
 const esbuild = path.join(ROOT, 'node_modules', '.bin', 'esbuild');
 if (!fs.existsSync(esbuild)) {
   console.log('  ⏭  esbuild未導入のためビルド検証をスキップ（CIのビルドジョブ側で検証）');

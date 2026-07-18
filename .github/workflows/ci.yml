@@ -13,7 +13,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Run tests (依存なし)
+      # 実ブラウザ e2e を CI で必ず走らせる（「CI緑≠起動する」の穴をふさぐ）。
+      # Chrome を明示導入し、E2E_REQUIRED=1 で「Chrome 無し＝スキップ」を失敗に変える。
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+        with:
+          chrome-version: stable
+      - name: Run tests (依存なし・実ブラウザ e2e を必須化)
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+          E2E_REQUIRED: '1'
         run: node tests/run-all.js
 
   build:

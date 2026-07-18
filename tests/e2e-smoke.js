@@ -21,7 +21,16 @@ const CHROME_CANDIDATES = [
   '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium-browser', '/usr/bin/chromium',
 ].filter(Boolean);
 const CHROME = CHROME_CANDIDATES.find((p) => { try { return fs.existsSync(p); } catch (e) { return false; } });
-if (!CHROME) { console.log('  - Chrome が見つからないためスキップ（CHROME_PATH で指定可）'); c.done(); return; }
+if (!CHROME) {
+  // E2E_REQUIRED=1（CIの test ジョブで設定）のときは「Chrome 無し＝スキップ」を失敗にする。
+  // これで「CI が緑でも実際には起動しない」という最悪の事故を防ぐ（黙ってスキップ→緑を撲滅）。
+  // 一方 deploy.yml は E2E_REQUIRED を立てないので、この必須化がデプロイを妨げることはない。
+  if (process.env.E2E_REQUIRED === '1') {
+    c.ok('E2E必須(E2E_REQUIRED=1)なのに Chrome が見つからない＝CI設定を直すこと', false);
+    c.done(); return;
+  }
+  console.log('  - Chrome が見つからないためスキップ（CHROME_PATH で指定可）'); c.done(); return;
+}
 
 // ---- 自動運転ページを生成 ----
 const DRIVER = '_e2e_drive.html';

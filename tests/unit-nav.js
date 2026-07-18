@@ -42,4 +42,10 @@ c.ok('育成の保護対象はタクトのチーム(srpg_team)', srpgUi.indexOf(
 c.ok('育成が旧RPGのai.partyを直接保護していない（ねじれ解消）', srpgUi.indexOf('var party = ai.party || [];') < 0);
 c.ok('育成の合成可否がsrpgProtectedIdsを使う', srpgUi.indexOf('srpgSkillUpCanFuse(base, mat, srpgProtectedIds(ai))') >= 0);
 
+// ---- タクトに独自の結末（魔王フィナーレ）があり自立している ----
+c.ok('魔王フィナーレの台詞群がある', srpgUi.indexOf('SRPG_MAOU_LINES') >= 0);
+c.ok('srpgMaouFinale が定義されている', srpgUi.indexOf('function srpgMaouFinale') >= 0);
+c.ok('q_maou初制覇でフィナーレを自動再生', srpgUi.indexOf('maouFirst') >= 0 && srpgUi.indexOf("srpgB.stageId === 'q_maou'") >= 0);
+c.ok('結果画面にエンディング再生ボタン', srpgUi.indexOf("onclick=\"srpgMaouFinale()\"") >= 0);
+
 c.done();

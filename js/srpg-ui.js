@@ -1170,6 +1170,46 @@ function srpgScoutReward(stage){
     return { mon:mon, inParty:inParty };
   }catch(e){ return null; }
 }
+// ===== 魔王フィナーレ（q_maou 制覇＝タクトの結末＝まなびの王国がすくわれる）=====
+var SRPG_MAOU_LINES = [
+  { em:'☀️', tx:'まなびの王国に、ちえの光が もどってきた！' },
+  { em:'💎', tx:'5つの クリスタルの かがやきが、魔王シグマの「モヤの霧」を はらった。' },
+  { em:'🐾', tx:'霧に とらわれていた 動物の先生たちも、みんな たすかったよ。' },
+  { em:'🏆', tx:'きみは、まなびの王国を すくった 本物の 勇者だ！' },
+  { em:'✨', tx:'……でも、ほんとうの ぼうけんは これからだ。つぎの きみに 会えるのを たのしみにしてる！' }
+];
+function srpgMaouFinale(){
+  try{ safeLS.setItem('srpg_maou_cleared', '1'); }catch(e){}
+  var host = document.getElementById('srpg-body'); if(!host) return;
+  var ov = document.createElement('div'); ov.className = 'srpg-finale';
+  ov.innerHTML = '<div class="srpg-finale-sky"></div>'
+    + '<div class="srpg-finale-em">🏰✨</div>'
+    + '<div class="srpg-finale-ttl">まなびの王国、へいわ！</div>'
+    + '<div class="srpg-finale-line" id="srpg-finale-line"></div>'
+    + '<div class="srpg-finale-hint" id="srpg-finale-hint">タップで つぎへ ▶</div>';
+  host.appendChild(ov);
+  try{ sfx('fanfare'); }catch(e){} try{ if(typeof confetti==='function') confetti(); }catch(e){}
+  var i = 0;
+  function show(){
+    var line = document.getElementById('srpg-finale-line'); if(!line) return;
+    if(i >= SRPG_MAOU_LINES.length){
+      line.innerHTML = '';
+      var st = document.createElement('div'); st.className = 'srpg-finale-stamp'; st.textContent = '🏆 クリア！';
+      ov.appendChild(st);
+      var hint = document.getElementById('srpg-finale-hint'); if(hint) hint.textContent = 'タップで とじる ▶';
+      ov.onclick = function(){ try{ host.removeChild(ov); }catch(e){} ov.onclick = null; };
+      try{ sfx('legendary'); if(typeof confetti==='function') confetti(); }catch(e){}
+      return;
+    }
+    var l = SRPG_MAOU_LINES[i++];
+    line.className = 'srpg-finale-line';
+    line.innerHTML = '<span class="srpg-finale-lem">'+l.em+'</span>'+escapeHtml(l.tx);
+    void line.offsetWidth; line.classList.add('in');
+    try{ speak(l.tx); }catch(e){}
+  }
+  ov.onclick = show;
+  show();
+}
 function srpgEnd(outcome){
   if(!srpgB || srpgB.over) return;
   // ウェーブ制：敵を全滅させても 増援（次の陣）が残っていれば 戦闘続行
@@ -1194,6 +1234,8 @@ function srpgEnd(outcome){
   var extra = '', scout = null;
   var stype = srpgB.stage.type;
   var isLoop = (stype==='daily' || stype==='tower');
+  var maouWin = win && srpgB.stageId === 'q_maou';                       // 魔王シグマ撃破＝ゲームのクライマックス
+  var maouFirst = maouWin && !srpgClearedSet()['q_maou'];               // 初制覇だけ フィナーレを自動再生
   if(!isLoop){ if(win){ srpgClearLoss(srpgB.stageId); } else { srpgNoteLoss(srpgB.stageId); } }   // 敗北救済（周回は対象外）
   if(!win && stype==='tower'){ try{ lsSetJSON('srpg_tower_save', null); }catch(e){} }   // 塔で負けたら「つづき」は消える
   if(win && isLoop){
@@ -1272,12 +1314,14 @@ function srpgEnd(outcome){
     + (win && stype==='tower' ? '<button class="rpg-btn" onclick="srpgTowerNext()">🗼 つぎの '+((srpgB.stage.floor||1)+1)+'階へ →</button>' : '')
     + (stype==='tower' ? '' : '<button class="rpg-btn" onclick="srpgStart(\''+srpgB.stageId+'\')">🔁 もういちど</button>')
     + (!win && stype==='tower' ? '<button class="rpg-btn" onclick="srpgTowerStart()">🔁 1階から ちょうせん</button>' : '')
+    + (maouWin ? '<button class="rpg-btn" onclick="srpgMaouFinale()">🎬 エンディングを見る</button>' : '')
     + (win?'<button class="rpg-btn" onclick="srpgTeamScreen()">🛡️ 編成をかえる</button>':'')
     + '<button class="rpg-btn ghost" onclick="srpgStageSelect()">🗺️ ステージ選択</button>'
     + '</div></div>';
   body.insertAdjacentHTML('beforeend', '<div class="srpg-result-wrap">'+card+'</div>');
   try{ sfx(win?'levelup':'wrong'); }catch(e){}
   if(win){ try{ if(typeof confetti==='function') confetti(); }catch(e){} }
+  if(maouFirst){ setTimeout(function(){ try{ srpgMaouFinale(); }catch(e){} }, _sd(900)); }   // 初制覇＝結末を自動再生
   // 勝敗の声（スカウト演出があるときは そちらの声を優先＝重ねない）
   var hasScout = win && scout && scout.mon;
   if(!hasScout) srpgSay(win ? 'しょうり！ みんな、よくがんばったね！' : 'まけちゃった…。でも だいじょうぶ、つぎは きっと かてるよ！');

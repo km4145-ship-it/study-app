@@ -2207,6 +2207,22 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-enrage-word{ font-size:2.8rem; font-weight:900; color:#fff; text-shadow:0 0 18px #ef4444,0 2px 6px #7f1d1d; letter-spacing:.12em; animation:evoPop .6s cubic-bezier(.2,1.6,.4,1) both; }
   .srpg-enrage-boss{ font-size:1.2rem; font-weight:900; color:#fca5a5; animation:evoPop .6s .15s cubic-bezier(.2,1.6,.4,1) both; }
   @media (prefers-reduced-motion:reduce){ .srpg-enrage-flash,.srpg-enrage-word,.srpg-enrage-boss{ animation-duration:.01ms !important; } }
+  /* 魔王フィナーレ（q_maou 制覇＝ゲームのクライマックス） */
+  .srpg-finale{ position:fixed; inset:0; z-index:1300; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center; cursor:pointer;
+    background:radial-gradient(circle at 50% 30%, #fff7d6, #ffe6a8 30%, #b3e5ff 70%, #7cc4f0); overflow:hidden; animation:evoPop .5s ease both; }
+  .srpg-finale-sky{ position:absolute; inset:-20%; background:conic-gradient(from 0deg,#fca5a5,#fcd34d,#a7f3d0,#7dd3fc,#c4b5fd,#fca5a5); opacity:.28; filter:blur(30px); animation:finaleSpin 18s linear infinite; }
+  @keyframes finaleSpin{ to{ transform:rotate(360deg); } }
+  .srpg-finale>*{ position:relative; z-index:1; }
+  .srpg-finale-em{ font-size:4.2rem; animation:finaleFloat 3s ease-in-out infinite; }
+  @keyframes finaleFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
+  .srpg-finale-ttl{ font-size:1.9rem; font-weight:900; color:#b45309; text-shadow:0 2px 0 #fff, 0 0 16px rgba(251,191,36,.6); letter-spacing:.06em; }
+  .srpg-finale-line{ min-height:3.2em; max-width:16em; font-size:1.12rem; font-weight:800; color:#1e3a5f; line-height:1.7; opacity:0; transform:translateY(8px); }
+  .srpg-finale-line.in{ animation:finaleLineIn .5s ease forwards; }
+  @keyframes finaleLineIn{ to{ opacity:1; transform:none; } }
+  .srpg-finale-lem{ display:block; font-size:2rem; margin-bottom:2px; }
+  .srpg-finale-hint{ font-size:.82rem; font-weight:800; color:#64748b; animation:srpgChargePulse 1.1s ease-in-out infinite; }
+  .srpg-finale-stamp{ font-size:2.4rem; font-weight:900; color:#dc2626; padding:6px 22px; border:4px solid #dc2626; border-radius:16px; transform:rotate(-8deg); background:rgba(255,255,255,.75); box-shadow:0 6px 20px rgba(220,38,38,.35); animation:evoPop .6s cubic-bezier(.2,1.6,.4,1) both; }
+  @media (prefers-reduced-motion:reduce){ .srpg-finale,.srpg-finale-sky,.srpg-finale-em,.srpg-finale-line,.srpg-finale-stamp{ animation-duration:.01ms !important; } .srpg-finale-line{ opacity:1; transform:none; } }
   .srpg-tm-sklv{ display:inline-block; color:#e9d5ff; font-weight:900; font-size:.66rem; background:rgba(167,139,250,.18); padding:0 6px; border-radius:999px; }
   /* ===== 召喚シネマティック（スカウト演出） ===== */
   .sc-stage{ --sc:#38bdf8; position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 46%, #131b33, #04060f 78%); overflow:hidden; cursor:pointer; }

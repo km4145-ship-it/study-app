@@ -252,4 +252,12 @@ const cs = fs.readFileSync(path.join(ROOT, 'cloud-sync.js'), 'utf8');
 c.ok('srpg_cleared/srpg_story_seen は union マージ', /isUnionObj[\s\S]{0,120}srpg_cleared/.test(cs) && /isUnionObj[\s\S]{0,120}srpg_story_seen/.test(cs));
 c.ok('srpg_stars は max マージ', /isObjMax[\s\S]{0,120}srpg_stars/.test(cs));
 
+// ===== 自動モード（冒険の移動を自動化） =====
+c.ok('srpgAllyAutoPlan がエクスポート', typeof S.srpgAllyAutoPlan === 'function');
+c.ok('自動モードのUI関数が定義', ui.indexOf('function srpgToggleAuto') >= 0 && ui.indexOf('function srpgAutoAllyMove') >= 0 && ui.indexOf('function srpgAutoPref') >= 0);
+c.ok('ターンバーに🤖じどうトグル', ui.indexOf('srpgToggleAuto()') >= 0 && ui.indexOf('🤖じどう') >= 0);
+c.ok('srpgSelectActor が auto で自動実行', ui.indexOf('srpgB.auto && actor') >= 0 && ui.indexOf('srpgAutoAllyMove') >= 0);
+c.ok('自動は移動→pick-subject（出題=学習は残す）', /plan\.kind === 'attack'[\s\S]{0,220}pick-subject/.test(ui));
+c.ok('srpg_auto が per-user(MU_PER_USER)＋移行対象', /MU_PER_USER[\s\S]*srpg_auto:1/.test(html) && html.indexOf("'srpg_auto'") >= 0);
+
 c.done();

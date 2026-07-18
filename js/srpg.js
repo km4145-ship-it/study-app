@@ -414,6 +414,37 @@ function srpgEnemyAction(enemy, grid, units){
   return { moveTo:plan.moveTo, kind:plan.targetId ? 'attack' : 'none', targetId:plan.targetId };
 }
 
+// ===== 自動モード：味方1体の最善手（純粋関数） =====
+// 近づいて攻撃できる敵があれば その最短の移動マス＋標的を返す。無ければ最寄りの敵へ近づく。
+// 返り値: { kind:'attack', moveTo:{x,y}, targetId, tx, ty } / { kind:'approach', moveTo } / { kind:'none' }
+// moved=true（すでに移動済み）なら移動はせず、その場から攻撃できる敵だけ探す。
+function srpgAllyAutoPlan(actor, grid, units, moved){
+  if(!actor) return { kind:'none' };
+  var enemies = (units || []).filter(function(u){ return u && u.side === 'enemy' && !u.downed; });
+  if(!enemies.length) return { kind:'none' };
+  var rng = actor.rng || 1;
+  var tiles = [{ x:actor.x, y:actor.y, d:0 }];
+  if(!moved) tiles = srpgMoveTiles(actor, grid, units).concat(tiles);
+  var best = null;
+  enemies.forEach(function(en){
+    var bt = null, bd = 1e9;
+    tiles.forEach(function(t){ if(srpgInRange(t.x, t.y, en.x, en.y, rng) && (t.d || 0) < bd){ bd = (t.d || 0); bt = t; } });
+    if(!bt) return;
+    // 標的スコア：とどめ/回復役/弱ったHP（srpgTargetBonus）を優先し、近い移動を優先
+    var score = srpgTargetBonus(en) * 100 - (en.hp || 0) - bd * 3;
+    if(!best || score > best.score) best = { score:score, moveTo:{ x:bt.x, y:bt.y }, targetId:en.id, tx:en.x, ty:en.y };
+  });
+  if(best) return { kind:'attack', moveTo:best.moveTo, targetId:best.targetId, tx:best.tx, ty:best.ty };
+  if(moved) return { kind:'none' };
+  // 射程内に敵なし → 最寄りの敵へ いちばん近づける移動マスへ
+  var near = null, nd = 1e9;
+  enemies.forEach(function(en){ var d = srpgDist(actor.x, actor.y, en.x, en.y); if(d < nd){ nd = d; near = en; } });
+  var tgt = { x:actor.x, y:actor.y }, td = srpgDist(actor.x, actor.y, near.x, near.y);
+  srpgMoveTiles(actor, grid, units).forEach(function(t){ var d = srpgDist(t.x, t.y, near.x, near.y); if(d < td){ td = d; tgt = { x:t.x, y:t.y }; } });
+  if(tgt.x === actor.x && tgt.y === actor.y) return { kind:'none' };
+  return { kind:'approach', moveTo:tgt };
+}
+
 // ===== 配置フェーズ：味方を置ける自陣ゾーン（下部エリア。敵の初期位置・障害物は除く） =====
 function srpgDeployZone(stage){
   if(stage.deployZone) return stage.deployZone.slice();
@@ -1063,7 +1094,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgMoveTiles: srpgMoveTiles, srpgRangeTiles: srpgRangeTiles, srpgAoeTiles: srpgAoeTiles,
     srpgDamage: srpgDamage, srpgHealAmount: srpgHealAmount, srpgTurnOrder: srpgTurnOrder,
     srpgSideDown: srpgSideDown, srpgOutcome: srpgOutcome, srpgEnemyPlan: srpgEnemyPlan,
-    srpgTargetBonus: srpgTargetBonus, srpgEnemyPickTarget: srpgEnemyPickTarget, srpgEnemyAction: srpgEnemyAction, srpgDeployZone: srpgDeployZone, srpgCanCounter: srpgCanCounter,
+    srpgTargetBonus: srpgTargetBonus, srpgEnemyPickTarget: srpgEnemyPickTarget, srpgEnemyAction: srpgEnemyAction, srpgAllyAutoPlan: srpgAllyAutoPlan, srpgDeployZone: srpgDeployZone, srpgCanCounter: srpgCanCounter,
     srpgMakeUnit: srpgMakeUnit, srpgEnemyTemplate: srpgEnemyTemplate, srpgStage: srpgStage,
     srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits,
     srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage,

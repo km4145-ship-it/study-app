@@ -375,7 +375,8 @@ function srpgStart(stageId){
     round: 1, order: [], turnPtr: -1, acted: {}, actorId: null,
     phase: 'idle', moved: false, chosenSkill: null, targetTile: null,
     hiMove: {}, hiTarget: {}, hiAoe: {}, combo: 0, over: false, busy: false,
-    zoneSet: {}, deploySel: null, charge: null
+    zoneSet: {}, deploySel: null, charge: null,
+    auto: srpgAutoPref()   // 自動モード（移動を自動化）。設定は端末＋ユーザー別に記憶
   };
   document.getElementById('srpg-title').textContent = stage.name;
   try{ if(typeof bgmPlay==='function') bgmPlay(stage.boss ? 'boss' : 'battle'); }catch(e){}   // ボス名があればボス曲（章ボスノード・大陸/魔王/裏ボス 共通）
@@ -611,7 +612,9 @@ function srpgTurnbarHtml(){
   var actor = srpgActor();
   var _wv = (srpgB.stage && srpgB.stage.waves && srpgB.stage.waves.length) ? '<span class="srpg-wave">🌊 '+((srpgB.waveIdx||0)+1)+'/'+ (srpgB.stage.waves.length+1)+'陣</span>' : '';
   var _chg = srpgB.charge ? '<span class="srpg-charge-warn">☢️ '+escapeHtml(srpgB.charge.name||'大技')+'くる！赤マスから にげろ</span>' : '';
-  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span>'+_wv+_chg+'<button class="srpg-spd'+(_srpgSpd()===2?' on':'')+'" onclick="srpgToggleSpeed()">⏩×2</button><div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
+  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span>'+_wv+_chg
+    + '<button class="srpg-spd'+(srpgB.auto?' on':'')+'" onclick="srpgToggleAuto()" title="移動を自動化（教科えらびは自分）">🤖じどう</button>'
+    + '<button class="srpg-spd'+(_srpgSpd()===2?' on':'')+'" onclick="srpgToggleSpeed()">⏩×2</button><div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
     var art = srpgUnitArt(u);
     return '<span class="srpg-tb-face '+u.side+(actor&&u.id===actor.id?' now':'')+'">'+art+'</span>';
   }).join('<span class="srpg-tb-arrow">›</span>');
@@ -744,11 +747,54 @@ function srpgSelectActor(){
     try{ document.querySelector('#st-'+actor.x+'-'+actor.y).scrollIntoView({block:'center'}); }catch(e){}
   }
   srpgRender();
+  // 自動モード：少し見せてから 自動で移動→教科えらび（きみが答える）
+  if(srpgB.auto && actor && actor.side==='ally'){ setTimeout(srpgAutoAllyMove, _sd(520)); return; }
   // 初めてのコマンド選択にだけ ヒントを1回出す
   if(!_srpgFlag('srpg_hint_sel')){ _srpgSetFlag('srpg_hint_sel');
     try{ showToast('💡','さいしょの いっぽ','🔷あおいマスをタップで いどう。🔴てきをタップで こうげき（とおくても 自動で ちかづくよ）'); }catch(e){} }
 }
 function srpgClearHi(){ if(srpgB){ srpgB.hiMove = {}; srpgB.hiTarget = {}; srpgB.hiAoe = {}; srpgB.hiAtk = {}; } }
+
+// ===== 自動モード（移動を自動化。教科えらび＝出題は きみが答える＝学習は残す） =====
+function srpgAutoPref(){ try{ return safeLS.getItem(muKey('srpg_auto'))==='1'; }catch(e){ return false; } }
+function srpgToggleAuto(){
+  if(!srpgB) return;
+  srpgB.auto = !srpgB.auto;
+  try{ safeLS.setItem(muKey('srpg_auto'), srpgB.auto ? '1' : '0'); }catch(e){}
+  try{ sfx('click'); }catch(e){}
+  try{ showToast(srpgB.auto?'🤖':'✋', srpgB.auto?'じどうモード ON':'じどうモード OFF',
+    srpgB.auto?'味方が じどうで 近づくよ（⚔️教科えらび＝きみが こたえる）':'いどうを 自分で そうさするよ'); }catch(e){}
+  srpgRender();
+  if(srpgB.auto && srpgB.phase==='select' && !srpgB.busy){ setTimeout(srpgAutoAllyMove, _sd(260)); }
+}
+// 現在の味方アクターを自動で 移動→教科えらび（出題）へ。攻撃できなければ最寄りへ近づいてターン終了。
+function srpgAutoAllyMove(){
+  if(!srpgB || srpgB.over || srpgB.busy || !srpgB.auto) return;
+  if(srpgB.phase !== 'select') return;
+  var actor = srpgActor(); if(!actor || actor.side !== 'ally') return;
+  var plan = srpgAllyAutoPlan(actor, srpgB.grid, srpgB.units, srpgB.moved);
+  var moveThen = function(dest, after){
+    if(dest && (dest.x !== actor.x || dest.y !== actor.y)){
+      srpgB.undoPos = { id:actor.id, x:actor.x, y:actor.y };
+      var ox = actor.x, oy = actor.y; actor.x = dest.x; actor.y = dest.y; srpgB.moved = true;
+      srpgClearHi(); srpgRender(); srpgSlideUnit(actor.id, ox, oy);
+      setTimeout(after, _sd(340));
+    } else { after(); }
+  };
+  if(plan.kind === 'attack'){
+    moveThen(plan.moveTo, function(){
+      if(!srpgB || srpgB.over || srpgB.phase !== 'select') return;
+      srpgB.chosenSkill = null; srpgB.targetTile = { x:plan.tx, y:plan.ty };
+      srpgB.phase = 'pick-subject'; srpgClearHi(); srpgRender();   // 教科えらび→出題（答えるのは きみ）
+    });
+    return;
+  }
+  if(plan.kind === 'approach'){
+    moveThen(plan.moveTo, function(){ if(srpgB && !srpgB.over) srpgEndActorTurn(); });
+    return;
+  }
+  setTimeout(function(){ if(srpgB && !srpgB.over && srpgB.phase==='select') srpgEndActorTurn(); }, _sd(300));
+}
 
 // ---- コマンド ----
 function srpgCmdUndo(){

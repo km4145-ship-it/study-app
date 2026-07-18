@@ -763,4 +763,26 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
 
 c.ok('arena3(訓練場)は決戦ボスvillainを先食いしない', S.SRPG_STAGES.arena3.enemies.every(function(e){ return e.key!=='villain'; }));
 c.ok('arena2の敵数を緩和(<=3体)', S.SRPG_STAGES.arena2.enemies.length<=3);
+
+// ---- 自動モード：味方1体の最善手（純粋関数 srpgAllyAutoPlan）----
+{
+  const grid = { w:6, h:7 };
+  const mk = (id, side, role, x, y, hp) => { const u = S.srpgMakeUnit({ id, side, art:'slime', role, lvl:4, rankBase:6, x, y }); if (hp != null) u.hp = hp; return u; };
+  const ally = mk('h', 'ally', 'attacker', 2, 6);
+  const e1 = mk('e1', 'enemy', 'attacker', 2, 3, 4);   // 近い・低HP
+  const e2 = mk('e2', 'enemy', 'tank', 5, 0);           // 遠い
+  const p1 = S.srpgAllyAutoPlan(ally, grid, [ally, e1, e2], false);
+  c.eq('自動: 攻撃プランを返す', p1.kind, 'attack');
+  c.eq('自動: 近い(低HP)敵を標的', p1.targetId, 'e1');
+  c.ok('自動: 移動先から標的が射程内', S.srpgInRange(p1.moveTo.x, p1.moveTo.y, e1.x, e1.y, ally.rng));
+  c.ok('自動: 移動先は盤内', p1.moveTo.x>=0 && p1.moveTo.x<6 && p1.moveTo.y>=0 && p1.moveTo.y<7);
+  // 届く敵が無い → 最寄りへ approach
+  const ally2 = mk('h2', 'ally', 'attacker', 2, 6);
+  c.eq('自動: 届かない→approach', S.srpgAllyAutoPlan(ally2, grid, [ally2, mk('e3','enemy','attacker',0,0)], false).kind, 'approach');
+  // 敵なし → none
+  c.eq('自動: 敵なし→none', S.srpgAllyAutoPlan(ally, grid, [ally], false).kind, 'none');
+  // 移動済で射程外 → none（二重移動しない）
+  c.eq('自動: 移動済&射程外→none', S.srpgAllyAutoPlan(mk('h3','ally','attacker',2,6), grid, [mk('e4','enemy','attacker',0,0)], true).kind, 'none');
+}
+
 c.done();

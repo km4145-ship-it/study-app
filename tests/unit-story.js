@@ -260,4 +260,11 @@ c.ok('srpgSelectActor が auto で自動実行', ui.indexOf('srpgB.auto && actor
 c.ok('自動は移動→pick-subject（出題=学習は残す）', /plan\.kind === 'attack'[\s\S]{0,220}pick-subject/.test(ui));
 c.ok('srpg_auto が per-user(MU_PER_USER)＋移行対象', /MU_PER_USER[\s\S]*srpg_auto:1/.test(html) && html.indexOf("'srpg_auto'") >= 0);
 
+// ===== 進行ウォッチドッグ（バトルが二度と進まない事故の自己回復） =====
+c.ok('srpgWatchStart/Stop/Tick が定義', ui.indexOf('function srpgWatchStart') >= 0 && ui.indexOf('function srpgWatchStop') >= 0 && ui.indexOf('function srpgWatchTick') >= 0);
+c.ok('バトル開始で起動', /function srpgBattleBegin[\s\S]{0,260}srpgWatchStart\(\)/.test(ui));
+c.ok('決着＆離脱で停止', /srpgB\.over = true[\s\S]{0,60}srpgWatchStop\(\)/.test(ui) && /function srpgClose\(\)\s*\{\s*srpgWatchStop\(\)/.test(ui));
+c.ok('入力待ち/出題中は監視しない', ui.indexOf("srpgB.busy || p==='select'") >= 0);
+c.ok('ハング検出で srpgNextTurn 復帰', ui.indexOf('_srpgWdN >= 6') >= 0 && ui.indexOf('srpgB.busy = false; srpgClearHi(); srpgNextTurn()') >= 0);
+
 c.done();

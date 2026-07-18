@@ -482,6 +482,7 @@ function srpgBattleBegin(){
   try{ sfx('click'); }catch(e){}
   srpgB.phase = 'idle'; srpgB.deploySel = null; srpgB.zoneSet = {}; srpgB._rendered = false;
   srpgB.order = srpgTurnOrder(srpgB.units); srpgB.turnPtr = -1;
+  srpgWatchStart();   // 進行ウォッチドッグ開始（万一の停止から自動復帰）
   srpgRender();
   var lead = srpgB.units.filter(function(u){ return u.side==='ally' && u.isLeader; })[0] || srpgB.units.filter(function(u){ return u.side==='ally'; })[0];
   var enemies = srpgB.units.filter(function(u){ return u.side==='enemy'; });
@@ -794,6 +795,24 @@ function srpgAutoAllyMove(){
     return;
   }
   setTimeout(function(){ if(srpgB && !srpgB.over && srpgB.phase==='select') srpgEndActorTurn(); }, _sd(300));
+}
+
+// ===== 進行ウォッチドッグ：手番遷移/敵ターンが万一 固まっても 自動で復帰（バトルが二度と進まない事故を防ぐ） =====
+var _srpgWd = null, _srpgWdTok = '', _srpgWdN = 0;
+function srpgWatchStart(){ srpgWatchStop(); _srpgWdTok = ''; _srpgWdN = 0; try{ _srpgWd = setInterval(srpgWatchTick, 1000); }catch(e){} }
+function srpgWatchStop(){ if(_srpgWd){ try{ clearInterval(_srpgWd); }catch(e){} _srpgWd = null; } }
+function srpgWatchTick(){
+  if(!srpgB || srpgB.over){ srpgWatchStop(); return; }
+  var p = srpgB.phase;
+  // 入力待ち（select/action/pick-subject/deploy）や 出題中(busy) は 正常な待ち＝監視しない
+  if(srpgB.busy || p==='select' || p==='action' || p==='pick-subject' || p==='deploy'){ _srpgWdN = 0; _srpgWdTok = 'x'; return; }
+  // 進行フェーズ（idle=VS/手番間・enemy=敵ターン）が 同じ状態のまま続いていないか
+  var tok = p + '|' + (srpgB.actorId||'-') + '|R' + (srpgB.round||0) + '|p' + (srpgB.turnPtr==null?-1:srpgB.turnPtr) + '|c' + (srpgB.charge?1:0);
+  if(tok === _srpgWdTok){ _srpgWdN++; } else { _srpgWdTok = tok; _srpgWdN = 0; }
+  if(_srpgWdN >= 6){   // 6秒 同一＝ハング → 安全に手番を進めて復帰（正常なVS/敵ターンは数百ms〜2秒で変化する）
+    _srpgWdN = 0; _srpgWdTok = 'x';
+    try{ srpgB.busy = false; srpgClearHi(); srpgNextTurn(); }catch(e){}
+  }
 }
 
 // ---- コマンド ----
@@ -1450,6 +1469,7 @@ function srpgEnd(outcome){
     return;
   }
   srpgB.over = true; srpgB.phase = 'over';
+  srpgWatchStop();   // 決着＝ウォッチドッグ停止
   var win = outcome==='win';
   var coin = 30 + srpgB.stage.enemies.length * 15;
   var xp = 40 + srpgB.stage.enemies.length * 20;
@@ -1581,6 +1601,7 @@ function srpgEnd(outcome){
   }
 }
 function srpgClose(){
+  srpgWatchStop();   // バトル終了/離脱＝ウォッチドッグ停止
   srpgB = null;
   var sc = document.getElementById('srpg-screen'); if(sc) sc.style.display='none';
   var bar = document.getElementById('mu-tabbar'); if(bar) bar.classList.remove('mu-hidden');

@@ -364,6 +364,13 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rec-num { font-size:1.7rem; font-weight:800; color:var(--gold); }
   .rec-label { font-size:0.72rem; color:var(--primary-light); margin-top:2px; }
   .rec-sec-title { font-size:1rem; font-weight:700; color:var(--primary-light); margin:8px 4px 10px; }
+  .rec-fold{ margin:12px 2px 0; border:1px solid var(--card-brd,rgba(0,0,0,.08)); border-radius:12px; overflow:hidden; }
+  .rec-fold>summary{ cursor:pointer; font-weight:800; font-size:.92rem; color:var(--text); padding:11px 14px; background:var(--card2,#f1f5f9); list-style:none; }
+  .rec-fold>summary::-webkit-details-marker{ display:none; }
+  .rec-fold>summary::after{ content:'▼'; float:right; font-size:.7rem; opacity:.6; }
+  .rec-fold[open]>summary::after{ content:'▲'; }
+  .rec-fold>div{ padding:6px 12px 12px; }
+  @media (prefers-color-scheme:dark){ .rec-fold>summary{ background:#273449; color:#e2e8f0; } }
   .rec-subject-row { display:flex; align-items:center; gap:10px; background:var(--card); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
   .rec-subject-row .rs-name { font-weight:700; min-width:70px; }
   .rec-bar-wrap { flex:1; background:var(--bg); border-radius:99px; height:14px; overflow:hidden; }
@@ -2916,30 +2923,32 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
       <button class="rec-hub-btn" onclick="showStudyNotes()"><span>📖</span>まとめ・公式</button>
     </div>
     <div class="rec-summary" id="rec-summary"></div>
+    <!-- 子どもが すぐ行動できる節を 上に。保護者向けは 折りたたみ。（render*はID指定なので並べ替え安全）-->
+    <div class="rec-sec-title">🎯 今日の目標・連続記録</div>
+    <div id="rec-daily"></div>
+    <div class="rec-sec-title">😣 苦手なところ TOP5</div>
+    <div id="rec-weak"></div>
+    <div class="rec-sec-title">🎖️ 実績・称号</div>
+    <div id="rec-achievements"></div>
     <div class="rec-sec-title">📆 今週のまとめ</div>
     <div id="rec-week"></div>
-    <div class="rec-sec-title">👨‍👩‍👧 おうちの方へ</div>
-    <div id="rec-parent"></div>
+    <div class="rec-sec-title">教科別の正答率</div>
+    <div id="rec-subjects"></div>
+    <div class="rec-sec-title">🗺️ 単元マスター度マップ</div>
+    <div id="rec-mastery"></div>
     <div class="rec-sec-title">🎯 偏差値65への道</div>
     <div id="rec-hensachi"></div>
     <div class="rec-sec-title">📈 偏差値の推移</div>
     <div id="rec-trend"></div>
-    <div class="rec-sec-title">🗺️ 単元マスター度マップ</div>
-    <div id="rec-mastery"></div>
-    <div class="rec-sec-title">🎯 今日の目標・連続記録</div>
-    <div id="rec-daily"></div>
     <div class="rec-sec-title">📅 学習カレンダー</div>
     <div id="rec-calendar"></div>
-    <div class="rec-sec-title">😣 苦手なところ TOP5</div>
-    <div id="rec-weak"></div>
-    <div class="rec-sec-title">教科別の正答率</div>
-    <div id="rec-subjects"></div>
-    <div class="rec-sec-title">🎖️ 実績・称号</div>
-    <div id="rec-achievements"></div>
     <div class="rec-sec-title">🏅 ゲットしたバッジ</div>
     <div id="rec-badges"></div>
     <div class="rec-sec-title">最近の記録</div>
     <div id="rec-history"></div>
+    <details class="rec-fold"><summary>👨‍👩‍👧 おうちの方へ（保護者向け）</summary>
+      <div id="rec-parent"></div>
+    </details>
     <div style="text-align:center;margin-top:16px">
       <button class="danger-link" onclick="clearRecords()">学習記録をすべて消す</button>
     </div>
@@ -5487,7 +5496,8 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   // ゲームメニュー
   h+='<div class="hub-sec">🎮 あそんで まなぶ</div>';
   h+='<div class="hub-grid">';
-  h+= hubCard('adv','⚔️','ぼうけん（バトル）','マスの上の さくせんバトル。偏差値65をめざす！','srpgOpen()', true);
+  var _freeScout=false; try{ _freeScout=(typeof srpgScoutFreeReady==='function') && srpgScoutFreeReady(); }catch(e){}
+  h+= hubCard('adv','⚔️','ぼうけん（バトル）',(_freeScout?'🎁 むりょうスカウトが できるよ！':'マスの上の さくせんバトル。偏差値65をめざす！'),'srpgOpen()', true, _freeScout?'🎁':0);
   h+= hubCard('aibou','🐾','なかま','エサやり・なまえ・ずかん','rpgShowAibou()');   // なかま管理。しゅつげき編成はタクト側に一本化
   h+= hubCard('prac','✏️','れんしゅう','教科をえらんで10問','hubPickSubject(\'practice\')');
   h+= hubCard('exam','⏱️','模試チャレンジ','本番形式で力だめし','hubPickSubject(\'exam\')');
@@ -6752,7 +6762,18 @@ function weekDotsHTML(){
 function startRecommended(){
   if(dueCount()>0){ startReviewDue(); return; }
   if(getMistakes().length>0){ startMistakePractice(); return; }
-  startPractice('math');
+  startPractice(_recommendArea());
+}
+// おすすめ教科：実力にばらつきがあれば『いちばん苦手な教科』、乏しければ曜日でローテ（算数固定を避ける）
+function _recommendArea(){
+  try{
+    var keys=(AREAS||[]).map(function(a){ return a.key; }); if(!keys.length) return 'math';
+    var rated=keys.map(function(k){ var r=50; try{ if(typeof ratingAreaR==='function'){ var v=ratingAreaR(k); if(typeof v==='number') r=v; } }catch(e){} return { k:k, r:r }; });
+    var rs=rated.map(function(x){ return x.r; });
+    if(Math.max.apply(null,rs) - Math.min.apply(null,rs) >= 2){ rated.sort(function(a,b){ return a.r-b.r; }); return rated[0].k; }
+    var d=3; try{ d=parseInt((todayKey()||'').split('-').pop(),10)||3; }catch(e){}
+    return keys[d % keys.length];
+  }catch(e){ return 'math'; }
 }
 function renderDailyMenu(){
   const el=document.getElementById('daily-menu'); if(!el) return;

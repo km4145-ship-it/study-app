@@ -308,6 +308,8 @@
 }
 /* まちがい→その場で類題リベンジ */
 .revenge-banner{ margin:6px 0 8px; padding:8px 12px; border-radius:12px; background:#fff7ed; border:2px solid #fb923c; color:#c2410c; font-size:13.5px; font-weight:800; animation:revPulse 1.4s ease infinite; }
+.rev-tip{ display:block; margin-top:4px; font-size:12px; font-weight:700; color:#9a3412; background:rgba(251,146,60,.16); border-radius:8px; padding:4px 8px; }
+body.dark .rev-tip{ color:#fed7aa; }
 @keyframes revPulse{ 50%{ box-shadow:0 0 12px rgba(251,146,60,.55); } }
 .revenge-note{ margin-top:8px; padding:7px 10px; border-radius:10px; background:#fff7ed; border:1.5px dashed #fb923c; color:#c2410c; font-size:13px; font-weight:800; }
 body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(251,146,60,.15); }
@@ -3323,7 +3325,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/content-data.js?v=2"></script>
 <script src="js/scoring.js?v=2"></script>
 <script src="js/ui-data.js?v=1"></script>
-<script src="js/util.js?v=2"></script>
+<script src="js/util.js?v=3"></script>
 <script src="js/miss-types.js?v=1"></script>
 <script src="js/coverage.js?v=1"></script>
 <script src="js/rating.js?v=1"></script>
@@ -4735,10 +4737,12 @@ function showQuestion(skipSpeak) {
   var _rvb=document.getElementById('revenge-banner');
   if(_rvb){
     _rvb.style.display = q._revenge ? 'block' : 'none';
-    if(q._revenge){   // 型別リベンジ：何に気をつけるかをバナーに出す
+    if(q._revenge){   // 型別リベンジ：何に気をつけるか＋さっきの考え方をバナーに出す
       var _rvbt='🔥 リベンジ！ さっきと にた問題だよ。今度は とけるかな？';
       try{ if(q._revType && MISS_TYPES[q._revType]) _rvbt='🔥 リベンジ！ '+MISS_TYPES[q._revType].em+' '+MISS_TYPES[q._revType].name+'に 気をつけて とこう！'; }catch(e){}
-      _rvb.textContent=_rvbt;
+      // さっき学んだ考え方を運ぶ＝解説（worked example）を見た直後に applying させる
+      if(q._revTip){ _rvb.innerHTML=escapeHtml(_rvbt)+'<span class="rev-tip">💡 さっきの考え方：'+escapeHtml(q._revTip)+'</span>'; }
+      else { _rvb.textContent=_rvbt; }
     }
   }
 
@@ -4905,7 +4909,9 @@ function handleAnswer(correct, correctAns) {
      && currentQuestions[currentIndex] && !currentQuestions[currentIndex]._revenge && _revengeCount<3){
     var _rq=null; try{ _rq=findSimilarQuestion(currentQuestions[currentIndex], _mtNow); }catch(e){}
     if(_rq){
-      _rq=Object.assign({}, _rq, {_revenge:1, _revType:(_mtNow||'')});
+      // さっき読んだ解説の「考え方」をリベンジ問題に運ぶ＝worked example を即適用（retrieval×worked example）
+      var _rTip=''; try{ _rTip=revTip(currentQuestions[currentIndex].explain); }catch(e){}
+      _rq=Object.assign({}, _rq, {_revenge:1, _revType:(_mtNow||''), _revTip:_rTip});
       currentQuestions.splice(currentIndex+1, 0, _rq);
       _revengeCount++;
       var _rvTxt='🔥 つぎは にた問題で リベンジだ！ かいせつを 読んでから すすもう';

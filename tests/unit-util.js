@@ -7,7 +7,7 @@ const c = makeChecker('unit-util');
 
 const code = fs.readFileSync(path.join(ROOT, 'js', 'util.js'), 'utf8');
 const api = (new Function(code +
-  '\nreturn { escapeHtml, topicKey, dateKeyOffset, todayKey, fmtTime, _toDate };'))();
+  '\nreturn { escapeHtml, topicKey, dateKeyOffset, todayKey, fmtTime, _toDate, revTip };'))();
 
 ['escapeHtml', 'topicKey', 'dateKeyOffset', 'todayKey', 'fmtTime', '_toDate']
   .forEach((f) => c.ok(f + ' が関数', typeof api[f] === 'function'));
@@ -42,10 +42,23 @@ c.eq('dateKeyOffset(0) === todayKey()', api.dateKeyOffset(0), api.todayKey());
 c.ok('dateKeyOffset(-1) < dateKeyOffset(1)', api.dateKeyOffset(-1) < api.dateKeyOffset(1));
 c.ok('dateKeyOffset(-1) も形式一致', /^\d{4}-\d{2}-\d{2}$/.test(api.dateKeyOffset(-1)));
 
+// revTip：解説から「解き直しの一言ヒント」を1行抜く（まちがい→リベンジで考え方を運ぶ）
+c.eq('revTip：考え方を優先して抜く',
+  api.revTip('【考え方】分母をそろえる\n【手順】1/2=3/6\n【ポイント】通分'), '分母をそろえる');
+c.eq('revTip：考え方が無ければ手順',
+  api.revTip('【手順】まず10をつくる\n【ポイント】さくらんぼ計算'), 'まず10をつくる');
+c.eq('revTip：ポイントしか無ければポイント', api.revTip('【ポイント】符号に注意'), '符号に注意');
+c.eq('revTip：見出しが無ければ先頭行', api.revTip('ふつうの一文です\n2行目'), 'ふつうの一文です');
+c.eq('revTip：空はから文字', api.revTip(''), '');
+c.eq('revTip：null安全', api.revTip(null), '');
+c.ok('revTip：長すぎる考え方は省略(…)', api.revTip('【考え方】' + 'あ'.repeat(80)).length <= 48 && /…$/.test(api.revTip('【考え方】' + 'あ'.repeat(80))));
+
 // index.html 側は再定義せず、モジュールを読み込む
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は escapeHtml を再定義しない', html.indexOf('function escapeHtml(') < 0);
 c.ok('index.html は fmtTime を再定義しない', html.indexOf('function fmtTime(') < 0);
 c.ok('index.html は js/util.js を読み込む', html.indexOf('<script src="js/util.js') >= 0);
+c.ok('index.html は revTip を再定義しない（util.js に集約）', html.indexOf('function revTip(') < 0);
+c.ok('リベンジ問題に解説の考え方を運ぶ（_revTip 配線）', html.indexOf('revTip(currentQuestions[currentIndex].explain)') >= 0 && html.indexOf('q._revTip') >= 0);
 
 c.done();

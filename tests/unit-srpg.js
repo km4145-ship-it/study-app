@@ -658,6 +658,7 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
 {
   c.eq('メダル交換：通常50枚', S.srpgMedalCost('wolf'), 50);
   c.eq('メダル交換：魔王150枚', S.srpgMedalCost('villain'), 150);
+  c.eq('メダル交換：大魔王級250枚', S.srpgMedalCost('daimaou'), 250);
   const p = S.srpgDexProgress({ wolf:1, slime:1, ghost:0 }, 22);
   c.eq('図鑑進捗：met数', p.count, 2);
   c.eq('図鑑進捗：%', p.pct, Math.round(2/22*100));
@@ -669,8 +670,12 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
     c.ok('各節目に id/coin/label がそろう', dr.every(function(r){ return r.id && r.coin > 0 && r.label; }));
     c.ok('id に重複がない（受領フラグ衝突なし）', new Set(ids).size === ids.length);
     c.ok('既存idを温存（d10/d40/d80/d121）＝過去の受領が生きる', ['d10','d40','d80','d121'].every(function(id){ return ids.indexOf(id) >= 0; }));
-    c.ok('最終節目は全121種（基本21＋変種100）', dr[dr.length-1].need === 121);
+    c.ok('きほん節目は121種（villain含む）', ids.indexOf('d121') >= 0 && dr[ids.indexOf('d121')].need === 121);
+    c.ok('最終節目は伝説込み124種（大魔王級3体を加えた完全制覇）', dr[dr.length-1].need === 124 && dr[dr.length-1].id === 'd124');
   }
+  // 伝説（大魔王級）：定義がそろう＋LG限定スカウト
+  c.ok('SRPG_LEGEND_ARTS は daimaou/enmaou/hyoumaou', S.SRPG_LEGEND_ARTS.join(',') === 'daimaou,enmaou,hyoumaou');
+  c.ok('伝説3体に とくぎが定義', S.SRPG_LEGEND_ARTS.every(function(a){ return !!S.SRPG_MON_SKILL[a]; }));
   // LG：天井・自動編成・とくぎ継承
   c.ok('LGでも天井リセット', S.srpgScoutApplyPity(['LG'], 29, 30).pity === 0);
   const lgPick = S.srpgAutoPick([{id:'x',rank:'LG',lv:1,sp:'beast'},{id:'y',rank:'SSS',lv:99,sp:'beast'}], 1);

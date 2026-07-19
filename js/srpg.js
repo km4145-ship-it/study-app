@@ -177,8 +177,10 @@ var SRPG_MON_SKILL = {
   ghost:'lullaby', dragon:'hono', voltdrake:'numbing', trent:'heal', inkblob:'sumihane',
   fudebird:'fudesabaki', kanjioni:'sealing', abcube:'ranban', qbird:'rariho', grammaro:'bikilt',
   flaskun:'gekiyaku', microbe:'baikin', mapmoth:'rinpun', haniwa:'taunt', tokiou:'tokitome',
-  villain:'burstball', pet:'heal'
+  villain:'burstball', daimaou:'burstball', enmaou:'hono', hyoumaou:'numbing', pet:'heal'
 };
+// 伝説（LG限定スカウトでのみ出会える大魔王級）＝コレクションの最高峰。図鑑では villain とともに特別枠。
+var SRPG_LEGEND_ARTS = ['daimaou', 'enmaou', 'hyoumaou'];
 function srpgMonSkill(art){
   if(!art) return null;
   if(SRPG_MON_SKILL[art]) return SRPG_MON_SKILL[art];
@@ -612,8 +614,11 @@ function srpgScoutTen(rng){
   return out;
 }
 // ===== スカウトメダル交換所：1回引くごとに1枚→ためると好きな種と交換（ダブり救済の最終形） =====
-var SRPG_MEDAL_COST = { normal:50, villain:150 };
-function srpgMedalCost(art){ return art === 'villain' ? SRPG_MEDAL_COST.villain : SRPG_MEDAL_COST.normal; }
+var SRPG_MEDAL_COST = { normal:50, villain:150, legend:250 };
+function srpgMedalCost(art){
+  if(typeof SRPG_LEGEND_ARTS!=='undefined' && SRPG_LEGEND_ARTS.indexOf(art)>=0) return SRPG_MEDAL_COST.legend;   // 大魔王級はメダルでも最も高い
+  return art === 'villain' ? SRPG_MEDAL_COST.villain : SRPG_MEDAL_COST.normal;
+}
 // なかま図鑑の進捗（met=これまでに仲間にした種の集合）
 function srpgDexProgress(metArts, total){
   var count = Object.keys(metArts || {}).filter(function(k){ return metArts[k]; }).length;
@@ -629,7 +634,8 @@ var SRPG_DEX_REWARDS = [
   { id:'d60',  need:60,  coin:1600, label:'60種で 🪙1600' },
   { id:'d80',  need:80,  coin:2500, label:'80種で 🪙2500' },
   { id:'d100', need:100, coin:4000, label:'100種で 🪙4000' },
-  { id:'d121', need:121, coin:8000, label:'ぜんぶ（121種）で 🪙8000' }
+  { id:'d121', need:121, coin:8000, label:'きほん 121種で 🪙8000' },
+  { id:'d124', need:124, coin:12000, label:'伝説もふくめ 124種で 🪙12000' }   // 大魔王級3体を加えた完全制覇
 ];
 
 // ===== 天井（ピティ）：ハズレ続きの救済＝スカウト30回で SS以上を1体かくてい =====
@@ -1111,7 +1117,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
     SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,
     SRPG_SCOUT_PITY_MAX: SRPG_SCOUT_PITY_MAX, srpgScoutApplyPity: srpgScoutApplyPity, srpgScoutPickups: srpgScoutPickups, srpgScoutArt: srpgScoutArt,
-    SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS,
+    SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS, SRPG_LEGEND_ARTS: SRPG_LEGEND_ARTS,
     srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
     SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse,
     SRPG_RANK_ORDER: SRPG_RANK_ORDER, SRPG_EVOLVE_DUPES: SRPG_EVOLVE_DUPES, srpgEvolveNextRank: srpgEvolveNextRank, srpgEvolveCost: srpgEvolveCost, srpgEvolveCanDo: srpgEvolveCanDo,

@@ -377,18 +377,42 @@ var SRPG_MON_ART = {
     + '<path d="M48 82 L51 89 L54 82 Z M66 82 L69 89 L72 82 Z M57 84 L60 92 L63 84 Z" fill="#c4b5fd"/>'
     + '<path d="M60 100 L56 110 L63 108" stroke="#a855f7" stroke-width="2" fill="none" opacity=".85" stroke-linecap="round"/>'
     + '<circle cx="20" cy="50" r="2.6" fill="#c4b5fd" opacity=".85"/><circle cx="100" cy="54" r="2.1" fill="#c4b5fd" opacity=".8"/><circle cx="94" cy="32" r="1.7" fill="#a78bfa" opacity=".75"/>'
+    + '</svg>',
+  // ===== 伝説（LG限定スカウト）：大魔王級モンスター =====
+  // 大魔王ゾルド：黄金の王冠をいただく最上位の魔王。金の瞳・紫の内衣・漆黒のローブ。
+  daimaou:
+    _mFiend({ body:'#1a1625', dark:'#000000', inner:'#4c1d95', eye:'#fbbf24' })
+    + '<path d="M40 30 L44 15 L52 25 L60 12 L68 25 L76 15 L80 30 Q60 22 40 30 Z" fill="#fbbf24" stroke="#b45309" stroke-width="2.2"/>'
+    + '<circle cx="44" cy="17" r="2.4" fill="#fde68a"/><circle cx="60" cy="13" r="3" fill="#fef3c7"/><circle cx="76" cy="17" r="2.4" fill="#fde68a"/>'
+    + '<circle cx="60" cy="24" r="2" fill="#ef4444"/>'
+    + '<path d="M22 46 Q14 40 12 30 M98 46 Q106 40 108 30" stroke="#fbbf24" stroke-width="1.6" fill="none" opacity=".5" stroke-linecap="round"/>'
+    + '</svg>',
+  // 炎魔王グレン：紅蓮の魔王。燃え立つ角と火の粉。
+  enmaou:
+    _mFiend({ body:'#7f1d1d', dark:'#3f0808', inner:'#991b1b', eye:'#fb923c' })
+    + '<path d="M35 62 Q30 44 40 32 Q40 46 48 56 Z" fill="#f97316" opacity=".85"/><path d="M85 62 Q90 44 80 32 Q80 46 72 56 Z" fill="#f97316" opacity=".85"/>'
+    + '<circle cx="30" cy="40" r="2.2" fill="#fdba74"/><circle cx="90" cy="44" r="1.8" fill="#fdba74"/><circle cx="24" cy="60" r="1.6" fill="#fb923c" opacity=".8"/><circle cx="98" cy="58" r="1.5" fill="#fb923c" opacity=".8"/>'
+    + '<path d="M52 70 Q60 78 68 70" stroke="#fdba74" stroke-width="2" fill="none" opacity=".7" stroke-linecap="round"/>'
+    + '</svg>',
+  // 氷魔王ブリザ：蒼氷の魔王。凍える氷角と冷気の結晶。
+  hyoumaou:
+    _mFiend({ body:'#1e3a8a', dark:'#0c1e4c', inner:'#1e40af', eye:'#a5f3fc' })
+    + '<path d="M34 60 L30 34 L40 52 Z" fill="#bae6fd" stroke="#38bdf8" stroke-width="1.4"/><path d="M86 60 L90 34 L80 52 Z" fill="#bae6fd" stroke="#38bdf8" stroke-width="1.4"/>'
+    + '<path d="M60 30 L57 24 L60 27 L63 24 Z" fill="#e0f2fe"/>'
+    + '<circle cx="26" cy="52" r="1.8" fill="#e0f2fe"/><circle cx="94" cy="50" r="1.6" fill="#e0f2fe"/><circle cx="22" cy="68" r="1.4" fill="#a5f3fc" opacity=".85"/><circle cx="98" cy="66" r="1.3" fill="#a5f3fc" opacity=".85"/>'
     + '</svg>'
 };
 // 亜種（色ちがい）：ベースの絵に hue-rotate をかける（RPG_VARIANTS と同じ角度体系）
 var SRPG_MON_VARIANT = { slime2:140, goblin2:150, bat2:170, wolf2:120, ghost2:100, dragon2:180, trent2:130, voltdrake2:90, flaskun2:200, haniwa2:60 };
 
 // ===== 属性バリアント（20種×5属性=100体・名前も見た目もプロシージャル生成のオリジナル） =====
-var SRPG_MON_BASE_NAMES={slime:'スライム',goblin:'ゴブリン',bat:'いっかくばち',wolf:'ウルフ',ghost:'ゴースト',trent:'トレント',slugking:'スラグキング',dragon:'ドラゴン',inkblob:'インクブロブ',fudebird:'フデバード',kanjioni:'カンジオニ',abcube:'ABキューブ',qbird:'クエスバード',grammaro:'グラマロ',flaskun:'フラスクン',microbe:'マイクローブ',voltdrake:'ボルトドレイク',mapmoth:'マップモス',haniwa:'ハニワン',tokiou:'トキオウ',villain:'魔王シグマ'};
+var SRPG_MON_BASE_NAMES={slime:'スライム',goblin:'ゴブリン',bat:'いっかくばち',wolf:'ウルフ',ghost:'ゴースト',trent:'トレント',slugking:'スラグキング',dragon:'ドラゴン',inkblob:'インクブロブ',fudebird:'フデバード',kanjioni:'カンジオニ',abcube:'ABキューブ',qbird:'クエスバード',grammaro:'グラマロ',flaskun:'フラスクン',microbe:'マイクローブ',voltdrake:'ボルトドレイク',mapmoth:'マップモス',haniwa:'ハニワン',tokiou:'トキオウ',villain:'魔王シグマ',daimaou:'大魔王ゾルド',enmaou:'炎魔王グレン',hyoumaou:'氷魔王ブリザ'};
 var SRPG_ELEM_VARIANTS={fire:{p:'ほのお',hue:-45,sat:1.35,badge:'🔥'},ice:{p:'こおり',hue:165,sat:1.1,badge:'❄️'},thunder:{p:'かみなり',hue:12,sat:1.6,badge:'⚡'},dark:{p:'やみ',hue:255,sat:.8,badge:'🌑'},holy:{p:'ひかり',hue:60,sat:1.3,badge:'✨'}};
 var SRPG_MON_VARIANTS2={};
 (function(){
+  var _leg = (typeof SRPG_LEGEND_ARTS!=='undefined') ? SRPG_LEGEND_ARTS : ['daimaou','enmaou','hyoumaou'];
   Object.keys(SRPG_MON_BASE_NAMES).forEach(function(b){
-    if(b==='villain') return;   // 魔王は唯一無二
+    if(b==='villain' || _leg.indexOf(b)>=0) return;   // 魔王・大魔王級は唯一無二（属性変種を作らない）
     Object.keys(SRPG_ELEM_VARIANTS).forEach(function(e){
       SRPG_MON_VARIANTS2[b+'_'+e]={ base:b, elem:e, name:SRPG_ELEM_VARIANTS[e].p+SRPG_MON_BASE_NAMES[b] };
     });

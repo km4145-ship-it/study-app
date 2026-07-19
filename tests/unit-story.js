@@ -299,6 +299,17 @@ c.ok('10連の送り間隔は定数 SRPG_SEQ_MS で管理', ui.indexOf('var SRPG
 c.ok('高レアに脈打つオーラ要素＋CSS', ui.indexOf("isHigh ? '<div class=\"srpg-scout-aura\">") >= 0 && html.indexOf('.srpg-scout-aura{') >= 0);
 c.ok('伝説(LG/SSS)は紙吹雪・星の雨を追い波で重ねる', /mon\.rank==='LG' \|\| mon\.rank==='SSS'/.test(ui) && /_lg[\s\S]{0,300}gachaFx\.rain/.test(ui));
 
+// ===== ③ 大魔王級レアモンスター（LG限定スカウト）=====
+c.ok('_scoutArts は大魔王級(LEG)をLGのときだけ追加', /if\(rank==='LG'\) arts = arts\.concat\(LEG\)/.test(ui) && ui.indexOf('LEG.indexOf(a)<0') >= 0);
+{
+  const mons = fs.readFileSync(path.join(ROOT, 'js', 'srpg-mons.js'), 'utf8');
+  c.ok('大魔王級3体のアートが定義（daimaou/enmaou/hyoumaou）',
+    /daimaou:\s*\n?\s*_mFiend/.test(mons) && /enmaou:\s*\n?\s*_mFiend/.test(mons) && /hyoumaou:\s*\n?\s*_mFiend/.test(mons));
+  c.ok('大魔王級は属性変種を作らない（唯一無二）', mons.indexOf("b==='villain' || _leg.indexOf(b)>=0") >= 0);
+  const ab = fs.readFileSync(path.join(ROOT, 'js', 'aibou.js'), 'utf8');
+  c.ok('大魔王級の種族は maou', /daimaou:'maou', enmaou:'maou', hyoumaou:'maou'/.test(ab));
+}
+
 // ===== 復帰導線（数日ぶりの前向きな迎え・通知なしでアプリ内完結）=====
 c.ok('maybeShowComeback/_lastActivityGapDays が定義',
   html.indexOf('function maybeShowComeback(') >= 0 && html.indexOf('function _lastActivityGapDays(') >= 0);

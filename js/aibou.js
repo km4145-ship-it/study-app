@@ -18,7 +18,7 @@ var AIBOU_ART_SPECIES={
   goblin:'beast', wolf:'beast', bat:'beast', ghost:'beast', kanjioni:'beast',
   qbird:'beast', fudebird:'beast', mapmoth:'beast', tokiou:'beast',
   trent:'nature', abcube:'nature', grammaro:'nature', haniwa:'nature',
-  villain:'maou',
+  villain:'maou', daimaou:'maou', enmaou:'maou', hyoumaou:'maou',   // 伝説（LG限定スカウトの大魔王級）
   // 亜種（色ちがい・rpg-assets.jsのRPG_VARIANTS）は基本種と同じ種族
   slime2:'slime', flaskun2:'slime', goblin2:'beast', bat2:'beast', wolf2:'beast', ghost2:'beast',
   dragon2:'dragon', voltdrake2:'dragon', trent2:'nature', haniwa2:'nature'

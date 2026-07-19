@@ -1622,10 +1622,12 @@ function srpgClose(){
 
 // ================= スカウトガチャ（コインで仲間モンスターを引く） =================
 function _scoutArts(rank){
-  // 引けるアート：基本20種＋属性変種100種（petは除外・魔王はSSS/LGのときだけ）
-  var arts = Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && a!=='villain' && !/2$/.test(a); });
+  // 引けるアート：基本20種＋属性変種100種（petは除外・魔王はSSS/LG・大魔王級はLG限定）
+  var LEG = (typeof SRPG_LEGEND_ARTS!=='undefined') ? SRPG_LEGEND_ARTS : [];
+  var arts = Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && a!=='villain' && !/2$/.test(a) && LEG.indexOf(a)<0; });
   arts = arts.concat(Object.keys(SRPG_MON_VARIANTS2));
   if(rank==='SSS' || rank==='LG') arts.push('villain');
+  if(rank==='LG') arts = arts.concat(LEG);   // 大魔王級はLG（0.5%）のときだけ＝コレクションの最高峰
   return arts;
 }
 function _scoutSp(art){ var v=SRPG_MON_VARIANTS2[art]; return AIBOU_ART_SPECIES[v?v.base:art] || 'beast'; }

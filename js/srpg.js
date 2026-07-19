@@ -467,6 +467,21 @@ function srpgGridWithBlocks(stage){
 var SRPG_BLOCK_META = { rock:{ em:'🗻', name:'いわ' }, water:{ em:'🌊', name:'みず' } };
 
 // ===== ダメージ予測（攻撃前に「よそう」を見せる＝弱点えらびの学びが深まる） =====
+// ===== なかまの「そうび」：装備でステータスが変わる（編成×装備の戦略層）=====
+// コインで買って所持（cos.gearOwned）、なかま個体に a.gear で装備。役割に合わせた トレードオフ。
+var SRPG_GEAR = {
+  sword:  { id:'sword',  em:'🗡️', name:'つるぎ',     atk:5,  def:0, hp:0,  spd:1,  price:400,  desc:'こうげき+5' },
+  axe:    { id:'axe',    em:'🪓', name:'まさかり',    atk:9,  def:0, hp:0,  spd:-1, price:900,  desc:'こうげき+9・すばやさ-1' },
+  shield: { id:'shield', em:'🛡️', name:'たて',       atk:0,  def:5, hp:6,  spd:0,  price:400,  desc:'まもり+5・HP+6' },
+  armor:  { id:'armor',  em:'🥋', name:'よろい',      atk:0,  def:8, hp:14, spd:-1, price:900,  desc:'まもり+8・HP+14・すばやさ-1' },
+  boots:  { id:'boots',  em:'👢', name:'はやての靴',  atk:1,  def:0, hp:0,  spd:5,  price:500,  desc:'すばやさ+5' },
+  amulet: { id:'amulet', em:'📿', name:'まもりの玉',  atk:3,  def:3, hp:12, spd:1,  price:1200, desc:'ぜんぶ すこし+（HP+12）' }
+};
+// 装備のステボーナス（無ければ全0）。純粋。
+function srpgGearStat(gearId){
+  var g = gearId && SRPG_GEAR[gearId];
+  return g ? { hp:g.hp||0, atk:g.atk||0, def:g.def||0, spd:g.spd||0 } : { hp:0, atk:0, def:0, spd:0 };
+}
 // 単元ボス：章の単元名から出題を寄せる「キーワード」を取り出す（純粋）。
 // 例 '分数のかけ算・わり算'→'分数'／'正負の数'→'正負'／'文字と式'→'文字'／区切りが無ければそのまま。
 function srpgTopicKeyword(topic){
@@ -1126,7 +1141,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
     SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,
     SRPG_SCOUT_PITY_MAX: SRPG_SCOUT_PITY_MAX, srpgScoutApplyPity: srpgScoutApplyPity, srpgScoutPickups: srpgScoutPickups, srpgScoutArt: srpgScoutArt,
-    SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS, SRPG_LEGEND_ARTS: SRPG_LEGEND_ARTS, srpgTopicKeyword: srpgTopicKeyword,
+    SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS, SRPG_LEGEND_ARTS: SRPG_LEGEND_ARTS, srpgTopicKeyword: srpgTopicKeyword, SRPG_GEAR: SRPG_GEAR, srpgGearStat: srpgGearStat,
     srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
     SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse,
     SRPG_RANK_ORDER: SRPG_RANK_ORDER, SRPG_EVOLVE_DUPES: SRPG_EVOLVE_DUPES, srpgEvolveNextRank: srpgEvolveNextRank, srpgEvolveCost: srpgEvolveCost, srpgEvolveCanDo: srpgEvolveCanDo,

@@ -534,6 +534,20 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.eq('単元KW: 空は空', S.srpgTopicKeyword(''), '');
   c.ok('単元KW: 抽出語で q.sub がマッチしうる', '分数のたし算'.indexOf(S.srpgTopicKeyword('分数のかけ算・わり算')) >= 0);
 }
+// ===== なかまのそうび（装備ステボーナス）=====
+{
+  c.ok('SRPG_GEAR は複数の装備を持つ', Object.keys(S.SRPG_GEAR).length >= 4);
+  c.ok('各装備に em/name/price/desc がそろう', Object.keys(S.SRPG_GEAR).every(function(k){ var g=S.SRPG_GEAR[k]; return g.em && g.name && g.price>0 && g.desc; }));
+  c.eq('つるぎは こうげき+5', S.srpgGearStat('sword').atk, 5);
+  c.eq('たては まもり+5・HP+6', S.srpgGearStat('shield').def + '/' + S.srpgGearStat('shield').hp, '5/6');
+  c.eq('はやての靴は すばやさ+5', S.srpgGearStat('boots').spd, 5);
+  c.eq('未装備(空)は全0', S.srpgGearStat('').atk + S.srpgGearStat('').def + S.srpgGearStat('').hp + S.srpgGearStat('').spd, 0);
+  c.eq('不明IDも全0', S.srpgGearStat('zzz').atk, 0);
+  // 装備でユニットのステが上がる（bonus経路）
+  const bare = S.srpgMakeUnit({ id:'g0', side:'ally', name:'g', art:'slime', role:'attacker', rankBase:8, lvl:5 });
+  const armed = S.srpgMakeUnit({ id:'g1', side:'ally', name:'g', art:'slime', role:'attacker', rankBase:8, lvl:5, bonus:S.srpgGearStat('sword') });
+  c.ok('つるぎ装備で atk が上がる', armed.atk === bare.atk + 5);
+}
 {
   // 星評価
   c.eq('負けは0', S.srpgStars(false, 0, 1, 6), 0);

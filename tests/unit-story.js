@@ -327,6 +327,18 @@ c.ok('ボス相手＋単元一致で×1.5ダメージ',
 c.ok('弱点単元をついたポップアップ', ui.indexOf("'📘弱点単元を ついた！×1.5'") >= 0);
 c.ok('教科えらびにボスの弱点単元バナー＋CSS', ui.indexOf('srpg-topic-boss') >= 0 && html.indexOf('.srpg-topic-boss{') >= 0);
 
+// ===== なかまのそうび（装備） =====
+c.ok('srpgAibouBonus が帽子＋そうびを合算', ui.indexOf('srpgGearStat(a.gear)') >= 0 && /hat\.atk\|\|0\)\+\(g\.atk/.test(ui));
+c.ok('装備UI関数（equip/shop/buy）が定義', html.indexOf('function rpgAibouGearTap(') >= 0 && html.indexOf('function rpgGearShop(') >= 0 && html.indexOf('function rpgBuyGear(') >= 0);
+c.ok('装備は所持チェック後に付け外し', /function rpgAibouGearTap\([\s\S]{0,200}cos\.gearOwned\|\|\{\}\)\[gearId\]/.test(html) && html.indexOf("a.gear=(a.gear===gearId)?'':gearId") >= 0);
+c.ok('そうび屋はコインで購入しgearOwnedに記録', /function rpgBuyGear\([\s\S]{0,300}cos\.coin -= g\.price[\s\S]{0,120}cos\.gearOwned\[gearId\]=1/.test(html));
+c.ok('なかま詳細に⚔️そうび欄＋そうび屋ボタン', html.indexOf('⚔️ そうび：') >= 0 && html.indexOf('onclick="rpgGearShop(') >= 0);
+c.ok('そうび屋CSSがある', html.indexOf('.gear-shop{') >= 0);
+{
+  const cs = fs.readFileSync(path.join(ROOT, 'cloud-sync.js'), 'utf8');
+  c.ok('cloud-sync: gearOwned を union 合算（買った装備が消えない）', cs.indexOf('var gearOwned={}') >= 0 && cs.indexOf('o.gearOwned=gearOwned') >= 0);
+}
+
 // ===== 復帰導線（数日ぶりの前向きな迎え・通知なしでアプリ内完結）=====
 c.ok('maybeShowComeback/_lastActivityGapDays が定義',
   html.indexOf('function maybeShowComeback(') >= 0 && html.indexOf('function _lastActivityGapDays(') >= 0);

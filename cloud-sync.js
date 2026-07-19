@@ -98,6 +98,8 @@ window.FIREBASE_CONFIG = {
     if(Object.keys(metDex).length) o.metDex=metDex;   // 図鑑は合算（出会いは消えない）
     var dexRw={}; [x.dexRw,y.dexRw].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) dexRw[k]=1; }); } });
     if(Object.keys(dexRw).length) o.dexRw=dexRw;      // 節目ほうび受領も合算（二重受取を防ぐ）
+    var gearOwned={}; [x.gearOwned,y.gearOwned].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) gearOwned[k]=1; }); } });
+    if(Object.keys(gearOwned).length) o.gearOwned=gearOwned;   // 買った そうびは端末間で合算（消えない）
     var titles={}; [x.titles,y.titles].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) titles[k]=o2[k]; }); } });
     if(Object.keys(titles).length) o.titles=titles;                       // 手に入れた称号は端末間で合算
     var sets={}; [x.sets,y.sets].forEach(function(o2){ if(o2&&typeof o2==='object'){ Object.keys(o2).forEach(function(k){ if(o2[k]) sets[k]=o2[k]; }); } });

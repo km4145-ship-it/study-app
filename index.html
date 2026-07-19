@@ -3236,6 +3236,16 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-abtn-hat{ border:2px solid #cbd5e1; background:var(--card2,#fff); border-radius:10px; font-size:18px; padding:2px 7px; margin:2px 3px; cursor:pointer; font-family:inherit; }
   .rpg-abtn-hat.on{ border-color:#f59e0b; box-shadow:0 0 0 2px rgba(245,158,11,.35); }
   .rpg-aibou-hat-hint{ font-size:.72rem; color:#64748b; margin-left:6px; }
+  /* ⚔️ そうび屋 */
+  .gear-shop{ max-width:520px; margin:8px auto; }
+  .gear-row{ display:flex; align-items:center; gap:10px; background:var(--card,#fff); border:1px solid var(--line,#e2e8f0); border-radius:12px; padding:9px 12px; margin:6px 0; }
+  body.dark .gear-row{ background:#1c2733; border-color:rgba(148,163,184,.28); }
+  .gear-em{ font-size:1.5rem; flex:0 0 auto; }
+  .gear-info{ display:flex; flex-direction:column; line-height:1.3; flex:1; }
+  .gear-info b{ font-size:.92rem; color:var(--text); } .gear-info small{ font-size:.74rem; color:var(--muted); }
+  .gear-buy{ flex:0 0 auto; font-size:.85rem; padding:7px 12px; }
+  .gear-buy.dis{ opacity:.45; }
+  .gear-have{ flex:0 0 auto; font-size:.78rem; font-weight:800; color:#0f9d6b; }
   /* プロフィール枠（frameアイテム）：アバターに巻くかざりリング。キャラ本体には付かない */
   .ava-frame{ position:relative; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; padding:2px; }
   .af-wood{ box-shadow:0 0 0 3px #a16207; }
@@ -3401,10 +3411,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/ranking.js?v=3"></script>
 <script src="js/three.min.js?v=1"></script>
 <script src="js/char3d.js?v=13"></script>
-<script src="js/srpg.js?v=7"></script>
+<script src="js/srpg.js?v=8"></script>
 <script src="js/srpg-mons.js?v=4"></script>
 <script src="js/story-data.js?v=2"></script>
-<script src="js/srpg-ui.js?v=8"></script>
+<script src="js/srpg-ui.js?v=9"></script>
 <script>
 // =================== CHARACTER SVGs ===================
   // chars.js へ分離
@@ -7788,6 +7798,46 @@ function rpgAibouHatTap(id, itemId){
   rpgSave(s); try{ sfx('click'); }catch(e){}
   rpgAibouDetail(id);
 }
+// ⚔️ そうび：装備/はずす（所持していないと不可）
+function rpgAibouGearTap(id, gearId){
+  var s=rpgState(), ai=rpgAibouState(s), a=ai.roster[id]; if(!a) return;
+  var cos=rpgCosState(s); if(!(cos.gearOwned||{})[gearId]) return;
+  a.gear=(a.gear===gearId)?'':gearId;
+  rpgSave(s); try{ sfx('click'); }catch(e){}
+  rpgAibouDetail(id);
+}
+// 🛒 そうび屋：コインで装備を買う（一度買えば どのなかまにも そうびできる＝恒常アンロック）
+var _gearShopBackId=null;
+function rpgGearShop(backId){
+  if(backId!==undefined) _gearShopBackId=backId;
+  var s=rpgState(), cos=rpgCosState(s), owned=cos.gearOwned||{};
+  var coin=cos.coin||0;
+  var mv=document.getElementById('rpg-map-view'); if(!mv) return;
+  var h='<button class="rpg-back" onclick="'+(_gearShopBackId?('rpgAibouDetail(\''+_gearShopBackId+'\')'):'rpgShowAibou()')+'">← もどる</button>';
+  h+='<div class="rpg-world-title">🛒 そうび屋</div>';
+  h+='<div class="rpg-aibou-bar"><span class="rpg-aibou-chip">🪙 コイン <b>'+coin+'</b></span></div>';
+  h+='<div class="rpg-map-hint">一度 かえば、どの なかまにも そうびできるよ。なかまの ⚔️そうび から つけてね。</div>';
+  h+='<div class="gear-shop">';
+  Object.keys(SRPG_GEAR).forEach(function(gid){ var g=SRPG_GEAR[gid], has=!!owned[gid], can=coin>=g.price;
+    h+='<div class="gear-row"><span class="gear-em">'+g.em+'</span><span class="gear-info"><b>'+escapeHtml(g.name)+'</b><small>'+escapeHtml(g.desc)+'</small></span>'
+      +(has?'<span class="gear-have">✅ もっている</span>':'<button class="rpg-btn gear-buy'+(can?'':' dis')+'" '+(can?('onclick="rpgBuyGear(\''+gid+'\')"'):'disabled')+'>🪙'+g.price+'</button>')+'</div>';
+  });
+  h+='</div>';
+  mv.innerHTML=h;
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+}
+function rpgBuyGear(gearId){
+  var g=SRPG_GEAR[gearId]; if(!g) return;
+  var s=rpgState(), cos=rpgCosState(s);
+  if((cos.gearOwned||{})[gearId]){ return; }
+  if((cos.coin||0) < g.price){ try{ sfx('wrong'); showToast('🪙','コインが たりないよ','バトルや デイリーで ためよう'); }catch(e){} return; }
+  cos.coin -= g.price;
+  cos.gearOwned = cos.gearOwned || {}; cos.gearOwned[gearId]=1;
+  rpgSave(s);
+  try{ sfx('coin'); showToast('🛒',''+g.em+' '+g.name+' を かった！','なかまの ⚔️そうび から つけられるよ'); }catch(e){}
+  try{ updateResBar(); }catch(e){}
+  rpgGearShop();
+}
 // なかまスカウト：勝利時に抽選して「なかまになりたそう」なモンスター（オファー）を作る（まだ登録しない）
 // charmed=🌈にじのおまもり（復習ダンジョン限定）：加入率+20%・ランク+3章ぶん・レア種族2倍
 function rpgAibouMakeOffer(node, charmed){
@@ -7985,6 +8035,19 @@ function rpgAibouDetail(id){
         h+='<button class="rpg-abtn-hat'+(on?' on':'')+'" onclick="rpgAibouHatTap(\''+id+'\',\''+it.id+'\')" title="'+escapeHtml(it.name)+'">'+it.em+'</button>'; });
       h+='<span class="rpg-aibou-hat-hint">タップで そうび/はずす</span>';
     } else { h+='<span class="rpg-aibou-hat-hint">ガチャで「なかまモンスターのぼうし」が でるよ</span>'; }
+    h+='</div>';
+  })();
+  // ⚔️ そうび：コインで買った装備（cos.gearOwned）を この子に そうび（a.gear＝個体ごと）。ステが変わる
+  (function(){
+    var cos=rpgCosState(s), owned=cos.gearOwned||{};
+    var have=Object.keys(SRPG_GEAR).filter(function(gid){ return owned[gid]; });
+    h+='<div class="rpg-aibou-d-fx rpg-aibou-hats">⚔️ そうび：';
+    if(have.length){
+      have.forEach(function(gid){ var g=SRPG_GEAR[gid], on=(a.gear===gid);
+        h+='<button class="rpg-abtn-hat'+(on?' on':'')+'" onclick="rpgAibouGearTap(\''+id+'\',\''+gid+'\')" title="'+escapeHtml(g.name+'／'+g.desc)+'">'+g.em+'</button>'; });
+      h+='<span class="rpg-aibou-hat-hint">'+(a.gear?('いま：'+SRPG_GEAR[a.gear].em+SRPG_GEAR[a.gear].desc):'タップで そうび')+'</span>';
+    } else { h+='<span class="rpg-aibou-hat-hint">「そうび屋」で かえるよ</span>'; }
+    h+=' <button class="rpg-aibou-mini-btn" onclick="rpgGearShop(\''+id+'\')" title="そうび屋">🛒</button>';
     h+='</div>';
   })();
   h+=((a.lv||1)>=max) ? '<div class="rpg-aibou-d-lv">Lv.'+a.lv+'（さいだいまで そだった！🎉）</div>'
@@ -9043,7 +9106,7 @@ function initKeyboard(){
 
 init();
 </script>
-<script src="cloud-sync.js?v=1114" defer></script>
+<script src="cloud-sync.js?v=1115" defer></script>
 <script>
 /* 確実な読み込みのため Service Worker を一時無効化し、古い登録とキャッシュを掃除する */
 (function(){ try{

@@ -65,4 +65,11 @@ c.ok('dailyBox: 月またぎでも新しい方(x=10月, y=9月)', JSON.parse(mer
 c.ok('dailyBox: 片方のみ(y)', JSON.parse(mergeRpg(JSON.stringify({ v: 1 }), dbNew)).dailyBox === '2026-7-12');
 c.ok('dailyBox: 片方のみ(x)', JSON.parse(mergeRpg(dbNew, JSON.stringify({ v: 1 }))).dailyBox === '2026-7-12');
 c.ok('dailyBox: 両方無しなら作らない', !('dailyBox' in JSON.parse(mergeRpg(JSON.stringify({ v: 1 }), JSON.stringify({ v: 1 })))));
+
+// ===== gearOwned（買ったそうび）は端末間で合算＝消えない =====
+const gA = JSON.stringify({ v: 1, cos: { coin: 0, tickets: 0, owned: {}, gearOwned: { sword: 1, shield: 1 } } });
+const gB = JSON.stringify({ v: 1, cos: { coin: 0, tickets: 0, owned: {}, gearOwned: { boots: 1 } } });
+const rg = JSON.parse(mergeRpg(gA, gB));
+c.ok('gearOwned: 両端末のそうびを合算', rg.cos.gearOwned.sword === 1 && rg.cos.gearOwned.shield === 1 && rg.cos.gearOwned.boots === 1);
+c.ok('gearOwned: 片方のみでも保持', JSON.parse(mergeRpg(gA, JSON.stringify({ v: 1, cos: { coin: 0, owned: {} } }))).cos.gearOwned.sword === 1);
 c.done();

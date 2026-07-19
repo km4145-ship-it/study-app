@@ -26,14 +26,19 @@ function srpgHeroBonus(){
     return { hp:Math.round((eb.hp||0)*0.6), atk:Math.round((eb.atk||0)*0.6), def:Math.round((eb.def||0)*0.6), spd:0 };
   }catch(e){ return { hp:0, atk:0, def:0, spd:0 }; }
 }
-// あいぼうの帽子（a.hat）の装備ボーナス
+// あいぼうの帽子（a.hat）＋そうび（a.gear）の装備ボーナス合算
 function srpgAibouBonus(a){
+  var hat = { hp:0, atk:0, def:0, spd:0 };
   try{
-    if(!a || !a.hat || typeof rpgItemById!=='function') return { hp:0, atk:0, def:0, spd:0 };
-    var it = rpgItemById(a.hat); if(!it) return { hp:0, atk:0, def:0, spd:0 };
-    var v = Math.ceil(((typeof STAT_EQUIP_MAG!=='undefined' && STAT_EQUIP_MAG[it.r||'N']) || 2) * 0.5);
-    return { hp:v, atk:Math.ceil(v/2), def:Math.ceil(v/2), spd:0 };
-  }catch(e){ return { hp:0, atk:0, def:0, spd:0 }; }
+    if(a && a.hat && typeof rpgItemById==='function'){
+      var it = rpgItemById(a.hat);
+      if(it){ var v = Math.ceil(((typeof STAT_EQUIP_MAG!=='undefined' && STAT_EQUIP_MAG[it.r||'N']) || 2) * 0.5);
+        hat = { hp:v, atk:Math.ceil(v/2), def:Math.ceil(v/2), spd:0 }; }
+    }
+  }catch(e){}
+  var g = { hp:0, atk:0, def:0, spd:0 };
+  try{ if(a && a.gear && typeof srpgGearStat==='function') g = srpgGearStat(a.gear); }catch(e){}
+  return { hp:(hat.hp||0)+(g.hp||0), atk:(hat.atk||0)+(g.atk||0), def:(hat.def||0)+(g.def||0), spd:(hat.spd||0)+(g.spd||0) };
 }
 function srpgGearTotal(b){ return (b.hp||0)+(b.atk||0)+(b.def||0)+(b.spd||0); }
 function srpgHeroSpec(){

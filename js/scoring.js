@@ -54,6 +54,17 @@ function masteryTier(correct, attempts){
   if(attempts >= 2 && rate >= 0.55) return MASTERY_TIERS.familiar;
   return MASTERY_TIERS.learning;
 }
+// 習熟度→戦闘力：教科の習得率(%)に応じて、その教科の攻撃・とくぎの威力を強化する倍率。
+// 「勉強するほど強くなる」を戦闘に直結させる（このアプリならではの学習×ゲームの結節点）。
+// pct は masterySummary(...).pct（0〜100、データ無しは -1）。段階式で最大+30%。
+function masteryPowerBonus(pct){
+  if(pct == null || pct < 0) return 1;
+  if(pct >= 80) return 1.30;
+  if(pct >= 60) return 1.20;
+  if(pct >= 40) return 1.12;
+  if(pct >= 20) return 1.06;
+  return 1;
+}
 // SRS間隔の簡易HLR化：固定Leitner間隔を「反応速度×これまでの誤答回数」で伸縮する。
 // 速い正解＝よく定着→間隔を延ばす（×1.3）／遅い正解＝あやうい→縮める（×0.75）。
 // 何度も間違えた項目（wrongCount大）は忘れやすい→さらに縮める。データ(lastQSec/wrongCount)は取得済み。

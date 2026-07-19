@@ -519,6 +519,11 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   // とくぎの威力も反映
   const fs2 = S.srpgForecast(atk, tgt, 'math', S.srpgSkill('line'));
   c.ok('予測: とくぎ(威力130)は通常より大きい', fs2.dmg > fw.dmg);
+  // 習熟ボーナス（powMult）：予測ダメージが倍率で上がる（実ダメと一致させるため）
+  const fwB = S.srpgForecast(atk, tgt, 'math', null, 1.30);
+  c.ok('予測: 習熟倍率1.30で弱点ダメージが増える', fwB.dmg > fw.dmg);
+  c.eq('予測: 倍率1(既定)は据え置き', S.srpgForecast(atk, tgt, 'math', null, 1).dmg, fw.dmg);
+  c.eq('予測: 倍率省略も据え置き', S.srpgForecast(atk, tgt, 'math', null).dmg, fw.dmg);
 }
 {
   // 星評価

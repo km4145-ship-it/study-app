@@ -467,10 +467,11 @@ function srpgGridWithBlocks(stage){
 var SRPG_BLOCK_META = { rock:{ em:'🗻', name:'いわ' }, water:{ em:'🌊', name:'みず' } };
 
 // ===== ダメージ予測（攻撃前に「よそう」を見せる＝弱点えらびの学びが深まる） =====
-function srpgForecast(attacker, target, subjectKey, skill){
+function srpgForecast(attacker, target, subjectKey, skill, powMult){
   var kind = srpgResistKind(subjectKey, target);
   if(kind === 'null') return { kind:kind, dmg:0 };
   var power = skill ? srpgSkillPower(skill, attacker && attacker.skLv) : 100;
+  power = Math.round(power * (powMult || 1));   // 習熟ボーナス等の威力倍率（予測と実ダメを一致させる）
   var dmg = srpgDamage(attacker, target, power, kind === 'drain' ? 1 : srpgResistMult(kind), false);
   return { kind:kind, dmg:dmg };   // drainのdmgは「敵が回復する量」
 }

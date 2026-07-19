@@ -8,7 +8,7 @@ const c = makeChecker('unit-scoring');
 
 const code = fs.readFileSync(path.join(ROOT, 'js', 'scoring.js'), 'utf8');
 const api = (new Function(code +
-  '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp,masteryTier,masterySummary,MASTERY_TIERS,loginStreakUpdate,srsInterval};'))();
+  '\nreturn {_seedOf,withSeed,calcHensachiRaw,judgeOf,rpgXpForLevel,rpgLevelForXp,masteryTier,masterySummary,MASTERY_TIERS,loginStreakUpdate,srsInterval,masteryPowerBonus};'))();
 
 ['_seedOf', 'withSeed', 'calcHensachiRaw', 'judgeOf', 'rpgXpForLevel', 'rpgLevelForXp']
   .forEach((f) => c.ok(f + ' が関数', typeof api[f] === 'function'));
@@ -74,6 +74,17 @@ c.ok('order は 練習中<なじみ<とくい<マスター',
   c.eq('masterySummary：習得率=とくい以上/total=2/4=50%', s.pct, 50);
   c.eq('masterySummary：空配列は0%', api.masterySummary([]).pct, 0);
 }
+
+// ===== 習熟度→戦闘力（習得率で威力倍率）=====
+c.eq('習熟ボーナス：データ無し(-1)は等倍', api.masteryPowerBonus(-1), 1);
+c.eq('習熟ボーナス：null安全', api.masteryPowerBonus(null), 1);
+c.eq('習熟ボーナス：0%は等倍', api.masteryPowerBonus(0), 1);
+c.eq('習熟ボーナス：20%で+6%', api.masteryPowerBonus(20), 1.06);
+c.eq('習熟ボーナス：40%で+12%', api.masteryPowerBonus(40), 1.12);
+c.eq('習熟ボーナス：60%で+20%', api.masteryPowerBonus(60), 1.20);
+c.eq('習熟ボーナス：80%で+30%(上限)', api.masteryPowerBonus(80), 1.30);
+c.eq('習熟ボーナス：100%も+30%(上限)', api.masteryPowerBonus(100), 1.30);
+c.ok('習熟ボーナスは単調非減少', api.masteryPowerBonus(20)<=api.masteryPowerBonus(60) && api.masteryPowerBonus(60)<=api.masteryPowerBonus(80));
 
 // ===== SRS間隔の簡易HLR（反応速度×誤答回数で伸縮）=====
 {

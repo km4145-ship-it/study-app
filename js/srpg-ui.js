@@ -207,6 +207,10 @@ function srpgAreaMasteryPct(area){
     return masterySummary(rows).pct;
   }catch(e){ return -1; }
 }
+// 習熟度→戦闘力：その教科の習得率に応じた威力倍率（1.0〜1.30）。純関数は scoring.js の masteryPowerBonus。
+function srpgSubjMasteryMult(area){
+  try{ return (typeof masteryPowerBonus==='function') ? masteryPowerBonus(srpgAreaMasteryPct(area)) : 1; }catch(e){ return 1; }
+}
 function srpgContinentCard(area, locked){
   var cont = srpgContinent(area); if(!cont) return '';
   var total = srpgChapterCount(area), done = srpgContinentDoneCount(area);
@@ -649,11 +653,13 @@ function srpgCmdHtml(){
     var _me = srpgActor();
     var subs = SRPG_SUBJECT_KEYS.map(function(k){
       var m = srpgSubjectMeta(k), kind = srpgResistKind(k, tgt);
-      var fc = (_me && tgt) ? srpgForecast(_me, tgt, k, _sk0 && _sk0.kind==='atk' ? _sk0 : null) : null;
+      var mMult = srpgSubjMasteryMult(k);   // 🎓習熟ボーナス（予測にも反映＝実ダメと一致）
+      var fc = (_me && tgt) ? srpgForecast(_me, tgt, k, _sk0 && _sk0.kind==='atk' ? _sk0 : null, mMult) : null;
       var fcTx = !fc ? '' : (kind==='null' ? '' : (kind==='drain' ? '<small class="srpg-fc bad">敵が '+fc.dmg+' 回復!</small>' : '<small class="srpg-fc">よそう '+fc.dmg+'</small>'));
+      var mas = (mMult > 1) ? '<span class="srpg-mas-b" title="この教科を習得しているほど強い">🎓+'+Math.round((mMult-1)*100)+'%</span>' : '';
       var nig = (srpgB.nigate === k) ? '<span class="srpg-nigate">💪にがて</span>' : '';
       return '<button class="srpg-sub '+(CLS[kind]||'')+'" onclick="srpgPickSubject(\''+k+'\')">'
-        + m.em+' '+m.label+nig+(TAG[kind]||'')+fcTx+'</button>';
+        + m.em+' '+m.label+nig+mas+(TAG[kind]||'')+fcTx+'</button>';
     }).join('');
     var hardTgl = '<button class="srpg-hard-tgl'+(srpgB.hardMode?' on':'')+'" onclick="srpgToggleHard()">🔥 むずかしい もんだいで挑む（いりょく×1.3）'+(srpgB.hardMode?' ✅':'')+'</button>';
     var isDebuff = srpgB.chosenSkill && (srpgSkill(srpgB.chosenSkill)||{}).kind==='debuff';
@@ -1084,8 +1090,10 @@ function srpgResolveAttack(correct){
   var shape = sk ? sk.shape : 'single';
   var power = sk ? srpgSkillPower(sk, actor.skLv) : 100;   // とくぎLvで威力アップ
   var qb = (srpgB._qRevenge ? 1.5 : 1) * (srpgB._qHard ? 1.3 : 1);   // 🔁リベンジ×🔥むずかしい ボーナス
-  power = Math.round(power * qb);
+  var mBonus = srpgSubjMasteryMult(srpgB.subject);   // 🎓習熟ボーナス：その教科を習得しているほど威力UP（勉強＝強さ）
+  power = Math.round(power * qb * mBonus);
   srpgB._qRevenge = false; srpgB._qHard = false;
+  if(mBonus > 1){ try{ srpgPopupAt(actor.x, actor.y, '🎓習熟+'+Math.round((mBonus-1)*100)+'%', 'buff'); }catch(e){} }
   var cells = srpgAoeTiles(shape, tgt.x, tgt.y, srpgB.grid, actor);
   var fx = [];   // 演出は「描画のあと」にまとめて再生（renderで消えないように）
   cells.forEach(function(c){

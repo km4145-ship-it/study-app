@@ -310,6 +310,15 @@ c.ok('_scoutArts は大魔王級(LEG)をLGのときだけ追加', /if\(rank==='L
   c.ok('大魔王級の種族は maou', /daimaou:'maou', enmaou:'maou', hyoumaou:'maou'/.test(ab));
 }
 
+// ===== 習熟度→戦闘力（学習直結）=====
+c.ok('srpgSubjMasteryMult が masteryPowerBonus を使う',
+  ui.indexOf('function srpgSubjMasteryMult(') >= 0 && ui.indexOf('masteryPowerBonus(srpgAreaMasteryPct(area))') >= 0);
+c.ok('攻撃解決で習熟ボーナスを威力に乗せる（power×qb×mBonus）',
+  ui.indexOf('var mBonus = srpgSubjMasteryMult(srpgB.subject)') >= 0 && ui.indexOf('power * qb * mBonus') >= 0);
+c.ok('習熟ボーナス発動でポップアップ表示', ui.indexOf("'🎓習熟+'") >= 0);
+c.ok('教科えらびに習熟チップ＋予測へ倍率反映', ui.indexOf('srpg-mas-b') >= 0 && /srpgForecast\(_me, tgt, k,[^)]*mMult\)/.test(ui));
+c.ok('習熟チップCSSがある', html.indexOf('.srpg-mas-b{') >= 0);
+
 // ===== 復帰導線（数日ぶりの前向きな迎え・通知なしでアプリ内完結）=====
 c.ok('maybeShowComeback/_lastActivityGapDays が定義',
   html.indexOf('function maybeShowComeback(') >= 0 && html.indexOf('function _lastActivityGapDays(') >= 0);

@@ -2115,6 +2115,18 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-spd{ background:rgba(148,163,184,.15); color:#94a3b8; border:1px solid rgba(148,163,184,.4); border-radius:999px; padding:2px 9px; font-weight:900; font-size:.7rem; font-family:inherit; cursor:pointer; margin-right:6px; }
   .srpg-spd.on{ background:#0e7490; color:#fff; border-color:#22d3ee; box-shadow:0 0 8px rgba(34,211,238,.4); }
   .srpg-wave{ background:#1e3a8a; color:#bfdbfe; font-weight:900; font-size:.7rem; padding:2px 9px; border-radius:999px; margin-right:5px; }
+  .srpg-boon-hud{ background:#0e7490; color:#cffafe; font-weight:900; font-size:.72rem; padding:2px 8px; border-radius:999px; margin-right:5px; letter-spacing:1px; }
+  /* 🗼 ローグライトの恩恵えらび */
+  .srpg-boon{ width:100%; max-width:440px; text-align:center; }
+  .srpg-boon-h{ font-size:1.05rem; font-weight:900; color:#fde68a; margin-bottom:6px; }
+  .srpg-boon-owned{ font-size:1rem; margin-bottom:10px; letter-spacing:2px; }
+  .srpg-boon-cards{ display:flex; flex-direction:column; gap:9px; }
+  .srpg-boon-card{ display:flex; flex-direction:column; align-items:center; gap:2px; background:linear-gradient(135deg,#155e75,#0e7490); border:2px solid #22d3ee; border-radius:14px; padding:12px 14px; cursor:pointer; font-family:inherit; box-shadow:0 6px 16px rgba(8,145,178,.35); }
+  .srpg-boon-card:active{ transform:scale(.97); }
+  .srpg-boon-card .sb-em{ font-size:1.7rem; line-height:1; }
+  .srpg-boon-card .sb-nm{ font-size:1rem; font-weight:900; color:#fff; }
+  .srpg-boon-card .sb-ds{ font-size:.8rem; font-weight:700; color:#cffafe; }
+  @media (prefers-reduced-motion:reduce){ .srpg-boon-card{ box-shadow:none; } }
   .srpg-counter-warn{ font-size:.72rem; font-weight:800; color:#fca5a5; margin-top:6px; }
   .srpg-topic-boss{ font-size:.74rem; font-weight:800; color:#fde68a; background:rgba(180,83,9,.28); border:1px solid rgba(251,191,36,.4); border-radius:8px; padding:5px 9px; margin:2px 0 7px; }
   .srpg-topic-boss b{ color:#fef3c7; }
@@ -3411,10 +3423,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/ranking.js?v=3"></script>
 <script src="js/three.min.js?v=1"></script>
 <script src="js/char3d.js?v=13"></script>
-<script src="js/srpg.js?v=8"></script>
+<script src="js/srpg.js?v=9"></script>
 <script src="js/srpg-mons.js?v=4"></script>
 <script src="js/story-data.js?v=2"></script>
-<script src="js/srpg-ui.js?v=9"></script>
+<script src="js/srpg-ui.js?v=10"></script>
 <script>
 // =================== CHARACTER SVGs ===================
   // chars.js へ分離

@@ -345,25 +345,63 @@ function srpgApplyRescue(){
 // ================= 戦闘の開始 =================
 // ===== 周回要素の状態 =====
 function _srpgToday(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-var _towerFloor = 1, _towerCarry = null;   // 塔：現在の階＆前フロアからのHP/MP引き継ぎ
+var _towerFloor = 1, _towerCarry = null, _towerBoons = [];   // 塔：現在の階／持ち越しHP・MP／積んだ恩恵（ローグライト）
 function srpgTowerBest(){ try{ return parseInt(safeLS.getItem('srpg_tower_best'),10)||0; }catch(e){ return 0; } }
 function srpgDailyDoneToday(){ try{ return safeLS.getItem('srpg_daily_done')===_srpgToday(); }catch(e){ return false; } }
 function srpgTowerSave(){ try{ return lsGetJSON('srpg_tower_save', null); }catch(e){ return null; } }
-function srpgTowerStart(){ _towerFloor = 1; _towerCarry = null; try{ lsSetJSON('srpg_tower_save', null); }catch(e){} srpgStart('tower'); }
+function srpgTowerStart(){ _towerFloor = 1; _towerCarry = null; _towerBoons = []; try{ lsSetJSON('srpg_tower_save', null); }catch(e){} srpgStart('tower'); }
 function srpgTowerResume(){
   var sv = srpgTowerSave(); if(!sv){ srpgTowerStart(); return; }
-  _towerFloor = sv.floor || 1; _towerCarry = sv.carry || null;
+  _towerFloor = sv.floor || 1; _towerCarry = sv.carry || null; _towerBoons = sv.boons || [];   // 恩恵も引き継ぐ
   srpgStart('tower');
 }
-// 塔の次の階へ：味方のHP/MP（と倒れたか）を持ち越して連戦
+// 塔のフロアクリア→次の階へ：まず恩恵を1つ選ぶ（ローグライト）→ HP/MPを持ち越して連戦
 function srpgTowerNext(){
   try{ sfx('click'); }catch(e){}
   _towerCarry = {};
   (srpgB && srpgB.units || []).forEach(function(u){
     if(u.side==='ally') _towerCarry[u.id] = { hp:u.hp, mp:u.mp||0, downed:!!u.downed };
   });
-  _towerFloor = ((srpgB && srpgB.stage && srpgB.stage.floor) || _towerFloor) + 1;
+  var nextFloor = ((srpgB && srpgB.stage && srpgB.stage.floor) || _towerFloor) + 1;
+  srpgTowerBoonPick(nextFloor);   // 恩恵えらび→_towerProceed
+}
+// 恩恵えらび（3択）。階を種に決定的な候補。選ぶと次フロアへ。
+function srpgTowerBoonPick(nextFloor){
+  var ov = document.getElementById('srpg-ask');
+  var choices = srpgTowerBoonChoices(srpgSeedRng('boon:' + nextFloor));
+  if(!ov || _srpgRM){ srpgTowerProceed(nextFloor, null); return; }   // 演出オフ相当は そのまま進む
+  var owned = _towerBoons.map(function(id){ var b=SRPG_TOWER_BOONS[id]; return b?b.em:''; }).join('');
+  ov.innerHTML = '<div class="srpg-boon">'
+    + '<div class="srpg-boon-h">🗼 '+nextFloor+'階へ！ 恩恵を ひとつ えらぼう</div>'
+    + (owned ? '<div class="srpg-boon-owned">これまで：'+owned+'</div>' : '')
+    + '<div class="srpg-boon-cards">'
+    + choices.map(function(id){ var b=SRPG_TOWER_BOONS[id];
+        return '<button class="srpg-boon-card" onclick="srpgTowerProceed('+nextFloor+',\''+id+'\')">'
+          + '<span class="sb-em">'+b.em+'</span><span class="sb-nm">'+escapeHtml(b.name)+'</span>'
+          + '<span class="sb-ds">'+escapeHtml(b.desc)+'</span></button>'; }).join('')
+    + '</div></div>';
+  ov.style.display = 'flex'; ov.onclick = null;
+  try{ sfx('levelup'); }catch(e){}
+}
+function srpgTowerProceed(nextFloor, boonId){
+  try{ var ov=document.getElementById('srpg-ask'); if(ov){ ov.style.display='none'; ov.innerHTML=''; } }catch(e){}
+  if(boonId && SRPG_TOWER_BOONS[boonId]){ _towerBoons = _towerBoons.concat([boonId]); try{ sfx('coin'); }catch(e){} }
+  _towerFloor = nextFloor;
   srpgStart('tower');
+}
+// 積んだ恩恵を味方ユニットへ適用（バトル開始時。フロアごとに全部を再適用＝積み重なる）
+function srpgApplyTowerBoons(units){
+  if(!_towerBoons || !_towerBoons.length) return;
+  var atkM = srpgTowerBoonMult(_towerBoons,'atkMul'), defM = srpgTowerBoonMult(_towerBoons,'defMul');
+  var hpM = srpgTowerBoonMult(_towerBoons,'hpMul'), spdM = srpgTowerBoonMult(_towerBoons,'spdMul');
+  var healAll = srpgTowerBoonHas(_towerBoons,'heal') || srpgTowerBoonHas(_towerBoons,'healOnly');
+  (units || []).forEach(function(u){
+    if(u.side !== 'ally') return;
+    u.atk = Math.round(u.atk * atkM); u.def = Math.round(u.def * defM); u.spd = Math.round(u.spd * spdM);
+    if(hpM !== 1){ u.maxHp = Math.round(u.maxHp * hpM); }
+    if(healAll){ u.hp = u.maxHp; }
+    else { u.hp = Math.min(u.hp, u.maxHp); }
+  });
 }
 function srpgStart(stageId){
   try{ sfx('click'); }catch(e){}
@@ -383,6 +421,7 @@ function srpgStart(stageId){
       u.mp = Math.min(u.mpMax||6, c.mp||0);
     });
   }
+  if(stageId==='tower'){ try{ srpgApplyTowerBoons(units); }catch(e){} }   // ローグライトの恩恵を味方へ適用（持ち越しの後）
   // 声を勇者のキャラに合わせる（読み上げ＝出題・技名・勝敗がそのキャラの声になる）
   try{ var _h = srpgHeroSpec(); if(typeof CHARS!=='undefined' && CHARS[_h.art]) currentChar = _h.art; }catch(e){}
   // 💪にがて教科（練習レートが一番低い教科）＝この教科で正解するとボーナス
@@ -634,7 +673,9 @@ function srpgTurnbarHtml(){
   var actor = srpgActor();
   var _wv = (srpgB.stage && srpgB.stage.waves && srpgB.stage.waves.length) ? '<span class="srpg-wave">🌊 '+((srpgB.waveIdx||0)+1)+'/'+ (srpgB.stage.waves.length+1)+'陣</span>' : '';
   var _chg = srpgB.charge ? '<span class="srpg-charge-warn">☢️ '+escapeHtml(srpgB.charge.name||'大技')+'くる！赤マスから にげろ</span>' : '';
-  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span>'+_wv+_chg
+  var _bn = (srpgB.stage && srpgB.stage.type==='tower' && _towerBoons && _towerBoons.length)   // ローグライト：積んだ恩恵
+    ? '<span class="srpg-boon-hud" title="この登りで えらんだ 恩恵">'+_towerBoons.map(function(id){ var b=SRPG_TOWER_BOONS[id]; return b?b.em:''; }).join('')+'</span>' : '';
+  return '<span class="srpg-round">R'+(srpgB.round||1)+'</span>'+_wv+_bn+_chg
     + '<button class="srpg-spd'+(srpgB.auto?' on':'')+'" onclick="srpgToggleAuto()" title="移動を自動化（教科えらびは自分）">🤖じどう</button>'
     + '<button class="srpg-spd'+(_srpgSpd()===2?' on':'')+'" onclick="srpgToggleSpeed()">⏩×2</button><div class="srpg-tb-lbl">じゅんばん</div>' + alive.slice(0, 8).map(function(u){
     var art = srpgUnitArt(u);
@@ -1088,7 +1129,9 @@ function srpgResolveAttack(correct){
   }
   if(sk) actor.mp = Math.max(0, (actor.mp||0) - sk.mp);   // MPは成功時のみ消費
   srpgB.combo++;
-  var crit = srpgB.combo >= 3; if(crit) srpgB.combo = 0;   // 会心は3連続ごと＝戦闘中ずっと会心の雪だるまを解消
+  // 会心は3連続ごと。塔の「✨会心の加護」があれば2連続ごとに（出やすく）
+  var _critAt = (srpgB.stage && srpgB.stage.type==='tower' && typeof srpgTowerBoonHas==='function' && srpgTowerBoonHas(_towerBoons,'critFast')) ? 2 : 3;
+  var crit = srpgB.combo >= _critAt; if(crit) srpgB.combo = 0;
   var doIt = function(){
   // デバフ（敵のステータス下げ）：ダメージ無し・単体・出題に正解で成立
   if(sk && sk.kind==='debuff'){
@@ -1553,11 +1596,13 @@ function srpgEnd(outcome){
         try{
           var _cw = {};
           srpgB.units.forEach(function(uu){ if(uu.side==='ally') _cw[uu.id] = { hp:uu.hp, mp:uu.mp||0, downed:!!uu.downed }; });
-          lsSetJSON('srpg_tower_save', { floor:(srpgB.stage.floor||1)+1, carry:_cw });
+          lsSetJSON('srpg_tower_save', { floor:(srpgB.stage.floor||1)+1, carry:_cw, boons:_towerBoons });   // 恩恵も中断セーブに含める
         }catch(e){}
         var fl = srpgB.stage.floor || 1;
-        cos2.coin = (cos2.coin||0) + fl*10;
-        extra += '<div class="srpg-res-line grow">🗼 '+fl+'階 とっぱ！ 🪙+'+(fl*10)+'</div>';
+        var _coinM = srpgTowerBoonMult(_towerBoons,'coinMul');   // 🪙こばんの加護で コイン報酬UP
+        var _tcoin = Math.round(fl*10 * _coinM);
+        cos2.coin = (cos2.coin||0) + _tcoin;
+        extra += '<div class="srpg-res-line grow">🗼 '+fl+'階 とっぱ！ 🪙+'+_tcoin+(_coinM>1?'（加護'+Math.round((_coinM-1)*100)+'%↑）':'')+'</div>';
         if(fl % 5 === 0){ cos2.tickets = (cos2.tickets||0) + 1; extra += '<div class="srpg-res-line scout">🎫 ボス階クリア！ ガチャチケット+1</div>'; }
         if(fl > srpgTowerBest()){ try{ safeLS.setItem('srpg_tower_best', String(fl)); }catch(e){} extra += '<div class="srpg-res-line">🏅 さいこう記録 こうしん！ '+fl+'階</div>'; }
       }

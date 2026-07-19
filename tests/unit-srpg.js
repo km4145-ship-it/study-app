@@ -548,6 +548,25 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   const armed = S.srpgMakeUnit({ id:'g1', side:'ally', name:'g', art:'slime', role:'attacker', rankBase:8, lvl:5, bonus:S.srpgGearStat('sword') });
   c.ok('つるぎ装備で atk が上がる', armed.atk === bare.atk + 5);
 }
+// ===== 塔のローグライト恩恵 =====
+{
+  c.ok('恩恵は複数種ある', Object.keys(S.SRPG_TOWER_BOONS).length >= 5);
+  c.ok('各恩恵に em/name/desc', Object.keys(S.SRPG_TOWER_BOONS).every(function(k){ var b=S.SRPG_TOWER_BOONS[k]; return b.em&&b.name&&b.desc; }));
+  c.eq('atk恩恵の倍率1.25', S.srpgTowerBoonMult(['atk'],'atkMul'), 1.25);
+  c.ok('atk恩恵を重ねると積になる', Math.abs(S.srpgTowerBoonMult(['atk','atk'],'atkMul') - 1.5625) < 1e-9);
+  c.eq('無い恩恵キーは倍率1', S.srpgTowerBoonMult(['def'],'atkMul'), 1);
+  c.eq('空は倍率1', S.srpgTowerBoonMult([],'atkMul'), 1);
+  c.ok('hp恩恵は heal フラグを持つ', S.srpgTowerBoonHas(['hp'],'heal') === true);
+  c.ok('回復の泉は healOnly', S.srpgTowerBoonHas(['heal'],'healOnly') === true);
+  c.ok('会心の加護は critFast', S.srpgTowerBoonHas(['crit'],'critFast') === true);
+  c.ok('無関係フラグはfalse', S.srpgTowerBoonHas(['atk'],'critFast') === false);
+  // 候補は3つ・重複なし・実在キー
+  const ch = S.srpgTowerBoonChoices(S.srpgSeedRng('boon:3'));
+  c.eq('恩恵候補は3つ', ch.length, 3);
+  c.eq('候補に重複なし', new Set(ch).size, 3);
+  c.ok('候補は実在キー', ch.every(function(k){ return !!S.SRPG_TOWER_BOONS[k]; }));
+  c.eq('同じ種なら決定的（同じ候補）', S.srpgTowerBoonChoices(S.srpgSeedRng('boon:3')).join(','), ch.join(','));
+}
 {
   // 星評価
   c.eq('負けは0', S.srpgStars(false, 0, 1, 6), 0);

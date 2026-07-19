@@ -339,6 +339,17 @@ c.ok('そうび屋CSSがある', html.indexOf('.gear-shop{') >= 0);
   c.ok('cloud-sync: gearOwned を union 合算（買った装備が消えない）', cs.indexOf('var gearOwned={}') >= 0 && cs.indexOf('o.gearOwned=gearOwned') >= 0);
 }
 
+// ===== 塔のローグライト化（恩恵） =====
+c.ok('塔クリア→恩恵えらび→次階（srpgTowerNext→srpgTowerBoonPick→srpgTowerProceed）',
+  ui.indexOf('function srpgTowerBoonPick(') >= 0 && ui.indexOf('function srpgTowerProceed(') >= 0 && /srpgTowerNext\(\)[\s\S]{0,400}srpgTowerBoonPick\(nextFloor\)/.test(ui));
+c.ok('恩恵はrun状態に積む＋選ぶと次階へ', /_towerBoons = _towerBoons\.concat\(\[boonId\]\)/.test(ui));
+c.ok('バトル開始で恩恵を味方へ適用', ui.indexOf('srpgApplyTowerBoons(units)') >= 0 && /function srpgApplyTowerBoons[\s\S]{0,400}srpgTowerBoonMult/.test(ui));
+c.ok('恩恵は中断セーブに含める（つづきで維持）', ui.indexOf('boons:_towerBoons') >= 0);
+c.ok('開始でリセット・再開で復元', /srpgTowerStart[\s\S]{0,120}_towerBoons = \[\]/.test(ui) && /_towerBoons = sv\.boons/.test(ui));
+c.ok('こばんの加護でコイン報酬UP', /srpgTowerBoonMult\(_towerBoons,'coinMul'\)/.test(ui));
+c.ok('会心の加護で会心が2連続に', ui.indexOf("srpgTowerBoonHas(_towerBoons,'critFast')") >= 0);
+c.ok('恩恵えらびUI＋HUD＋CSS', ui.indexOf('srpg-boon-card') >= 0 && ui.indexOf('srpg-boon-hud') >= 0 && html.indexOf('.srpg-boon-card{') >= 0);
+
 // ===== 復帰導線（数日ぶりの前向きな迎え・通知なしでアプリ内完結）=====
 c.ok('maybeShowComeback/_lastActivityGapDays が定義',
   html.indexOf('function maybeShowComeback(') >= 0 && html.indexOf('function _lastActivityGapDays(') >= 0);

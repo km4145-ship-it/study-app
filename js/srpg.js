@@ -467,6 +467,36 @@ function srpgGridWithBlocks(stage){
 var SRPG_BLOCK_META = { rock:{ em:'🗻', name:'いわ' }, water:{ em:'🌊', name:'みず' } };
 
 // ===== ダメージ予測（攻撃前に「よそう」を見せる＝弱点えらびの学びが深まる） =====
+// ===== ちょうせんの塔：ローグライトの「恩恵」＝1フロアごとに選び、登りの間だけ積み重なる =====
+// 毎回ちがう強化の組み合わせ＝反復に飽きない「もう1回」。効果は倍率で、味方全員に適用（重ねがけOK）。
+var SRPG_TOWER_BOONS = {
+  atk:  { id:'atk',  em:'⚔️', name:'ちからの加護', desc:'みかた全員 こうげき+25%', atkMul:1.25 },
+  def:  { id:'def',  em:'🛡️', name:'まもりの加護', desc:'みかた全員 まもり+30%',   defMul:1.30 },
+  hp:   { id:'hp',   em:'❤️', name:'いのちの加護', desc:'最大HP+25%＋ぜんかいふく', hpMul:1.25, heal:true },
+  spd:  { id:'spd',  em:'💨', name:'はやての加護', desc:'みかた全員 すばやさ+30%',  spdMul:1.30 },
+  crit: { id:'crit', em:'✨', name:'会心の加護',   desc:'会心が 出やすくなる',       critFast:true },
+  heal: { id:'heal', em:'🌿', name:'回復の泉',     desc:'フロア開始で HPぜんかいふく', healOnly:true },
+  coin: { id:'coin', em:'🪙', name:'こばんの加護', desc:'この登りの コイン+50%',     coinMul:1.5 }
+};
+// 積んだ恩恵から、あるキー(atkMul/defMul/hpMul/spdMul/coinMul)の合計倍率（積）を返す（純粋）。
+function srpgTowerBoonMult(boonIds, key){
+  var m = 1;
+  (boonIds || []).forEach(function(id){ var b = SRPG_TOWER_BOONS[id]; if(b && b[key]) m *= b[key]; });
+  return m;
+}
+// 恩恵にフラグ(healOnly/heal/critFast)が1つでも含まれるか（純粋）。
+function srpgTowerBoonHas(boonIds, flag){
+  return (boonIds || []).some(function(id){ var b = SRPG_TOWER_BOONS[id]; return !!(b && b[flag]); });
+}
+// フロアごとの恩恵候補：階を種にして決定的に3つ選ぶ（重複なし）。純粋（rngは渡す）。
+function srpgTowerBoonChoices(rng){
+  var keys = Object.keys(SRPG_TOWER_BOONS), out = [], guard = 0;
+  while(out.length < 3 && guard++ < 40){
+    var k = keys[Math.floor((rng ? rng() : Math.random()) * keys.length)];
+    if(out.indexOf(k) < 0) out.push(k);
+  }
+  return out;
+}
 // ===== なかまの「そうび」：装備でステータスが変わる（編成×装備の戦略層）=====
 // コインで買って所持（cos.gearOwned）、なかま個体に a.gear で装備。役割に合わせた トレードオフ。
 var SRPG_GEAR = {
@@ -1142,6 +1172,7 @@ if(typeof module !== 'undefined' && module.exports){
     SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,
     SRPG_SCOUT_PITY_MAX: SRPG_SCOUT_PITY_MAX, srpgScoutApplyPity: srpgScoutApplyPity, srpgScoutPickups: srpgScoutPickups, srpgScoutArt: srpgScoutArt,
     SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS, SRPG_LEGEND_ARTS: SRPG_LEGEND_ARTS, srpgTopicKeyword: srpgTopicKeyword, SRPG_GEAR: SRPG_GEAR, srpgGearStat: srpgGearStat,
+    SRPG_TOWER_BOONS: SRPG_TOWER_BOONS, srpgTowerBoonMult: srpgTowerBoonMult, srpgTowerBoonHas: srpgTowerBoonHas, srpgTowerBoonChoices: srpgTowerBoonChoices,
     srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
     SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse,
     SRPG_RANK_ORDER: SRPG_RANK_ORDER, SRPG_EVOLVE_DUPES: SRPG_EVOLVE_DUPES, srpgEvolveNextRank: srpgEvolveNextRank, srpgEvolveCost: srpgEvolveCost, srpgEvolveCanDo: srpgEvolveCanDo,

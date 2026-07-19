@@ -2269,6 +2269,13 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .ob-dot.on{ background:var(--primary,#0891b2); width:22px; border-radius:999px; }
   .ob-next{ width:100%; padding:13px; border:none; border-radius:14px; background:linear-gradient(135deg,#0891b2,#ec4899); color:#fff; font-size:1.02rem; font-weight:900; font-family:inherit; cursor:pointer; box-shadow:0 6px 16px rgba(8,145,178,.35); }
   .ob-next:active{ transform:scale(.98); }
+  .ob-name{ width:100%; box-sizing:border-box; padding:11px 13px; border:1.5px solid var(--line,#e2e8f0); border-radius:12px; font-size:1.05rem; font-family:inherit; text-align:center; margin-bottom:10px; }
+  body.dark .ob-name{ background:#1c2733; border-color:rgba(148,163,184,.32); color:#e2e8f0; }
+  .ob-chars{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+  .ob-char{ padding:5px; border:2px solid transparent; border-radius:12px; background:var(--card2,#f1f5f9); cursor:pointer; line-height:0; }
+  .ob-char svg,.ob-char img{ width:100%; height:auto; }
+  .ob-char.on{ border-color:var(--primary-vivid,#06b6d4); background:#eefbfe; box-shadow:0 0 0 3px rgba(6,182,212,.16); }
+  body.dark .ob-char{ background:#273449; } body.dark .ob-char.on{ background:#0e3a44; }
   @media (prefers-color-scheme:dark){ .ob-card{ background:#1e293b; } .ob-tab{ background:#273449; } .ob-ttl,.ob-body,.ob-tab-tx b{ color:#e2e8f0; } }
   @media (prefers-reduced-motion:reduce){ .ob-ov,.ob-card,.ob-em{ animation:none!important; } }
   /* 診断プレイスメント */
@@ -4080,6 +4087,7 @@ function maybeShowOnboarding(){
 var _obStep=0;
 var OB_SLIDES=[
   { em:'🎓', ttl:'何年生かな？', grade:true, body:'学年を えらぶと、きみに ぴったりの もんだいが 出るよ。あとで かえられるよ。' },
+  { em:'✏️', ttl:'なまえと キャラ', profile:true, body:'なまえを 入れて、すきな キャラを えらぼう！（あとで かえられるよ）' },
   { em:'👋', ttl:'ようこそ！', body:'ここは、ゲームで あそびながら 勉強して「偏差値65」を めざす アプリだよ。いっしょに がんばろう！' },
   { em:'📱', ttl:'したの ボタンで きりかえ', tabs:[
       ['🏠','ホーム','きょう やること'],
@@ -4106,6 +4114,13 @@ function obRender(){
     var GR=[['小1',1,'🐣'],['小2',2,'🐤'],['小3',3,'🐥'],['小4',4,'🐰'],['小5',5,'🦊'],['小6',6,'🦉'],['中1',7,'🐯'],['中2',8,'🐺'],['中3',9,'🦁']];
     inner = '<div class="ob-body" style="min-height:auto;margin-bottom:10px">'+escapeHtml(s.body)+'</div>'
       + '<div class="gp-grid">'+GR.map(function(g){ return '<button class="gp-cell'+(curG===g[1]?' on':'')+'" onclick="obPickGrade('+g[1]+')"><span class="gp-em">'+g[2]+'</span><span class="gp-lb">'+g[0]+'</span></button>'; }).join('')+'</div>';
+  } else if(s.profile){
+    var _up=null; try{ _up=muCurrentUser(); }catch(e){}
+    var curName=(_up&&_up.name && !/^ユーザー\d+$/.test(_up.name))?_up.name:'';
+    var curChar=_obChar||(_up&&_up.char)||'girl';
+    inner='<div class="ob-body" style="min-height:auto;margin-bottom:8px">'+escapeHtml(s.body)+'</div>'
+      +'<input id="ob-name" class="ob-name" type="text" maxlength="8" placeholder="なまえ（8文字まで）" value="'+escapeHtml(curName)+'">'
+      +'<div class="ob-chars">'+MU_CHARS.map(function(ck){ return '<button class="ob-char'+(curChar===ck?' on':'')+'" data-ck="'+ck+'" onclick="obPickChar(\''+ck+'\')">'+_charStill(ck)+'</button>'; }).join('')+'</div>';
   } else if(s.tabs){
     inner = '<div class="ob-tabs">'+s.tabs.map(function(t){ return '<div class="ob-tab"><span class="ob-tab-ic">'+t[0]+'</span><span class="ob-tab-tx"><b>'+t[1]+'</b><small>'+escapeHtml(t[2])+'</small></span></div>'; }).join('')+'</div>';
   } else {
@@ -4120,6 +4135,8 @@ function obRender(){
     + '<div class="ob-dots">'+dots+'</div>'
     + (s.grade
         ? '<button class="ob-next" onclick="obNext()" style="background:var(--card2);color:var(--muted);box-shadow:none">えらんだよ ▶</button>'
+        : s.profile
+        ? '<button class="ob-next" onclick="obSaveProfile()">きめた ▶</button>'
         : '<button class="ob-next" onclick="'+(last?'obFinish()':'obNext()')+'">'+(last?'はじめる！ ▶':'つぎへ ▶')+'</button>')
     + '</div>';
   try{ speak(s.ttl+'。'+(s.body||'')); }catch(e){}
@@ -4127,6 +4144,22 @@ function obRender(){
 function obPickGrade(l){
   try{ var u=muCurrentUser(); if(u){ muSetUserGrade(u.id, l); muUpdateHeader(); } }catch(e){}
   try{ safeLS.setItem('grade_chosen','1'); }catch(e){}
+  try{ sfx('coin'); }catch(e){}
+  obNext();
+}
+var _obChar=null;
+function obPickChar(ck){   // 再レンダーせず ハイライトだけ更新（入力中の名前を消さないため）
+  _obChar=ck;
+  try{ var u=muCurrentUser(); if(u){ muSetUserChar(u.id, ck); muUpdateHeader(); } }catch(e){}
+  try{ sfx('click'); }catch(e){}
+  try{ var ov=document.getElementById('onboarding-ov'); if(ov){ ov.querySelectorAll('.ob-char').forEach(function(b){ b.classList.remove('on'); }); var el=ov.querySelector('.ob-char[data-ck="'+ck+'"]'); if(el) el.classList.add('on'); } }catch(e){}
+}
+function obSaveProfile(){
+  try{
+    var inp=document.getElementById('ob-name'); var nm=inp?(''+inp.value).trim().slice(0,8):'';
+    var u=muCurrentUser();
+    if(u){ if(nm) muRenameUser(u.id, nm); if(_obChar) muSetUserChar(u.id, _obChar); muUpdateHeader(); }
+  }catch(e){}
   try{ sfx('coin'); }catch(e){}
   obNext();
 }

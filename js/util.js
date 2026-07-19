@@ -7,6 +7,21 @@ function dateKeyOffset(off){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmtTime(sec){ sec=Math.round(sec||0); if(sec<60) return sec+'秒'; const m=Math.floor(sec/60); if(m<60) return m+'分'; return Math.floor(m/60)+'時間'+(m%60)+'分'; }
 function _toDate(s){ const a=s.split('-').map(Number); return new Date(a[0],a[1]-1,a[2]); }
+// 「きょうやること」チェックリストを状態から組む（純粋）。ハブ・記録に散在していた日課を
+// 1画面のチェックリストに集約する（study/復習/タクトdaily/家族もんだい/無料ガチャ）。
+// s = { goal, cnt, due, tactDone, famDone, boxReady }。各itemは {key,icon,label,sub,done,action}。
+function buildTodayChecklist(s){
+  s = s || {};
+  var items = [
+    { key:'study',  icon:'✏️', label:'きょうの学習',        sub:(s.cnt||0) + '/' + (s.goal||0) + '問', done:(s.cnt||0) >= (s.goal||0) && (s.goal||0) > 0, action:'startRecommended()' },
+    { key:'review', icon:'🔁', label:'ふくしゅう',          sub:(s.due > 0 ? (s.due + '問') : 'なし'),    done:!(s.due > 0),      action:'startReviewDue()' },
+    { key:'tact',   icon:'🌀', label:'きょうの ちょうせん', sub:(s.tactDone ? 'クリア' : 'ボーナスあり'), done:!!s.tactDone,      action:"srpgOpen('daily')" },
+    { key:'family', icon:'👪', label:'家族もんだい',        sub:(s.famDone ? 'すんだ' : '5問'),           done:!!s.famDone,       action:'startFamilyDaily()' },
+  ];
+  if(s.boxReady) items.push({ key:'box', icon:'🎁', label:'むりょうガチャ', sub:'あけよう', done:false, action:"muNav('gacha')" });
+  return items;
+}
+function todayAllDone(items){ return (items || []).length > 0 && items.every(function(it){ return it.done; }); }
 // 同じ単元(sub)が隣り合わないよう貪欲に並べ替える（できる範囲で）。
 // ブロック練習(同一単元の連打)→インターリービング(単元を混ぜる)にして転移・長期定着を上げる。
 // 読解など本文(passage)つきが混ざる場合は、本文の再読を避けるため並べ替えない（呼び出し側でガード）。

@@ -7,7 +7,7 @@ const c = makeChecker('unit-util');
 
 const code = fs.readFileSync(path.join(ROOT, 'js', 'util.js'), 'utf8');
 const api = (new Function(code +
-  '\nreturn { escapeHtml, topicKey, dateKeyOffset, todayKey, fmtTime, _toDate, revTip, interleaveBySub };'))();
+  '\nreturn { escapeHtml, topicKey, dateKeyOffset, todayKey, fmtTime, _toDate, revTip, interleaveBySub, buildTodayChecklist, todayAllDone };'))();
 
 ['escapeHtml', 'topicKey', 'dateKeyOffset', 'todayKey', 'fmtTime', '_toDate']
   .forEach((f) => c.ok(f + ' が関数', typeof api[f] === 'function'));
@@ -69,8 +69,31 @@ c.ok('revTip：長すぎる考え方は省略(…)', api.revTip('【考え方】
   c.eq('空配列は空', api.interleaveBySub([]).length, 0);
 }
 
+// buildTodayChecklist / todayAllDone：散在する日課を1画面のチェックリストへ集約
+{
+  const s = { goal:20, cnt:20, due:0, tactDone:true, famDone:true, boxReady:false };
+  const done = api.buildTodayChecklist(s);
+  c.eq('宝箱なしは4項目（学習/復習/タクト/家族）', done.length, 4);
+  c.ok('全達成の状態は全itemがdone', done.every(x=>x.done));
+  c.ok('todayAllDone は全達成でtrue', api.todayAllDone(done) === true);
+
+  const partial = api.buildTodayChecklist({ goal:20, cnt:5, due:3, tactDone:false, famDone:false, boxReady:true });
+  c.eq('宝箱ありは5項目', partial.length, 5);
+  c.ok('学習未達（cnt<goal）はdone=false', partial.find(x=>x.key==='study').done === false);
+  c.ok('復習ありはdone=false', partial.find(x=>x.key==='review').done === false);
+  c.ok('復習なし(due=0)はdone=true', api.buildTodayChecklist({goal:1,cnt:0,due:0}).find(x=>x.key==='review').done === true);
+  c.ok('宝箱は常にdone=false（あけよう）', partial.find(x=>x.key==='box').done === false);
+  c.ok('todayAllDone は未達でfalse', api.todayAllDone(partial) === false);
+  c.ok('各itemに action がある', partial.every(x=>typeof x.action==='string' && x.action.length>0));
+  c.ok('goal=0 は学習done扱いにしない（0/0で誤達成にしない）', api.buildTodayChecklist({goal:0,cnt:0,due:0}).find(x=>x.key==='study').done === false);
+  c.eq('空配列はtodayAllDone=false', api.todayAllDone([]), false);
+}
+
 // index.html 側は再定義せず、モジュールを読み込む
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+c.ok('ハブは _hubTodayHtml で「きょうやること」を出す（buildTodayChecklist配線）',
+  html.indexOf('function _hubTodayHtml(') >= 0 && html.indexOf('buildTodayChecklist(_todayTaskState())') >= 0 && html.indexOf('h += _hubTodayHtml();') >= 0);
+c.ok('index.html は buildTodayChecklist を再定義しない（util.jsに集約）', html.indexOf('function buildTodayChecklist(') < 0);
 c.ok('練習ビルダーは _interleaveQs で単元インターリーブ（本文つきはガード）',
   html.indexOf('function _interleaveQs(') >= 0 && html.indexOf('_interleaveQs(shuffleArr(qs).slice(0,10))') >= 0 && html.indexOf('q.passage') >= 0);
 c.ok('index.html は interleaveBySub を再定義しない（util.jsに集約）', html.indexOf('function interleaveBySub(') < 0);

@@ -2306,6 +2306,25 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .htw-item:active{ transform:scale(.96); } @media(hover:hover){ .htw-item:hover{ background:rgba(255,255,255,.12); } }
   .htw-item b{ display:block; color:#fff; font-size:13px; }
   .htw-item.hot b{ color:#fde047; } .htw-item.done b{ color:#6ee7b7; }
+  /* 📋 きょうやること チェックリスト */
+  .hub-today{ margin-top:10px; background:var(--card,#fff); border:1px solid var(--line,#e2e8f0); border-radius:var(--r-m,14px); padding:8px 10px; box-shadow:var(--sh-1); }
+  body.dark .hub-today{ background:#1c2733; border-color:rgba(148,163,184,.28); }
+  .td-head{ font-size:.82rem; font-weight:900; color:var(--text); margin:2px 2px 6px; display:flex; align-items:center; gap:6px; }
+  .td-count{ margin-left:auto; font-size:.74rem; font-weight:800; color:var(--muted); background:var(--card2,#f1f5f9); border-radius:99px; padding:1px 8px; }
+  body.dark .td-count{ background:#273449; }
+  .td-row{ display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:none; background:transparent; font-family:inherit; cursor:pointer; padding:7px 6px; border-radius:10px; }
+  .td-row + .td-row{ border-top:1px solid rgba(148,163,184,.16); }
+  .td-row:active{ transform:scale(.99); }
+  @media(hover:hover){ .td-row:hover{ background:var(--card2,#f1f5f9); } body.dark .td-row:hover{ background:#273449; } }
+  .td-ck{ font-size:1.05rem; flex:0 0 auto; }
+  .td-ic{ font-size:1.1rem; flex:0 0 auto; }
+  .td-lb{ font-size:.9rem; font-weight:800; color:var(--text); }
+  .td-sub{ margin-left:auto; font-size:.76rem; font-weight:700; color:var(--muted); }
+  .td-go{ color:var(--primary,#0891b2); font-weight:900; font-size:.9rem; flex:0 0 auto; }
+  .td-row.done .td-lb{ color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px; }
+  .td-row.done .td-sub{ color:#6ee7b7; }
+  .hub-today.alldone{ border-color:#34d399; }
+  .td-alldone{ text-align:center; font-size:.82rem; font-weight:800; color:#0f9d6b; padding:6px 2px 2px; }
   /* 編成の出撃行 */
   .srpg-team-row{ display:flex; gap:8px; margin-top:14px; }
   .srpg-team-row .srpg-team-go{ flex:2.4; margin-top:0; }
@@ -3357,7 +3376,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/content-data.js?v=2"></script>
 <script src="js/scoring.js?v=4"></script>
 <script src="js/ui-data.js?v=1"></script>
-<script src="js/util.js?v=4"></script>
+<script src="js/util.js?v=5"></script>
 <script src="js/miss-types.js?v=1"></script>
 <script src="js/coverage.js?v=1"></script>
 <script src="js/rating.js?v=3"></script>
@@ -5712,6 +5731,35 @@ function _hubMissionsHtml(){
       + '<div class="hm-foot">'+(allDone?'あした また あたらしい 目標が でるよ！':'達成すると ⭐ポイント＆🪙コイン。ぜんぶで シールも！')+'</div></div>';
   }catch(e){ return ''; }
 }
+// 「きょうやること」チェックリスト：散在する日課を1画面に集約（純関数は js/util.js の buildTodayChecklist）
+function _todayTaskState(){
+  var st={};
+  try{ st.goal=getDailyGoal(); }catch(e){ st.goal=0; }
+  try{ st.cnt=getDailyProg().count; }catch(e){ st.cnt=0; }
+  try{ st.due=dueCount(); }catch(e){ st.due=0; }
+  try{ st.tactDone=(typeof srpgDailyDoneToday==='function')&&srpgDailyDoneToday(); }catch(e){ st.tactDone=false; }
+  try{ var fd=lsGetJSON('daily_family',{})||{}; st.famDone=(fd.date===todayKey()); }catch(e){ st.famDone=false; }
+  try{ st.boxReady=(typeof rpgDailyBoxReady==='function')&&rpgDailyBoxReady(); }catch(e){ st.boxReady=false; }
+  return st;
+}
+function _hubTodayHtml(){
+  var items=buildTodayChecklist(_todayTaskState());
+  var doneN=items.filter(function(i){return i.done;}).length;
+  var all=todayAllDone(items);
+  var rows=items.map(function(it){
+    return '<button class="td-row'+(it.done?' done':'')+'" onclick="'+it.action+'">'
+      +'<span class="td-ck">'+(it.done?'✅':'⬜')+'</span>'
+      +'<span class="td-ic">'+it.icon+'</span>'
+      +'<span class="td-lb">'+escapeHtml(it.label)+'</span>'
+      +'<span class="td-sub">'+escapeHtml(it.sub)+'</span>'
+      +(it.done?'':'<span class="td-go">▶</span>')+'</button>';
+  }).join('');
+  return '<div class="hub-today'+(all?' alldone':'')+'">'
+    +'<div class="td-head">📋 きょうやること <span class="td-count">'+doneN+'/'+items.length+'</span></div>'
+    +rows
+    +(all?'<div class="td-alldone">🎉 きょうの ぶんは ぜんぶ できた！ よくがんばったね！</div>':'')
+    +'</div>';
+}
 function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   var host=document.getElementById('game-hub'); if(!host) return;
   var u=(typeof muCurrentUser==='function' && muCurrentUser())||{};
@@ -5759,6 +5807,8 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
      '<span class="hub-hero-tx"><span class="hub-hero-k">▶ きょうの学習をはじめる</span>'+
      '<span class="hub-hero-s">'+escapeHtml(rec)+'　今日 '+cnt+'/'+goal+'問</span></span>'+
      '<span class="hub-hero-bar"><i style="width:'+pct+'%"></i></span></button>';
+  // 📋 きょうやること（散在していた日課を1画面のチェックリストに集約＝「何をやれば今日おわりか」を明確化）
+  try{ h += _hubTodayHtml(); }catch(e){}
   // きょうのタクト（デイリー・塔・星の進捗＝毎日の入口）
   try{
     var _dDone=(typeof srpgDailyDoneToday==='function') && srpgDailyDoneToday();

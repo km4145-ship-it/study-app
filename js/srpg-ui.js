@@ -197,15 +197,27 @@ function srpgChapUnlocked(area, ci){ return srpgChapUnlockedIn(area, ci, srpgCle
 function srpgNodeUnlocked(area, ci, ni){ return srpgNodeUnlockedIn(area, ci, ni, srpgClearedSet()); }
 function srpgContinentDoneCount(area){ var n=0, c=srpgChapterCount(area); for(var i=0;i<c;i++){ if(srpgChapDone(area,i)) n++; } return n; }
 // ステージ選択に出す「大陸（物語）」カード。章の進捗を見せ、タップで章一覧へ。
+// 大陸(=教科)の単元習得率。記録画面の習熟マップ(masterySummary)をRPG大陸マップにも重ねる。
+function srpgAreaMasteryPct(area){
+  try{
+    if(typeof lsGetJSON!=='function' || typeof masterySummary!=='function') return -1;
+    var st=lsGetJSON('topic_stats',{})||{};
+    var rows=Object.keys(st).map(function(k){ return st[k]; }).filter(function(r){ return r && r.area===area; });
+    if(!rows.length) return -1;
+    return masterySummary(rows).pct;
+  }catch(e){ return -1; }
+}
 function srpgContinentCard(area, locked){
   var cont = srpgContinent(area); if(!cont) return '';
   var total = srpgChapterCount(area), done = srpgContinentDoneCount(area);
   var got = !!srpgClearedSet()[cont.crystalId];
+  var mas = locked ? -1 : srpgAreaMasteryPct(area);   // 習得率（未挑戦や施錠中は出さない）
   var foot = locked ? '前の大陸を クリアで 解放'
     : (got ? (cont.emoji+' 制覇！「'+escapeHtml(cont.crystalName)+'」獲得ずみ') : ('物語で すすもう ・ '+done+'/'+total+'章 クリア'));
   return '<button class="srpg-stage-card quest'+(locked?' locked':'')+(got?' done':'')+'" '
     + (locked?'disabled':'onclick="srpgContinentScreen(\''+area+'\')"')+'>'
     + '<div class="srpg-sc-head"><b>'+cont.emoji+' '+escapeHtml(cont.name)+' <small style="font-weight:800;color:#a9b6d6;font-size:.72rem">ものがたり</small></b>'
+    + (mas>=0?'<span class="srpg-sc-mas" title="この教科の単元 習得率（とくい以上の割合）">🗺️習得 '+mas+'%</span>':'')
     + (got?'<span class="srpg-sc-clear">クリア済</span>':'<span class="srpg-sc-new">'+done+'/'+total+'章</span>')+(locked?'<span class="srpg-sc-lock">🔒</span>':'')+'</div>'
     + '<div class="srpg-sc-foot">'+foot+'</div>'
     + '</button>';

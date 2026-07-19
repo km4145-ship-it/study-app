@@ -283,6 +283,13 @@ c.ok('obPickChar は再レンダーせずハイライトのみ（入力中の名
   /function obPickChar\(ck\)\{[\s\S]{0,400}classList\.remove\('on'\)/.test(html) && html.slice(html.indexOf('function obPickChar('), html.indexOf('function obSaveProfile(')).indexOf('obRender()') < 0);
 c.ok('デフォルト名(ユーザーN)は入力欄に出さない', html.indexOf("!/^ユーザー\\d+$/.test(_up.name)") >= 0);
 
+// ===== 習熟マップを大陸マップへ重畳（教科の習得率を大陸カードに）=====
+c.ok('srpgAreaMasteryPct が masterySummary を使う',
+  ui.indexOf('function srpgAreaMasteryPct(') >= 0 && ui.indexOf('masterySummary(rows).pct') >= 0);
+c.ok('大陸カードに習得率バッジ（施錠中は出さない）',
+  ui.indexOf('srpg-sc-mas') >= 0 && /var mas = locked \? -1 : srpgAreaMasteryPct\(area\)/.test(ui));
+c.ok('習得率バッジのCSSがある', html.indexOf('.srpg-sc-mas{') >= 0);
+
 // ===== 復帰導線（数日ぶりの前向きな迎え・通知なしでアプリ内完結）=====
 c.ok('maybeShowComeback/_lastActivityGapDays が定義',
   html.indexOf('function maybeShowComeback(') >= 0 && html.indexOf('function _lastActivityGapDays(') >= 0);

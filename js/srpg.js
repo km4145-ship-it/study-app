@@ -467,6 +467,14 @@ function srpgGridWithBlocks(stage){
 var SRPG_BLOCK_META = { rock:{ em:'🗻', name:'いわ' }, water:{ em:'🌊', name:'みず' } };
 
 // ===== ダメージ予測（攻撃前に「よそう」を見せる＝弱点えらびの学びが深まる） =====
+// 単元ボス：章の単元名から出題を寄せる「キーワード」を取り出す（純粋）。
+// 例 '分数のかけ算・わり算'→'分数'／'正負の数'→'正負'／'文字と式'→'文字'／区切りが無ければそのまま。
+function srpgTopicKeyword(topic){
+  if(!topic) return '';
+  var s = String(topic);
+  var kw = s.split(/[のと・（(\s、]/)[0];
+  return (kw && kw.length >= 2) ? kw : s;
+}
 function srpgForecast(attacker, target, subjectKey, skill, powMult){
   var kind = srpgResistKind(subjectKey, target);
   if(kind === 'null') return { kind:kind, dmg:0 };
@@ -1118,7 +1126,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgGridWithBlocks: srpgGridWithBlocks, SRPG_BLOCK_META: SRPG_BLOCK_META, srpgForecast: srpgForecast, srpgStars: srpgStars,
     SRPG_SCOUT_RATES: SRPG_SCOUT_RATES, SRPG_SCOUT_COST: SRPG_SCOUT_COST, srpgScoutRank: srpgScoutRank, srpgScoutTen: srpgScoutTen,
     SRPG_SCOUT_PITY_MAX: SRPG_SCOUT_PITY_MAX, srpgScoutApplyPity: srpgScoutApplyPity, srpgScoutPickups: srpgScoutPickups, srpgScoutArt: srpgScoutArt,
-    SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS, SRPG_LEGEND_ARTS: SRPG_LEGEND_ARTS,
+    SRPG_MEDAL_COST: SRPG_MEDAL_COST, srpgMedalCost: srpgMedalCost, srpgDexProgress: srpgDexProgress, SRPG_DEX_REWARDS: SRPG_DEX_REWARDS, SRPG_LEGEND_ARTS: SRPG_LEGEND_ARTS, srpgTopicKeyword: srpgTopicKeyword,
     srpgWaveUnits: srpgWaveUnits, srpgTotalWaves: srpgTotalWaves, srpgAutoPick: srpgAutoPick,
     SRPG_SKLV_MAX: SRPG_SKLV_MAX, srpgSkillPower: srpgSkillPower, srpgInflictChance: srpgInflictChance, srpgSkillUpCanFuse: srpgSkillUpCanFuse,
     SRPG_RANK_ORDER: SRPG_RANK_ORDER, SRPG_EVOLVE_DUPES: SRPG_EVOLVE_DUPES, srpgEvolveNextRank: srpgEvolveNextRank, srpgEvolveCost: srpgEvolveCost, srpgEvolveCanDo: srpgEvolveCanDo,

@@ -319,6 +319,14 @@ c.ok('習熟ボーナス発動でポップアップ表示', ui.indexOf("'🎓習
 c.ok('教科えらびに習熟チップ＋予測へ倍率反映', ui.indexOf('srpg-mas-b') >= 0 && /srpgForecast\(_me, tgt, k,[^)]*mMult\)/.test(ui));
 c.ok('習熟チップCSSがある', html.indexOf('.srpg-mas-b{') >= 0);
 
+// ===== 単元ボス（弱点＝勉強）=====
+c.ok('srpgAsk が章の単元(stage.topic)に出題を寄せる', ui.indexOf('srpgTopicKeyword(srpgB.stage.topic)') >= 0 && ui.indexOf('q.sub.indexOf(_topicKw)') >= 0);
+c.ok('単元一致フラグ srpgB._qTopic を立てる', ui.indexOf('srpgB._qTopic = !!(_topicKw') >= 0);
+c.ok('ボス相手＋単元一致で×1.5ダメージ',
+  /_qTopic && _tgtE && _tgtE\.boss\) \? 1\.5 : 1/.test(ui) && ui.indexOf('power * qb * mBonus * tBonus') >= 0);
+c.ok('弱点単元をついたポップアップ', ui.indexOf("'📘弱点単元を ついた！×1.5'") >= 0);
+c.ok('教科えらびにボスの弱点単元バナー＋CSS', ui.indexOf('srpg-topic-boss') >= 0 && html.indexOf('.srpg-topic-boss{') >= 0);
+
 // ===== 復帰導線（数日ぶりの前向きな迎え・通知なしでアプリ内完結）=====
 c.ok('maybeShowComeback/_lastActivityGapDays が定義',
   html.indexOf('function maybeShowComeback(') >= 0 && html.indexOf('function _lastActivityGapDays(') >= 0);

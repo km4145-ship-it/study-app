@@ -664,7 +664,10 @@ function srpgCmdHtml(){
     var hardTgl = '<button class="srpg-hard-tgl'+(srpgB.hardMode?' on':'')+'" onclick="srpgToggleHard()">🔥 むずかしい もんだいで挑む（いりょく×1.3）'+(srpgB.hardMode?' ✅':'')+'</button>';
     var isDebuff = srpgB.chosenSkill && (srpgSkill(srpgB.chosenSkill)||{}).kind==='debuff';
     var _cwarn = (tgt && !srpgB.chosenSkill && _me && srpgDist(_me.x,_me.y,tgt.x,tgt.y)===1 && srpgCanCounter(tgt,_me)) ? '<div class="srpg-counter-warn">⚠️ たおしきれないと はんげき されるよ</div>' : '';
-    return '<div class="srpg-cmd-head">'+(isDebuff?'どの教科で しかける？':'どの教科で こうげきする？')+'</div><div class="srpg-subs">'+subs+'</div>'
+    // 📘単元ボス：ボス相手のとき「弱点単元」を提示＝その単元を勉強＝勝てる、を明示
+    var _tban = (tgt && tgt.boss && srpgB.stage && srpgB.stage.topic) ? '<div class="srpg-topic-boss">📘 弱点単元：<b>'+escapeHtml(srpgB.stage.topic)+'</b>　この単元の問題に正解で <b>×1.5</b>！</div>' : '';
+    return '<div class="srpg-cmd-head">'+(isDebuff?'どの教科で しかける？':'どの教科で こうげきする？')+'</div>'
+      + _tban + '<div class="srpg-subs">'+subs+'</div>'
       + _cwarn
       + hardTgl
       + '<button class="srpg-mini" onclick="srpgCancel()">← もどる</button>';
@@ -976,19 +979,25 @@ function srpgAsk(area){
     var mi = (srpgB.missedQ || []).findIndex(function(e){ return e.area === area; });
     if(mi >= 0){ q = srpgB.missedQ.splice(mi, 1)[0].q; isRevenge = true; }
   }catch(e){}
+  // 単元ボス：章の単元(stage.topic)に出題を寄せる＝章バトルが その単元の練習になる（best-effort）
+  var _topicKw = '';
+  try{ if(srpgB.stage && srpgB.stage.topic && typeof srpgTopicKeyword==='function') _topicKw = srpgTopicKeyword(srpgB.stage.topic); }catch(e){}
   if(!q){
     try{
       q = genQuestion(area);
-      if(srpgB.hardMode){   // 🔥むずかしい優先：★★★以上を最大12回さがす
-        for(var hi = 0; hi < 12; hi++){
-          if(q && (q.level === '★★★' || q.level === '★★★★')) break;
-          var q2 = genQuestion(area); if(q2 && q2.q) q = q2;
-        }
+      var _wantHard = srpgB.hardMode;
+      // むずかしい優先＋単元優先を両立して最大16回さがす（見つからなければ最後の候補で妥協）
+      for(var hi = 0; hi < 16; hi++){
+        var okHard = !_wantHard || (q && (q.level === '★★★' || q.level === '★★★★'));
+        var okTopic = !_topicKw || (q && q.sub && q.sub.indexOf(_topicKw) >= 0);
+        if(okHard && okTopic) break;
+        var q2 = genQuestion(area); if(q2 && q2.q) q = q2;
       }
     }catch(e){}
   }
   if(!q || !q.q){ srpgResolveAttack(true); return; }   // 出題失敗時はサービスで命中
   srpgB._q = q; srpgB.busy = true;
+  srpgB._qTopic = !!(_topicKw && q.sub && q.sub.indexOf(_topicKw) >= 0);   // この問題が章の単元に一致
   srpgB._qRevenge = isRevenge;
   srpgB._qHard = !!(srpgB.hardMode && (q.level === '★★★' || q.level === '★★★★'));
   var m = srpgSubjectMeta(area);
@@ -1091,9 +1100,13 @@ function srpgResolveAttack(correct){
   var power = sk ? srpgSkillPower(sk, actor.skLv) : 100;   // とくぎLvで威力アップ
   var qb = (srpgB._qRevenge ? 1.5 : 1) * (srpgB._qHard ? 1.3 : 1);   // 🔁リベンジ×🔥むずかしい ボーナス
   var mBonus = srpgSubjMasteryMult(srpgB.subject);   // 🎓習熟ボーナス：その教科を習得しているほど威力UP（勉強＝強さ）
-  power = Math.round(power * qb * mBonus);
-  srpgB._qRevenge = false; srpgB._qHard = false;
+  // 📘単元ボス：ボス相手に「章の単元」の問題で正解＝弱点をついて大ダメージ（その単元を勉強＝ボスに勝てる）
+  var _tgtE = srpgUnitAt(srpgB.units, tgt.x, tgt.y);
+  var tBonus = (srpgB._qTopic && _tgtE && _tgtE.boss) ? 1.5 : 1;
+  power = Math.round(power * qb * mBonus * tBonus);
+  srpgB._qRevenge = false; srpgB._qHard = false; srpgB._qTopic = false;
   if(mBonus > 1){ try{ srpgPopupAt(actor.x, actor.y, '🎓習熟+'+Math.round((mBonus-1)*100)+'%', 'buff'); }catch(e){} }
+  if(tBonus > 1){ try{ srpgPopupAt(actor.x, actor.y, '📘弱点単元を ついた！×1.5', 'buff'); vibe(20); }catch(e){} }
   var cells = srpgAoeTiles(shape, tgt.x, tgt.y, srpgB.grid, actor);
   var fx = [];   // 演出は「描画のあと」にまとめて再生（renderで消えないように）
   cells.forEach(function(c){

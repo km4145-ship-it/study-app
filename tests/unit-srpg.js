@@ -525,6 +525,15 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
   c.eq('予測: 倍率1(既定)は据え置き', S.srpgForecast(atk, tgt, 'math', null, 1).dmg, fw.dmg);
   c.eq('予測: 倍率省略も据え置き', S.srpgForecast(atk, tgt, 'math', null).dmg, fw.dmg);
 }
+// ===== 単元ボス：章の単元キーワード抽出 =====
+{
+  c.eq('単元KW: 分数のかけ算・わり算→分数', S.srpgTopicKeyword('分数のかけ算・わり算'), '分数');
+  c.eq('単元KW: 正負の数→正負', S.srpgTopicKeyword('正負の数'), '正負');
+  c.eq('単元KW: 文字と式→文字', S.srpgTopicKeyword('文字と式'), '文字');
+  c.eq('単元KW: 区切り無しはそのまま', S.srpgTopicKeyword('一次方程式'), '一次方程式');
+  c.eq('単元KW: 空は空', S.srpgTopicKeyword(''), '');
+  c.ok('単元KW: 抽出語で q.sub がマッチしうる', '分数のたし算'.indexOf(S.srpgTopicKeyword('分数のかけ算・わり算')) >= 0);
+}
 {
   // 星評価
   c.eq('負けは0', S.srpgStars(false, 0, 1, 6), 0);

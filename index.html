@@ -2082,6 +2082,11 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-scout-ring{ position:absolute; top:46%; left:50%; width:420px; height:420px; border-radius:50%; border:3px dashed var(--rc,#a78bfa); transform:translate(-50%,-50%); opacity:.6; animation:scRingIn 1.1s ease-in forwards, scSpin 3s linear infinite; pointer-events:none; }
   @keyframes scRingIn{ from{ width:420px; height:420px; opacity:.25; } to{ width:150px; height:150px; opacity:.8; } }
   .srpg-scout-rays.r2{ animation-direction:reverse; animation-duration:13s; opacity:.5; }
+  /* 高レアの脈打つオーラ（ランク色の放射グロー）＝豪華さの底上げ */
+  .srpg-scout-aura{ position:absolute; top:42%; left:50%; width:340px; height:340px; transform:translate(-50%,-50%) scale(.6); border-radius:50%; background:radial-gradient(circle, var(--rc,#fde047) 0%, transparent 66%); opacity:0; filter:blur(8px); pointer-events:none; }
+  .srpg-scout.opened .srpg-scout-aura{ animation:scAura 1.7s ease-in-out infinite; }
+  @keyframes scAura{ 0%,100%{ opacity:.28; transform:translate(-50%,-50%) scale(.82); } 50%{ opacity:.55; transform:translate(-50%,-50%) scale(1.06); } }
+  @media (prefers-reduced-motion:reduce){ .srpg-scout-aura{ display:none!important; } }
   .srpg-scout.holdstill *{ animation-play-state:paused!important; }
   .srpg-scout.holdstill{ filter:brightness(.66); transition:filter .3s; }
   .srpg-scout.opened{ filter:none; }
@@ -3396,7 +3401,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <script src="js/srpg.js?v=4"></script>
 <script src="js/srpg-mons.js?v=3"></script>
 <script src="js/story-data.js?v=2"></script>
-<script src="js/srpg-ui.js?v=4"></script>
+<script src="js/srpg-ui.js?v=5"></script>
 <script>
 // =================== CHARACTER SVGs ===================
   // chars.js へ分離

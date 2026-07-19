@@ -1755,6 +1755,8 @@ function srpgScoutDo(n, useFree){
   });
 }
 // ================= 10連の順次開封：低レアはさっと・高レアは足が止まる =================
+// 1体ずつ見せる自動送りの間隔（ms）。速すぎて味わえない声を受け、ゆっくりめに調整。
+var SRPG_SEQ_MS = { low: 820, mid: 1500 };
 function srpgScoutSequence(got, onDone){
   var ov = document.getElementById('srpg-ask');
   var fxMode = 'full'; try{ fxMode = _gachaFxMode(); }catch(e){}
@@ -1778,7 +1780,7 @@ function srpgScoutSequence(got, onDone){
       srpgScoutOmen(g.rank, function(){ srpgScoutReveal(g.mon, function(){ next(); }); });
       return;
     }
-    show(g, (g.mon && MID[g.rank]) ? 'mid' : 'low', (g.mon && MID[g.rank]) ? 950 : 460);
+    show(g, (g.mon && MID[g.rank]) ? 'mid' : 'low', (g.mon && MID[g.rank]) ? SRPG_SEQ_MS.mid : SRPG_SEQ_MS.low);
   }
   function show(g, tier, ms){
     var art = g.mon ? ((typeof srpgMonArt==='function' && srpgMonArt(g.mon.art)) || _monStill(g.mon.art)) : '<span class="sc-seq-em">🍖</span>';
@@ -2343,7 +2345,8 @@ function srpgScoutReveal(mon, onDone){
   function fxCv(z){ try{ var cv=document.getElementById('gacha-fx-canvas'); if(cv) cv.style.zIndex=z; }catch(e){} }
   var el = document.createElement('div'); el.className = 'srpg-scout' + (isHigh ? ' high' : '');
   el.style.setProperty('--rc', col);
-  el.innerHTML = '<div class="srpg-scout-rays"></div><div class="srpg-scout-rays r2"></div>'
+  el.innerHTML = (isHigh ? '<div class="srpg-scout-aura"></div>' : '')
+    + '<div class="srpg-scout-rays"></div><div class="srpg-scout-rays r2"></div>'
     + '<div class="srpg-scout-ring"></div>'
     + '<div class="srpg-scout-shock"></div>'
     + '<div class="srpg-scout-art silhou drop">'+art+'</div>'
@@ -2367,7 +2370,14 @@ function srpgScoutReveal(mon, onDone){
       sfx(isHigh ? 'legendary' : 'fanfare'); vibe([30,60,30,60,100]);
       if(window.gachaFx){ gachaFx.burst(fxRank); if(isHigh && gachaFx.rain) gachaFx.rain(fxRank); }
       fxCv(1660);   // 念のため再適用：粒子キャンバスをモンスターの下(1660<1700)に保ち、雨で隠れないようにする
+      // 豪華演出：高レアは紙吹雪と星の雨を追い波で重ねる（伝説LGは最も長く華やかに）
       if(typeof confetti==='function'){ confetti(); setTimeout(confetti, 260); if(isHigh){ setTimeout(confetti, 560); setTimeout(confetti, 900); } }
+      var _lg = (mon.rank==='LG' || mon.rank==='SSS');
+      if(_lg){
+        try{ if(window.gachaFx){ setTimeout(function(){ try{ gachaFx.burst(fxRank); if(gachaFx.rain) gachaFx.rain(fxRank); fxCv(1660); }catch(e){} }, 620); } }catch(e){}
+        if(typeof confetti==='function'){ setTimeout(confetti, 1300); setTimeout(confetti, 1700); }
+        try{ document.body.classList.add('srpg-flash'); setTimeout(function(){ document.body.classList.remove('srpg-flash'); }, 320); }catch(e){}
+      }
     }catch(e){}
     srpgSay('やったね！ '+(mon.name||'なかま')+'が、なかまに なったよ！');
     if(!isHigh) T(fin, 2000);   // 低中レアは自動で次へ／SS以上は タップまで止まる（一度ストップ）

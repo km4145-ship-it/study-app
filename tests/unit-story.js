@@ -290,6 +290,15 @@ c.ok('大陸カードに習得率バッジ（施錠中は出さない）',
   ui.indexOf('srpg-sc-mas') >= 0 && /var mas = locked \? -1 : srpgAreaMasteryPct\(area\)/.test(ui));
 c.ok('習得率バッジのCSSがある', html.indexOf('.srpg-sc-mas{') >= 0);
 
+// ===== ガチャ（スカウト10連）：送りをゆっくり＋レア演出を豪華に =====
+c.ok('10連の送り間隔は定数 SRPG_SEQ_MS で管理', ui.indexOf('var SRPG_SEQ_MS = {') >= 0 && ui.indexOf('SRPG_SEQ_MS.mid') >= 0 && ui.indexOf('SRPG_SEQ_MS.low') >= 0);
+{
+  const m = ui.match(/var SRPG_SEQ_MS = \{ low: (\d+), mid: (\d+) \}/);
+  c.ok('送りは以前(low460/mid950)よりゆっくり', !!m && parseInt(m[1]) >= 700 && parseInt(m[2]) >= 1300);
+}
+c.ok('高レアに脈打つオーラ要素＋CSS', ui.indexOf("isHigh ? '<div class=\"srpg-scout-aura\">") >= 0 && html.indexOf('.srpg-scout-aura{') >= 0);
+c.ok('伝説(LG/SSS)は紙吹雪・星の雨を追い波で重ねる', /mon\.rank==='LG' \|\| mon\.rank==='SSS'/.test(ui) && /_lg[\s\S]{0,300}gachaFx\.rain/.test(ui));
+
 // ===== 復帰導線（数日ぶりの前向きな迎え・通知なしでアプリ内完結）=====
 c.ok('maybeShowComeback/_lastActivityGapDays が定義',
   html.indexOf('function maybeShowComeback(') >= 0 && html.indexOf('function _lastActivityGapDays(') >= 0);

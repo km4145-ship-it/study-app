@@ -1866,14 +1866,16 @@ function srpgScoutDo(n, useFree){
       var mon = { id:id, art:art, baseArt:art, sp:sp, rank:rank, lv:1, xp:0, name:name, stars:1 };
       ai.roster[id] = mon;
       cos.metDex[art] = 1;   // 図鑑：この種に出会った
-      got.push({ rank:rank, mon:mon, isNew:true, stars:1 });
+      // 表示ランクは必ず「その個体の実ランク」で統一（演出・開示・HIGH判定のズレを防ぐ）
+      got.push({ rank:mon.rank, mon:mon, isNew:true, stars:1 });
     } else {
       // 重複：★UP → ★5で進化 → ★5済みはコイン
       var ex = ai.roster[existId];
       var r = srpgStarAdd(ex, art);
       if(r.result === 'coin') cos.coin = (cos.coin||0) + r.coin;
       cos.metDex[ex.art] = 1;
-      got.push({ rank:rank, mon:ex, isNew:false, stars:r.stars, evolved:(r.result==='evolve'), starUp:(r.result==='star'), coin:(r.result==='coin'?r.coin:0), maxed:(r.result==='coin') });
+      // 進化でランクが上がる場合もあるため、必ず更新後の ex.rank を使う（g.rank === g.mon.rank を保証）
+      got.push({ rank:(ex.rank||rank), mon:ex, isNew:false, stars:r.stars, evolved:(r.result==='evolve'), starUp:(r.result==='star'), coin:(r.result==='coin'?r.coin:0), maxed:(r.result==='coin') });
     }
   });
   rpgSave(s);
@@ -2164,7 +2166,7 @@ function srpgScoutResults(got, revealed){
   var HIRANK = { S:1, SS:1, SSS:1, LG:1 };
   var many = got.length > 1 && !revealed;   // 順次開封済みは 開いた一覧で
   var cells = got.map(function(g, i){
-    if(g.full) return '<div class="srpg-got full"><div class="srpg-got-art">🍖</div><div class="srpg-got-nm">エサ+5</div><small>いっぱい</small></div>';
+    if(g.full || !g.mon) return '<div class="srpg-got full"><div class="srpg-got-art">'+(g.coin?'🪙':'🍖')+'</div><div class="srpg-got-nm">'+(g.coin?('コイン+'+g.coin):'エサ+5')+'</div><small>いっぱい</small></div>';
     var art = (typeof srpgMonArt==='function' && srpgMonArt(g.mon.art)) || _monStill(g.mon.art);
     var inner = _srpgScoutBadge(g)
       + '<div class="srpg-got-art">'+art+'</div>'

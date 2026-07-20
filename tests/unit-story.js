@@ -415,6 +415,8 @@ c.ok('初獲得は★1で図鑑追加', ui.indexOf('stars:1') >= 0 && ui.indexOf
 c.ok('旧重複→星へ統合するマイグレーション（パーティ保護）', ui.indexOf('function srpgMigrateStars') >= 0 && ui.indexOf('prot[m.id]') >= 0);
 c.ok('結果に NEW/★/進化/コイン バッジ', ui.indexOf('function _srpgScoutBadge') >= 0 && ui.indexOf('_srpgScoutBadge(g)') >= 0);
 c.ok('編成カードに★＋進化表示', ui.indexOf('srpg-tm-stars') >= 0 && ui.indexOf('_srpgStarStr(sp.stars)') >= 0);
+// ガチャ不具合修正：表示ランクを個体の実ランクに統一（演出=開示=結果グリッドの食い違いを防ぐ）
+c.ok('スカウト表示ランクは個体の実ランクで統一', ui.indexOf('rank:mon.rank, mon:mon') >= 0 && ui.indexOf('rank:(ex.rank||rank), mon:ex') >= 0);
 
 // ===== 👑 魔王ずかん（Stage3：強い順一覧・3D詳細・遭遇チェック）=====
 c.ok('魔王ずかん画面/詳細が定義', ui.indexOf('function srpgMaouDexScreen') >= 0 && ui.indexOf('function srpgMaouDetail') >= 0);

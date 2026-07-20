@@ -63,8 +63,8 @@ const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 c.ok('index.html は srpg-mons.js を srpg-ui.js の前で読む',
   html.indexOf('js/srpg-mons.js') >= 0 && html.indexOf('js/srpg-mons.js') < html.indexOf('js/srpg-ui.js'));
 
-// ===== 属性変種300体（60種×5属性・新規Batch1-4の40種を含む） =====
-c.eq('変種はちょうど300体', Object.keys(M.SRPG_MON_VARIANTS2).length, 300);
+// ===== 属性変種360体（72種×5属性・新規Batch1-5の52種を含む） =====
+c.eq('変種はちょうど360体', Object.keys(M.SRPG_MON_VARIANTS2).length, 360);
 c.eq('属性は5系統', Object.keys(M.SRPG_ELEM_VARIANTS).length, 5);
 Object.keys(M.SRPG_MON_VARIANTS2).slice(0, 100).forEach((id) => {
   const v = M.SRPG_MON_VARIANTS2[id];

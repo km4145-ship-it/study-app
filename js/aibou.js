@@ -34,6 +34,8 @@ var AIBOU_ART_SPECIES={
   usagi:'beast', buta:'beast', risu:'beast', mogura:'beast', kurage:'beast', kabuto:'beast', koala:'beast', same:'beast', wani:'dragon', kitsune:'beast', woodgo:'nature', hinotori:'dragon',
   // 新規Batch4
   tanuki:'beast', hamu:'beast', kame:'beast', ushi:'beast', zou:'beast', kaba:'beast', kirin:'beast', lion:'beast', washi:'beast', hyoudra:'dragon', hagane:'nature', unicorn:'beast',
+  // 新規Batch5
+  ebi:'beast', hachi:'beast', ari:'beast', ika:'beast', kuroneko:'beast', fukurou:'beast', chou:'beast', kappa:'beast', oni:'beast', tengu:'beast', umihebi:'dragon', kurisu:'nature',
   // 亜種（色ちがい・rpg-assets.jsのRPG_VARIANTS）は基本種と同じ種族
   slime2:'slime', flaskun2:'slime', goblin2:'beast', bat2:'beast', wolf2:'beast', ghost2:'beast',
   dragon2:'dragon', voltdrake2:'dragon', trent2:'nature', haniwa2:'nature'

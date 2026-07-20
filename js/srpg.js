@@ -982,7 +982,40 @@ var SRPG_STAGES = {
     terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:2,y:2,kind:'poison'},{x:3,y:2,kind:'poison'}],
     blocks:[{x:0,y:4,kind:'rock'},{x:5,y:4,kind:'rock'}],
     waves:[[{key:'dragon',x:0,y:1,lvl:12},{key:'mender',x:5,y:1,lvl:12}]],   // 回復役つき増援＝長期戦
-    enemies:[{key:'voltdrake',x:1,y:2,lvl:12},{key:'dragon',x:4,y:2,lvl:12},{key:'kyomu',x:3,y:0,lvl:15}] }
+    enemies:[{key:'voltdrake',x:1,y:2,lvl:12},{key:'dragon',x:4,y:2,lvl:12},{key:'kyomu',x:3,y:0,lvl:15}] },
+  // ===== 神々への道（魔王城クリア後の post-game：残り魔王を順に撃破→最強魔王→神様）=====
+  q_corr1: { id:'q_corr1', name:'魔王回廊 第一の門：大魔王級', grid:{ w:6, h:7 }, continent:'japanese', type:'quest', boss:'大魔王ゾルド',
+    story:['虚無竜を こえた 先に、さらなる 魔王たちが 待つ。','これが 魔王回廊…つよき 魔王を すべて たおし、その 頂点を めざせ！'],
+    allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
+    terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'}],
+    enemies:[{key:'enmaou',x:1,y:1,lvl:22},{key:'daimaou',x:3,y:0,lvl:24},{key:'hyoumaou',x:4,y:1,lvl:22}] },
+  q_corr2: { id:'q_corr2', name:'魔王回廊 第二の門：獄の魔王', grid:{ w:6, h:7 }, continent:'science', type:'quest', boss:'雷獄魔王フルグル',
+    story:['第二の門。炎・氷・雷を あやつる 獄の魔王たちが 道を ふさぐ！'],
+    allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
+    terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:3,y:2,kind:'poison'}],
+    enemies:[{key:'maou_ifrit',x:1,y:1,lvl:25},{key:'maou_fulgur',x:3,y:0,lvl:27},{key:'maou_cocyt',x:4,y:1,lvl:25}] },
+  q_corr3: { id:'q_corr3', name:'魔王回廊 第三の門：災いの魔王', grid:{ w:6, h:7 }, continent:'social', type:'quest', boss:'奈落魔王アビス',
+    story:['第三の門。大地・嵐・奈落を つかさどる 魔王たち…ひるむな、前へ！'],
+    allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
+    terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:2,y:2,kind:'poison'},{x:3,y:2,kind:'poison'}],
+    enemies:[{key:'maou_gaia',x:1,y:1,lvl:28},{key:'maou_abyss',x:3,y:0,lvl:30},{key:'maou_tempest',x:4,y:1,lvl:28}] },
+  q_corr4: { id:'q_corr4', name:'魔王回廊 第四の門：滅びの四魔王', grid:{ w:6, h:7 }, continent:'math', type:'quest', boss:'滅光魔王ルクス',
+    story:['第四の門。滅びを つかさどる 四魔王。ここを こえれば 玉座は 目前！'],
+    allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
+    terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:2,y:2,kind:'poison'},{x:3,y:2,kind:'poison'}],
+    enemies:[{key:'maou_chaos',x:1,y:1,lvl:31},{key:'maou_profan',x:2,y:0,lvl:33},{key:'maou_lux',x:3,y:0,lvl:34},{key:'maou_calam',x:4,y:1,lvl:31}] },
+  q_overlord: { id:'q_overlord', name:'終焉の玉座：最強の魔王', grid:{ w:6, h:7 }, continent:'math', type:'quest', boss:'終焉魔王オメガ',
+    story:['すべての 魔王を こえた 者だけが たどりつく 玉座。','最強の魔王 終焉魔王オメガ「よくぞ ここまで…だが 世界は わたしが 無に かえす！」'],
+    allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
+    terrain:[{x:2,y:3,kind:'fire'},{x:3,y:3,kind:'fire'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:2,y:2,kind:'poison'},{x:3,y:2,kind:'poison'}],
+    blocks:[{x:0,y:4,kind:'rock'},{x:5,y:4,kind:'rock'}],
+    enemies:[{key:'maou_chaos',x:1,y:1,lvl:35},{key:'overlord',x:3,y:0,lvl:38},{key:'maou_lux',x:4,y:1,lvl:35}] },
+  q_god: { id:'q_god', name:'創世の頂：神との対話', grid:{ w:6, h:7 }, continent:'math', type:'quest', boss:'創造神アイオーン',
+    story:['魔王すら こえた とき、天の 頂が ひらいた。','創造神アイオーン「…見事だ。ならば わたしが 全力で ためそう。これが 最後の 試練だ。」'],
+    allySlots:[{x:1,y:6},{x:2,y:6},{x:3,y:6},{x:4,y:6},{x:2,y:5}],
+    terrain:[{x:2,y:3,kind:'heal'},{x:3,y:3,kind:'heal'},{x:0,y:6,kind:'heal'},{x:5,y:6,kind:'heal'},{x:2,y:2,kind:'fire'},{x:3,y:2,kind:'fire'}],
+    blocks:[{x:0,y:4,kind:'rock'},{x:5,y:4,kind:'rock'}],
+    enemies:[{key:'maou_profan',x:1,y:1,lvl:42},{key:'god',x:3,y:0,lvl:45},{key:'maou_lux',x:4,y:1,lvl:42}] }
 };
 function srpgStage(id){ return SRPG_STAGES[id] || SRPG_STAGES.arena1; }
 

@@ -386,4 +386,16 @@ c.ok('神様の3Dは最大サイズ（強さ＝big）', S.SRPG_MAOU_3D.god.big >
   c.ok(a + ' ch8ボスは魔王(maou_*)', /^maou_/.test(st.enemies[1].key) && st.enemies[1].boss === true && st.boss === st.enemies[1].name);
 });
 
+// ===== 神々への道（魔王城クリア後の post-game：回廊→最強魔王→神様）=====
+const GAUNTLET = ['q_corr1', 'q_corr2', 'q_corr3', 'q_corr4', 'q_overlord', 'q_god'];
+GAUNTLET.forEach(function (id) {
+  const st = S.SRPG_STAGES[id];
+  c.ok('回廊ステージ存在＋quest＋story ' + id, !!(st && st.type === 'quest' && Array.isArray(st.story) && st.story.length > 0));
+  c.ok('回廊にボス標識の敵 ' + id, st.enemies.some(function (e) { const t = S.SRPG_ENEMY_TEMPLATES[e.key]; return t && t.boss; }));
+  S.srpgBuildUnits(st, [{ id: 'h', art: 'cat', role: 'attacker', lvl: 20, rankBase: 10 }]);   // 生成が例外なく通る
+});
+c.ok('玉座は最強魔王(overlord)を含む', S.SRPG_STAGES.q_overlord.enemies.some(function (e) { return e.key === 'overlord'; }));
+c.ok('頂は神様(god)を含む', S.SRPG_STAGES.q_god.enemies.some(function (e) { return e.key === 'god'; }));
+c.ok('回廊は虚無竜(q_secret)クリアまで隠す（srpg-uiにゲート）', ui.indexOf("!cleared['q_secret']") >= 0 && ui.indexOf('q_god:1') >= 0);
+
 c.done();

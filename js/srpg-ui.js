@@ -292,6 +292,8 @@ function srpgStageSelect(){
   var quests = Object.keys(SRPG_STAGES).filter(function(id){ return SRPG_STAGES[id].type === 'quest'; });
   // 裏ボス（エンドゲーム）は 魔王城クリアまで 隠す＝サプライズ
   if(!cleared['q_maou']){ quests = quests.filter(function(id){ return id !== 'q_secret'; }); }
+  // 神々への道（魔王回廊→最強魔王→神様）は 虚無竜(q_secret)クリアまで 隠す＝さらなるサプライズ
+  if(!cleared['q_secret']){ var _GNT={q_corr1:1,q_corr2:1,q_corr3:1,q_corr4:1,q_overlord:1,q_god:1}; quests = quests.filter(function(id){ return !_GNT[id]; }); }
   var trains = Object.keys(SRPG_STAGES).filter(function(id){ return SRPG_STAGES[id].type !== 'quest'; });
   var questCards = quests.map(function(id, i){
     var locked = i > 0 && !cleared[quests[i-1]];

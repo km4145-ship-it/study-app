@@ -480,6 +480,18 @@ function _monEvoDeco(stage){
   return { back:back, front:front };
 }
 // アートキー→オリジナルSVG（無ければ null＝呼び出し側が従来アートへフォールバック）
+// ===== 魔王ヒエラルキーの盤上2Dアート：demon(villain)生SVGを 教科色にフィルタ注入（3Dは char3d 側で強さ差を表現）=====
+// 生SVGのまま（<svg…mon-svg…</svg>）＝図鑑/検証を満たしつつ 教科ごとに色を変える。
+(function(){
+  var R = (typeof SRPG_MAOU_ROSTER !== 'undefined') ? SRPG_MAOU_ROSTER
+        : (typeof require !== 'undefined' ? (function(){ try{ return require('./srpg.js').SRPG_MAOU_ROSTER; }catch(e){ return null; } })() : null);
+  if(!R || !SRPG_MON_ART.villain) return;
+  var HUE = { math:30, japanese:0, english:110, science:160, social:60 };
+  function tint(css){ return SRPG_MON_ART.villain.replace('class="mon-svg"', 'class="mon-svg" style="filter:' + css + '"'); }
+  R.forEach(function(m){ if(!SRPG_MON_ART[m.key]) SRPG_MON_ART[m.key] = tint('hue-rotate(' + (HUE[m.area] || 0) + 'deg) saturate(1.2)'); });
+  if(!SRPG_MON_ART.overlord) SRPG_MON_ART.overlord = tint('saturate(1.5) brightness(.85)');                          // 最強魔王：漆黒
+  if(!SRPG_MON_ART.god)      SRPG_MON_ART.god      = tint('saturate(0) brightness(1.7) sepia(1) saturate(4) hue-rotate(-12deg)');  // 神様：黄金の光
+})();
 function srpgMonArt(art){
   if(!art) return null;
   if(SRPG_MON_ART[art]) return SRPG_MON_ART[art];   // 直接（bespoke: slime_king/slime_lord 等）

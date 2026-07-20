@@ -84,8 +84,28 @@ var MON3D_SPECS = {
   };
   Object.keys(V).forEach(function(k){ var b=MON3D_SPECS[k.replace(/2$/,'')]; if(b) MON3D_SPECS[k]=Object.assign({}, b, V[k]); });
 })();
+// 魔王ヒエラルキーの3D：大陸(教科)ごとの demonローブ配色。big（サイズ）で強さを段階表現。神様=holyで光の姿。
+var _C3D_MAOU_PAL = {
+  math:     { main:'#7c2d12', inner:'#431407', trim:'#f59e0b', eye:'#fbbf24', horns:'#fcd34d' },
+  japanese: { main:'#3b0764', inner:'#12082e', trim:'#a855f7', eye:'#c084fc', horns:'#c4b5fd' },
+  english:  { main:'#064e3b', inner:'#022c22', trim:'#10b981', eye:'#34d399', horns:'#6ee7b7' },
+  science:  { main:'#0c4a6e', inner:'#082f49', trim:'#38bdf8', eye:'#7dd3fc', horns:'#bae6fd' },
+  social:   { main:'#451a03', inner:'#292524', trim:'#a16207', eye:'#f59e0b', horns:'#d6d3d1' }
+};
+function _c3dMaouSpec(mh){
+  var p=_C3D_MAOU_PAL[mh.area]||_C3D_MAOU_PAL.math;
+  var s={ plan:'robe', main:p.main, inner:p.inner, trim:p.trim, eye:p.eye, pupil:'#0b0219', horns:p.horns, demon:true, big:mh.big||1.2 };
+  if(mh.crown) s.crown='#fbbf24';
+  if(mh.holy){   // 神様＝光（魔の角を消し 白金・後光色へ）
+    s.main='#ede9fe'; s.inner='#f8fafc'; s.trim='#fde047'; s.eye='#fde047'; s.pupil='#a16207'; s.horns='#fef3c7'; s.demon=false; s.crown='#fde047';
+  }
+  return s;
+}
 function mon3dSpecOf(key){
   if(MON3D_SPECS[key]) return MON3D_SPECS[key];
+  // 魔王ヒエラルキー（srpg.jsの SRPG_MAOU_3D を 描画時に遅延参照＝ロード順に依存しない）
+  var mh=(typeof SRPG_MAOU_3D!=='undefined' && SRPG_MAOU_3D) ? SRPG_MAOU_3D[key] : null;
+  if(mh) return _c3dMaouSpec(mh);
   var em=/^(.*)_e([23])$/.exec(key);   // 進化フォーム：基本種の3D＋王冠・大型化・魔化（stage3）
   if(em && MON3D_SPECS[em[1]]){ var b=MON3D_SPECS[em[1]], s3=(em[2]==='3');
     return Object.assign({}, b, { crown: b.crown||(s3?'#fbbf24':'#fcd34d'), big:(b.big||1)*(s3?1.26:1.13), demon: s3?true:b.demon }); }

@@ -6,6 +6,7 @@ const { makeChecker, ROOT } = require('./lib/assert');
 const c = makeChecker('unit-story');
 
 const S = require(path.join(ROOT, 'js', 'srpg.js'));
+const M = require(path.join(ROOT, 'js', 'srpg-mons.js'));
 // 章の最終ノード（＝章ボス）index。ノード数はデータ駆動で可変（ボリューム増）。
 const LAST = (a, ci) => S.srpgNodeCount(a, ci) - 1;
 
@@ -364,5 +365,25 @@ c.ok('既存ユーザーのログイン着地で復帰チェックを呼ぶ',
 c.ok('復帰は毎日/60日超を除外し 今日は1回だけ',
   /gap<2 \|\| gap>60/.test(html) && html.indexOf("safeLS.getItem('comeback_seen')===tk") >= 0);
 c.ok('comeback_seen は per-user 同期対象', html.indexOf('comeback_seen:1') >= 0);
+
+// ===== 魔王ヒエラルキー（神様＞最強魔王＞魔王30。各大陸＋シナリオに配分・2D/3D整備）=====
+const maou = S.srpgMaouList();
+c.eq('魔王一覧は32体（30魔王＋最強魔王＋神様）', maou.length, 32);
+c.eq('魔王tierは30体', maou.filter(function (m) { return m.tier === 'maou'; }).length, 30);
+c.ok('最強は神様（rankBase最大32）', maou[0].tier === 'god' && maou[0].rankBase === 32);
+c.ok('神様＞最強魔王（overlord26）', maou[0].rankBase > maou[1].rankBase && maou[1].tier === 'overlord' && maou[1].rankBase === 26);
+c.ok('最強魔王＞どの魔王より強い', maou[1].rankBase > maou[2].rankBase && maou[2].tier === 'maou');
+maou.forEach(function (m) {
+  const t = S.SRPG_ENEMY_TEMPLATES[m.key];
+  c.ok('魔王テンプレ＋boss/かくせい/大技 ' + m.key, !!(t && t.boss && t.phase && t.phase.name && t.charge && t.charge.warn && t.charge.power > 0));
+  c.ok('魔王に盤上2Dアート ' + m.key, typeof M.SRPG_MON_ART[t.art] === 'string' && M.SRPG_MON_ART[t.art].indexOf('<svg') >= 0);
+});
+c.ok('神様/最強魔王に3Dスペック元(SRPG_MAOU_3D)', !!S.SRPG_MAOU_3D.god && !!S.SRPG_MAOU_3D.overlord && S.SRPG_MAOU_3D.god.holy === true);
+c.ok('神様の3Dは最大サイズ（強さ＝big）', S.SRPG_MAOU_3D.god.big > S.SRPG_MAOU_3D.overlord.big);
+// 各大陸 ch8 に魔王を1体ずつ配分
+['math', 'japanese', 'english', 'science', 'social'].forEach(function (a) {
+  const st = S.srpgChapterStage(a, 7, LAST(a, 7));
+  c.ok(a + ' ch8ボスは魔王(maou_*)', /^maou_/.test(st.enemies[1].key) && st.enemies[1].boss === true && st.boss === st.enemies[1].name);
+});
 
 c.done();

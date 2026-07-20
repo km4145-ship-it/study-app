@@ -846,7 +846,84 @@ var SRPG_ENEMY_TEMPLATES = {
     phase:{ hp:0.5, atk:1, def:1, name:'かくせい', msg:'ぐ…ぬぬ！ まだ おわらん！ ほんきを だすぞ！' },
     charge:{ name:'めつぼうの いちげき', aoe:'burst', power:210, mp:6, warn:'魔王が ちからを ためている…！ つぎのターン 大技が くる！ 赤いマスから にげろ！' } }
 };
+
+// ===== 魔王ヒエラルキー：各大陸＋シナリオに配分する「魔王」30体＋最強魔王＋神様（データ駆動で量産）=====
+// 強さは rankBase と 3Dの big（サイズ）で段階表現。既存の幹部/最終/大魔王/裏ボスも「魔王」に統合。
+// area＝弱点教科（学習で弱点を突く）。scene:true＝魔王城シナリオ側。ci＝この大陸の章ボスに配置。exist:true＝既存テンプレ流用。
+var SRPG_MAOU_ROSTER = [
+  // 既存を「魔王」として明示（テンプレは上で定義済み）
+  { key:'zeron',    name:'天秤の魔神ゼロン',     area:'math',     rankBase:12, exist:true },
+  { key:'jp_lt',    name:'静寂の魔神サイレント', area:'japanese', rankBase:12, exist:true },
+  { key:'en_lt',    name:'混沌の魔神バベル',     area:'english',  rankBase:12, exist:true },
+  { key:'sci_lt',   name:'まやかしの魔神ペテル', area:'science',  rankBase:12, exist:true },
+  { key:'so_lt',    name:'忘却の魔神レーテ',     area:'social',   rankBase:12, exist:true },
+  { key:'mathfinal',name:'入試魔竜ファイナル',   area:'math',     rankBase:15, exist:true },
+  { key:'jp_fin',   name:'国語魔王おに',         area:'japanese', rankBase:15, exist:true },
+  { key:'en_fin',   name:'英語魔王モロー',       area:'english',  rankBase:15, exist:true },
+  { key:'sci_fin',  name:'理科魔王ボルト',       area:'science',  rankBase:15, exist:true },
+  { key:'so_fin',   name:'社会魔王トキ',         area:'social',   rankBase:15, exist:true },
+  { key:'villain',  name:'魔王シグマ',           area:'math',     rankBase:16, exist:true, scene:true },
+  { key:'kyomu',    name:'虚無竜ムゲン',         area:'math',     rankBase:20, exist:true, scene:true },
+  // 大魔王級3体（既存はスカウトアート／敵テンプレをここで付与）
+  { key:'daimaou',  name:'大魔王ゾルド',         area:'japanese', rankBase:18, scene:true },
+  { key:'enmaou',   name:'炎魔王グレン',         area:'science',  rankBase:18, scene:true },
+  { key:'hyoumaou', name:'氷魔王ブリザ',         area:'math',     rankBase:18, scene:true },
+  // 新規：各大陸 ch8(ci7) の魔王（5体・大陸に配分）
+  { key:'maou_ma8', name:'重力魔王グラビス',     area:'math',     ci:7, rankBase:14 },
+  { key:'maou_jp8', name:'幽玄魔王ノスタル',     area:'japanese', ci:7, rankBase:14 },
+  { key:'maou_en8', name:'翻訳魔王トランスラ',   area:'english',  ci:7, rankBase:14 },
+  { key:'maou_sc8', name:'電磁魔王マグネス',     area:'science',  ci:7, rankBase:14 },
+  { key:'maou_so8', name:'版図魔王エンパイア',   area:'social',   ci:7, rankBase:14 },
+  // 新規：魔王城シナリオの回廊（10体・post-game 適正レベル）
+  { key:'maou_ifrit', name:'炎獄魔王イフリータ',   area:'science',  scene:true, rankBase:19 },
+  { key:'maou_cocyt', name:'氷獄魔王コキュートス', area:'math',     scene:true, rankBase:19 },
+  { key:'maou_fulgur',name:'雷獄魔王フルグル',     area:'english',  scene:true, rankBase:20 },
+  { key:'maou_gaia',  name:'大地魔王ガイア',       area:'social',   scene:true, rankBase:20 },
+  { key:'maou_tempest',name:'嵐魔王テンペスト',    area:'english',  scene:true, rankBase:20 },
+  { key:'maou_abyss', name:'奈落魔王アビス',       area:'japanese', scene:true, rankBase:21 },
+  { key:'maou_chaos', name:'混沌魔王カオス',       area:'social',   scene:true, rankBase:22 },
+  { key:'maou_calam', name:'災厄魔王カラミテ',     area:'social',   scene:true, rankBase:22 },
+  { key:'maou_profan',name:'深淵魔王プロファン',   area:'japanese', scene:true, rankBase:23 },
+  { key:'maou_lux',   name:'滅光魔王ルクス',       area:'science',  scene:true, rankBase:24 }
+];
+var SRPG_MAOU_3D = {};   // key -> {area,big,crown,holy}（char3dが描画時に参照＝3Dの遅延生成元）
+var _MAOU_RESIST = { math:'english', japanese:'science', english:'math', science:'social', social:'japanese' };
+(function(){
+  function big3d(rb){ return Math.min(1.1 + (rb - 12) * 0.022, 1.42); }   // rankBase→サイズ（強さ）
+  SRPG_MAOU_ROSTER.forEach(function(m){
+    SRPG_MAOU_3D[m.key] = { area:m.area, big:big3d(m.rankBase), crown:(m.rankBase >= 18) };
+    if(m.exist) return;   // 既存テンプレ（ゼロン等）はそのまま
+    var rb = m.rankBase, aoe = (rb >= 20 ? 'burst' : 'cross');
+    SRPG_ENEMY_TEMPLATES[m.key] = {
+      art:m.key, name:m.name, role:(rb >= 17 ? 'tank' : 'attacker'), rankBase:rb,
+      weak:m.area, resist:_MAOU_RESIST[m.area] || 'english', boss:true,
+      skills:['burstball','poisonbreath'],
+      phase:{ hp:0.5, atk:1, def:1, name:'かくせい', msg:m.name + '『まだ おわらん…！ ほんきを だす！』' },
+      charge:{ name:'ぜつぼうの いちげき', aoe:aoe, power:150 + rb * 6, mp:6,
+        warn:m.name + 'が 力を ためている…！ つぎのターン 大技！ 赤いマスから にげろ！' }
+    };
+  });
+  // 最強の魔王（ラスボス＝神様の前）
+  SRPG_MAOU_3D['overlord'] = { area:'math', big:1.5, crown:true };
+  SRPG_ENEMY_TEMPLATES['overlord'] = { art:'overlord', name:'終焉魔王オメガ', role:'tank', rankBase:26,
+    weak:'math', resist:'english', boss:true, skills:['burstball','poisonbreath'],
+    phase:{ hp:0.55, atk:1, def:1, name:'しんの すがた', msg:'終焉魔王『これが 最後だ…！ すべてを 無に かえす！』' },
+    charge:{ name:'しゅうえんの ひとふり', aoe:'burst', power:260, mp:7, warn:'終焉魔王が 全ての力を あつめている…！ 巨大な大技！ 赤マスから 全力で にげろ！' } };
+  // 神様（裏の裏ボス・このゲームで一番強い）
+  SRPG_MAOU_3D['god'] = { area:'math', big:1.65, crown:true, holy:true };
+  SRPG_ENEMY_TEMPLATES['god'] = { art:'god', name:'創造神アイオーン', role:'tank', rankBase:32,
+    weak:'math', resist:'social', boss:true, skills:['burstball','poisonbreath'],
+    phase:{ hp:0.6, atk:1, def:1, name:'しんせい', msg:'創造神『…見事だ。ならば 全力で 相手をしよう。』' },
+    charge:{ name:'てんち そうぞう', aoe:'burst', power:320, mp:8, warn:'創造神が 天地の力を あつめている…！ 世界を つつむ 大技！ 生き残れ！' } };
+})();
 function srpgEnemyTemplate(key){ return SRPG_ENEMY_TEMPLATES[key] || SRPG_ENEMY_TEMPLATES.slime; }
+// 魔王一覧（強い順）。神様＞最強魔王＞魔王30。3Dの big（サイズ）でも強さが分かる。
+function srpgMaouList(){
+  var out = SRPG_MAOU_ROSTER.map(function(m){ return { key:m.key, name:m.name, rankBase:m.rankBase, tier:'maou' }; });
+  out.push({ key:'overlord', name:'終焉魔王オメガ', rankBase:26, tier:'overlord' });
+  out.push({ key:'god', name:'創造神アイオーン', rankBase:32, tier:'god' });
+  return out.sort(function(a,b){ return b.rankBase - a.rankBase; });
+}
 
 // ===== ステージ定義（グリッド・敵配置・味方の出撃マス） =====
 //   allySlots: 味方をならべる開始マス（前から順に使う）。
@@ -1057,6 +1134,12 @@ var SRPG_CONTINENTS = {
     ]
   }
 };
+// 各大陸 ch8(ci7) のボスを「魔王」に格上げ＝各大陸に魔王を1体ずつ配分（2D/3Dは魔王ヒエラルキー側で強さ表現）
+[['math','maou_ma8'],['japanese','maou_jp8'],['english','maou_en8'],['science','maou_sc8'],['social','maou_so8']].forEach(function(p){
+  var cch = SRPG_CONTINENTS[p[0]] && SRPG_CONTINENTS[p[0]].chapters[7];
+  var tpl = SRPG_ENEMY_TEMPLATES[p[1]];
+  if(cch && tpl){ cch.bossMon = p[1]; cch.boss = tpl.name; }
+});
 function srpgContinent(area){ return SRPG_CONTINENTS[area] || null; }
 function srpgChapterCount(area){ var c = SRPG_CONTINENTS[area]; return c ? c.chapters.length : 0; }
 // 1章のノード数（データ駆動）。章が進むほど道のりが長い＝ボリューム約7倍（旧3ノード/章）。ch.nodeN で個別上書き可。
@@ -1174,6 +1257,7 @@ if(typeof module !== 'undefined' && module.exports){
   module.exports = {
     SRPG_SUBJECTS: SRPG_SUBJECTS, SRPG_SUBJECT_KEYS: SRPG_SUBJECT_KEYS, SRPG_ROLES: SRPG_ROLES,
     SRPG_SKILLS: SRPG_SKILLS, SRPG_ENEMY_TEMPLATES: SRPG_ENEMY_TEMPLATES, SRPG_STAGES: SRPG_STAGES,
+    SRPG_MAOU_ROSTER: SRPG_MAOU_ROSTER, SRPG_MAOU_3D: SRPG_MAOU_3D, srpgMaouList: srpgMaouList,
     srpgSubjectMeta: srpgSubjectMeta, srpgElemMult: srpgElemMult, srpgMultLabel: srpgMultLabel,
     SRPG_RESIST_MULT: SRPG_RESIST_MULT, srpgResistKind: srpgResistKind, srpgResistMult: srpgResistMult, srpgResistLabel: srpgResistLabel,
     SRPG_STATUS_META: SRPG_STATUS_META, srpgApplyStatus: srpgApplyStatus, srpgHasStatus: srpgHasStatus,

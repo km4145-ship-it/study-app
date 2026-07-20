@@ -409,4 +409,11 @@ c.ok('最強魔王overlordもスカウト(神話帯6)', M.srpgTierOfArt('overlor
 c.ok('神様godはボス専用＝非スカウト(帯0)', M.srpgTierOfArt('god') === 0);
 c.ok('図鑑はホームから直行できる（srpgOpen dex分岐＋📖カード）', ui.indexOf("dest==='dex'){ srpgDexScreen()") >= 0);
 
+// ===== 👑 魔王ずかん（Stage3：強い順一覧・3D詳細・遭遇チェック）=====
+c.ok('魔王ずかん画面/詳細が定義', ui.indexOf('function srpgMaouDexScreen') >= 0 && ui.indexOf('function srpgMaouDetail') >= 0);
+c.ok('なかま図鑑に👑魔王ずかんタブ', ui.indexOf('onclick="srpgMaouDexScreen()"') >= 0);
+c.ok('魔王ずかんは強い順(srpgMaouList)＋遭遇記録(_srpgMetDex)', ui.indexOf('srpgMaouList()') >= 0 && ui.indexOf('_srpgMetDex()') >= 0);
+c.ok('魔王詳細は3D(mon3dTag)で姿を見せる', ui.indexOf('mon3dTag(key)') >= 0);
+c.ok('バトル開始で ボス魔王を遭遇記録（図鑑が開く）', ui.indexOf('srpgIsBossUnit(u) && u.art && !_c.metDex') >= 0);
+
 c.done();

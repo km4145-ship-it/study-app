@@ -2256,6 +2256,34 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-dex-cell:not(.got) .srpg-dex-art{ filter:brightness(0) opacity(.55); }
   .srpg-dex-cell.got{ border-color:rgba(110,231,183,.45); }
   .srpg-dex-prog{ text-align:center; font-weight:900; color:#fff; max-width:340px; margin:0 auto 8px; }
+  /* 👑 魔王ずかん */
+  .srpg-dex-tabs{ display:flex; gap:8px; justify-content:center; margin-bottom:10px; }
+  .srpg-dex-tabs .on{ background:linear-gradient(135deg,#f59e0b,#db2777); color:#fff; border:none; }
+  .srpg-mdex-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(98px,1fr)); gap:9px; }
+  .srpg-mdex-cell{ position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; background:rgba(30,27,52,.6); border:1.5px solid rgba(148,163,184,.3); border-radius:14px; padding:20px 4px 7px; font-family:inherit; cursor:pointer; color:#e8eefc; }
+  .srpg-mdex-cell.lock{ opacity:.6; cursor:default; }
+  .srpg-mdex-cell.maou.got{ border-color:rgba(167,139,250,.6); box-shadow:0 0 10px rgba(167,139,250,.25); }
+  .srpg-mdex-cell.ovl.got{ border-color:rgba(251,146,60,.7); box-shadow:0 0 12px rgba(251,146,60,.35); background:linear-gradient(135deg,#2a1206,#3b1f0a); }
+  .srpg-mdex-cell.god.got{ border-color:rgba(253,224,71,.8); box-shadow:0 0 16px rgba(253,224,71,.45); background:linear-gradient(135deg,#3a2f0a,#4a3c10); }
+  .srpg-mdex-badge{ position:absolute; top:4px; left:6px; font-size:.56rem; font-weight:900; padding:1px 6px; border-radius:8px; background:rgba(167,139,250,.3); color:#e9d5ff; }
+  .srpg-mdex-cell.ovl .srpg-mdex-badge{ background:rgba(251,146,60,.35); color:#fed7aa; }
+  .srpg-mdex-cell.god .srpg-mdex-badge{ background:rgba(253,224,71,.35); color:#fef9c3; }
+  .srpg-mdex-art{ width:56px; height:58px; }
+  .srpg-mdex-art svg, .srpg-mdex-art canvas{ width:100%; height:100%; }
+  .srpg-mdex-q{ font-size:2rem; line-height:58px; color:#64748b; font-weight:900; }
+  .srpg-mdex-nm{ font-size:.64rem; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .srpg-mdex-str{ font-size:.6rem; color:#fbbf24; letter-spacing:-1px; }
+  .srpg-mdex-chk{ font-size:.56rem; font-weight:800; color:#6ee7b7; }
+  .srpg-mdex-chk.lock{ color:#64748b; }
+  .srpg-mdet{ max-width:340px; margin:0 auto; text-align:center; }
+  .srpg-mdet-3d{ width:180px; height:200px; margin:0 auto 6px; }
+  .srpg-mdet-3d svg, .srpg-mdet-3d canvas{ width:100%; height:100%; }
+  .srpg-mdet-badge{ display:inline-block; font-weight:900; padding:3px 12px; border-radius:10px; margin-bottom:4px; background:rgba(167,139,250,.3); color:#e9d5ff; }
+  .srpg-mdet-badge.overlord{ background:rgba(251,146,60,.35); color:#fed7aa; }
+  .srpg-mdet-badge.god{ background:rgba(253,224,71,.4); color:#fef9c3; }
+  .srpg-mdet-nm{ font-size:1.15rem; font-weight:900; color:#fff; margin-bottom:4px; }
+  .srpg-mdet-str{ font-size:.9rem; color:#fbbf24; margin-bottom:8px; }
+  .srpg-mdet-row{ font-size:.8rem; color:#cbd5e1; margin:4px 0; }
   .srpg-dex-rw{ display:flex; flex-direction:column; gap:3px; text-align:center; font-size:.74rem; font-weight:800; color:#cbd5e1; margin-bottom:10px; }
   .srpg-dex-rw .done{ color:#6ee7b7; }
   /* ガチャえらび（2種類のハブ） */

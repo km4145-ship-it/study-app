@@ -567,6 +567,11 @@ function srpgBattleBegin(){
   var lead = srpgB.units.filter(function(u){ return u.side==='ally' && u.isLeader; })[0] || srpgB.units.filter(function(u){ return u.side==='ally'; })[0];
   var enemies = srpgB.units.filter(function(u){ return u.side==='enemy'; });
   var boss = enemies.filter(srpgIsBossUnit)[0] || enemies[enemies.length-1];
+  // 魔王図鑑：出会ったボス（魔王）を「遭遇」記録＝図鑑で姿と名前が開く
+  try{ var _c=rpgCosState(rpgState()); if(!_c.metDex)_c.metDex={}; var _md=false;
+    enemies.forEach(function(u){ if(srpgIsBossUnit(u) && u.art && !_c.metDex[u.art]){ _c.metDex[u.art]=1; _md=true; } });
+    if(_md) rpgSave(rpgState());
+  }catch(e){}
   srpgVsIntro(lead, boss, function(){
     srpgChapterHint(srpgB.stage);   // 単元・弱点教科・先生の一言（学習の接続）
     if(lead && lead.leaderTrait){ try{ showToast('👑', 'リーダー特性 発動！', lead.leaderTrait.name+'：'+lead.leaderTrait.desc); }catch(e){} }
@@ -1975,12 +1980,64 @@ function srpgDexScreen(){
   var rwList = SRPG_DEX_REWARDS.map(function(r){ return '<span class="'+(cos.dexRw[r.id]?'done':'')+'">'+(cos.dexRw[r.id]?'✅':'🎁')+' '+r.label+'</span>'; }).join('');
   document.getElementById('srpg-body').innerHTML =
     '<div class="srpg-dex">'
+    + '<div class="srpg-dex-tabs"><button class="srpg-mini on">🐾 なかま</button><button class="srpg-mini2" onclick="srpgMaouDexScreen()">👑 魔王ずかん</button></div>'
     + '<div class="srpg-select-lead">📖 なかま ずかん<br><small>これまでに なかまにした モンスターの きろく</small></div>'
     + '<div class="srpg-dex-prog"><div class="srpg-pity-bar"><i style="width:'+prog.pct+'%"></i></div><b>'+prog.count+' / '+prog.total+'</b> しゅるい</div>'
     + rwMsg
     + '<div class="srpg-dex-rw">'+rwList+'</div>'
     + '<div class="srpg-dex-grid">'+cells+'</div>'
     + '<button class="srpg-mini" onclick="srpgScoutScreen()">← スカウトへもどる</button></div>';
+  try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+// ===== 👑 魔王ずかん：30魔王＋最強魔王＋神様を 強い順に。ぼうけんで出会うと ひらく（グリッド＝2D／タップで3D詳細）=====
+var _MAOU_SUBJ_LB = { math:'算数・数学', japanese:'国語', english:'英語', science:'理科', social:'社会' };
+function srpgMaouDexScreen(){
+  srpgB = null;
+  var met = _srpgMetDex();
+  var list = srpgMaouList();   // 強い順（rankBase降順）＝神様＞最強魔王＞魔王30
+  var TIER = { god:{lb:'神様',cl:'god'}, overlord:{lb:'最強魔王',cl:'ovl'}, maou:{lb:'魔王',cl:'maou'} };
+  var gotN = list.filter(function(m){ return met[m.key]; }).length;
+  var cells = list.map(function(m){
+    var got = !!met[m.key], t = TIER[m.tier] || TIER.maou;
+    var stars = Math.max(1, Math.min(7, Math.round(m.rankBase/5)));
+    var art = got ? ((typeof srpgMonArt==='function' && srpgMonArt(m.key)) || _monStill(m.key)) : '<div class="srpg-mdex-q">？</div>';
+    return '<button class="srpg-mdex-cell '+t.cl+(got?' got':' lock')+'"'+(got?(' onclick="srpgMaouDetail(\''+m.key+'\')"'):' disabled')+'>'
+      + '<span class="srpg-mdex-badge">'+t.lb+'</span>'
+      + '<span class="srpg-mdex-art">'+art+'</span>'
+      + '<span class="srpg-mdex-nm">'+escapeHtml(got?m.name:'？？？')+'</span>'
+      + '<span class="srpg-mdex-str">'+'★'.repeat(stars)+'</span>'
+      + '<span class="srpg-mdex-chk'+(got?'':' lock')+'">'+(got?'✅ であった':'？ みはっけん')+'</span>'
+      + '</button>';
+  }).join('');
+  document.getElementById('srpg-title').textContent = '魔王ずかん';
+  document.getElementById('srpg-body').innerHTML =
+    '<div class="srpg-dex">'
+    + '<div class="srpg-dex-tabs"><button class="srpg-mini2" onclick="srpgDexScreen()">🐾 なかま</button><button class="srpg-mini on">👑 魔王ずかん</button></div>'
+    + '<div class="srpg-select-lead">👑 魔王ずかん<br><small>強い順にならぶ（神様 ＞ 最強魔王 ＞ 魔王30）。ぼうけんで 出会うと ひらく</small></div>'
+    + '<div class="srpg-dex-prog"><div class="srpg-pity-bar"><i style="width:'+Math.round(gotN/list.length*100)+'%"></i></div><b>'+gotN+' / '+list.length+'</b> 体 発見</div>'
+    + '<div class="srpg-mdex-grid">'+cells+'</div>'
+    + '<button class="srpg-mini" onclick="srpgStageSelect()">← もどる</button></div>';
+  try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
+}
+// 魔王の詳細：3Dで姿（強さ＝大きさ）を見せる＋つよさ星・弱点教科・大技
+function srpgMaouDetail(key){
+  var m = srpgMaouList().filter(function(x){ return x.key===key; })[0]; if(!m){ srpgMaouDexScreen(); return; }
+  var t = SRPG_ENEMY_TEMPLATES[key] || {};
+  var tierLb = m.tier==='god' ? '神様（このゲームで一番強い）' : (m.tier==='overlord' ? '最強の魔王' : '魔王');
+  var can3d = false; try{ can3d = (typeof mon3dTag==='function' && typeof char3dActive==='function' && char3dActive() && typeof mon3dSpecOf==='function' && !!mon3dSpecOf(key)); }catch(e){}
+  var live = can3d ? mon3dTag(key) : ((typeof srpgMonArt==='function' && srpgMonArt(key)) || _monStill(key));
+  var stars = Math.max(1, Math.min(7, Math.round(m.rankBase/5)));
+  var weakLb = t.weak ? (_MAOU_SUBJ_LB[t.weak] || t.weak) : '—';
+  document.getElementById('srpg-title').textContent = m.name;
+  document.getElementById('srpg-body').innerHTML =
+    '<div class="srpg-mdet">'
+    + '<div class="srpg-mdet-3d">'+live+'</div>'
+    + '<div class="srpg-mdet-badge '+m.tier+'">'+tierLb+'</div>'
+    + '<div class="srpg-mdet-nm">'+escapeHtml(m.name)+'</div>'
+    + '<div class="srpg-mdet-str">つよさ '+'★'.repeat(stars)+' <small>(強さ '+m.rankBase+')</small></div>'
+    + '<div class="srpg-mdet-row">弱点の教科：<b>'+escapeHtml(weakLb)+'</b>（この教科で 弱点を つける）</div>'
+    + (t.charge ? ('<div class="srpg-mdet-row">大技：<b>'+escapeHtml(t.charge.name)+'</b></div>') : '')
+    + '<button class="srpg-mini" onclick="srpgMaouDexScreen()">← 魔王ずかんへ</button></div>';
   try{ _char3dHydrateSafe(document.getElementById('srpg-body')); }catch(e){}
 }
 

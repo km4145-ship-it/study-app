@@ -1693,13 +1693,14 @@ function srpgClose(){
 
 // ================= スカウトガチャ（コインで仲間モンスターを引く） =================
 function _scoutArts(rank){
-  // 引けるアート：基本20種＋属性変種100種（petは除外・魔王はSSS/LG・大魔王級はLG限定）
-  var LEG = (typeof SRPG_LEGEND_ARTS!=='undefined') ? SRPG_LEGEND_ARTS : [];
-  var arts = Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && a!=='villain' && !/2$/.test(a) && LEG.indexOf(a)<0; });
-  arts = arts.concat(Object.keys(SRPG_MON_VARIANTS2));
-  if(rank==='SSS' || rank==='LG') arts.push('villain');
-  if(rank==='LG') arts = arts.concat(LEG);   // 大魔王級はLG（0.5%）のときだけ＝コレクションの最高峰
-  return arts;
+  // レア度＝見た目の格：ランク→帯(srpgBandOfRank)に一致するアートだけを引ける。
+  // 例）F/E→N帯(スライム等)、SS→UR帯(ドラゴン)、SSS→伝説(魔王)、LG→神話(大魔王級)。
+  // 候補：基本種（villain/大魔王級も含む）＋属性変種（亜種'…2'は除外）。
+  var all = Object.keys(AIBOU_ART_SPECIES).filter(function(a){ return a!=='pet' && !/2$/.test(a); });
+  all = all.concat(Object.keys(SRPG_MON_VARIANTS2));
+  if(typeof srpgArtsForBand!=='function' || typeof srpgBandOfRank!=='function') return all;   // 旧環境フォールバック
+  var arts = srpgArtsForBand(srpgBandOfRank(rank), all);
+  return arts.length ? arts : all;   // 万一その帯が空なら全体（安全網）
 }
 function _scoutSp(art){ var v=SRPG_MON_VARIANTS2[art]; return AIBOU_ART_SPECIES[v?v.base:art] || 'beast'; }
 function _srpgWeekKey(){ var d=new Date(); var onejan=new Date(d.getFullYear(),0,1); var wk=Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7); return d.getFullYear()+'-w'+wk; }

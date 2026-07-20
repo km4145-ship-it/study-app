@@ -442,6 +442,55 @@ function srpgMonArt(art){
   return null;
 }
 
+// ===== レア度帯システム（レア度＝見た目の格。ランク→帯→アートを結合する土台）=====
+// これまで「ランク(力)」と「アート(見た目)」が分離していたため、LGランクのスライム等が出て
+// レア度が見た目に表れなかった。ここで art→tier(帯) を定義し、スカウトのランク→帯→アートを結ぶ。
+// 帯 0..6：0 N / 1 R / 2 SR / 3 SSR / 4 UR / 5 伝説 / 6 神話。数字が大きいほど格上。
+var SRPG_MON_TIER = {
+  // ★0 N（ノーマル）＝素朴な小物
+  slime:0, goblin:0, microbe:0, bat:0,
+  // ★1 R（レア）＝ひとくせある雑魚
+  inkblob:1, flaskun:1, qbird:1, fudebird:1, mapmoth:1, wolf:1,
+  // ★2 SR＝目立つ存在
+  ghost:2, abcube:2, haniwa:2, trent:2,
+  // ★3 SSR＝王・将クラス
+  kanjioni:3, grammaro:3, tokiou:3, slugking:3, voltdrake:3,
+  // ★4 UR＝竜・魔神幹部
+  dragon:4, zeron:4, jp_lt:4, en_lt:4, sci_lt:4, so_lt:4,
+  // ★5 伝説＝魔王
+  villain:5,
+  // ★6 神話＝大魔王級・裏ボス
+  daimaou:6, enmaou:6, hyoumaou:6, kyomu:6
+};
+// ランク→帯（レア度が上がるほど 上位の帯＝より強力そうなモンスターが出る）
+var SRPG_RANK_BAND = { F:0, E:0, D:1, C:1, B:2, A:2, S:3, SS:4, SSS:5, LG:6 };
+// 帯メタ（表示ラベル・星・色＝レア度オーラ/枠の基調色）。key はガチャ的な短縮表記。
+var SRPG_RARITY_BANDS = [
+  { key:'N',   name:'ノーマル', stars:1, color:'#94a3b8', glow:'rgba(148,163,184,.0)' },
+  { key:'R',   name:'レア',     stars:2, color:'#34d399', glow:'rgba(52,211,153,.45)' },
+  { key:'SR',  name:'Sレア',    stars:3, color:'#60a5fa', glow:'rgba(96,165,250,.5)' },
+  { key:'SSR', name:'SSレア',   stars:4, color:'#a78bfa', glow:'rgba(167,139,250,.55)' },
+  { key:'UR',  name:'URレア',   stars:5, color:'#fbbf24', glow:'rgba(251,191,36,.6)' },
+  { key:'LG',  name:'伝説',     stars:6, color:'#f43f5e', glow:'rgba(244,63,94,.62)' },
+  { key:'MR',  name:'神話',     stars:7, color:'#e879f9', glow:'rgba(232,121,249,.7)' }
+];
+// アート→帯（基本種・属性変種・亜種すべて解決）。未知は 0。
+function srpgTierOfArt(art){
+  if(art==null) return 0;
+  if(SRPG_MON_TIER[art]!=null) return SRPG_MON_TIER[art];
+  var v=SRPG_MON_VARIANTS2[art]; if(v && SRPG_MON_TIER[v.base]!=null) return SRPG_MON_TIER[v.base];   // 属性変種
+  var m=/^(.*)2$/.exec(art); if(m && SRPG_MON_TIER[m[1]]!=null) return SRPG_MON_TIER[m[1]];             // 亜種(色ちがい)
+  var uv=/^(.*)_(fire|ice|thunder|dark|holy)$/.exec(art); if(uv && SRPG_MON_TIER[uv[1]]!=null) return SRPG_MON_TIER[uv[1]];
+  return 0;
+}
+function srpgBandOfRank(rank){ var b=SRPG_RANK_BAND[rank]; return b==null?0:b; }
+function srpgRarityBand(band){ return SRPG_RARITY_BANDS[Math.max(0,Math.min(SRPG_RARITY_BANDS.length-1, band|0))]; }
+// レア度メタ（rank から直接）：{ band, key, name, stars, color, glow }
+function srpgRarityOfRank(rank){ var b=srpgBandOfRank(rank); return Object.assign({ band:b }, srpgRarityBand(b)); }
+// 候補アート配列から その帯に属するものだけ（スカウトの帯結合に使う）
+function srpgArtsForBand(band, arts){ return (arts||[]).filter(function(a){ return srpgTierOfArt(a)===band; }); }
+
 if(typeof module !== 'undefined' && module.exports){
-  module.exports = { SRPG_MON_ART: SRPG_MON_ART, SRPG_MON_VARIANT: SRPG_MON_VARIANT, srpgMonArt: srpgMonArt, SRPG_MON_VARIANTS2: SRPG_MON_VARIANTS2, SRPG_ELEM_VARIANTS: SRPG_ELEM_VARIANTS, SRPG_MON_BASE_NAMES: SRPG_MON_BASE_NAMES, srpgMonName: srpgMonName };
+  module.exports = { SRPG_MON_ART: SRPG_MON_ART, SRPG_MON_VARIANT: SRPG_MON_VARIANT, srpgMonArt: srpgMonArt, SRPG_MON_VARIANTS2: SRPG_MON_VARIANTS2, SRPG_ELEM_VARIANTS: SRPG_ELEM_VARIANTS, SRPG_MON_BASE_NAMES: SRPG_MON_BASE_NAMES, srpgMonName: srpgMonName,
+    SRPG_MON_TIER: SRPG_MON_TIER, SRPG_RANK_BAND: SRPG_RANK_BAND, SRPG_RARITY_BANDS: SRPG_RARITY_BANDS, srpgTierOfArt: srpgTierOfArt, srpgBandOfRank: srpgBandOfRank, srpgRarityBand: srpgRarityBand, srpgRarityOfRank: srpgRarityOfRank, srpgArtsForBand: srpgArtsForBand };
 }

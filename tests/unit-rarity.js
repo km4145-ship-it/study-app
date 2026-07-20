@@ -94,4 +94,23 @@ c.ok('進化フォームの SVGアートが存在', !!M.SRPG_MON_ART['slime_king
 // 進化フォームは スカウト/dex に混ざらない（AIBOU/BASE_NAMES/変種に無い）
 c.ok('進化フォームは base名簿/変種に含まれない（dex非加算）', !M.SRPG_MON_BASE_NAMES['slime_king'] && !M.SRPG_MON_BASE_NAMES['slime_lord'] && !M.SRPG_MON_VARIANTS2['slime_king']);
 
+// ---- なかま分類（種別／ランクで グループ表示）----
+const roster = [
+  { id: 'a', sp: 'slime', rank: 'F', lv: 3 },
+  { id: 'b', sp: 'dragon', rank: 'LG', lv: 1 },
+  { id: 'c', sp: 'slime', rank: 'F', lv: 9 },
+  { id: 'd', sp: 'maou', rank: 'SSS', lv: 5 },
+  { id: 'e', sp: 'beast', rank: 'A', lv: 2 }
+];
+const gR = M.srpgClassifyRoster(roster, 'rank');
+c.ok('rank分類：先頭が最高レア(LG・band6)', gR[0].key === 'LG' && gR[0].band === 6);
+c.ok('rank分類：最後がF', gR[gR.length - 1].key === 'F');
+c.ok('rank分類：F群は Lv降順(9→3)', (function () { var f = gR.filter(function (g) { return g.key === 'F'; })[0]; return f.items[0].lv === 9 && f.items[1].lv === 3; })());
+c.ok('rank分類：ラベルに帯名(SSS→伝説)', /伝説/.test(gR.filter(function (g) { return g.key === 'SSS'; })[0].label));
+const gS = M.srpgClassifyRoster(roster, 'species');
+c.eq('species分類：魔王級が先頭', gS[0].key, 'maou');
+c.eq('species分類：スライム系ラベル', gS.filter(function (g) { return g.key === 'slime'; })[0].label, 'スライム系');
+c.ok('species分類：slime群は 同ランクLv降順(9先頭)', gS.filter(function (g) { return g.key === 'slime'; })[0].items[0].lv === 9);
+c.eq('空リスト→[]', M.srpgClassifyRoster([], 'rank').length, 0);
+
 c.done();

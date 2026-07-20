@@ -548,6 +548,28 @@ function srpgEvoFormFor(art, rank){
   return { art: pick.art, name: pick.name, base: base };
 }
 
+// ===== なかま図鑑の分類（種別／ランクで グループ表示）＝収集が増えても 探しやすく =====
+var SRPG_SPECIES_LABEL = { slime:'スライム系', dragon:'ドラゴン系', beast:'けもの系', nature:'しぜん系', maou:'魔王級' };
+var SRPG_RANK_DESC = ['LG','SSS','SS','S','A','B','C','D','E','F'];   // 高い順（分類・並べ替え用）
+// list=なかま配列（{sp,rank,lv,...}）。mode='rank'|'species'。返り値：[{key,label,band?,items}]（表示順）。
+function srpgClassifyRoster(list, mode){
+  var arr = (list||[]).slice();
+  function rankIdx(r){ var i=SRPG_RANK_DESC.indexOf(r||'F'); return i<0?SRPG_RANK_DESC.length:i; }
+  if(mode==='species'){
+    var order=['maou','dragon','slime','beast','nature'], by={};
+    arr.forEach(function(a){ var sp=(a&&a.sp)||'beast'; (by[sp]=by[sp]||[]).push(a); });
+    var keys=order.filter(function(k){return by[k];}).concat(Object.keys(by).filter(function(k){return order.indexOf(k)<0;}));
+    return keys.map(function(k){ return { key:k, label:SRPG_SPECIES_LABEL[k]||k,
+      items:by[k].sort(function(x,y){ return rankIdx(x.rank)-rankIdx(y.rank) || ((y.lv||1)-(x.lv||1)); }) }; });
+  }
+  // rank（既定）：高い順にグループ、群内は Lv降順
+  var byR={};
+  arr.forEach(function(a){ var r=(a&&a.rank)||'F'; (byR[r]=byR[r]||[]).push(a); });
+  return SRPG_RANK_DESC.filter(function(r){return byR[r];}).map(function(r){
+    var rb=srpgRarityOfRank(r);
+    return { key:r, label:r+' '+rb.name, band:rb.band, items:byR[r].sort(function(x,y){ return (y.lv||1)-(x.lv||1); }) }; });
+}
+
 // レア度オーラ枠でモンスターのアートHTMLをくるむ（rank→帯の 色/枠/バッジ）。CSS: .srpg-rar（index.html）。
 function srpgRarityWrap(innerHtml, rank){
   var r = srpgRarityOfRank(rank);
@@ -559,5 +581,6 @@ function srpgRarityWrap(innerHtml, rank){
 if(typeof module !== 'undefined' && module.exports){
   module.exports = { SRPG_MON_ART: SRPG_MON_ART, SRPG_MON_VARIANT: SRPG_MON_VARIANT, srpgMonArt: srpgMonArt, SRPG_MON_VARIANTS2: SRPG_MON_VARIANTS2, SRPG_ELEM_VARIANTS: SRPG_ELEM_VARIANTS, SRPG_MON_BASE_NAMES: SRPG_MON_BASE_NAMES, srpgMonName: srpgMonName,
     SRPG_MON_TIER: SRPG_MON_TIER, SRPG_RANK_BAND: SRPG_RANK_BAND, SRPG_RARITY_BANDS: SRPG_RARITY_BANDS, srpgTierOfArt: srpgTierOfArt, srpgBandOfRank: srpgBandOfRank, srpgRarityBand: srpgRarityBand, srpgRarityOfRank: srpgRarityOfRank, srpgArtsForBand: srpgArtsForBand, srpgRarityWrap: srpgRarityWrap,
-    SRPG_EVO_LINES: SRPG_EVO_LINES, SRPG_EVO_STAGE_OF: SRPG_EVO_STAGE_OF, srpgEvoFormFor: srpgEvoFormFor };
+    SRPG_EVO_LINES: SRPG_EVO_LINES, SRPG_EVO_STAGE_OF: SRPG_EVO_STAGE_OF, srpgEvoFormFor: srpgEvoFormFor,
+    SRPG_SPECIES_LABEL: SRPG_SPECIES_LABEL, SRPG_RANK_DESC: SRPG_RANK_DESC, srpgClassifyRoster: srpgClassifyRoster };
 }

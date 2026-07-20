@@ -1937,6 +1937,19 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-tm-count{ text-align:center; font-weight:800; color:#cbd5e1; margin-bottom:10px; }
   .srpg-tm-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   @media (min-width:520px){ .srpg-tm-grid{ grid-template-columns:1fr 1fr 1fr; } }
+  /* 分類の見出し（種別/ランク）＝グリッド全幅にまたがる帯 */
+  .srpg-tm-group{ grid-column:1/-1; display:flex; align-items:center; gap:8px; margin:6px 2px 0; padding:4px 10px; font-weight:900; font-size:.82rem; color:#e2e8f0; border-left:4px solid #64748b; background:linear-gradient(90deg,rgba(100,116,139,.22),transparent); border-radius:6px; }
+  .srpg-tm-group small{ color:#94a3b8; font-weight:800; }
+  .srpg-tm-group.hero{ border-left-color:#fbbf24; background:linear-gradient(90deg,rgba(251,191,36,.22),transparent); }
+  /* ランク帯の色（srpgRarityBands と対応：0 N〜6 神話） */
+  .srpg-tm-group.band-0{ border-left-color:#94a3b8; } .srpg-tm-group.band-1{ border-left-color:#34d399; background:linear-gradient(90deg,rgba(52,211,153,.2),transparent); }
+  .srpg-tm-group.band-2{ border-left-color:#60a5fa; background:linear-gradient(90deg,rgba(96,165,250,.2),transparent); } .srpg-tm-group.band-3{ border-left-color:#a78bfa; background:linear-gradient(90deg,rgba(167,139,250,.2),transparent); }
+  .srpg-tm-group.band-4{ border-left-color:#fbbf24; background:linear-gradient(90deg,rgba(251,191,36,.22),transparent); } .srpg-tm-group.band-5{ border-left-color:#f43f5e; background:linear-gradient(90deg,rgba(244,63,94,.22),transparent); }
+  .srpg-tm-group.band-6{ border-left-color:#e879f9; background:linear-gradient(90deg,rgba(232,121,249,.26),transparent); color:#fbcfe8; }
+  /* 並べ替えトグル */
+  .srpg-tm-sort{ display:flex; align-items:center; gap:6px; margin:0 2px 8px; }
+  .srpg-tm-sort small{ color:#94a3b8; font-weight:800; margin-right:2px; }
+  .srpg-tm-sort .srpg-mini2.on{ background:#7c3aed; color:#fff; border-color:#7c3aed; }
   .srpg-tm-card{ position:relative; background:linear-gradient(180deg,#1e293b,#273449); border:1px solid rgba(148,163,184,.3); border-radius:14px; padding:10px; text-align:center; }
   .srpg-tm-card.on{ border-color:#38bdf8; box-shadow:0 0 12px rgba(56,189,248,.3); }
   .srpg-tm-card.leader{ border-color:#fde047; box-shadow:0 0 14px rgba(253,224,71,.4); }

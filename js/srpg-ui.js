@@ -19,6 +19,8 @@ var SRPG_STAT_JA = { atk:'こうげき', def:'まもり', spd:'すばやさ' };
 // ===== 味方編成（③スカウト連動：集めたあいぼうを タクトに 出撃させる）=====
 var SRPG_ROLE_BY_SP = { dragon:'attacker', beast:'attacker', slime:'tank', nature:'healer', maou:'mage', hero:'attacker' };
 var srpgTeamSel = null;   // 編成画面の作業中の選択 {ids:[...], leader}
+var srpgRosterSort = 'rank';   // なかま一覧の分類：'rank'（レア度順）| 'species'（種別順）
+function srpgSetRosterSort(m){ srpgRosterSort = (m==='species'?'species':'rank'); try{ sfx('click'); }catch(e){} srpgTeamScreen(); }
 // きせかえ（勇者コスメ）の装備ボーナスを タクト用に控えめ換算（×0.6）
 function srpgHeroBonus(){
   try{
@@ -116,11 +118,24 @@ function srpgTeamScreen(){
   var h = '<div class="srpg-team">';
   var trait = srpgLeaderTrait((srpgTeamSel.leader==='hero'?hero:(function(){ var a=list.filter(function(x){return x.id===srpgTeamSel.leader;})[0]; return a?srpgAibouSpec(a):hero; })()).role);
   h += '<div class="srpg-team-lead">👑 リーダー特性：<b>'+(trait?trait.name:'—')+'</b><br><small>'+(trait?trait.desc:'')+'</small></div>';
-  h += '<div class="srpg-tm-count">出撃：'+(1+srpgTeamSel.ids.length)+' / 5（勇者＋なかま最大4）</div>';
+  h += '<div class="srpg-tm-count">出撃：'+(1+srpgTeamSel.ids.length)+' / 5（勇者＋なかま最大4）　<small>なかま '+list.length+'体</small></div>';
+  // 並べ替え（種別／ランクで分類）＝なかまが増えても 探しやすく
+  h += '<div class="srpg-tm-sort"><small>ならべかえ</small>'
+     + '<button class="srpg-mini2'+(srpgRosterSort==='rank'?' on':'')+'" onclick="srpgSetRosterSort(\'rank\')">ランク順</button>'
+     + '<button class="srpg-mini2'+(srpgRosterSort==='species'?' on':'')+'" onclick="srpgSetRosterSort(\'species\')">種別順</button></div>';
   h += '<div class="srpg-tm-grid">';
+  h += '<div class="srpg-tm-group hero">👑 勇者</div>';
   h += card(hero, true, false);
-  list.forEach(function(a){ h += card(srpgAibouSpec(a), srpgTeamSel.ids.indexOf(a.id) >= 0, true); });
-  if(!list.length) h += '<div class="srpg-tm-empty">まだ なかまが いないよ。<br>「⚔️ぼうけん」で バトルに かつと なかまが ふえる！</div>';
+  if(!list.length){ h += '<div class="srpg-tm-empty">まだ なかまが いないよ。<br>「⚔️ぼうけん」で バトルに かつと なかまが ふえる！</div>'; }
+  else if(typeof srpgClassifyRoster==='function'){
+    var groups = srpgClassifyRoster(list, srpgRosterSort);
+    groups.forEach(function(g){
+      h += '<div class="srpg-tm-group'+(g.band!=null?' band-'+g.band:'')+'">'+escapeHtml(g.label)+' <small>×'+g.items.length+'</small></div>';
+      g.items.forEach(function(a){ h += card(srpgAibouSpec(a), srpgTeamSel.ids.indexOf(a.id) >= 0, true); });
+    });
+  } else {
+    list.forEach(function(a){ h += card(srpgAibouSpec(a), srpgTeamSel.ids.indexOf(a.id) >= 0, true); });   // フォールバック
+  }
   h += '</div>';
   h += '<div class="srpg-team-row"><button class="rpg-btn srpg-team-go" onclick="srpgTeamConfirm()">この編成で 出撃！ →</button>'
      + '<button class="rpg-btn ghost srpg-team-auto" onclick="srpgTeamAuto()">✨おまかせ</button></div>';

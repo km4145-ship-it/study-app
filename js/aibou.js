@@ -26,6 +26,8 @@ var AIBOU_ART_SPECIES={
   maou_ifrit:'maou', maou_cocyt:'maou', maou_fulgur:'maou', maou_gaia:'maou', maou_tempest:'maou',
   maou_abyss:'maou', maou_chaos:'maou', maou_calam:'maou', maou_profan:'maou', maou_lux:'maou',
   overlord:'maou',
+  // 新規Batch1（スカウト/図鑑対象）
+  kinoko:'nature', tori:'beast', kaeru:'nature', iwagon:'nature', onibi:'dragon', kani:'beast',
   // 亜種（色ちがい・rpg-assets.jsのRPG_VARIANTS）は基本種と同じ種族
   slime2:'slime', flaskun2:'slime', goblin2:'beast', bat2:'beast', wolf2:'beast', ghost2:'beast',
   dragon2:'dragon', voltdrake2:'dragon', trent2:'nature', haniwa2:'nature'

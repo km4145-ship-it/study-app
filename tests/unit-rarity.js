@@ -78,10 +78,14 @@ c.eq('zeron 名前', M.srpgMonName('zeron'), '天秤の魔神ゼロン');
 c.eq('sci_lt 名前', M.srpgMonName('sci_lt'), 'まやかしの魔神ペテル');
 c.eq('kyomu 名前', M.srpgMonName('kyomu'), '虚無竜ムゲン');
 c.ok('魔神幹部/虚無竜は 属性変種を持たない（唯一無二）', !M.SRPG_MON_VARIANTS2['zeron_fire'] && !M.SRPG_MON_VARIANTS2['sci_lt_ice'] && !M.SRPG_MON_VARIANTS2['kyomu_dark']);
-c.eq('base種 46（30＋魔王16：大陸魔王5/回廊魔王10/最強魔王）', Object.keys(M.SRPG_MON_BASE_NAMES).length, 46);
-c.eq('属性変種 100（20種×5・魔神は除外）', Object.keys(M.SRPG_MON_VARIANTS2).length, 100);
+c.eq('base種 52（46＋新規Batch1の6体）', Object.keys(M.SRPG_MON_BASE_NAMES).length, 52);
+c.eq('属性変種 130（26種×5・魔神/魔王は除外）', Object.keys(M.SRPG_MON_VARIANTS2).length, 130);
 const dexAll = Object.keys(M.SRPG_MON_BASE_NAMES).concat(Object.keys(M.SRPG_MON_VARIANTS2));
-c.eq('dex総数=146（魔王16体を加えた完全制覇）', dexAll.length, 146);
+c.eq('dex総数=182（魔王16＋新規Batch1の6体とその変種）', dexAll.length, 182);
+// 新規Batch1（6体）＝スカウト/図鑑対象・帯0..2・属性変種あり
+['kinoko', 'tori', 'kaeru', 'iwagon', 'onibi', 'kani'].forEach(function (k) {
+  c.ok('Batch1 ' + k + ' は帯0..2＋名前＋属性変種あり', M.srpgTierOfArt(k) <= 2 && !!M.SRPG_MON_BASE_NAMES[k] && !!M.SRPG_MON_VARIANTS2[k + '_ice']);
+});
 c.ok('UR帯(4)に 魔神幹部zeronが入る', M.srpgArtsForBand(4, dexAll).indexOf('zeron') >= 0);
 c.ok('UR帯(4)に ドラゴンも残る', M.srpgArtsForBand(4, dexAll).indexOf('dragon') >= 0);
 c.ok('神話帯(6)=大魔王級/虚無竜＋回廊魔王/最強魔王の15体', (function () { var b6 = M.srpgArtsForBand(6, dexAll); return b6.length === 15 && b6.indexOf('kyomu') >= 0 && b6.indexOf('daimaou') >= 0 && b6.indexOf('overlord') >= 0 && b6.indexOf('maou_lux') >= 0 && b6.every(function (a) { return M.srpgTierOfArt(a) === 6; }); })());

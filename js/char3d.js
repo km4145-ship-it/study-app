@@ -37,6 +37,13 @@ var MON3D_SPECS = {
   slime_lord:{ plan:'blob',    main:'#4c1d95', hi:'#c4b5fd', eye:'#e879f9', crown:'#fbbf24', big:1.32 },  // 進化：スライム魔神
   inkblob:   { plan:'blob',    main:'#312e4d', hi:'#c4b5fd', eye:'#0f172a', drip:true },
   microbe:   { plan:'blob',    main:'#84cc16', hi:'#d9f99d', eye:'#0f172a', spots:'#4d7c0f' },
+  // 新規Batch1
+  kinoko:    { plan:'blob',    main:'#ef4444', hi:'#fecaca', eye:'#0f172a' },
+  kaeru:     { plan:'blob',    main:'#4ade80', hi:'#bbf7d0', eye:'#0f172a' },
+  onibi:     { plan:'ghost',   main:'#fb923c', eye:'#7c2d12' },
+  tori:      { plan:'bird',    main:'#fde047', belly:'#fef9c3', beak:'#f97316', eye:'#fff', pupil:'#0f172a' },
+  iwagon:    { plan:'golem',   main:'#94a3b8', hole:'#334155' },
+  kani:      { plan:'beast',   main:'#f87171', belly:'#fecaca', eye:'#0f172a' },
   flaskun:   { plan:'blob',    main:'#10b981', hi:'#a7f3d0', eye:'#0f172a', bubbles:true },
   slugking:  { plan:'blob',    main:'#14b8a6', hi:'#5eead4', eye:'#0f172a', crown:'#fcd34d', big:1.18 },
   goblin:    { plan:'imp',     main:'#8b5cf6', belly:'#c4b5fd', eye:'#ede9fe', pupil:'#0f172a', horns:1 },

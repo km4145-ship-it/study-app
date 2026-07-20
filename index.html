@@ -942,10 +942,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
 <div id="print-area"></div>
 <!-- Start Overlay -->
 <div class="start-overlay" id="start-overlay">
-  <h2>📚 小中学生学習アプリ🦉</h2>
-  <p>10ひきの動物の先生たちが待っているよ！</p>
+  <h2>⚔️ 小中学生学習アプリ</h2>
+  <p>なかまを あつめて タクトバトル！ 勉強で 強くなろう！</p>
   <div class="start-chars" id="start-chars-display"></div>
-  <button class="btn-start" onclick="startApp()">📚 タップしてスタート！ 🐾</button>
+  <button class="btn-start" onclick="startApp()">▶ タップして ぼうけんへ！ ⚔️</button>
   <p style="font-size:0.75rem;opacity:0.5">まいにち ちょっとずつ、いっしょに がんばろう！</p>
 </div>
 
@@ -1260,10 +1260,10 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   </div>
 
   <div class="header">
-    <h1>📚 小中学生学習アプリ</h1>
-    <p>〜 動物の先生たちと問題をといて、チャンピオンをめざそう！ 〜</p>
+    <h1>⚔️ 小中学生学習アプリ</h1>
+    <p>〜 なかまと タクトバトル。勉強して 偏差値65を めざそう！ 〜</p>
   </div>
-  <div class="wave-deco">🦉 🐕 🐱 🐰 🦊 🐻 🐯</div>
+  <div class="wave-deco">⚔️ 🛡️ 🔮 🐉 👑 ✨ 🏰</div>
 
   <!-- Score -->
   <div class="score-bar">
@@ -5921,6 +5921,15 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
      '<span class="hub-hero-tx"><span class="hub-hero-k">▶ きょうの学習をはじめる</span>'+
      '<span class="hub-hero-s">'+escapeHtml(rec)+'　今日 '+cnt+'/'+goal+'問</span></span>'+
      '<span class="hub-hero-bar"><i style="width:'+pct+'%"></i></span></button>';
+  // 🎮 あそぶ（冒険・なかま）＝主要な遊びの入口を 最上部に（初期表示で 必ず見える）
+  var _freeScout=false; try{ _freeScout=(typeof srpgScoutFreeReady==='function') && srpgScoutFreeReady(); }catch(e){}
+  var _canEvo=false; try{ _canEvo=(typeof srpgHasEvolvable==='function') && srpgHasEvolvable(); }catch(e){}
+  var _advDesc = _freeScout ? '🎁 むりょうスカウトが できるよ！' : (_canEvo ? '✨ 進化できる なかまが いるよ！' : 'マスの上の さくせんバトル。偏差値65をめざす！');
+  var _advBadge = _freeScout ? '🎁' : (_canEvo ? '✨' : 0);
+  h+='<div class="hub-sec">🎮 あそぶ</div><div class="hub-grid">';
+  h+= hubCard('adv','⚔️','ぼうけん（バトル）',_advDesc,'srpgOpen()', true, _advBadge);
+  h+= hubCard('aibou','🐾','なかま','ずかん・エサやり・なまえ','rpgShowAibou()', false, _canEvo?'✨':0);
+  h+='</div>';
   // 📋 きょうやること（散在していた日課を1画面のチェックリストに集約＝「何をやれば今日おわりか」を明確化）
   try{ h += _hubTodayHtml(); }catch(e){}
   // きょうのタクト（デイリー・塔・星の進捗＝毎日の入口）
@@ -5937,16 +5946,7 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   // きょうの目標（デイリーミッション）＝毎日戻る動機。ハブに常設し、その場で達成判定
   try{ rpgCheckMissions(); checkAchievements(); }catch(e){}
   h += _hubMissionsHtml();
-  // ゲームメニュー
-  // 12枚を無差別平置きせず、3グループ（あそぶ／まなぶ／どうぐ）に分けて 目的別に見つけやすく。
-  var _freeScout=false; try{ _freeScout=(typeof srpgScoutFreeReady==='function') && srpgScoutFreeReady(); }catch(e){}
-  var _canEvo=false; try{ _canEvo=(typeof srpgHasEvolvable==='function') && srpgHasEvolvable(); }catch(e){}
-  var _advDesc = _freeScout ? '🎁 むりょうスカウトが できるよ！' : (_canEvo ? '✨ 進化できる なかまが いるよ！' : 'マスの上の さくせんバトル。偏差値65をめざす！');
-  var _advBadge = _freeScout ? '🎁' : (_canEvo ? '✨' : 0);
-  h+='<div class="hub-sec">🎮 あそぶ</div><div class="hub-grid">';
-  h+= hubCard('adv','⚔️','ぼうけん（バトル）',_advDesc,'srpgOpen()', true, _advBadge);
-  h+= hubCard('aibou','🐾','なかま','エサやり・なまえ・ずかん','rpgShowAibou()', false, _canEvo?'✨':0);   // なかま管理。しゅつげき編成はタクト側に一本化
-  h+='</div>';
+  // ゲームメニュー（あそぶは上部へ移動済み。ここは まなぶ／どうぐ）
   h+='<div class="hub-sec">📚 まなぶ</div><div class="hub-grid">';
   h+= hubCard('prac','✏️','れんしゅう','教科をえらんで10問','hubPickSubject(\'practice\')');
   h+= hubCard('rev','🔁','ふくしゅう', due>0?('たまってる '+due+'問！'):'今日のふくしゅう','startReviewDue()', false, due>0?due:0);

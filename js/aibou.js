@@ -21,6 +21,11 @@ var AIBOU_ART_SPECIES={
   villain:'maou', daimaou:'maou', enmaou:'maou', hyoumaou:'maou',   // 伝説（LG限定スカウトの大魔王級）
   zeron:'maou', jp_lt:'maou', en_lt:'maou', sci_lt:'maou', so_lt:'maou',   // 魔神幹部5体（UR＝SSスカウト）
   kyomu:'maou',   // 裏ボス 虚無竜（神話＝LGスカウト）
+  // 魔王ヒエラルキー（低確率スカウト）：各大陸ch8の魔王5＋魔王城回廊10＋最強魔王＝16体。神様godはボス専用で非スカウト
+  maou_ma8:'maou', maou_jp8:'maou', maou_en8:'maou', maou_sc8:'maou', maou_so8:'maou',
+  maou_ifrit:'maou', maou_cocyt:'maou', maou_fulgur:'maou', maou_gaia:'maou', maou_tempest:'maou',
+  maou_abyss:'maou', maou_chaos:'maou', maou_calam:'maou', maou_profan:'maou', maou_lux:'maou',
+  overlord:'maou',
   // 亜種（色ちがい・rpg-assets.jsのRPG_VARIANTS）は基本種と同じ種族
   slime2:'slime', flaskun2:'slime', goblin2:'beast', bat2:'beast', wolf2:'beast', ghost2:'beast',
   dragon2:'dragon', voltdrake2:'dragon', trent2:'nature', haniwa2:'nature'

@@ -178,6 +178,7 @@ function srpgOpen(dest){
   if(dest==='daily'){ try{ srpgStart('daily'); return; }catch(e){} }
   else if(dest==='tower'){ try{ srpgTowerStart(); return; }catch(e){} }
   else if(dest==='team'){ srpgTeamScreen(); return; }
+  else if(dest==='dex'){ srpgDexScreen(); return; }   // 図鑑へ直行（ホームの📖ずかんカードから）
   srpgStageSelect();   // 既定はステージ選択（毎回 編成をくぐらせない。編成は「編成をかえる」から）
 }
 function srpgStageCard(id, locked){

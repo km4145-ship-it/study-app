@@ -5924,7 +5924,8 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   var _advBadge = _freeScout ? '🎁' : (_canEvo ? '✨' : 0);
   h+='<div class="hub-sec">🎮 あそぶ</div><div class="hub-grid">';
   h+= hubCard('adv','⚔️','ぼうけん（バトル）',_advDesc,'srpgOpen()', true, _advBadge);
-  h+= hubCard('aibou','🐾','なかま','ずかん・エサやり・なまえ','rpgShowAibou()', false, _canEvo?'✨':0);
+  h+= hubCard('aibou','🐾','なかま','エサやり・なまえ・そうび','rpgShowAibou()', false, _canEvo?'✨':0);
+  h+= hubCard('dex','📖','ずかん（図鑑）','あつめた なかま・魔王を 見る','srpgOpen(\'dex\')');   // 図鑑を目立つ位置へ（ホーム初期表示）
   h+='</div>';
   // 📋 きょうやること（散在していた日課を1画面のチェックリストに集約＝「何をやれば今日おわりか」を明確化）
   try{ h += _hubTodayHtml(); }catch(e){}

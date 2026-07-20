@@ -535,6 +535,16 @@ var SRPG_MON_TIER = {
   // ★6 神話＝大魔王級・裏ボス
   daimaou:6, enmaou:6, hyoumaou:6, kyomu:6
 };
+// 魔王ヒエラルキーを スカウト対象化：魔王は 帯5(伝説)/6(神話)＝最高レア＝低確率。名前/唯一性も付与。
+// （AIBOU_ART_SPECIES への登録は aibou.js 側。神様godは ボス専用＝スカウト不可）
+(function(){
+  var R = (typeof SRPG_MAOU_ROSTER !== 'undefined') ? SRPG_MAOU_ROSTER
+        : (typeof require !== 'undefined' ? (function(){ try{ return require('./srpg.js').SRPG_MAOU_ROSTER; }catch(e){ return null; } })() : null);
+  if(!R) return;
+  function reg(key, name, band){ SRPG_MON_TIER[key] = band; SRPG_MON_BASE_NAMES[key] = name; SRPG_MON_UNIQUE[key] = 1; }
+  R.forEach(function(m){ if(!/^maou_/.test(m.key)) return; reg(m.key, m.name, (m.rankBase >= 17 ? 6 : 5)); });   // 大陸魔王=伝説(5)、回廊魔王=神話(6)
+  reg('overlord', '終焉魔王オメガ', 6);   // 最強の魔王もスカウト可（神話・極低確率）
+})();
 // ランク→帯（レア度が上がるほど 上位の帯＝より強力そうなモンスターが出る）
 var SRPG_RANK_BAND = { F:0, E:0, D:1, C:1, B:2, A:2, S:3, SS:4, SSS:5, LG:6 };
 // 帯メタ（表示ラベル・星・色＝レア度オーラ/枠の基調色）。key はガチャ的な短縮表記。

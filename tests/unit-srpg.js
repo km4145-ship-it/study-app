@@ -718,7 +718,8 @@ function mk(spec){ return S.srpgMakeUnit(spec); }
     c.ok('id に重複がない（受領フラグ衝突なし）', new Set(ids).size === ids.length);
     c.ok('既存idを温存（d10/d40/d80/d121）＝過去の受領が生きる', ['d10','d40','d80','d121'].every(function(id){ return ids.indexOf(id) >= 0; }));
     c.ok('きほん節目は121種（villain含む）', ids.indexOf('d121') >= 0 && dr[ids.indexOf('d121')].need === 121);
-    c.ok('最終節目は魔神込み130種（魔神幹部5体＋虚無竜を加えた完全制覇）', dr[dr.length-1].need === 130 && dr[dr.length-1].id === 'd130');
+    c.ok('130種節目を温存（魔神幹部5体＋虚無竜）', ids.indexOf('d130') >= 0 && dr[ids.indexOf('d130')].need === 130);
+    c.ok('最終節目は魔王込み146種（魔王16体を加えた完全制覇）', dr[dr.length-1].need === 146 && dr[dr.length-1].id === 'd146');
   }
   // 伝説（大魔王級）：定義がそろう＋LG限定スカウト
   c.ok('SRPG_LEGEND_ARTS は daimaou/enmaou/hyoumaou', S.SRPG_LEGEND_ARTS.join(',') === 'daimaou,enmaou,hyoumaou');

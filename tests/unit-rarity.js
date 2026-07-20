@@ -78,13 +78,14 @@ c.eq('zeron 名前', M.srpgMonName('zeron'), '天秤の魔神ゼロン');
 c.eq('sci_lt 名前', M.srpgMonName('sci_lt'), 'まやかしの魔神ペテル');
 c.eq('kyomu 名前', M.srpgMonName('kyomu'), '虚無竜ムゲン');
 c.ok('魔神幹部/虚無竜は 属性変種を持たない（唯一無二）', !M.SRPG_MON_VARIANTS2['zeron_fire'] && !M.SRPG_MON_VARIANTS2['sci_lt_ice'] && !M.SRPG_MON_VARIANTS2['kyomu_dark']);
-c.eq('base種 30（24＋魔神6）', Object.keys(M.SRPG_MON_BASE_NAMES).length, 30);
+c.eq('base種 46（30＋魔王16：大陸魔王5/回廊魔王10/最強魔王）', Object.keys(M.SRPG_MON_BASE_NAMES).length, 46);
 c.eq('属性変種 100（20種×5・魔神は除外）', Object.keys(M.SRPG_MON_VARIANTS2).length, 100);
 const dexAll = Object.keys(M.SRPG_MON_BASE_NAMES).concat(Object.keys(M.SRPG_MON_VARIANTS2));
-c.eq('dex総数=130', dexAll.length, 130);
+c.eq('dex総数=146（魔王16体を加えた完全制覇）', dexAll.length, 146);
 c.ok('UR帯(4)に 魔神幹部zeronが入る', M.srpgArtsForBand(4, dexAll).indexOf('zeron') >= 0);
 c.ok('UR帯(4)に ドラゴンも残る', M.srpgArtsForBand(4, dexAll).indexOf('dragon') >= 0);
-c.ok('神話帯(6)=kyomu＋大魔王級3体の4体のみ', (function () { var b6 = M.srpgArtsForBand(6, dexAll); return b6.length === 4 && b6.indexOf('kyomu') >= 0 && b6.indexOf('daimaou') >= 0 && b6.every(function (a) { return M.srpgTierOfArt(a) === 6; }); })());
+c.ok('神話帯(6)=大魔王級/虚無竜＋回廊魔王/最強魔王の15体', (function () { var b6 = M.srpgArtsForBand(6, dexAll); return b6.length === 15 && b6.indexOf('kyomu') >= 0 && b6.indexOf('daimaou') >= 0 && b6.indexOf('overlord') >= 0 && b6.indexOf('maou_lux') >= 0 && b6.every(function (a) { return M.srpgTierOfArt(a) === 6; }); })());
+c.ok('伝説帯(5)=villain＋各大陸ch8魔王5体の6体', (function () { var b5 = M.srpgArtsForBand(5, dexAll); return b5.length === 6 && b5.indexOf('villain') >= 0 && b5.indexOf('maou_ma8') >= 0; })());
 
 // ---- Phase4：進化ライン（育てると 姿が変身）----
 c.eq('slime@F → スライム', M.srpgEvoFormFor('slime', 'F').art, 'slime');

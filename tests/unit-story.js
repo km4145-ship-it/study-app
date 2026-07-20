@@ -398,4 +398,15 @@ c.ok('玉座は最強魔王(overlord)を含む', S.SRPG_STAGES.q_overlord.enemie
 c.ok('頂は神様(god)を含む', S.SRPG_STAGES.q_god.enemies.some(function (e) { return e.key === 'god'; }));
 c.ok('回廊は虚無竜(q_secret)クリアまで隠す（srpg-uiにゲート）', ui.indexOf("!cleared['q_secret']") >= 0 && ui.indexOf('q_god:1') >= 0);
 
+// ===== 魔王のスカウト対象化（低確率＝帯5伝説/6神話・属性変種なし＝唯一。神様godはボス専用で非スカウト）=====
+S.SRPG_MAOU_ROSTER.filter(function (m) { return /^maou_/.test(m.key); }).forEach(function (m) {
+  const band = M.srpgTierOfArt(m.key);
+  c.ok('魔王スカウト帯5/6＋名前＋唯一 ' + m.key, (band === 5 || band === 6) && M.srpgMonName(m.key) === m.name && !M.SRPG_MON_VARIANTS2[m.key + '_fire']);
+});
+c.ok('大陸魔王(ch8)は伝説帯5', M.srpgTierOfArt('maou_ma8') === 5 && M.srpgTierOfArt('maou_so8') === 5);
+c.ok('回廊魔王は神話帯6', M.srpgTierOfArt('maou_lux') === 6 && M.srpgTierOfArt('maou_abyss') === 6);
+c.ok('最強魔王overlordもスカウト(神話帯6)', M.srpgTierOfArt('overlord') === 6 && M.srpgMonName('overlord') === '終焉魔王オメガ');
+c.ok('神様godはボス専用＝非スカウト(帯0)', M.srpgTierOfArt('god') === 0);
+c.ok('図鑑はホームから直行できる（srpgOpen dex分岐＋📖カード）', ui.indexOf("dest==='dex'){ srpgDexScreen()") >= 0);
+
 c.done();

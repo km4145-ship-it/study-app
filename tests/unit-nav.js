@@ -117,7 +117,7 @@ c.ok('★3のparが難易度で自動スケール', srpgUi.indexOf('srpgB.stage.
 
 // ---- UX：タクト入口のディープリンク＋既定ステージ選択、パーティ二重化の解消 ----
 c.ok('srpgOpenがディープリンク(daily/tower/team)を受ける', srpgUi.indexOf("if(dest==='daily'){ try{ srpgStart('daily')") >= 0 && srpgUi.indexOf("dest==='team'){ srpgTeamScreen()") >= 0);
-c.ok('srpgOpenの既定はステージ選択（毎回編成をくぐらせない）', /srpgOpen\(dest\)[\s\S]{0,400}srpgStageSelect\(\);\s+\/\/ 既定/.test(srpgUi));
+c.ok('srpgOpenの既定はステージ選択（毎回編成をくぐらせない）', /srpgOpen\(dest\)[\s\S]{0,520}srpgStageSelect\(\);\s+\/\/ 既定/.test(srpgUi));
 c.ok('きょうのタクトstripがdaily/towerへ直リンク', html.indexOf("srpgOpen(\\'daily\\')") >= 0 && html.indexOf("srpgOpen(\\'tower\\')") >= 0);
 c.ok('なかま画面はタクト編成へ誘導（3スロット別パーティを廃止）', html.indexOf('しゅつげきメンバーは タクトの<b>「編成」</b>で えらぶよ') >= 0 && html.indexOf('🎒 パーティ（いっしょに たたかう 3びき）') < 0);
 c.ok('なかま詳細のパーティ・トグルを撤去', html.indexOf('🎒 パーティに いれる') < 0 && html.indexOf('🎒 パーティから はずす') < 0);

@@ -692,7 +692,8 @@ var SRPG_DEX_REWARDS = [
   { id:'d100', need:100, coin:4000, label:'100種で 🪙4000' },
   { id:'d121', need:121, coin:8000, label:'きほん 121種で 🪙8000' },
   { id:'d124', need:124, coin:12000, label:'伝説もふくめ 124種で 🪙12000' },
-  { id:'d130', need:130, coin:20000, label:'魔神も ふくめ 130種で 🪙20000（完全制覇）' }   // 魔神幹部5体＋裏ボス虚無竜を加えた最終
+  { id:'d130', need:130, coin:20000, label:'魔神も ふくめ 130種で 🪙20000' },   // 魔神幹部5体＋裏ボス虚無竜
+  { id:'d146', need:146, coin:25000, label:'魔王も ふくめ 146種で 🪙25000（完全制覇）' }   // 魔王16体（大陸魔王/回廊魔王/最強魔王）を加えた最終
 ];
 
 // ===== 天井（ピティ）：ハズレ続きの救済＝スカウト30回で SS以上を1体かくてい =====
@@ -902,6 +903,7 @@ var _MAOU_RESIST = { math:'english', japanese:'science', english:'math', science
       charge:{ name:'ぜつぼうの いちげき', aoe:aoe, power:150 + rb * 6, mp:6,
         warn:m.name + 'が 力を ためている…！ つぎのターン 大技！ 赤いマスから にげろ！' }
     };
+    SRPG_MON_SKILL[m.key] = SRPG_MON_SKILL[m.key] || 'burstball';   // スカウトで仲間にした時の固有とくぎ
   });
   // 最強の魔王（ラスボス＝神様の前）
   SRPG_MAOU_3D['overlord'] = { area:'math', big:1.5, crown:true };
@@ -909,12 +911,14 @@ var _MAOU_RESIST = { math:'english', japanese:'science', english:'math', science
     weak:'math', resist:'english', boss:true, skills:['burstball','poisonbreath'],
     phase:{ hp:0.55, atk:1, def:1, name:'しんの すがた', msg:'終焉魔王『これが 最後だ…！ すべてを 無に かえす！』' },
     charge:{ name:'しゅうえんの ひとふり', aoe:'burst', power:260, mp:7, warn:'終焉魔王が 全ての力を あつめている…！ 巨大な大技！ 赤マスから 全力で にげろ！' } };
+  SRPG_MON_SKILL['overlord'] = 'burstball';
   // 神様（裏の裏ボス・このゲームで一番強い）
   SRPG_MAOU_3D['god'] = { area:'math', big:1.65, crown:true, holy:true };
   SRPG_ENEMY_TEMPLATES['god'] = { art:'god', name:'創造神アイオーン', role:'tank', rankBase:32,
     weak:'math', resist:'social', boss:true, skills:['burstball','poisonbreath'],
     phase:{ hp:0.6, atk:1, def:1, name:'しんせい', msg:'創造神『…見事だ。ならば 全力で 相手をしよう。』' },
     charge:{ name:'てんち そうぞう', aoe:'burst', power:320, mp:8, warn:'創造神が 天地の力を あつめている…！ 世界を つつむ 大技！ 生き残れ！' } };
+  SRPG_MON_SKILL['god'] = 'burstball';
 })();
 function srpgEnemyTemplate(key){ return SRPG_ENEMY_TEMPLATES[key] || SRPG_ENEMY_TEMPLATES.slime; }
 // 魔王一覧（強い順）。神様＞最強魔王＞魔王30。3Dの big（サイズ）でも強さが分かる。

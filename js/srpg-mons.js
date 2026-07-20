@@ -53,6 +53,34 @@ var SRPG_MON_ART = {
     + _mCheek(43, 91) + _mCheek(80, 91)
     + '<path d="M52 92 Q60 99 69 92" stroke="#0e6b62" stroke-width="3" fill="none" stroke-linecap="round"/>'
     + '</svg>',
+  // ★進化フォーム：キングスライム（SSR）＝大きな体＋黄金の王冠（スライムの進化1段目）
+  slime_king:
+    _mHead() + _mShadow(36)
+    + '<path d="M20 96 Q14 48 60 45 Q106 48 100 96 Q100 110 60 110 Q20 110 20 96 Z" fill="#2bb8aa" stroke="#0a5a52" stroke-width="4"/>'
+    + '<path d="M32 68 Q46 54 60 54 Q74 54 88 68 Q72 60 60 60 Q48 60 32 68 Z" fill="#c6fff4" opacity=".5"/>'
+    + '<circle cx="34" cy="98" r="4" fill="#c6fff4" opacity=".45"/><circle cx="86" cy="92" r="3" fill="#c6fff4" opacity=".45"/>'
+    + '<path d="M38 42 L34 20 L47 33 L60 17 L73 33 L86 20 L82 42 Q60 34 38 42 Z" fill="#fcd34d" stroke="#a16207" stroke-width="2.6"/>'
+    + '<circle cx="34" cy="20" r="3" fill="#fef08a" stroke="#a16207" stroke-width="1"/><circle cx="86" cy="20" r="3" fill="#fef08a" stroke="#a16207" stroke-width="1"/><circle cx="60" cy="17" r="3.6" fill="#fef08a" stroke="#a16207" stroke-width="1"/>'
+    + _mEye(49, 82, 9.5, 1) + _mEye(72, 82, 9.5, 1)
+    + _mCheek(41, 92) + _mCheek(82, 92)
+    + '<path d="M48 98 Q60 107 73 98" stroke="#0a5a52" stroke-width="3.4" fill="none" stroke-linecap="round"/>'
+    + '</svg>',
+  // ★進化フォーム：スライム魔神（伝説）＝闇色の巨体・角・冠・妖しく光る眼＋オーラ（スライム最終形）
+  slime_lord:
+    _mHead()
+    + '<ellipse cx="60" cy="112" rx="40" ry="7" fill="rgba(0,0,0,.4)"/>'
+    + '<circle cx="60" cy="60" r="52" fill="#a855f7" opacity=".12"/>'
+    + '<path d="M30 46 Q20 26 14 12 Q30 22 40 40 Z" fill="#2a1352" stroke="#1e0a3c" stroke-width="2.4"/>'
+    + '<path d="M90 46 Q100 26 106 12 Q90 22 80 40 Z" fill="#2a1352" stroke="#1e0a3c" stroke-width="2.4"/>'
+    + '<path d="M18 96 Q12 44 60 41 Q108 44 102 96 Q102 112 60 112 Q18 112 18 96 Z" fill="#4c1d95" stroke="#1e0a3c" stroke-width="4.2"/>'
+    + '<path d="M30 66 Q46 50 60 50 Q74 50 90 66 Q72 56 60 56 Q48 56 30 66 Z" fill="#c4b5fd" opacity=".35"/>'
+    + '<path d="M40 40 L36 18 L48 31 L60 14 L72 31 L84 18 L80 40 Q60 32 40 40 Z" fill="#fbbf24" stroke="#7c2d12" stroke-width="2.4"/>'
+    + '<circle cx="60" cy="15" r="3.6" fill="#fef08a"/>'
+    + '<ellipse cx="49" cy="80" rx="9" ry="5" fill="#c084fc" opacity=".5"/><ellipse cx="72" cy="80" rx="9" ry="5" fill="#c084fc" opacity=".5"/>'
+    + _mEyeSharp(49, 82, 8, 1, '#e879f9') + _mEyeSharp(72, 82, 8, -1, '#e879f9')
+    + '<path d="M48 99 Q60 94 72 99" stroke="#1e0a3c" stroke-width="3" fill="none" stroke-linecap="round"/>'
+    + '<path d="M53 98 L55 103 M60 97 L60 102 M67 98 L65 103" stroke="#e2d5f8" stroke-width="1.6" stroke-linecap="round"/>'
+    + '</svg>',
   // マメット：小鬼（丸い体・小さな角・大きな耳・八重歯）
   goblin:
     _mHead() + _mShadow(30)
@@ -425,6 +453,9 @@ var SRPG_MON_VARIANTS2={};
 // 種名の解決（基本種・変種・亜種すべて）
 function srpgMonName(art){
   if(SRPG_MON_BASE_NAMES[art]) return SRPG_MON_BASE_NAMES[art];
+  if(typeof SRPG_EVO_STAGE_OF!=='undefined' && SRPG_EVO_STAGE_OF[art]){   // 進化フォームの名
+    var _ln=SRPG_EVO_LINES[SRPG_EVO_STAGE_OF[art]]; for(var _i=0;_i<_ln.length;_i++){ if(_ln[_i].art===art) return _ln[_i].name; }
+  }
   var v=SRPG_MON_VARIANTS2[art]; if(v) return v.name;
   var m=/^(.*)2$/.exec(art); if(m&&SRPG_MON_BASE_NAMES[m[1]]) return SRPG_MON_BASE_NAMES[m[1]]+'（亜種）';
   return 'なかま';
@@ -453,6 +484,8 @@ function srpgMonArt(art){
 var SRPG_MON_TIER = {
   // ★0 N（ノーマル）＝素朴な小物
   slime:0, goblin:0, microbe:0, bat:0,
+  // 進化フォーム（スカウト不可・育成でのみ到達）：段階ごとに格が上がる
+  slime_king:3, slime_lord:5,
   // ★1 R（レア）＝ひとくせある雑魚
   inkblob:1, flaskun:1, qbird:1, fudebird:1, mapmoth:1, wolf:1,
   // ★2 SR＝目立つ存在
@@ -493,6 +526,28 @@ function srpgRarityBand(band){ return SRPG_RARITY_BANDS[Math.max(0,Math.min(SRPG
 function srpgRarityOfRank(rank){ var b=srpgBandOfRank(rank); return Object.assign({ band:b }, srpgRarityBand(b)); }
 // 候補アート配列から その帯に属するものだけ（スカウトの帯結合に使う）
 function srpgArtsForBand(band, arts){ return (arts||[]).filter(function(a){ return srpgTierOfArt(a)===band; }); }
+// ===== 進化ライン（育てると 姿が変身：レア度が上がるほど 強力な姿へ）=====
+// species(基本種art) → 段階 [{minBand, art, name}]。到達帯(minBand)以上で その姿に変身。
+// 進化フォームは スカウト不可（AIBOU_ART_SPECIESに無い）・変種なし・dex非加算。
+var SRPG_EVO_LINES = {
+  slime: [
+    { minBand:0, art:'slime',      name:'スライム' },
+    { minBand:3, art:'slime_king', name:'キングスライム' },   // SSR帯で キング化
+    { minBand:5, art:'slime_lord', name:'スライム魔神' }      // 伝説帯で 魔神化
+  ]
+};
+// 段階art → ライン基本種（逆引き）。どの姿からでも 自分のラインを辿れる。
+var SRPG_EVO_STAGE_OF = {};
+Object.keys(SRPG_EVO_LINES).forEach(function(base){ SRPG_EVO_LINES[base].forEach(function(st){ SRPG_EVO_STAGE_OF[st.art] = base; }); });
+// いまの art＋rank に対応する 進化フォーム {art,name,base}。ライン無ければ null（＝姿は変わらない）。
+function srpgEvoFormFor(art, rank){
+  var base = SRPG_EVO_STAGE_OF[art] || art;
+  var line = SRPG_EVO_LINES[base]; if(!line) return null;
+  var band = srpgBandOfRank(rank), pick = line[0];
+  for(var i=0;i<line.length;i++){ if(band >= line[i].minBand) pick = line[i]; }
+  return { art: pick.art, name: pick.name, base: base };
+}
+
 // レア度オーラ枠でモンスターのアートHTMLをくるむ（rank→帯の 色/枠/バッジ）。CSS: .srpg-rar（index.html）。
 function srpgRarityWrap(innerHtml, rank){
   var r = srpgRarityOfRank(rank);
@@ -503,5 +558,6 @@ function srpgRarityWrap(innerHtml, rank){
 
 if(typeof module !== 'undefined' && module.exports){
   module.exports = { SRPG_MON_ART: SRPG_MON_ART, SRPG_MON_VARIANT: SRPG_MON_VARIANT, srpgMonArt: srpgMonArt, SRPG_MON_VARIANTS2: SRPG_MON_VARIANTS2, SRPG_ELEM_VARIANTS: SRPG_ELEM_VARIANTS, SRPG_MON_BASE_NAMES: SRPG_MON_BASE_NAMES, srpgMonName: srpgMonName,
-    SRPG_MON_TIER: SRPG_MON_TIER, SRPG_RANK_BAND: SRPG_RANK_BAND, SRPG_RARITY_BANDS: SRPG_RARITY_BANDS, srpgTierOfArt: srpgTierOfArt, srpgBandOfRank: srpgBandOfRank, srpgRarityBand: srpgRarityBand, srpgRarityOfRank: srpgRarityOfRank, srpgArtsForBand: srpgArtsForBand, srpgRarityWrap: srpgRarityWrap };
+    SRPG_MON_TIER: SRPG_MON_TIER, SRPG_RANK_BAND: SRPG_RANK_BAND, SRPG_RARITY_BANDS: SRPG_RARITY_BANDS, srpgTierOfArt: srpgTierOfArt, srpgBandOfRank: srpgBandOfRank, srpgRarityBand: srpgRarityBand, srpgRarityOfRank: srpgRarityOfRank, srpgArtsForBand: srpgArtsForBand, srpgRarityWrap: srpgRarityWrap,
+    SRPG_EVO_LINES: SRPG_EVO_LINES, SRPG_EVO_STAGE_OF: SRPG_EVO_STAGE_OF, srpgEvoFormFor: srpgEvoFormFor };
 }

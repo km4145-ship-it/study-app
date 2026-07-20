@@ -33,6 +33,8 @@ function char3dSpecOf(key){ return CHAR3D_SPECS[key] || CHAR3D_SPECS.owl; }
 // plan: blob / imp / flyer / beast / tree / ghost / dragon / bird / cube / golem / robe / crystal
 var MON3D_SPECS = {
   slime:     { plan:'blob',    main:'#2dd4bf', hi:'#7fffe6', eye:'#0f172a' },
+  slime_king:{ plan:'blob',    main:'#2bb8aa', hi:'#7fffe6', eye:'#0f172a', crown:'#fcd34d', big:1.2 },   // 進化：キングスライム
+  slime_lord:{ plan:'blob',    main:'#4c1d95', hi:'#c4b5fd', eye:'#e879f9', crown:'#fbbf24', big:1.32 },  // 進化：スライム魔神
   inkblob:   { plan:'blob',    main:'#312e4d', hi:'#c4b5fd', eye:'#0f172a', drip:true },
   microbe:   { plan:'blob',    main:'#84cc16', hi:'#d9f99d', eye:'#0f172a', spots:'#4d7c0f' },
   flaskun:   { plan:'blob',    main:'#10b981', hi:'#a7f3d0', eye:'#0f172a', bubbles:true },

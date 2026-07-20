@@ -300,7 +300,8 @@ c.ok('高レアに脈打つオーラ要素＋CSS', ui.indexOf("isHigh ? '<div cl
 c.ok('伝説(LG/SSS)は紙吹雪・星の雨を追い波で重ねる', /mon\.rank==='LG' \|\| mon\.rank==='SSS'/.test(ui) && /_lg[\s\S]{0,300}gachaFx\.rain/.test(ui));
 
 // ===== ③ 大魔王級レアモンスター（LG限定スカウト）=====
-c.ok('_scoutArts は大魔王級(LEG)をLGのときだけ追加', /if\(rank==='LG'\) arts = arts\.concat\(LEG\)/.test(ui) && ui.indexOf('LEG.indexOf(a)<0') >= 0);
+// レア度再構成後：_scoutArts はランク→帯結合（大魔王級=神話帯6=LG限定は SRPG_MON_TIER＋帯写像で担保。挙動は unit-rarity で検証）
+c.ok('_scoutArts はランク→帯結合（srpgBandOfRank/srpgArtsForBand）', ui.indexOf('srpgBandOfRank(rank)') >= 0 && ui.indexOf('srpgArtsForBand(') >= 0);
 {
   const mons = fs.readFileSync(path.join(ROOT, 'js', 'srpg-mons.js'), 'utf8');
   c.ok('大魔王級3体のアートが定義（daimaou/enmaou/hyoumaou）',

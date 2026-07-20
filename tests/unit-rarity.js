@@ -76,4 +76,22 @@ c.ok('UR帯(4)に 魔神幹部zeronが入る', M.srpgArtsForBand(4, dexAll).inde
 c.ok('UR帯(4)に ドラゴンも残る', M.srpgArtsForBand(4, dexAll).indexOf('dragon') >= 0);
 c.ok('神話帯(6)=kyomu＋大魔王級3体の4体のみ', (function () { var b6 = M.srpgArtsForBand(6, dexAll); return b6.length === 4 && b6.indexOf('kyomu') >= 0 && b6.indexOf('daimaou') >= 0 && b6.every(function (a) { return M.srpgTierOfArt(a) === 6; }); })());
 
+// ---- Phase4：進化ライン（育てると 姿が変身）----
+c.eq('slime@F → スライム', M.srpgEvoFormFor('slime', 'F').art, 'slime');
+c.eq('slime@C(band1) → まだスライム', M.srpgEvoFormFor('slime', 'C').art, 'slime');
+c.eq('slime@S(band3) → キングスライム', M.srpgEvoFormFor('slime', 'S').art, 'slime_king');
+c.eq('slime@SS(band4) → キングのまま', M.srpgEvoFormFor('slime', 'SS').art, 'slime_king');
+c.eq('slime@SSS(band5) → スライム魔神', M.srpgEvoFormFor('slime', 'SSS').art, 'slime_lord');
+c.eq('slime@LG(band6) → スライム魔神', M.srpgEvoFormFor('slime', 'LG').art, 'slime_lord');
+c.eq('キング@SSS → 魔神（現フォームからも辿れる）', M.srpgEvoFormFor('slime_king', 'SSS').art, 'slime_lord');
+c.eq('ライン無し(dragon) → null', M.srpgEvoFormFor('dragon', 'LG'), null);
+// 進化フォームの名前・アート・格
+c.eq('名 slime_king', M.srpgMonName('slime_king'), 'キングスライム');
+c.eq('名 slime_lord', M.srpgMonName('slime_lord'), 'スライム魔神');
+c.eq('格 slime_king=3(SSR)', M.srpgTierOfArt('slime_king'), 3);
+c.eq('格 slime_lord=5(伝説)', M.srpgTierOfArt('slime_lord'), 5);
+c.ok('進化フォームの SVGアートが存在', !!M.SRPG_MON_ART['slime_king'] && !!M.SRPG_MON_ART['slime_lord']);
+// 進化フォームは スカウト/dex に混ざらない（AIBOU/BASE_NAMES/変種に無い）
+c.ok('進化フォームは base名簿/変種に含まれない（dex非加算）', !M.SRPG_MON_BASE_NAMES['slime_king'] && !M.SRPG_MON_BASE_NAMES['slime_lord'] && !M.SRPG_MON_VARIANTS2['slime_king']);
+
 c.done();

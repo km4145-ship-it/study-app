@@ -2157,12 +2157,17 @@ function srpgEvolveDo(baseId){
   if(!confirm('✨ 進化（ランクアップ）\n\n「'+(base.name||'なかま')+'」を '+(base.rank||'F')+' → '+cost.next+' に します。\n\nつかうもの：おなじ種の ダブり '+cost.dupes+'体 ＋ 🪙'+cost.coins+'\n（素材の なかまは いなくなります。育てた子・パーティは のこります）\n\nよろしいですか？')) return;
   cos.coin = (cos.coin||0) - cost.coins;
   base.rank = cost.next;
+  // 進化ライン：帯を越えたら 姿が変身（art/name を差し替え）＝レア度が上がるほど 強力な姿へ
+  var _morph = null;
+  try{ if(typeof srpgEvoFormFor==='function'){ var _form = srpgEvoFormFor(base.art, base.rank);
+    if(_form && _form.art !== base.art){ base.art = _form.art; base.name = _form.name; base._evo = 1; _morph = _form.name; } } }catch(e){}
   if(!ai.gone) ai.gone = {};
   mats.forEach(function(m){ ai.gone[m.id] = 1; delete ai.roster[m.id]; });   // 墓標＝同期しても復活しない
   rpgSave(s);
   try{ sfx('levelup'); }catch(e){ try{ sfx('coin'); }catch(e2){} }
   try{ srpgEvolveFx(base, cost.next); }catch(e){}
-  try{ showToast('✨','しんか！ '+(base.name||'なかま')+' が '+cost.next+' に！','つよさが 大アップ！ レベル上限も 上がったよ'); }catch(e){}
+  if(_morph){ try{ showToast('🌟','しんか！ 姿が 変わった！','「'+_morph+'」に 進化！ '+cost.next+'ランク・つよさ大アップ'); }catch(e){} }
+  else { try{ showToast('✨','しんか！ '+(base.name||'なかま')+' が '+cost.next+' に！','つよさが 大アップ！ レベル上限も 上がったよ'); }catch(e){} }
   try{ if(typeof updateResBar==='function') updateResBar(); }catch(e){}
   srpgSkillUpScreen();
 }

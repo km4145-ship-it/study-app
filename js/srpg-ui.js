@@ -105,7 +105,7 @@ function srpgTeamScreen(){
     var nSk = srpgSkillCount(sp.lvl);
     var gear = sp.bonus ? srpgGearTotal(sp.bonus) : 0;
     var innate = sp.innate ? srpgSkill(sp.innate) : null;   // 固有とくぎ＝種の個性を見せる
-    return '<div class="srpg-tm-card'+(on?' on':'')+(isLeader?' leader':'')+'">'
+    return '<div class="srpg-tm-card'+(on?' on':'')+(isLeader?' leader':'')+(sp.rank?' rk-'+sp.rank:'')+'">'
       + (isLeader?'<span class="srpg-tm-crown">👑</span>':'')
       + '<div class="srpg-tm-ava">'+((typeof srpgMonArt==='function'&&srpgMonArt(sp.art))||_charStill(sp.art))+'</div>'
       + '<div class="srpg-tm-nm">'+escapeHtml(sp.name)+'</div>'

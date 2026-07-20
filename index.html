@@ -1950,6 +1950,12 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .srpg-tm-sort{ display:flex; align-items:center; gap:6px; margin:0 2px 8px; }
   .srpg-tm-sort small{ color:#94a3b8; font-weight:800; margin-right:2px; }
   .srpg-tm-sort .srpg-mini2.on{ background:#7c3aed; color:#fff; border-color:#7c3aed; }
+  /* 編成カードの レア度オーラ（上位ほど 強く光る） */
+  .srpg-tm-card.rk-S{ border-color:#a855f7; } .srpg-tm-card.rk-SS{ border-color:#fbbf24; animation:rarPulseG 1.9s ease-in-out infinite; }
+  .srpg-tm-card.rk-SSS{ border-color:#f43f5e; animation:rarPulseR 1.6s ease-in-out infinite; }
+  .srpg-tm-card.rk-LG{ border-color:#e879f9; animation:rarPulseW 1.4s ease-in-out infinite; }
+  .srpg-tm-card.rk-LG::before{ content:''; position:absolute; inset:-2px; border-radius:16px; z-index:-1;
+    background:conic-gradient(from 0deg,#f87171,#fbbf24,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171); animation:rarSpin 3.2s linear infinite; }
   .srpg-tm-card{ position:relative; background:linear-gradient(180deg,#1e293b,#273449); border:1px solid rgba(148,163,184,.3); border-radius:14px; padding:10px; text-align:center; }
   .srpg-tm-card.on{ border-color:#38bdf8; box-shadow:0 0 12px rgba(56,189,248,.3); }
   .srpg-tm-card.leader{ border-color:#fde047; box-shadow:0 0 14px rgba(253,224,71,.4); }
@@ -3265,6 +3271,16 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rpg-aibou-bdB{ border-color:#3b82f6 !important; } .rpg-aibou-bdA{ border-color:#6366f1 !important; }
   .rpg-aibou-bdS{ border-color:#a855f7 !important; } .rpg-aibou-bdSS{ border-color:#f59e0b !important; }
   .rpg-aibou-bdSSS{ border-color:#f43f5e !important; box-shadow:0 0 10px rgba(244,63,94,.45); }
+  .rpg-aibou-bdLG{ border-color:#e879f9 !important; }
+  /* レア度オーラ：上位ほど 光り・動く＝LGは 一目で レジェンド級 */
+  .rpg-aibou-cell.rpg-aibou-bdSS{ animation:rarPulseG 1.9s ease-in-out infinite; }
+  .rpg-aibou-cell.rpg-aibou-bdSSS{ animation:rarPulseR 1.6s ease-in-out infinite; }
+  .rpg-aibou-cell.rpg-aibou-bdLG{ animation:rarPulseW 1.4s ease-in-out infinite; }
+  .rpg-aibou-cell.rpg-aibou-bdLG::before{ content:''; position:absolute; inset:-3px; border-radius:calc(var(--r-m) + 3px); z-index:-1;
+    background:conic-gradient(from 0deg,#f87171,#fbbf24,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171); animation:rarSpin 3.2s linear infinite; }
+  /* 明背景（なかま一覧）でのグループ見出しの文字色補正 */
+  .rpg-aibou-grid .srpg-tm-group{ color:#334155; } .rpg-aibou-grid .srpg-tm-group small{ color:#64748b; }
+  .rpg-aibou-grid .srpg-tm-group.band-6{ color:#a21caf; } .rpg-aibou-grid .srpg-tm-group.band-5{ color:#be123c; }
   /* モンスターの絵は必ず枠内に収める（SVG固有サイズでレイアウトが崩れないように） */
   .rpg-aibou-art{ width:48px; height:48px; display:flex; align-items:center; justify-content:center; font-size:38px; line-height:1; }
   .rpg-aibou-art svg{ width:100% !important; height:100% !important; display:block; }
@@ -8042,22 +8058,38 @@ function rpgShowAibou(){
   h+='<div class="rpg-aibou-tact">⚔️ しゅつげきメンバーは タクトの<b>「編成」</b>で えらぶよ <button class="rpg-btn" onclick="srpgOpen(\'team\')">🛡️ 編成へ</button></div>';
   if(!ids.length){ h+='<div class="rpg-map-hint">まだ なかまが いないよ。バトルに かつと モンスターが「なかまに なりたい！」って 来ることが あるよ！</div>'; }
   else {
-    ids.sort(function(p,q){ var A=ai.roster[p],B=ai.roster[q]; var d=AIBOU_RANKS.indexOf(B.rank)-AIBOU_RANKS.indexOf(A.rank); return d||((B.lv||1)-(A.lv||1)); });   // 強い順
-    h+='<div class="rpg-aibou-sec">🐾 なかま いちらん（つよい じゅん）</div>';
-    h+='<div class="rpg-aibou-grid">';
-    ids.forEach(function(id){ var a=ai.roster[id], inP=ai.party.indexOf(id)>=0;
-      h+='<button class="rpg-aibou-cell rpg-aibou-bd'+a.rank+(inP?' inparty':'')+'" onclick="rpgAibouDetail(\''+id+'\')">'
+    var _sortMode = (typeof srpgRosterSort!=='undefined') ? srpgRosterSort : 'rank';
+    // 分類用に id を持たせた 軽量リスト（rank/sp/lv）。表示は元の roster から。
+    var _items = ids.map(function(id){ var a=ai.roster[id]; return { _id:id, sp:a.sp, rank:a.rank, lv:a.lv }; });
+    h+='<div class="rpg-aibou-sec">🐾 なかま いちらん</div>';
+    h+='<div class="srpg-tm-sort"><small>ならべかえ</small>'
+      +'<button class="srpg-mini2'+(_sortMode==='rank'?' on':'')+'" onclick="rpgAibouSort(\'rank\')">ランク順</button>'
+      +'<button class="srpg-mini2'+(_sortMode==='species'?' on':'')+'" onclick="rpgAibouSort(\'species\')">種別順</button></div>';
+    var _cell = function(id){ var a=ai.roster[id], inP=ai.party.indexOf(id)>=0;
+      return '<button class="rpg-aibou-cell rpg-aibou-bd'+a.rank+(inP?' inparty':'')+'" onclick="rpgAibouDetail(\''+id+'\')">'
         +'<span class="rpg-aibou-rank r'+a.rank+'">'+a.rank+'</span>'
         +(inP?'<span class="rpg-aibou-inp">🎒</span>':'')
         +'<span class="rpg-aibou-art">'+rpgAibouArt(a)+rpgAibouHatHtml(a)+'</span>'
         +'<span class="rpg-aibou-nm">'+((AIBOU_SPECIES[a.sp]||{}).em||'')+' '+escapeHtml(a.name||'？')+'</span>'
-        +'<span class="rpg-aibou-lv">Lv.'+(a.lv||1)+'</span></button>'; });
+        +'<span class="rpg-aibou-lv">Lv.'+(a.lv||1)+'</span></button>'; };
+    h+='<div class="rpg-aibou-grid">';
+    if(typeof srpgClassifyRoster==='function'){
+      srpgClassifyRoster(_items, _sortMode).forEach(function(g){
+        h+='<div class="srpg-tm-group'+(g.band!=null?' band-'+g.band:'')+'" style="grid-column:1/-1">'+escapeHtml(g.label)+' <small>×'+g.items.length+'</small></div>';
+        g.items.forEach(function(it){ h+=_cell(it._id); });
+      });
+    } else {
+      _items.sort(function(A,B){ var d=AIBOU_RANKS.indexOf(B.rank)-AIBOU_RANKS.indexOf(A.rank); return d||((B.lv||1)-(A.lv||1)); });
+      _items.forEach(function(it){ h+=_cell(it._id); });
+    }
     h+='</div>';
   }
-  h+='<div class="rpg-map-hint">わくの色＝ランクの色（F→SSS で つよくなる）。たかい章の バトルほど 強いランクが 出やすい。ボスは なかまに なりやすいよ！</div>';
+  h+='<div class="rpg-map-hint">わくの色・かがやき＝レア度（高いほど つよく きらびやか）。「ならべかえ」で ランク順／種別順に できるよ。</div>';
   mv.innerHTML=h;
   try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
 }
+// なかま一覧の並べ替え（ランク順／種別順）。srpgRosterSort を共有＝タクト編成と同じ設定。
+function rpgAibouSort(m){ try{ if(typeof srpgRosterSort!=='undefined') window.srpgRosterSort = (m==='species'?'species':'rank'); }catch(e){} try{ sfx('click'); }catch(e){} rpgShowAibou(); }
 // パーティの応援効果 → 子どもに分かる ことばのチップ
 function rpgAibouDetail(id){
   var s=rpgState(), ai=rpgAibouState(s), a=ai.roster[id];

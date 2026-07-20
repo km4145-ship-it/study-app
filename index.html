@@ -2184,6 +2184,27 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
   .rk-F,.rk-E{ color:#94a3b8; } .rk-D,.rk-C{ color:#7dd3fc; } .rk-B{ color:#6ee7b7; } .rk-A{ color:#a78bfa; } .rk-S{ color:#f472b6; } .rk-SS{ color:#fde047; } .rk-SSS{ color:#f87171; }
   .rk-LG{ background:linear-gradient(90deg,#f87171,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:900; }
   .srpg-got.rk-LG, .srpg-got.card.rk-LG .srpg-got-face{ border-color:#fff; box-shadow:0 0 18px rgba(255,255,255,.7), 0 0 30px rgba(167,139,250,.5); }
+  /* === レア度オーラ（Phase2）：高レア度ほど 枠・光・動きが 強くなる＝“格”が一目で伝わる === */
+  .srpg-got.rk-B{ border-color:#6ee7b7; box-shadow:0 0 8px rgba(110,231,183,.3); }
+  .srpg-got.rk-SS{ animation:rarPulseG 1.8s ease-in-out infinite; }
+  .srpg-got.rk-SSS{ animation:rarPulseR 1.5s ease-in-out infinite; }
+  .srpg-got.rk-LG{ animation:rarPulseW 1.4s ease-in-out infinite; }
+  @keyframes rarPulseG{ 0%,100%{ box-shadow:0 0 10px rgba(253,224,71,.4); } 50%{ box-shadow:0 0 20px rgba(253,224,71,.75); } }
+  @keyframes rarPulseR{ 0%,100%{ box-shadow:0 0 14px rgba(248,113,113,.5); } 50%{ box-shadow:0 0 26px rgba(248,113,113,.9); } }
+  @keyframes rarPulseW{ 0%,100%{ box-shadow:0 0 18px rgba(255,255,255,.65), 0 0 30px rgba(167,139,250,.5); } 50%{ box-shadow:0 0 30px rgba(255,255,255,.95), 0 0 48px rgba(167,139,250,.85); } }
+  /* 再利用オーラ枠（任意の見た目を srpgRarityWrap でくるむ）。--rc=帯色 --rg=グロウ */
+  .srpg-rar{ position:relative; display:inline-block; border-radius:14px; }
+  .srpg-rar-in{ position:relative; display:block; border-radius:12px; box-shadow:0 0 0 2px var(--rc), 0 0 12px var(--rg); }
+  .srpg-rar-badge{ position:absolute; top:-7px; left:-6px; z-index:3; font-size:.56rem; font-weight:900; color:#0b1020; background:var(--rc); padding:1px 6px; border-radius:999px; font-style:normal; box-shadow:0 1px 3px rgba(0,0,0,.4); letter-spacing:.5px; }
+  /* 上位帯は 回転する神々しいリング＋強い脈動 */
+  .srpg-rar.band-4 .srpg-rar-in{ animation:rarPulseG 1.8s ease-in-out infinite; }
+  .srpg-rar.band-5 .srpg-rar-in{ animation:rarPulseR 1.5s ease-in-out infinite; }
+  .srpg-rar.band-6{ padding:3px; }
+  .srpg-rar.band-6::before{ content:''; position:absolute; inset:-2px; border-radius:16px; z-index:0;
+    background:conic-gradient(from 0deg,#f87171,#fbbf24,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171);
+    animation:rarSpin 3.2s linear infinite; filter:blur(1px); opacity:.85; }
+  .srpg-rar.band-6 .srpg-rar-in{ position:relative; z-index:1; box-shadow:0 0 0 2px #fff, 0 0 16px rgba(255,255,255,.7); }
+  @keyframes rarSpin{ to{ transform:rotate(360deg); } }
   .srpg-evwrap{ position:relative; display:block; width:100%; height:100%; }
   .srpg-evwrap .srpg-hue{ display:block; width:100%; height:100%; }
   .srpg-ev-badge{ position:absolute; right:-2px; bottom:0; font-style:normal; font-size:14px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.6)); pointer-events:none; }

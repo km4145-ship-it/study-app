@@ -57,4 +57,10 @@ all.forEach(function (a) { var t = M.srpgTierOfArt(a); if (t >= 0 && t <= 6) ban
 c.ok('全スカウト候補が 帯0..6 に解決', all.every(function (a) { var t = M.srpgTierOfArt(a); return t >= 0 && t <= 6; }));
 c.ok('全帯0..6が非空（どのランクでも候補が存在＝安全）', bandCount.every(function (n) { return n > 0; }), JSON.stringify(bandCount));
 
+// ---- レア度オーラ枠ラッパ（表示層）----
+c.ok('rarityWrap LG→band-6＋MRバッジ', /band-6/.test(M.srpgRarityWrap('X', 'LG')) && /srpg-rar-badge">MR</.test(M.srpgRarityWrap('X', 'LG')));
+c.ok('rarityWrap F→band-0＋Nバッジ', /band-0/.test(M.srpgRarityWrap('X', 'F')) && /srpg-rar-badge">N</.test(M.srpgRarityWrap('X', 'F')));
+c.ok('rarityWrap は innerHTML を保持', M.srpgRarityWrap('<b>竜</b>', 'SS').indexOf('<b>竜</b>') >= 0);
+c.ok('rarityWrap は rk-クラスと色変数を付与', /rk-SS/.test(M.srpgRarityWrap('X', 'SS')) && /--rc:/.test(M.srpgRarityWrap('X', 'SS')));
+
 c.done();

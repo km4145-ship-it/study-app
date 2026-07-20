@@ -489,8 +489,15 @@ function srpgRarityBand(band){ return SRPG_RARITY_BANDS[Math.max(0,Math.min(SRPG
 function srpgRarityOfRank(rank){ var b=srpgBandOfRank(rank); return Object.assign({ band:b }, srpgRarityBand(b)); }
 // 候補アート配列から その帯に属するものだけ（スカウトの帯結合に使う）
 function srpgArtsForBand(band, arts){ return (arts||[]).filter(function(a){ return srpgTierOfArt(a)===band; }); }
+// レア度オーラ枠でモンスターのアートHTMLをくるむ（rank→帯の 色/枠/バッジ）。CSS: .srpg-rar（index.html）。
+function srpgRarityWrap(innerHtml, rank){
+  var r = srpgRarityOfRank(rank);
+  return '<span class="srpg-rar band-'+r.band+' rk-'+(rank||'')+'" style="--rc:'+r.color+';--rg:'+r.glow+'">'
+    + '<span class="srpg-rar-in">'+(innerHtml==null?'':innerHtml)+'</span>'
+    + '<i class="srpg-rar-badge">'+r.key+'</i></span>';
+}
 
 if(typeof module !== 'undefined' && module.exports){
   module.exports = { SRPG_MON_ART: SRPG_MON_ART, SRPG_MON_VARIANT: SRPG_MON_VARIANT, srpgMonArt: srpgMonArt, SRPG_MON_VARIANTS2: SRPG_MON_VARIANTS2, SRPG_ELEM_VARIANTS: SRPG_ELEM_VARIANTS, SRPG_MON_BASE_NAMES: SRPG_MON_BASE_NAMES, srpgMonName: srpgMonName,
-    SRPG_MON_TIER: SRPG_MON_TIER, SRPG_RANK_BAND: SRPG_RANK_BAND, SRPG_RARITY_BANDS: SRPG_RARITY_BANDS, srpgTierOfArt: srpgTierOfArt, srpgBandOfRank: srpgBandOfRank, srpgRarityBand: srpgRarityBand, srpgRarityOfRank: srpgRarityOfRank, srpgArtsForBand: srpgArtsForBand };
+    SRPG_MON_TIER: SRPG_MON_TIER, SRPG_RANK_BAND: SRPG_RANK_BAND, SRPG_RARITY_BANDS: SRPG_RARITY_BANDS, srpgTierOfArt: srpgTierOfArt, srpgBandOfRank: srpgBandOfRank, srpgRarityBand: srpgRarityBand, srpgRarityOfRank: srpgRarityOfRank, srpgArtsForBand: srpgArtsForBand, srpgRarityWrap: srpgRarityWrap };
 }

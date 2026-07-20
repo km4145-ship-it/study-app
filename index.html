@@ -163,8 +163,8 @@
   .score-label { font-size: 0.68rem; font-weight: 700; color: var(--muted); margin-top: 1px; }
 
   /* Character area */
-  .character-area { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 16px; min-height: 140px; }
-  .character-wrap { width: 115px; flex-shrink: 0; position: relative; }
+  .character-area { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; min-height: 0; }
+  .character-wrap { width: 62px; flex-shrink: 0; position: relative; }
   .char-svg {
     width: 100%; transition: opacity 0.3s;
     filter: drop-shadow(0 0 14px rgba(8,145,178,0.5));
@@ -1259,11 +1259,7 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
     <span class="nb-badge" id="nb-badge" style="display:none">0</span>
   </div>
 
-  <div class="header">
-    <h1>⚔️ 小中学生学習アプリ</h1>
-    <p>〜 なかまと タクトバトル。勉強して 偏差値65を めざそう！ 〜</p>
-  </div>
-  <div class="wave-deco">⚔️ 🛡️ 🔮 🐉 👑 ✨ 🏰</div>
+  <!-- タイトル帯・装飾は 整理のため撤去（ナビ帯にアプリ/ユーザーあり）-->
 
   <!-- Score -->
   <div class="score-bar">
@@ -1272,7 +1268,12 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
     <div class="score-item daily-item" onclick="setGoalPrompt()" title="今日の目標（タップで変更）"><div class="daily-ring" id="daily-ring" style="--pct:0"><div class="inner" id="daily-inner">0/20</div></div><div class="score-label">今日の目標🎯</div></div>
   </div>
 
-  <!-- Character area -->
+  <!-- 教科選択（ハブを立ち絵より上に＝冒険/なかま/学習を 初期表示で見せる） -->
+  <div id="subject-select-screen">
+    <div id="game-hub" class="game-hub"></div>
+  </div>
+
+  <!-- 案内役ミミ学園長（コンパクト・ハブの下に配置） -->
   <div class="character-area">
     <div class="character-wrap">
       <!-- SVGs injected by JS -->
@@ -1284,11 +1285,6 @@ body.rpg-battle .revenge-banner, body.rpg-battle .revenge-note{ background:rgba(
       <div class="bubble-name" id="bubble-name">🦉 ミミ学園長（フクロウ・案内役）<span id="speaking-indicator" style="display:none"><span class="speaking-dot"></span></span></div>
       <div id="luna-text">ようこそ！わたしはミミ学園長🦉 ここには動物の先生たちがいるよ。教科をえらんで始めよう！</div>
     </div>
-  </div>
-
-  <!-- 教科選択 -->
-  <div id="subject-select-screen">
-    <div id="game-hub" class="game-hub"></div>
   </div>
 
   <!-- ゲームハブ → 練習/模試の教科えらび -->
@@ -5897,9 +5893,8 @@ function renderGameHub(){ try{window._bc&&window._bc('renderHub');}catch(_){}
   h+='<div class="hub-player">'+
      '<div class="hub-ava">'+avatar+'</div>'+
      '<div class="hub-pinfo"><div class="hub-pname">'+escapeHtml(name)+(grade?' <span class="hub-grade">'+grade+'</span>':'')+(_hubTitle?' <span class="hub-eqtitle">'+_hubTitle.em+' '+escapeHtml(_hubTitle.name)+'</span>':'')+'</div>'+
-     '<div class="hub-chips"><span class="hub-chip hub-hensa" title="れんしゅうの じつりょくメーター。本物の偏差値は 模試でわかるよ（きろく画面）">📈 じつりょく <b>'+(hensa||'計測中')+'</b>'+(hensaSub?'<small style="font-weight:700"> '+hensaSub+'</small>':'')+'</span><span class="hub-chip">⭐ '+pts+'</span><span class="hub-chip">🔥 '+st+'日</span><span class="hub-chip">Lv '+lv+'</span></div></div>'+
-     '<div class="hub-ring" style="--p:'+pct+'"><div class="hub-ring-in">'+cnt+'<small>/'+goal+'</small></div></div>'+
-     '</div>';
+     '<div class="hub-chips"><span class="hub-chip hub-hensa" title="れんしゅうの じつりょくメーター。本物の偏差値は 模試でわかるよ（きろく画面）">📈 じつりょく <b>'+(hensa||'計測中')+'</b>'+(hensaSub?'<small style="font-weight:700"> '+hensaSub+'</small>':'')+'</span><span class="hub-chip">Lv '+lv+'</span></div></div>'+
+     '</div>';   // ⭐/🔥はナビ帯、今日の目標リングはスコア帯に集約（重複を統合＝スタッツすっきり）
   // 🛡️ データ保護のおすすめ（端末内のみ＝バックアップ無しのとき。アカウントで消えても復活・別端末でも遊べる）
   try{
     var _cm=(window.cloudMode && window.cloudMode())||'local';

@@ -63,4 +63,17 @@ c.ok('rarityWrap F→band-0＋Nバッジ', /band-0/.test(M.srpgRarityWrap('X', '
 c.ok('rarityWrap は innerHTML を保持', M.srpgRarityWrap('<b>竜</b>', 'SS').indexOf('<b>竜</b>') >= 0);
 c.ok('rarityWrap は rk-クラスと色変数を付与', /rk-SS/.test(M.srpgRarityWrap('X', 'SS')) && /--rc:/.test(M.srpgRarityWrap('X', 'SS')));
 
+// ---- Phase3+5：上位帯の新規スカウト種（魔神幹部5体＝UR ＋ 虚無竜＝神話）----
+c.eq('zeron 名前', M.srpgMonName('zeron'), '天秤の魔神ゼロン');
+c.eq('sci_lt 名前', M.srpgMonName('sci_lt'), 'まやかしの魔神ペテル');
+c.eq('kyomu 名前', M.srpgMonName('kyomu'), '虚無竜ムゲン');
+c.ok('魔神幹部/虚無竜は 属性変種を持たない（唯一無二）', !M.SRPG_MON_VARIANTS2['zeron_fire'] && !M.SRPG_MON_VARIANTS2['sci_lt_ice'] && !M.SRPG_MON_VARIANTS2['kyomu_dark']);
+c.eq('base種 30（24＋魔神6）', Object.keys(M.SRPG_MON_BASE_NAMES).length, 30);
+c.eq('属性変種 100（20種×5・魔神は除外）', Object.keys(M.SRPG_MON_VARIANTS2).length, 100);
+const dexAll = Object.keys(M.SRPG_MON_BASE_NAMES).concat(Object.keys(M.SRPG_MON_VARIANTS2));
+c.eq('dex総数=130', dexAll.length, 130);
+c.ok('UR帯(4)に 魔神幹部zeronが入る', M.srpgArtsForBand(4, dexAll).indexOf('zeron') >= 0);
+c.ok('UR帯(4)に ドラゴンも残る', M.srpgArtsForBand(4, dexAll).indexOf('dragon') >= 0);
+c.ok('神話帯(6)=kyomu＋大魔王級3体の4体のみ', (function () { var b6 = M.srpgArtsForBand(6, dexAll); return b6.length === 4 && b6.indexOf('kyomu') >= 0 && b6.indexOf('daimaou') >= 0 && b6.every(function (a) { return M.srpgTierOfArt(a) === 6; }); })());
+
 c.done();

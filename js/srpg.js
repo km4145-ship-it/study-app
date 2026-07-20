@@ -177,7 +177,9 @@ var SRPG_MON_SKILL = {
   ghost:'lullaby', dragon:'hono', voltdrake:'numbing', trent:'heal', inkblob:'sumihane',
   fudebird:'fudesabaki', kanjioni:'sealing', abcube:'ranban', qbird:'rariho', grammaro:'bikilt',
   flaskun:'gekiyaku', microbe:'baikin', mapmoth:'rinpun', haniwa:'taunt', tokiou:'tokitome',
-  villain:'burstball', daimaou:'burstball', enmaou:'hono', hyoumaou:'numbing', pet:'heal'
+  villain:'burstball', daimaou:'burstball', enmaou:'hono', hyoumaou:'numbing', pet:'heal',
+  // 魔神幹部5体（UR）＋裏ボス虚無竜（神話）＝スカウト対象化に伴い 固有とくぎを付与
+  zeron:'burstball', jp_lt:'sealing', en_lt:'burstball', sci_lt:'numbing', so_lt:'lullaby', kyomu:'burstball'
 };
 // 伝説（LG限定スカウトでのみ出会える大魔王級）＝コレクションの最高峰。図鑑では villain とともに特別枠。
 var SRPG_LEGEND_ARTS = ['daimaou', 'enmaou', 'hyoumaou'];
@@ -689,7 +691,8 @@ var SRPG_DEX_REWARDS = [
   { id:'d80',  need:80,  coin:2500, label:'80種で 🪙2500' },
   { id:'d100', need:100, coin:4000, label:'100種で 🪙4000' },
   { id:'d121', need:121, coin:8000, label:'きほん 121種で 🪙8000' },
-  { id:'d124', need:124, coin:12000, label:'伝説もふくめ 124種で 🪙12000' }   // 大魔王級3体を加えた完全制覇
+  { id:'d124', need:124, coin:12000, label:'伝説もふくめ 124種で 🪙12000' },
+  { id:'d130', need:130, coin:20000, label:'魔神も ふくめ 130種で 🪙20000（完全制覇）' }   // 魔神幹部5体＋裏ボス虚無竜を加えた最終
 ];
 
 // ===== 天井（ピティ）：ハズレ続きの救済＝スカウト30回で SS以上を1体かくてい =====

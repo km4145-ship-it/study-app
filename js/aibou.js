@@ -19,6 +19,8 @@ var AIBOU_ART_SPECIES={
   qbird:'beast', fudebird:'beast', mapmoth:'beast', tokiou:'beast',
   trent:'nature', abcube:'nature', grammaro:'nature', haniwa:'nature',
   villain:'maou', daimaou:'maou', enmaou:'maou', hyoumaou:'maou',   // 伝説（LG限定スカウトの大魔王級）
+  zeron:'maou', jp_lt:'maou', en_lt:'maou', sci_lt:'maou', so_lt:'maou',   // 魔神幹部5体（UR＝SSスカウト）
+  kyomu:'maou',   // 裏ボス 虚無竜（神話＝LGスカウト）
   // 亜種（色ちがい・rpg-assets.jsのRPG_VARIANTS）は基本種と同じ種族
   slime2:'slime', flaskun2:'slime', goblin2:'beast', bat2:'beast', wolf2:'beast', ghost2:'beast',
   dragon2:'dragon', voltdrake2:'dragon', trent2:'nature', haniwa2:'nature'

@@ -44,7 +44,7 @@ var MON3D_SPECS = {
   wolf:      { plan:'beast',   main:'#64748b', belly:'#cbd5e1', eye:'#fef08a', fierce:true },
   trent:     { plan:'tree',    trunk:'#78350f', leaf:'#22c55e', leaf2:'#15803d', eye:'#fff', pupil:'#0f172a' },
   ghost:     { plan:'ghost',   main:'#e0f2fe', eye:'#0369a1' },
-  dragon:    { plan:'dragon',  main:'#16a34a', belly:'#bbf7d0', horn:'#fde047', wing:'#166534', eye:'#fde047', pupil:'#7f1d1d' },
+  dragon:    { plan:'dragon',  main:'#16a34a', belly:'#bbf7d0', horn:'#fde047', wing:'#166534', eye:'#fde047', pupil:'#7f1d1d', big:1.14 },
   voltdrake: { plan:'dragon',  main:'#7c3aed', belly:'#c4b5fd', horn:'#fde047', wing:'#6d28d9', eye:'#fde047', pupil:'#0f172a', spark:'#fde047' },
   fudebird:  { plan:'bird',    main:'#7c2d12', belly:'#f5f5f4', beak:'#1c1917', eye:'#fff', pupil:'#0f172a', brushTail:'#1c1917' },
   qbird:     { plan:'bird',    main:'#38bdf8', belly:'#ffffff', beak:'#f59e0b', eye:'#fff', pupil:'#075985' },
@@ -52,14 +52,18 @@ var MON3D_SPECS = {
   grammaro:  { plan:'cube',    main:'#2563eb', face:'#dbeafe', dark:'#1e3a8a', eye:'#fff', pupil:'#0f172a', book:true },
   haniwa:    { plan:'golem',   main:'#c2724a', hole:'#3f1f12' },
   tokiou:    { plan:'robe',    main:'#1e3a8a', inner:'#eff6ff', trim:'#fcd34d', eye:'#fff', pupil:'#0f172a', crown:'#fcd34d' },
-  villain:   { plan:'robe',    main:'#3b0764', inner:'#0b0219', trim:'#a78bfa', eye:'#f43f5e', pupil:'#0b0219', horns:'#a78bfa', demon:true },
+  villain:   { plan:'robe',    main:'#3b0764', inner:'#0b0219', trim:'#a78bfa', eye:'#f43f5e', pupil:'#0b0219', horns:'#a78bfa', demon:true, big:1.24 },
   // シグマ幹部5体＋裏ボス（demonローブをテーマ色で流用＝各教科の魔神）
-  zeron:     { plan:'robe',    main:'#312e81', inner:'#141042', trim:'#fbbf24', eye:'#fbbf24', horns:'#a5b4fc', demon:true },
-  jp_lt:     { plan:'robe',    main:'#3b0764', inner:'#12082e', trim:'#a855f7', eye:'#a855f7', horns:'#c4b5fd', demon:true },
-  en_lt:     { plan:'robe',    main:'#065f46', inner:'#04231b', trim:'#34d399', eye:'#34d399', horns:'#6ee7b7', demon:true },
-  sci_lt:    { plan:'robe',    main:'#155e75', inner:'#05242c', trim:'#38bdf8', eye:'#38bdf8', horns:'#67e8f9', demon:true },
-  so_lt:     { plan:'robe',    main:'#44403c', inner:'#292524', trim:'#f59e0b', eye:'#f59e0b', horns:'#d6d3d1', demon:true },
-  kyomu:     { plan:'robe',    main:'#171335', inner:'#0a0720', trim:'#c084fc', eye:'#c084fc', horns:'#c4b5fd', demon:true },
+  zeron:     { plan:'robe',    main:'#312e81', inner:'#141042', trim:'#fbbf24', eye:'#fbbf24', horns:'#a5b4fc', demon:true, big:1.12 },
+  jp_lt:     { plan:'robe',    main:'#3b0764', inner:'#12082e', trim:'#a855f7', eye:'#a855f7', horns:'#c4b5fd', demon:true, big:1.12 },
+  en_lt:     { plan:'robe',    main:'#065f46', inner:'#04231b', trim:'#34d399', eye:'#34d399', horns:'#6ee7b7', demon:true, big:1.12 },
+  sci_lt:    { plan:'robe',    main:'#155e75', inner:'#05242c', trim:'#38bdf8', eye:'#38bdf8', horns:'#67e8f9', demon:true, big:1.12 },
+  so_lt:     { plan:'robe',    main:'#44403c', inner:'#292524', trim:'#f59e0b', eye:'#f59e0b', horns:'#d6d3d1', demon:true, big:1.12 },
+  kyomu:     { plan:'robe',    main:'#171335', inner:'#0a0720', trim:'#c084fc', eye:'#c084fc', horns:'#c4b5fd', demon:true, big:1.34 },
+  // 神話（大魔王級3体）＝これまで3D無し(2D)だった最上位に 大型の3Dを付与（王冠・角・威圧）
+  daimaou:   { plan:'robe',    main:'#1a1625', inner:'#4c1d95', trim:'#fbbf24', eye:'#fbbf24', horns:'#a78bfa', crown:'#fbbf24', demon:true, big:1.36 },
+  enmaou:    { plan:'robe',    main:'#7f1d1d', inner:'#991b1b', trim:'#fb923c', eye:'#fb923c', horns:'#fca5a5', crown:'#fb923c', demon:true, big:1.3 },
+  hyoumaou:  { plan:'robe',    main:'#1e3a8a', inner:'#1e40af', trim:'#a5f3fc', eye:'#a5f3fc', horns:'#bae6fd', crown:'#a5f3fc', demon:true, big:1.3 },
   crystal:   { plan:'crystal', main:'#38f0e0', hi:'#7cf9ec' }
 };
 // 亜種の3D：基本の体型（plan）を流用して主色だけ変える（rpg-assets.jsのRPG_VARIANTSと対応）

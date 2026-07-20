@@ -406,13 +406,17 @@ var SRPG_MON_ART = {
 var SRPG_MON_VARIANT = { slime2:140, goblin2:150, bat2:170, wolf2:120, ghost2:100, dragon2:180, trent2:130, voltdrake2:90, flaskun2:200, haniwa2:60 };
 
 // ===== 属性バリアント（20種×5属性=100体・名前も見た目もプロシージャル生成のオリジナル） =====
-var SRPG_MON_BASE_NAMES={slime:'スライム',goblin:'ゴブリン',bat:'いっかくばち',wolf:'ウルフ',ghost:'ゴースト',trent:'トレント',slugking:'スラグキング',dragon:'ドラゴン',inkblob:'インクブロブ',fudebird:'フデバード',kanjioni:'カンジオニ',abcube:'ABキューブ',qbird:'クエスバード',grammaro:'グラマロ',flaskun:'フラスクン',microbe:'マイクローブ',voltdrake:'ボルトドレイク',mapmoth:'マップモス',haniwa:'ハニワン',tokiou:'トキオウ',villain:'魔王シグマ',daimaou:'大魔王ゾルド',enmaou:'炎魔王グレン',hyoumaou:'氷魔王ブリザ'};
+var SRPG_MON_BASE_NAMES={slime:'スライム',goblin:'ゴブリン',bat:'いっかくばち',wolf:'ウルフ',ghost:'ゴースト',trent:'トレント',slugking:'スラグキング',dragon:'ドラゴン',inkblob:'インクブロブ',fudebird:'フデバード',kanjioni:'カンジオニ',abcube:'ABキューブ',qbird:'クエスバード',grammaro:'グラマロ',flaskun:'フラスクン',microbe:'マイクローブ',voltdrake:'ボルトドレイク',mapmoth:'マップモス',haniwa:'ハニワン',tokiou:'トキオウ',villain:'魔王シグマ',daimaou:'大魔王ゾルド',enmaou:'炎魔王グレン',hyoumaou:'氷魔王ブリザ',
+  // 魔神幹部5体（UR）＋裏ボス虚無竜（神話）＝上位帯のスカウト対象（唯一無二・属性変種なし）
+  zeron:'天秤の魔神ゼロン',jp_lt:'静寂の魔神サイレント',en_lt:'混沌の魔神バベル',sci_lt:'まやかしの魔神ペテル',so_lt:'忘却の魔神レーテ',kyomu:'虚無竜ムゲン'};
+// 属性変種を作らない“唯一無二”アート（魔王・大魔王級・魔神幹部・裏ボス）
+var SRPG_MON_UNIQUE = { villain:1, daimaou:1, enmaou:1, hyoumaou:1, zeron:1, jp_lt:1, en_lt:1, sci_lt:1, so_lt:1, kyomu:1 };
 var SRPG_ELEM_VARIANTS={fire:{p:'ほのお',hue:-45,sat:1.35,badge:'🔥'},ice:{p:'こおり',hue:165,sat:1.1,badge:'❄️'},thunder:{p:'かみなり',hue:12,sat:1.6,badge:'⚡'},dark:{p:'やみ',hue:255,sat:.8,badge:'🌑'},holy:{p:'ひかり',hue:60,sat:1.3,badge:'✨'}};
 var SRPG_MON_VARIANTS2={};
 (function(){
   var _leg = (typeof SRPG_LEGEND_ARTS!=='undefined') ? SRPG_LEGEND_ARTS : ['daimaou','enmaou','hyoumaou'];
   Object.keys(SRPG_MON_BASE_NAMES).forEach(function(b){
-    if(b==='villain' || _leg.indexOf(b)>=0) return;   // 魔王・大魔王級は唯一無二（属性変種を作らない）
+    if(SRPG_MON_UNIQUE[b] || b==='villain' || _leg.indexOf(b)>=0) return;   // 魔王・大魔王級・魔神幹部は唯一無二（属性変種を作らない）
     Object.keys(SRPG_ELEM_VARIANTS).forEach(function(e){
       SRPG_MON_VARIANTS2[b+'_'+e]={ base:b, elem:e, name:SRPG_ELEM_VARIANTS[e].p+SRPG_MON_BASE_NAMES[b] };
     });

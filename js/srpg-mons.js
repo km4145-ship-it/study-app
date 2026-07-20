@@ -755,8 +755,32 @@ function srpgRarityWrap(innerHtml, rank){
     + '<i class="srpg-rar-badge">'+r.key+'</i></span>';
 }
 
+// ===== 星コレクション：重複で★UP（1→5）、★5で進化して打ち止め、★5済みの重複はコイン =====
+// 重複コインの額（レア度が高いほど多い）。N=30 … 神話=150。
+function srpgDupeCoins(art){ var b=(typeof srpgTierOfArt==='function')?srpgTierOfArt(art):0; return 30 + (b|0)*20; }
+// ★5到達＝進化：ランクを1段上げ、進化フォームがあれば姿を変身（純粋・monを変更）。
+function srpgStarEvolve(mon){
+  if(!mon) return mon;
+  mon.evolved = 1;
+  var order=['F','E','D','C','B','A','S','SS','SSS','LG']; var i=order.indexOf(mon.rank||'F');
+  if(i>=0 && i<order.length-1) mon.rank = order[i+1];   // つよさUP
+  try{ if(typeof srpgEvoFormFor==='function'){ var f=srpgEvoFormFor(mon.baseArt||mon.art, mon.rank); if(f && f.art!==mon.art){ mon.art=f.art; mon.name=f.name; } } }catch(e){}
+  return mon;
+}
+// 既存個体に重複を1つ反映。戻り値: {result:'star'|'evolve'|'coin', stars, coin}
+function srpgStarAdd(mon, art){
+  var st = mon.stars||1;
+  if(st < 5){
+    mon.stars = st+1;
+    if(mon.stars===5){ srpgStarEvolve(mon); return { result:'evolve', stars:5 }; }
+    return { result:'star', stars:mon.stars };
+  }
+  return { result:'coin', stars:5, coin:srpgDupeCoins(art) };
+}
+
 if(typeof module !== 'undefined' && module.exports){
   module.exports = { SRPG_MON_ART: SRPG_MON_ART, SRPG_MON_VARIANT: SRPG_MON_VARIANT, srpgMonArt: srpgMonArt, SRPG_MON_VARIANTS2: SRPG_MON_VARIANTS2, SRPG_ELEM_VARIANTS: SRPG_ELEM_VARIANTS, SRPG_MON_BASE_NAMES: SRPG_MON_BASE_NAMES, srpgMonName: srpgMonName,
+    srpgDupeCoins: srpgDupeCoins, srpgStarEvolve: srpgStarEvolve, srpgStarAdd: srpgStarAdd,
     SRPG_MON_TIER: SRPG_MON_TIER, SRPG_RANK_BAND: SRPG_RANK_BAND, SRPG_RARITY_BANDS: SRPG_RARITY_BANDS, srpgTierOfArt: srpgTierOfArt, srpgBandOfRank: srpgBandOfRank, srpgRarityBand: srpgRarityBand, srpgRarityOfRank: srpgRarityOfRank, srpgArtsForBand: srpgArtsForBand, srpgRarityWrap: srpgRarityWrap,
     SRPG_EVO_LINES: SRPG_EVO_LINES, SRPG_EVO_STAGE_OF: SRPG_EVO_STAGE_OF, srpgEvoFormFor: srpgEvoFormFor,
     SRPG_SPECIES_LABEL: SRPG_SPECIES_LABEL, SRPG_RANK_DESC: SRPG_RANK_DESC, srpgClassifyRoster: srpgClassifyRoster,

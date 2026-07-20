@@ -57,7 +57,7 @@ function srpgAibouSpec(a){
   var skills = ((SRPG_ROLES[role] || SRPG_ROLES.attacker).skills || []).slice(0, srpgSkillCount(lvl));
   var innate = srpgMonSkill(a.art);
   if(innate && skills.indexOf(innate) < 0) skills.unshift(innate);
-  return { id:a.id, name:a.name || spName, art:a.art || 'slime', role:role, lvl:lvl, rankBase:base, rank:a.rank, sp:a.sp, bonus:srpgAibouBonus(a), skills:skills, innate:innate, skLv:a.skLv || 1 };
+  return { id:a.id, name:a.name || spName, art:a.art || 'slime', role:role, lvl:lvl, rankBase:base, rank:a.rank, sp:a.sp, bonus:srpgAibouBonus(a), skills:skills, innate:innate, skLv:a.skLv || 1, stars:a.stars||1, evolved:a.evolved||0 };
 }
 function srpgAibouRosterList(){
   try{ var ai = rpgAibouState(rpgState()); return Object.keys(ai.roster).map(function(id){ return ai.roster[id]; }); }catch(e){ return []; }
@@ -90,6 +90,7 @@ function srpgAllyRoster(){
 // ---- 編成画面 ----
 function srpgTeamScreen(){
   srpgB = null;
+  try{ var _ai=rpgAibouState(rpgState()); if(_ai && !_ai._starMig){ srpgMigrateStars(_ai); rpgSave(rpgState()); } }catch(e){}   // 旧重複→星へ統合（初回だけ）
   var list = srpgAibouRosterList();
   var team = null; try{ team = lsGetJSON('srpg_team', null); }catch(e){}
   if(!srpgTeamSel){
@@ -109,6 +110,7 @@ function srpgTeamScreen(){
       + (isLeader?'<span class="srpg-tm-crown">👑</span>':'')
       + '<div class="srpg-tm-ava">'+((typeof srpgMonArt==='function'&&srpgMonArt(sp.art))||_charStill(sp.art))+'</div>'
       + '<div class="srpg-tm-nm">'+escapeHtml(sp.name)+'</div>'
+      + '<div class="srpg-tm-stars'+(sp.evolved?' evo':'')+'">'+_srpgStarStr(sp.stars)+(sp.evolved?' <span class="srpg-tm-evo">進化</span>':'')+'</div>'
       + '<div class="srpg-tm-meta">'+r.em+r.name+' <small>Lv'+sp.lvl+(sp.rank?' ('+(typeof srpgRankLabel==='function'?srpgRankLabel(sp.rank):sp.rank)+')':'')+'</small></div>'
       + '<div class="srpg-tm-sk">'+(innate?('<span class="srpg-tm-innate">✦'+escapeHtml(innate.name)+'</span> '):'')+((sp.skLv||1)>1?('<span class="srpg-tm-sklv">技Lv'+sp.skLv+'</span> '):'')+'とくぎ×'+(nSk+(innate?1:0))+(gear>0?' <span class="srpg-tm-gear">🎽そうび+'+gear+'</span>':'')+'</div>'
       + (on ? '<button class="srpg-tm-lead" onclick="srpgTeamSetLeader(\''+sp.id+'\')">'+(isLeader?'★リーダー':'リーダーにする')+'</button>' : '')
@@ -1803,6 +1805,35 @@ function srpgScoutOdds(){
     + '<button class="rpg-btn ghost srpg-ui-close" onclick="srpgCloseUnitInfo()">とじる</button></div>';
   ov.style.display = 'flex';
 }
+// 旧モデル（同種の重複個体）を 星コレクションへ統合：各種で一番強い1体に★を集約、残りは墓標へ。初回だけ。
+function srpgMigrateStars(ai){
+  if(!ai || !ai.roster || ai._starMig) return;
+  var prot={}; try{ (srpgProtectedIds(ai)||[]).forEach(function(id){ prot[id]=1; }); }catch(e){}
+  var byArt = {};
+  Object.keys(ai.roster).forEach(function(id){ var m=ai.roster[id]; if(!m) return; if(!m.baseArt) m.baseArt=m.art; (byArt[m.baseArt]=byArt[m.baseArt]||[]).push(m); });
+  Object.keys(byArt).forEach(function(key){
+    var list = byArt[key];
+    list.forEach(function(m){ if(m.stars==null) m.stars=1; });
+    if(list.length<=1) return;
+    try{ list.sort(_srpgDupeSort); }catch(e){}   // 弱い順
+    var keep = list.filter(function(m){ return prot[m.id]; })[0] || list[list.length-1];   // パーティ個体を優先して残す（無ければ一番強い）
+    keep.stars = Math.min(5, (keep.stars||1) + (list.length-1));
+    if(keep.stars>=5 && !keep.evolved){ try{ srpgStarEvolve(keep); }catch(e){} }
+    if(!ai.gone) ai.gone={};
+    list.forEach(function(m){ if(m.id!==keep.id){ ai.gone[m.id]=1; delete ai.roster[m.id]; } });
+  });
+  ai._starMig = 1;
+}
+function _srpgStarStr(n){ n=Math.max(0,Math.min(5,n|0)); var s=''; for(var i=1;i<=5;i++) s+=(i<=n?'★':'☆'); return s; }
+// スカウト結果の状態バッジ（NEW / ★N / ✨進化 / 🪙コイン）
+function _srpgScoutBadge(g){
+  if(!g || g.full) return (g && g.coin) ? '<span class="srpg-got-coin">🪙+'+g.coin+'</span>' : '';
+  if(g.isNew) return '<span class="srpg-got-new">NEW ★1</span>';
+  if(g.evolved) return '<span class="srpg-got-evo">✨進化 ★5</span>';
+  if(g.starUp) return '<span class="srpg-got-star">'+_srpgStarStr(g.stars)+'</span>';
+  if(g.maxed) return '<span class="srpg-got-coin">★5 🪙+'+g.coin+'</span>';
+  return '';
+}
 function srpgScoutDo(n, useFree){
   try{ sfx('click'); }catch(e){}
   var cost = useFree ? 0 : ((n === 10) ? SRPG_SCOUT_COST.ten : SRPG_SCOUT_COST.one);
@@ -1818,21 +1849,32 @@ function srpgScoutDo(n, useFree){
   ranks = pityRes.ranks; cos.scoutPity = pityRes.pity;
   cos.scoutMedals = (cos.scoutMedals || 0) + ranks.length;   // 🎖️1回=1枚（交換所用・ダブり救済の最終形）
   if(!cos.metDex) cos.metDex = {};
+  try{ srpgMigrateStars(ai); }catch(e){}   // 旧・重複個体を「星」へ統合（初回だけ）
   var picks = srpgScoutPickups(_srpgWeekKey());
   var got = [];
   ranks.forEach(function(rank){
-    var full = Object.keys(ai.roster).length >= AIBOU_ROSTER_MAX;
-    if(full){ ai.food = (ai.food||0) + 5; got.push({ rank:rank, full:true }); return; }
     var arts = _scoutArts(rank);
     var art = srpgScoutArt(Math.random(), arts, picks);   // ピックアップは出やすさ2倍
     var sp = _scoutSp(art);
-    var id = 'm' + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36);
     var name = (typeof srpgMonName==='function' ? srpgMonName(art) : ((SRPG_ENEMY_TEMPLATES[art] && SRPG_ENEMY_TEMPLATES[art].name) || 'なかま'));
-    var isNew = !Object.keys(ai.roster).some(function(k){ return ai.roster[k] && ai.roster[k].art === art; });
-    var mon = { id:id, art:art, sp:sp, rank:rank, lv:1, xp:0, name:name };
-    ai.roster[id] = mon;
-    cos.metDex[art] = 1;   // 図鑑：この種に出会った
-    got.push({ rank:rank, mon:mon, isNew:isNew });
+    // 1種1体：同種（進化後は baseArt で判定）を探す
+    var existId = Object.keys(ai.roster).filter(function(k){ var m=ai.roster[k]; return m && (m.baseArt||m.art) === art; })[0];
+    if(!existId){
+      // 初獲得：★1で図鑑に追加
+      if(Object.keys(ai.roster).length >= AIBOU_ROSTER_MAX){ var _c=srpgDupeCoins(art); cos.coin=(cos.coin||0)+_c; got.push({ rank:rank, full:true, coin:_c }); return; }
+      var id = 'm' + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36);
+      var mon = { id:id, art:art, baseArt:art, sp:sp, rank:rank, lv:1, xp:0, name:name, stars:1 };
+      ai.roster[id] = mon;
+      cos.metDex[art] = 1;   // 図鑑：この種に出会った
+      got.push({ rank:rank, mon:mon, isNew:true, stars:1 });
+    } else {
+      // 重複：★UP → ★5で進化 → ★5済みはコイン
+      var ex = ai.roster[existId];
+      var r = srpgStarAdd(ex, art);
+      if(r.result === 'coin') cos.coin = (cos.coin||0) + r.coin;
+      cos.metDex[ex.art] = 1;
+      got.push({ rank:rank, mon:ex, isNew:false, stars:r.stars, evolved:(r.result==='evolve'), starUp:(r.result==='star'), coin:(r.result==='coin'?r.coin:0), maxed:(r.result==='coin') });
+    }
   });
   rpgSave(s);
   try{
@@ -1886,7 +1928,7 @@ function srpgScoutSequence(got, onDone){
     ov.innerHTML = '<div class="sc-seq '+tier+'">'
       + '<div class="sc-seq-count">'+i+' / '+got.length+'</div>'
       + '<div class="sc-seq-card rk-'+(g.rank||'')+'">'
-      + (g.isNew ? '<span class="srpg-got-new">NEW</span>' : '')
+      + _srpgScoutBadge(g)
       + '<div class="sc-seq-art">'+art+'</div>'
       + '<div class="sc-seq-rk rk-'+(g.rank||'')+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel((g.rank||'')):(g.rank||''))+'</div>'
       + '<div class="sc-seq-nm">'+escapeHtml(g.mon ? g.mon.name : 'なかまがいっぱい → エサ+5')+'</div></div>'
@@ -2124,7 +2166,7 @@ function srpgScoutResults(got, revealed){
   var cells = got.map(function(g, i){
     if(g.full) return '<div class="srpg-got full"><div class="srpg-got-art">🍖</div><div class="srpg-got-nm">エサ+5</div><small>いっぱい</small></div>';
     var art = (typeof srpgMonArt==='function' && srpgMonArt(g.mon.art)) || _monStill(g.mon.art);
-    var inner = (g.isNew ? '<span class="srpg-got-new">NEW</span>' : '')
+    var inner = _srpgScoutBadge(g)
       + '<div class="srpg-got-art">'+art+'</div>'
       + '<div class="srpg-got-rk rk-'+g.rank+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel(g.rank):g.rank)+'</div>'
       + '<div class="srpg-got-nm">'+escapeHtml(g.mon.name)+'</div>';
@@ -2203,10 +2245,10 @@ function srpgSkillUpScreen(){
       + '<div class="srpg-fuse-acts">'+evoBtn+skBtn+'</div>'
       + '</div>';
   });
-  if(!rows) rows = '<div class="srpg-tm-empty">おなじ種類の なかまが 2体いると 育成できるよ。<br>🔮スカウトや バトルで ダブりを あつめよう！</div>';
+  if(!rows) rows = '<div class="srpg-tm-empty">おなじ なかまを もう一度 スカウトすると <b>★が ついていく</b>よ！<br>★が 5つで <b>✨進化</b>、★5の あとは 🪙コインが もらえる。<br>🔮スカウトで 図鑑を うめて、みんなを ★5に そだてよう！</div>';
   document.getElementById('srpg-body').innerHTML =
     '<div class="srpg-fuse">'
-    + '<div class="srpg-select-lead">🌟 なかまの育成<br><small>おなじ種類の ダブりを つかって、<b>✨進化</b>でランクUP（つよさ大アップ・Lv上限も上がる）／<b>⚗️とくぎ強化</b>でとくぎLv UP！</small></div>'
+    + '<div class="srpg-select-lead">🌟 なかまの★コレクション<br><small>おなじ なかまを 引くほど <b>★UP（1→5）</b>。<b>★5で ✨進化</b>して 打ち止め、その後の 重複は <b>🪙コイン</b>に！ 図鑑を うめよう。</small></div>'
     + '<div class="srpg-fuse-top"><span>🐾 なかま '+Object.keys(ai.roster).length+' / '+AIBOU_ROSTER_MAX+'</span><span>🪙 <b>'+coin+'</b></span><button class="srpg-mini2" onclick="srpgCleanupDo()">🧹 おかたづけ</button></div>'
     + rows
     + '<button class="srpg-mini" onclick="srpgTeamScreen()">← 編成へもどる</button></div>';

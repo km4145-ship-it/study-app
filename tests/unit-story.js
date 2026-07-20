@@ -409,6 +409,13 @@ c.ok('最強魔王overlordもスカウト(神話帯6)', M.srpgTierOfArt('overlor
 c.ok('神様godはボス専用＝非スカウト(帯0)', M.srpgTierOfArt('god') === 0);
 c.ok('図鑑はホームから直行できる（srpgOpen dex分岐＋📖カード）', ui.indexOf("dest==='dex'){ srpgDexScreen()") >= 0);
 
+// ===== 星コレクション：1種1体・重複★UP・★5進化・★5コイン =====
+c.ok('スカウトは1種1体＋星式（srpgStarAdd/baseArt判定）', ui.indexOf('srpgStarAdd(ex, art)') >= 0 && ui.indexOf('(m.baseArt||m.art) === art') >= 0);
+c.ok('初獲得は★1で図鑑追加', ui.indexOf('stars:1') >= 0 && ui.indexOf('isNew:true, stars:1') >= 0);
+c.ok('旧重複→星へ統合するマイグレーション（パーティ保護）', ui.indexOf('function srpgMigrateStars') >= 0 && ui.indexOf('prot[m.id]') >= 0);
+c.ok('結果に NEW/★/進化/コイン バッジ', ui.indexOf('function _srpgScoutBadge') >= 0 && ui.indexOf('_srpgScoutBadge(g)') >= 0);
+c.ok('編成カードに★＋進化表示', ui.indexOf('srpg-tm-stars') >= 0 && ui.indexOf('_srpgStarStr(sp.stars)') >= 0);
+
 // ===== 👑 魔王ずかん（Stage3：強い順一覧・3D詳細・遭遇チェック）=====
 c.ok('魔王ずかん画面/詳細が定義', ui.indexOf('function srpgMaouDexScreen') >= 0 && ui.indexOf('function srpgMaouDetail') >= 0);
 c.ok('なかま図鑑に👑魔王ずかんタブ', ui.indexOf('onclick="srpgMaouDexScreen()"') >= 0);

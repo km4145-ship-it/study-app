@@ -91,6 +91,18 @@ c.ok('UR帯(4)に ドラゴンも残る', M.srpgArtsForBand(4, dexAll).indexOf('
 c.ok('神話帯(6)=大魔王級/虚無竜＋回廊魔王/最強魔王の15体', (function () { var b6 = M.srpgArtsForBand(6, dexAll); return b6.length === 15 && b6.indexOf('kyomu') >= 0 && b6.indexOf('daimaou') >= 0 && b6.indexOf('overlord') >= 0 && b6.indexOf('maou_lux') >= 0 && b6.every(function (a) { return M.srpgTierOfArt(a) === 6; }); })());
 c.ok('伝説帯(5)=villain＋各大陸ch8魔王5体の6体', (function () { var b5 = M.srpgArtsForBand(5, dexAll); return b5.length === 6 && b5.indexOf('villain') >= 0 && b5.indexOf('maou_ma8') >= 0; })());
 
+// ===== 星コレクション：重複→★UP→★5で進化→★5済みはコイン =====
+c.eq('重複コイン N=30/UR帯4=110/神話=150', [M.srpgDupeCoins('slime'), M.srpgDupeCoins('dragon'), M.srpgDupeCoins('kyomu')].join(','), '30,110,150');
+(function () {
+  var m = { art: 'wolf', baseArt: 'wolf', rank: 'C', stars: 1 };
+  var seq = [];
+  for (var i = 0; i < 6; i++) { seq.push(M.srpgStarAdd(m, 'wolf').result); }
+  c.eq('★遷移 star×3→evolve→coin×2', seq.join(','), 'star,star,star,evolve,coin,coin');
+  c.ok('★5で evolved＋ランクUP（C→B）', m.evolved === 1 && m.stars === 5 && m.rank === 'B');
+})();
+c.ok('進化ライン種は★5で姿変身（slime@SS→slime_lord）', (function () { var m = { art: 'slime', baseArt: 'slime', rank: 'SS', stars: 4 }; M.srpgStarAdd(m, 'slime'); return m.stars === 5 && m.art === 'slime_lord'; })());
+c.ok('★5済みの重複はコイン（roster不変）', (function () { var m = { art: 'wolf', baseArt: 'wolf', rank: 'A', stars: 5, evolved: 1 }; var r = M.srpgStarAdd(m, 'wolf'); return r.result === 'coin' && r.coin > 0 && m.stars === 5; })());
+
 // ---- Phase4：進化ライン（育てると 姿が変身）----
 c.eq('slime@F → スライム', M.srpgEvoFormFor('slime', 'F').art, 'slime');
 c.eq('slime@C(band1) → まだスライム', M.srpgEvoFormFor('slime', 'C').art, 'slime');

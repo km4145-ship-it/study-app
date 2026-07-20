@@ -6,18 +6,22 @@ const { makeChecker, ROOT } = require('./lib/assert');
 const c = makeChecker('unit-story');
 
 const S = require(path.join(ROOT, 'js', 'srpg.js'));
+// 章の最終ノード（＝章ボス）index。ノード数はデータ駆動で可変（ボリューム増）。
+const LAST = (a, ci) => S.srpgNodeCount(a, ci) - 1;
 
 // ---- 大陸データ ----
 c.eq('数の大陸は10章', S.srpgChapterCount('math'), 10);
-c.eq('1章は3ノード', S.srpgNodeCount(), 3);
+c.eq('無引数は3(旧シグネチャ互換)', S.srpgNodeCount(), 3);
+c.ok('章ノード数はデータ駆動で3超・章が進むほど長い', S.srpgNodeCount('math', 0) >= 6 && S.srpgNodeCount('math', 9) >= S.srpgNodeCount('math', 0));
 c.ok('存在しない大陸はnull', S.srpgContinent('xxx') === null);
 c.eq('数の大陸のクリスタルはq_math', S.srpgContinent('math').crystalId, 'q_math');
 
-// ---- 章→ステージ生成（全10章×3ノードの整合） ----
+// ---- 章→ステージ生成（全10章×可変ノードの整合。最終ノード=章ボス） ----
 let bossNodes = 0;
 const usedKeys = {};
 for (let ci = 0; ci < 10; ci++) {
-  for (let ni = 0; ni < 3; ni++) {
+  const N = S.srpgNodeCount('math', ci);
+  for (let ni = 0; ni < N; ni++) {
     const st = S.srpgChapterStage('math', ci, ni);
     c.ok('生成される ' + ci + '-' + ni, !!st);
     c.eq('id ' + ci + '-' + ni, st.id, 'c_math_' + ci + '_' + ni);
@@ -29,8 +33,8 @@ for (let ci = 0; ci < 10; ci++) {
       c.ok('敵が盤内 ' + e.key, e.x >= 0 && e.x < 6 && e.y >= 0 && e.y < 7);
       c.ok('敵テンプレ実在 ' + e.key, !!S.SRPG_ENEMY_TEMPLATES[e.key]);
     });
-    if (ni === 2) { bossNodes++; c.ok('node2はボス ' + ci, st.isBoss && !!st.boss); }
-    else { c.ok('node0/1はボスでない ' + ci + '-' + ni, !st.isBoss); }
+    if (ni === N - 1) { bossNodes++; c.ok('最終ノードはボス ' + ci, st.isBoss && !!st.boss); }
+    else { c.ok('道中はステージboss扱いでない ' + ci + '-' + ni, !st.isBoss); }
   }
 }
 c.eq('章ボスは10体', bossNodes, 10);
@@ -46,8 +50,8 @@ c.ok('スラッグ王を使う章がある', !!usedKeys.slugking);
   c.ok(k + ' に charge(大技予告)', !!(t && t.charge && t.charge.warn && t.charge.power > 0));
   c.ok(k + ' の charge形状は cross/burst', !!(t && (t.charge.aoe === 'cross' || t.charge.aoe === 'burst')));
 });
-c.eq('第5章ボスは ゼロン', S.srpgChapterStage('math', 4, 2).enemies.some(function (e) { return e.key === 'zeron'; }), true);
-c.eq('第10章ボスは ファイナル', S.srpgChapterStage('math', 9, 2).enemies.some(function (e) { return e.key === 'mathfinal'; }), true);
+c.eq('第5章ボスは ゼロン', S.srpgChapterStage('math', 4, LAST('math', 4)).enemies.some(function (e) { return e.key === 'zeron'; }), true);
+c.eq('第10章ボスは ファイナル', S.srpgChapterStage('math', 9, LAST('math', 9)).enemies.some(function (e) { return e.key === 'mathfinal'; }), true);
 // 山場ボスは 周回（きょうの挑戦・塔）には出ない
 const dailyKeys = S.srpgDailyStage('2026-07-18').enemies.map(function (e) { return e.key; });
 c.ok('デイリーに山場ボスが出ない', dailyKeys.indexOf('zeron') < 0 && dailyKeys.indexOf('mathfinal') < 0 && dailyKeys.indexOf('villain') < 0);
@@ -58,7 +62,7 @@ c.ok('塔(1..20階)に物語ボス(zeron/mathfinal)が出ない', !towerHasStory
 
 // ---- 範囲外/不正は null ----
 c.ok('章範囲外はnull', S.srpgChapterStage('math', 99, 0) === null);
-c.ok('ノード範囲外はnull', S.srpgChapterStage('math', 0, 5) === null);
+c.ok('ノード範囲外はnull', S.srpgChapterStage('math', 0, S.srpgNodeCount('math', 0)) === null);
 
 // ---- ID パース ----
 c.eq('章IDパース area', S.srpgParseChapterId('c_math_3_2').area, 'math');
@@ -68,7 +72,7 @@ c.ok('非章IDはnull', S.srpgParseChapterId('q_math') === null);
 c.ok('壊れたIDはnull', S.srpgParseChapterId('c_math_x_y') === null);
 
 // ---- forceWeak：ステージからユニット化すると 全敵が「その大陸の教科＝弱点」に統一 ----
-const st1 = S.srpgChapterStage('math', 4, 2); // 方程式の遺跡・ボス（幹部ゼロン=dragon）
+const st1 = S.srpgChapterStage('math', 4, LAST('math', 4)); // 方程式の遺跡・章ボス（幹部ゼロン=dragon）
 const units = S.srpgBuildUnits(st1, [{ id: 'h', name: '勇者', art: 'cat', role: 'attacker', lvl: 6, rankBase: 8 }]);
 const ens = units.filter(function (u) { return u.side === 'enemy'; });
 c.eq('敵ユニット数=ステージ定義数', ens.length, st1.enemies.length);
@@ -135,26 +139,27 @@ AREAS.forEach(function (area) {
   c.ok(area + ' 大陸メタ(crystalId/teacherArt)', !!(cont && cont.crystalId === 'q_' + area && cont.teacherArt));
   let bosses = 0;
   for (let ci = 0; ci < 10; ci++) {
-    for (let ni = 0; ni < 3; ni++) {
+    const N = S.srpgNodeCount(area, ci);
+    for (let ni = 0; ni < N; ni++) {
       const st = S.srpgChapterStage(area, ci, ni);
       c.ok(area + ' 生成 ' + ci + '-' + ni, !!st && st.forceWeak === area);
       st.enemies.forEach(function (e) {
         c.ok(area + ' 敵実在 ' + e.key, !!S.SRPG_ENEMY_TEMPLATES[e.key]);
         c.ok(area + ' 盤内 ' + e.key, e.x >= 0 && e.x < 6 && e.y >= 0 && e.y < 7);
       });
-      if (ni === 2) bosses++;
+      if (ni === N - 1) bosses++;
     }
   }
   c.eq(area + ' 章ボス10体', bosses, 10);
-  c.eq(area + ' 5章ボスは幹部', S.srpgChapterStage(area, 4, 2).enemies.some(function (e) { return e.key === LT[area]; }), true);
-  c.eq(area + ' 10章ボスは最終', S.srpgChapterStage(area, 9, 2).enemies.some(function (e) { return e.key === FIN[area]; }), true);
+  c.eq(area + ' 5章ボスは幹部', S.srpgChapterStage(area, 4, LAST(area, 4)).enemies.some(function (e) { return e.key === LT[area]; }), true);
+  c.eq(area + ' 10章ボスは最終', S.srpgChapterStage(area, 9, LAST(area, 9)).enemies.some(function (e) { return e.key === FIN[area]; }), true);
   [LT[area], FIN[area]].forEach(function (k) {
     const t = S.SRPG_ENEMY_TEMPLATES[k];
     c.ok(area + ' ' + k + ' boss:true', !!(t && t.boss));
     c.ok(area + ' ' + k + ' phase+charge(山場)', !!(t && t.phase && t.charge && t.charge.warn && t.charge.power > 0));
   });
   // forceWeak：最終ボスの弱点=その大陸の教科（学習と物語の一致）
-  S.srpgBuildUnits(S.srpgChapterStage(area, 9, 2), [{ id: 'h', art: 'cat', role: 'attacker', lvl: 6, rankBase: 8 }])
+  S.srpgBuildUnits(S.srpgChapterStage(area, 9, LAST(area, 9)), [{ id: 'h', art: 'cat', role: 'attacker', lvl: 6, rankBase: 8 }])
     .filter(function (u) { return u.side === 'enemy'; })
     .forEach(function (u) { c.eq(area + ' 最終ボス弱点=' + area, S.srpgResistKind(area, u), 'weak'); });
 });
@@ -210,7 +215,7 @@ c.ok('裏ボスは魔王城クリアまで隠す', ui.indexOf("id !== 'q_secret'
 // ===== レビュー修正 A/#1：章ボスの固有名＋boss標識（VS演出/王冠/BGMを正しく） =====
 AREAS.forEach(function (area) {
   for (let ci = 0; ci < 10; ci++) {
-    const st = S.srpgChapterStage(area, ci, 2);
+    const st = S.srpgChapterStage(area, ci, LAST(area, ci));
     const bossE = st.enemies[1];
     c.ok(area + ' ch' + ci + ' ボス敵にboss標識', bossE.boss === true);
     c.ok(area + ' ch' + ci + ' ボス敵に固有名=' + st.boss, bossE.name === st.boss && st.boss.length > 0);
@@ -224,12 +229,12 @@ c.ok('ボスBGMは stage.boss で判定', ui.indexOf("bgmPlay(stage.boss ? 'boss
 
 // ===== レビュー修正 C：進行/クリスタル判定の実挙動（純関数＝off-by-one を実検出） =====
 AREAS.forEach(function (area) {
-  // 最終章ボス判定：(9,2)のみ true
-  c.ok(area + ' 最終ボスは(9,2)のみ', S.srpgIsFinalBoss(area, 9, 2) === true && S.srpgIsFinalBoss(area, 8, 2) === false && S.srpgIsFinalBoss(area, 9, 1) === false);
+  // 最終章ボス判定：(9,最終ノード)のみ true
+  c.ok(area + ' 最終ボスは(9,最終ノード)のみ', S.srpgIsFinalBoss(area, 9, LAST(area, 9)) === true && S.srpgIsFinalBoss(area, 8, LAST(area, 8)) === false && S.srpgIsFinalBoss(area, 9, 0) === false);
   const empty = {};
   c.ok(area + ' 空clearedで1章のみ解放', S.srpgChapUnlockedIn(area, 0, empty) === true && S.srpgChapUnlockedIn(area, 1, empty) === false);
-  const c1 = {}; c1[S.srpgChapterId(area, 0, 2)] = 1;
-  c.ok(area + ' 1章クリアで2章解放・3章未解放', S.srpgChapUnlockedIn(area, 1, c1) === true && S.srpgChapUnlockedIn(area, 2, c1) === false);
+  const c1 = {}; c1[S.srpgChapterId(area, 0, LAST(area, 0))] = 1;
+  c.ok(area + ' 1章クリア(最終ノード)で2章解放・3章未解放', S.srpgChapUnlockedIn(area, 1, c1) === true && S.srpgChapUnlockedIn(area, 2, c1) === false);
   c.ok(area + ' ch1はnode0のみ解放', S.srpgNodeUnlockedIn(area, 0, 0, empty) === true && S.srpgNodeUnlockedIn(area, 0, 1, empty) === false && S.srpgNodeUnlockedIn(area, 0, 2, empty) === false);
   const n0 = {}; n0[S.srpgChapterId(area, 0, 0)] = 1;
   c.ok(area + ' node0クリアでnode1解放・node2未解放', S.srpgNodeUnlockedIn(area, 0, 1, n0) === true && S.srpgNodeUnlockedIn(area, 0, 2, n0) === false);

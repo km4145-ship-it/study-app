@@ -1059,7 +1059,13 @@ var SRPG_CONTINENTS = {
 };
 function srpgContinent(area){ return SRPG_CONTINENTS[area] || null; }
 function srpgChapterCount(area){ var c = SRPG_CONTINENTS[area]; return c ? c.chapters.length : 0; }
-function srpgNodeCount(){ return 3; } // 1章 = 3ノード（雑魚2 + 章ボス）
+// 1章のノード数（データ駆動）。章が進むほど道のりが長い＝ボリューム約7倍（旧3ノード/章）。ch.nodeN で個別上書き可。
+function srpgNodeCount(area, ci){
+  if(area == null) return 3;                        // 旧シグネチャ互換（テスト等）
+  var c = SRPG_CONTINENTS[area]; if(!c) return 3;
+  var ch = c.chapters[ci|0]; if(!ch) return 3;
+  return ch.nodeN || Math.min(14 + (ci|0)*2, 24);   // 14〜24（道中の雑魚＋4ノードごと中ボス＋章ボス）
+}
 // 章IDのパース/生成：'c_<area>_<ci>_<ni>'
 function srpgChapterId(area, ci, ni){ return 'c_' + area + '_' + ci + '_' + ni; }
 function srpgParseChapterId(id){
@@ -1071,18 +1077,28 @@ function srpgParseChapterId(id){
 }
 // ===== 進行判定（純粋関数。cleared＝クリア済みノードIDの集合を注入＝テスト可能） =====
 // この大陸の最終章ボスか（＝大陸クリア＝クリスタル授与の判定）。
-function srpgIsFinalBoss(area, ci, ni){ return ni === 2 && ci === (srpgChapterCount(area) - 1); }
+function srpgIsFinalBoss(area, ci, ni){ return ni === (srpgNodeCount(area, ci) - 1) && ci === (srpgChapterCount(area) - 1); }
 function srpgNodeDoneIn(area, ci, ni, cleared){ cleared = cleared || {}; return !!cleared[srpgChapterId(area, ci, ni)]; }
-function srpgChapDoneIn(area, ci, cleared){ return srpgNodeDoneIn(area, ci, 2, cleared); }   // 章ボス(node2)クリア＝章クリア
+function srpgChapDoneIn(area, ci, cleared){ return srpgNodeDoneIn(area, ci, srpgNodeCount(area, ci) - 1, cleared); }   // 最終ノード(章ボス)クリア＝章クリア
 function srpgChapUnlockedIn(area, ci, cleared){ return ci === 0 || srpgChapDoneIn(area, ci - 1, cleared); }
 function srpgNodeUnlockedIn(area, ci, ni, cleared){ return srpgChapUnlockedIn(area, ci, cleared) && (ni === 0 || srpgNodeDoneIn(area, ci, ni - 1, cleared)); }
 // 章データからステージを動的生成（純粋）。ni: 0,1=雑魚ノード / 2=章ボス。
+// 章内ノードの表示名：既存の名前つき雑魚＋ボス名を保ちつつ、増えた道中は自動命名。
+function _srpgNodeName(ch, ni, N, isBoss, isMini){
+  if(isBoss) return (ch.nodes && ch.nodes[ch.nodes.length - 1]) || ch.boss || (ch.title + ' ボス');
+  if(ch.nodes && ni < ch.nodes.length - 1 && ch.nodes[ni]) return ch.nodes[ni];   // 既存の名前つき雑魚
+  if(isMini) return ch.title + ' 中ボス戦';
+  return ch.title + ' 道中 ' + (ni + 1);
+}
+// 章データからステージを動的生成（純粋）。ni: 0..N-2=道中（4ノードごと中ボス）/ N-1=章ボス。
 function srpgChapterStage(area, ci, ni){
   var cont = SRPG_CONTINENTS[area]; if(!cont) return null;
   var ch = cont.chapters[ci]; if(!ch) return null;
-  ni = ni | 0; if(ni < 0 || ni > 2) return null;
-  var isBoss = (ni === 2);
-  var lv = ch.lvl;
+  var N = srpgNodeCount(area, ci);
+  ni = ni | 0; if(ni < 0 || ni >= N) return null;
+  var isBoss = (ni === N - 1);
+  var isMini = (!isBoss && ni > 0 && (ni % 4 === 3));   // 4ノードごとに 道中の中ボス（歯ごたえ）
+  var lv = ch.lvl + Math.floor(ni / 2);                 // 章の中でも 少しずつ強くなる（道のりの手応え）
   var m0 = ch.mons[0], m1 = ch.mons[1] || ch.mons[0];
   var enemies, terrain = [];
   if(isBoss){
@@ -1092,20 +1108,27 @@ function srpgChapterStage(area, ci, ni){
       { key:m1, x:4, y:1, lvl:lv }
     ];
     terrain = [{ x:2, y:2, kind:'fire' }, { x:3, y:2, kind:'fire' }, { x:0, y:5, kind:'heal' }];
+  } else if(isMini){
+    enemies = [
+      { key:m0, x:1, y:1, lvl:lv },
+      { key:m1, x:3, y:0, lvl:lv + 1, name:ch.title + 'の主', boss:true },  // 道中の中ボス（強めの主＋ボス演出）
+      { key:m0, x:4, y:1, lvl:lv }
+    ];
+    terrain = [{ x:2, y:3, kind:'poison' }, { x:0, y:5, kind:'heal' }];
   } else {
     enemies = [
       { key:m0, x:1, y:1, lvl:lv },
       { key:m1, x:4, y:1, lvl:lv },
-      { key:(ni === 0 ? m0 : m1), x:3, y:2, lvl:Math.max(1, lv - 1) }
+      { key:(ni % 2 === 0 ? m0 : m1), x:3, y:2, lvl:Math.max(1, lv - 1) }
     ];
     if(lv >= 4){ terrain = [{ x:2, y:3, kind:'poison' }, { x:0, y:5, kind:'heal' }]; }
   }
-  var nodeName = (ch.nodes && ch.nodes[ni]) || ch.title;
+  var nodeName = _srpgNodeName(ch, ni, N, isBoss, isMini);
   return {
     id: srpgChapterId(area, ci, ni),
     name: cont.name + ' ' + (ci + 1) + '-' + (ni + 1) + '：' + nodeName,
     grid:{ w:6, h:7 }, continent:area, type:'chapter',
-    chapter:ci, node:ni, isBoss:isBoss, topic:ch.topic, forceWeak:cont.subject,
+    chapter:ci, node:ni, isBoss:isBoss, isMini:isMini, topic:ch.topic, forceWeak:cont.subject,
     boss: isBoss ? ch.boss : null,
     allySlots: SRPG_STD_SLOTS.slice(),
     terrain: terrain, enemies: enemies,
@@ -1166,7 +1189,7 @@ if(typeof module !== 'undefined' && module.exports){
     srpgMakeUnit: srpgMakeUnit, srpgEnemyTemplate: srpgEnemyTemplate, srpgStage: srpgStage,
     srpgSkill: srpgSkill, srpgBuildUnits: srpgBuildUnits,
     srpgSeedRng: srpgSeedRng, srpgDailyStage: srpgDailyStage, srpgTowerStage: srpgTowerStage,
-    SRPG_CONTINENTS: SRPG_CONTINENTS, srpgContinent: srpgContinent, srpgChapterCount: srpgChapterCount, srpgNodeCount: srpgNodeCount,
+    SRPG_CONTINENTS: SRPG_CONTINENTS, srpgContinent: srpgContinent, srpgChapterCount: srpgChapterCount, srpgNodeCount: srpgNodeCount, _srpgNodeName: _srpgNodeName,
     srpgChapterId: srpgChapterId, srpgParseChapterId: srpgParseChapterId, srpgChapterStage: srpgChapterStage,
     srpgIsFinalBoss: srpgIsFinalBoss, srpgNodeDoneIn: srpgNodeDoneIn, srpgChapDoneIn: srpgChapDoneIn,
     srpgChapUnlockedIn: srpgChapUnlockedIn, srpgNodeUnlockedIn: srpgNodeUnlockedIn,

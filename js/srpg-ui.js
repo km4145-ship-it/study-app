@@ -258,11 +258,13 @@ function srpgContinentScreen(area){
     var ch = cont.chapters[ci];
     var cur = unlocked && !chDone;
     var nodes = '';
-    for(var ni=0; ni<3; ni++){
-      var isBoss = (ni===2), nDone = srpgNodeDone(area, ci, ni), nUnlk = srpgNodeUnlocked(area, ci, ni);
-      var nm = (ch.nodes && ch.nodes[ni]) || (ch.title+(isBoss?' ボス':''));
-      var ic = nDone ? '✅' : (isBoss ? '👑' : (nUnlk ? '⚔️' : '🔒'));
-      var cls = 'srpg-node'+(isBoss?' boss':'')+(nDone?' done':'')+((!nUnlk)?' locked':'');
+    var _N = srpgNodeCount(area, ci);
+    for(var ni=0; ni<_N; ni++){
+      var isBoss = (ni===_N-1), isMini = (!isBoss && ni>0 && (ni%4===3));
+      var nDone = srpgNodeDone(area, ci, ni), nUnlk = srpgNodeUnlocked(area, ci, ni);
+      var nm = (typeof _srpgNodeName==='function') ? _srpgNodeName(ch, ni, _N, isBoss, isMini) : ((ch.nodes&&ch.nodes[ni])||ch.title);
+      var ic = nDone ? '✅' : (isBoss ? '👑' : (isMini ? '💀' : (nUnlk ? '⚔️' : '🔒')));
+      var cls = 'srpg-node'+(isBoss?' boss':'')+(isMini?' mini':'')+(nDone?' done':'')+((!nUnlk)?' locked':'');
       nodes += '<button class="'+cls+'" '+(nUnlk?('onclick="srpgStart(\''+srpgChapterId(area,ci,ni)+'\')"'):'disabled')+'>'
         + '<span class="srpg-node-ic">'+ic+'</span>'+escapeHtml(nm)+'</button>';
     }
@@ -1587,7 +1589,7 @@ function srpgEnd(outcome){
         cryDef = srpgCrystalFor(_cont.crystalId);                        // クリスタルは大陸ID（q_math等）に付与
         cryFirst = cryDef && !srpgClearedSet()[_cont.crystalId];
         storyAfter = _srpgStory(chapWin.area+'_clear');
-      } else if(chapWin.ni===2){
+      } else if(chapWin.ni === srpgNodeCount(chapWin.area, chapWin.ci) - 1){   // 章ボス（最終ノード）撃破＝章クリア物語
         storyAfter = _srpgStory(chapWin.area+'_ch'+chapWin.ci+'_win');
       }
     }

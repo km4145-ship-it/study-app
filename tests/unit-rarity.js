@@ -94,7 +94,7 @@ c.eq('slime@SS(band4) → キングのまま', M.srpgEvoFormFor('slime', 'SS').a
 c.eq('slime@SSS(band5) → スライム魔神', M.srpgEvoFormFor('slime', 'SSS').art, 'slime_lord');
 c.eq('slime@LG(band6) → スライム魔神', M.srpgEvoFormFor('slime', 'LG').art, 'slime_lord');
 c.eq('キング@SSS → 魔神（現フォームからも辿れる）', M.srpgEvoFormFor('slime_king', 'SSS').art, 'slime_lord');
-c.eq('ライン無し(dragon) → null', M.srpgEvoFormFor('dragon', 'LG'), null);
+c.eq('ライン無し(villain=魔王) → null', M.srpgEvoFormFor('villain', 'LG'), null);
 // 進化フォームの名前・アート・格
 c.eq('名 slime_king', M.srpgMonName('slime_king'), 'キングスライム');
 c.eq('名 slime_lord', M.srpgMonName('slime_lord'), 'スライム魔神');
@@ -122,5 +122,27 @@ c.eq('species分類：魔王級が先頭', gS[0].key, 'maou');
 c.eq('species分類：スライム系ラベル', gS.filter(function (g) { return g.key === 'slime'; })[0].label, 'スライム系');
 c.ok('species分類：slime群は 同ランクLv降順(9先頭)', gS.filter(function (g) { return g.key === 'slime'; })[0].items[0].lv === 9);
 c.eq('空リスト→[]', M.srpgClassifyRoster([], 'rank').length, 0);
+
+// ---- 全種の進化ライン量産（_e2/_e3 装飾オーバーレイ）----
+c.eq('進化ライン 20種（slime＋19）', Object.keys(M.SRPG_EVO_LINES).length, 20);
+['goblin', 'wolf', 'dragon', 'ghost', 'trent', 'kanjioni', 'voltdrake', 'haniwa', 'tokiou'].forEach(function (b) {
+  c.ok('進化ライン: ' + b + ' が3段', M.SRPG_EVO_LINES[b] && M.SRPG_EVO_LINES[b].length === 3);
+});
+c.eq('goblin@S(band3)→ゴブリンロード(e2)', M.srpgEvoFormFor('goblin', 'S').art, 'goblin_e2');
+c.eq('goblin@SSS(band5)→ゴブリン魔将(e3)', M.srpgEvoFormFor('goblin', 'SSS').art, 'goblin_e3');
+c.eq('dragon@LG→神竜バハムート(e3)', M.srpgEvoFormFor('dragon', 'LG').art, 'dragon_e3');
+c.eq('名 goblin_e2', M.srpgMonName('goblin_e2'), 'ゴブリンロード');
+c.eq('名 dragon_e3', M.srpgMonName('dragon_e3'), '神竜バハムート');
+c.eq('格 goblin_e2=3(SSR)', M.srpgTierOfArt('goblin_e2'), 3);
+c.eq('格 wolf_e3=5(伝説)', M.srpgTierOfArt('wolf_e3'), 5);
+// 進化フォームのSVG＝基本種の体＋装飾（王冠パスを含む・非null）
+['goblin_e2', 'dragon_e3', 'wolf_e2', 'kanjioni_e3'].forEach(function (a) {
+  var svg = M.srpgMonArt(a);
+  c.ok('進化SVG生成: ' + a + '（svg＋王冠装飾）', !!svg && svg.indexOf('<svg') >= 0 && svg.indexOf('L36 14') >= 0);
+});
+// e3 は 角＋オーラも含む
+c.ok('e3は 角/オーラ装飾を含む', (function () { var s = M.srpgMonArt('dragon_e3'); return s.indexOf('Q19 23') >= 0 && s.indexOf('r="55"') >= 0; })());
+// 進化フォームは スカウト/dex/変種に混ざらない
+c.ok('進化フォームは base名簿/変種に無い（dex非加算）', !M.SRPG_MON_BASE_NAMES['goblin_e2'] && !M.SRPG_MON_VARIANTS2['goblin_e2'] && !M.SRPG_MON_VARIANTS2['dragon_e3']);
 
 c.done();

@@ -84,7 +84,13 @@ var MON3D_SPECS = {
   };
   Object.keys(V).forEach(function(k){ var b=MON3D_SPECS[k.replace(/2$/,'')]; if(b) MON3D_SPECS[k]=Object.assign({}, b, V[k]); });
 })();
-function mon3dSpecOf(key){ return MON3D_SPECS[key] || MON3D_SPECS.slime; }
+function mon3dSpecOf(key){
+  if(MON3D_SPECS[key]) return MON3D_SPECS[key];
+  var em=/^(.*)_e([23])$/.exec(key);   // 進化フォーム：基本種の3D＋王冠・大型化・魔化（stage3）
+  if(em && MON3D_SPECS[em[1]]){ var b=MON3D_SPECS[em[1]], s3=(em[2]==='3');
+    return Object.assign({}, b, { crown: b.crown||(s3?'#fbbf24':'#fcd34d'), big:(b.big||1)*(s3?1.26:1.13), demon: s3?true:b.demon }); }
+  return MON3D_SPECS.slime;
+}
 
 // =============== 純データ：装備アイテム（絵文字→3Dアーケタイプ）対応表 ===============
 // t: メッシュで作る型 / c: 主色。表に無い絵文字は「フィット絵文字プレート」で装着する。

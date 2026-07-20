@@ -183,6 +183,7 @@ var SRPG_MON_SKILL = {
   usagi:'sumihane', buta:'powerup', risu:'sumihane', mogura:'kamikizu', kurage:'numbing', kabuto:'kamikizu', koala:'lullaby', same:'kamikizu', wani:'kamikizu', kitsune:'sealing', woodgo:'powerup', hinotori:'hono',   // 新規Batch3
   tanuki:'sumihane', hamu:'sumihane', kame:'purupuru', ushi:'powerup', zou:'kamikizu', kaba:'kamikizu', kirin:'sumihane', lion:'kamikizu', washi:'sumihane', hyoudra:'numbing', hagane:'powerup', unicorn:'sealing',   // 新規Batch4
   ebi:'kamikizu', hachi:'sumihane', ari:'kamikizu', ika:'numbing', kuroneko:'sealing', fukurou:'sealing', chou:'lullaby', kappa:'numbing', oni:'powerup', tengu:'sumihane', umihebi:'numbing', kurisu:'purupuru',   // 新規Batch5
+  shika:'sumihane', saru:'kamikizu', kujira:'numbing', pega:'sealing', magma:'hono', seiryu:'numbing', kabocha:'lullaby', denki:'burstball',   // 新規Batch6
   // 魔神幹部5体（UR）＋裏ボス虚無竜（神話）＝スカウト対象化に伴い 固有とくぎを付与
   zeron:'burstball', jp_lt:'sealing', en_lt:'burstball', sci_lt:'numbing', so_lt:'lullaby', kyomu:'burstball'
 };

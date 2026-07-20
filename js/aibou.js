@@ -36,6 +36,8 @@ var AIBOU_ART_SPECIES={
   tanuki:'beast', hamu:'beast', kame:'beast', ushi:'beast', zou:'beast', kaba:'beast', kirin:'beast', lion:'beast', washi:'beast', hyoudra:'dragon', hagane:'nature', unicorn:'beast',
   // 新規Batch5
   ebi:'beast', hachi:'beast', ari:'beast', ika:'beast', kuroneko:'beast', fukurou:'beast', chou:'beast', kappa:'beast', oni:'beast', tengu:'beast', umihebi:'dragon', kurisu:'nature',
+  // 新規Batch6（図鑑500種到達）
+  shika:'beast', saru:'beast', kujira:'beast', pega:'beast', magma:'nature', seiryu:'dragon', kabocha:'nature', denki:'beast',
   // 亜種（色ちがい・rpg-assets.jsのRPG_VARIANTS）は基本種と同じ種族
   slime2:'slime', flaskun2:'slime', goblin2:'beast', bat2:'beast', wolf2:'beast', ghost2:'beast',
   dragon2:'dragon', voltdrake2:'dragon', trent2:'nature', haniwa2:'nature'

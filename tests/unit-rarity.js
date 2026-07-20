@@ -58,7 +58,17 @@ c.ok('全スカウト候補が 帯0..6 に解決', all.every(function (a) { var 
 c.ok('全帯0..6が非空（どのランクでも候補が存在＝安全）', bandCount.every(function (n) { return n > 0; }), JSON.stringify(bandCount));
 
 // ---- レア度オーラ枠ラッパ（表示層）----
-c.ok('rarityWrap LG→band-6＋MRバッジ', /band-6/.test(M.srpgRarityWrap('X', 'LG')) && /srpg-rar-badge">MR</.test(M.srpgRarityWrap('X', 'LG')));
+c.ok('rarityWrap LG→band-6＋LGバッジ', /band-6/.test(M.srpgRarityWrap('X', 'LG')) && /srpg-rar-badge">LG</.test(M.srpgRarityWrap('X', 'LG')));
+// 二枚看板の表示ラベル：SSS→UR、LG→LG、その下は階級文字のまま
+c.eq('rankLabel SSS→UR', M.srpgRankLabel('SSS'), 'UR');
+c.eq('rankLabel LG→LG', M.srpgRankLabel('LG'), 'LG');
+c.eq('rankLabel SS→SS（そのまま）', M.srpgRankLabel('SS'), 'SS');
+c.eq('rankLabel S→S（そのまま）', M.srpgRankLabel('S'), 'S');
+c.eq('rankTitle LG→神話', M.srpgRankTitle('LG'), '神話');
+c.eq('rankTitle SSS→伝説', M.srpgRankTitle('SSS'), '伝説');
+c.eq('rankTitle SS→称号なし', M.srpgRankTitle('SS'), '');
+c.eq('帯5=UR/伝説（SSS階級・2番手）', M.srpgRarityOfRank('SSS').name + M.srpgRarityBand(5).key, '伝説UR');
+c.eq('帯6=LG/神話（LG階級・最強）', M.srpgRarityBand(6).key, 'LG');
 c.ok('rarityWrap F→band-0＋Nバッジ', /band-0/.test(M.srpgRarityWrap('X', 'F')) && /srpg-rar-badge">N</.test(M.srpgRarityWrap('X', 'F')));
 c.ok('rarityWrap は innerHTML を保持', M.srpgRarityWrap('<b>竜</b>', 'SS').indexOf('<b>竜</b>') >= 0);
 c.ok('rarityWrap は rk-クラスと色変数を付与', /rk-SS/.test(M.srpgRarityWrap('X', 'SS')) && /--rc:/.test(M.srpgRarityWrap('X', 'SS')));

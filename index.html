@@ -8067,7 +8067,7 @@ function rpgShowAibou(){
       +'<button class="srpg-mini2'+(_sortMode==='species'?' on':'')+'" onclick="rpgAibouSort(\'species\')">種別順</button></div>';
     var _cell = function(id){ var a=ai.roster[id], inP=ai.party.indexOf(id)>=0;
       return '<button class="rpg-aibou-cell rpg-aibou-bd'+a.rank+(inP?' inparty':'')+'" onclick="rpgAibouDetail(\''+id+'\')">'
-        +'<span class="rpg-aibou-rank r'+a.rank+'">'+a.rank+'</span>'
+        +'<span class="rpg-aibou-rank r'+a.rank+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel(a.rank):a.rank)+'</span>'
         +(inP?'<span class="rpg-aibou-inp">🎒</span>':'')
         +'<span class="rpg-aibou-art">'+rpgAibouArt(a)+rpgAibouHatHtml(a)+'</span>'
         +'<span class="rpg-aibou-nm">'+((AIBOU_SPECIES[a.sp]||{}).em||'')+' '+escapeHtml(a.name||'？')+'</span>'
@@ -8101,7 +8101,7 @@ function rpgAibouDetail(id){
   h+='<div class="rpg-aibou-detail">';
   h+='<div class="rpg-aibou-d-plate rpg-aibou-bd'+a.rank+'" id="rpg-aibou-d-svg"><span class="rpg-aibou-art lg">'+rpgAibouArt(a)+rpgAibouHatHtml(a)+'</span></div>';
   h+='<div class="rpg-aibou-d-name">'+escapeHtml(a.name||'？')+' <button class="rpg-aibou-mini-btn" onclick="rpgAibouRename(\''+id+'\')" title="なまえを かえる">✏️</button></div>';
-  h+='<div class="rpg-aibou-d-chips"><span class="rpg-aibou-rank r'+a.rank+'">'+a.rank+'</span><span class="c">'+(sp.em||'')+' '+escapeHtml(sp.name||'')+(sp.rare?'（レア！）':'')+'</span><span class="c">💪 ちから '+aibouPower(a)+'</span>'+(inP?'<span class="c">🎒 パーティ中</span>':'')+'</div>';
+  h+='<div class="rpg-aibou-d-chips"><span class="rpg-aibou-rank r'+a.rank+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel(a.rank):a.rank)+'</span><span class="c">'+(sp.em||'')+' '+escapeHtml(sp.name||'')+(sp.rare?'（レア！）':'')+'</span><span class="c">💪 ちから '+aibouPower(a)+'</span>'+(inP?'<span class="c">🎒 パーティ中</span>':'')+'</div>';
   h+='<div class="rpg-aibou-d-fx">とくせい：'+escapeHtml(sp.desc||'')+'</div>';
   // 🎀 ぼうし：ガチャで手に入れた「なかまモンスターのぼうし」をこの子にそうび（a.hat＝個体ごと）
   (function(){

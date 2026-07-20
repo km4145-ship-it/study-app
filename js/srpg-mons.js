@@ -502,15 +502,19 @@ var SRPG_MON_TIER = {
 // ランク→帯（レア度が上がるほど 上位の帯＝より強力そうなモンスターが出る）
 var SRPG_RANK_BAND = { F:0, E:0, D:1, C:1, B:2, A:2, S:3, SS:4, SSS:5, LG:6 };
 // 帯メタ（表示ラベル・星・色＝レア度オーラ/枠の基調色）。key はガチャ的な短縮表記。
+// 上から LG(神話) > UR(伝説) > 超激 > 激 > SR > R > N（二枚看板＝最上位2段が LG・UR）
 var SRPG_RARITY_BANDS = [
-  { key:'N',   name:'ノーマル', stars:1, color:'#94a3b8', glow:'rgba(148,163,184,.0)' },
-  { key:'R',   name:'レア',     stars:2, color:'#34d399', glow:'rgba(52,211,153,.45)' },
-  { key:'SR',  name:'Sレア',    stars:3, color:'#60a5fa', glow:'rgba(96,165,250,.5)' },
-  { key:'SSR', name:'SSレア',   stars:4, color:'#a78bfa', glow:'rgba(167,139,250,.55)' },
-  { key:'UR',  name:'URレア',   stars:5, color:'#fbbf24', glow:'rgba(251,191,36,.6)' },
-  { key:'LG',  name:'伝説',     stars:6, color:'#f43f5e', glow:'rgba(244,63,94,.62)' },
-  { key:'MR',  name:'神話',     stars:7, color:'#e879f9', glow:'rgba(232,121,249,.7)' }
+  { key:'N',   name:'ノーマル',    stars:1, color:'#94a3b8', glow:'rgba(148,163,184,.0)' },
+  { key:'R',   name:'レア',        stars:2, color:'#34d399', glow:'rgba(52,211,153,.45)' },
+  { key:'SR',  name:'スーパーレア', stars:3, color:'#60a5fa', glow:'rgba(96,165,250,.5)' },
+  { key:'SSR', name:'激レア',      stars:4, color:'#a78bfa', glow:'rgba(167,139,250,.55)' },
+  { key:'超激', name:'超激レア',    stars:5, color:'#fbbf24', glow:'rgba(251,191,36,.6)' },
+  { key:'UR',  name:'伝説',        stars:6, color:'#f43f5e', glow:'rgba(244,63,94,.62)' },   // SSS階級＝2番手
+  { key:'LG',  name:'神話',        stars:7, color:'#e879f9', glow:'rgba(232,121,249,.7)' }   // LG階級＝最強
 ];
+// 表示ラベル（二枚看板）：SSS階級→「UR」、LG階級→「LG」、その下は階級文字のまま。称号は上位2段のみ。
+function srpgRankLabel(rank){ return rank==='SSS' ? 'UR' : (rank||'F'); }
+function srpgRankTitle(rank){ return rank==='LG' ? '神話' : (rank==='SSS' ? '伝説' : ''); }
 // アート→帯（基本種・属性変種・亜種すべて解決）。未知は 0。
 function srpgTierOfArt(art){
   if(art==null) return 0;
@@ -566,8 +570,8 @@ function srpgClassifyRoster(list, mode){
   var byR={};
   arr.forEach(function(a){ var r=(a&&a.rank)||'F'; (byR[r]=byR[r]||[]).push(a); });
   return SRPG_RANK_DESC.filter(function(r){return byR[r];}).map(function(r){
-    var rb=srpgRarityOfRank(r);
-    return { key:r, label:r+' '+rb.name, band:rb.band, items:byR[r].sort(function(x,y){ return (y.lv||1)-(x.lv||1); }) }; });
+    var rb=srpgRarityOfRank(r), t=srpgRankTitle(r);
+    return { key:r, label:srpgRankLabel(r)+(t?' '+t:''), band:rb.band, items:byR[r].sort(function(x,y){ return (y.lv||1)-(x.lv||1); }) }; });
 }
 
 // レア度オーラ枠でモンスターのアートHTMLをくるむ（rank→帯の 色/枠/バッジ）。CSS: .srpg-rar（index.html）。
@@ -582,5 +586,6 @@ if(typeof module !== 'undefined' && module.exports){
   module.exports = { SRPG_MON_ART: SRPG_MON_ART, SRPG_MON_VARIANT: SRPG_MON_VARIANT, srpgMonArt: srpgMonArt, SRPG_MON_VARIANTS2: SRPG_MON_VARIANTS2, SRPG_ELEM_VARIANTS: SRPG_ELEM_VARIANTS, SRPG_MON_BASE_NAMES: SRPG_MON_BASE_NAMES, srpgMonName: srpgMonName,
     SRPG_MON_TIER: SRPG_MON_TIER, SRPG_RANK_BAND: SRPG_RANK_BAND, SRPG_RARITY_BANDS: SRPG_RARITY_BANDS, srpgTierOfArt: srpgTierOfArt, srpgBandOfRank: srpgBandOfRank, srpgRarityBand: srpgRarityBand, srpgRarityOfRank: srpgRarityOfRank, srpgArtsForBand: srpgArtsForBand, srpgRarityWrap: srpgRarityWrap,
     SRPG_EVO_LINES: SRPG_EVO_LINES, SRPG_EVO_STAGE_OF: SRPG_EVO_STAGE_OF, srpgEvoFormFor: srpgEvoFormFor,
-    SRPG_SPECIES_LABEL: SRPG_SPECIES_LABEL, SRPG_RANK_DESC: SRPG_RANK_DESC, srpgClassifyRoster: srpgClassifyRoster };
+    SRPG_SPECIES_LABEL: SRPG_SPECIES_LABEL, SRPG_RANK_DESC: SRPG_RANK_DESC, srpgClassifyRoster: srpgClassifyRoster,
+    srpgRankLabel: srpgRankLabel, srpgRankTitle: srpgRankTitle };
 }

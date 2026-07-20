@@ -109,7 +109,7 @@ function srpgTeamScreen(){
       + (isLeader?'<span class="srpg-tm-crown">👑</span>':'')
       + '<div class="srpg-tm-ava">'+((typeof srpgMonArt==='function'&&srpgMonArt(sp.art))||_charStill(sp.art))+'</div>'
       + '<div class="srpg-tm-nm">'+escapeHtml(sp.name)+'</div>'
-      + '<div class="srpg-tm-meta">'+r.em+r.name+' <small>Lv'+sp.lvl+(sp.rank?' ('+sp.rank+')':'')+'</small></div>'
+      + '<div class="srpg-tm-meta">'+r.em+r.name+' <small>Lv'+sp.lvl+(sp.rank?' ('+(typeof srpgRankLabel==='function'?srpgRankLabel(sp.rank):sp.rank)+')':'')+'</small></div>'
       + '<div class="srpg-tm-sk">'+(innate?('<span class="srpg-tm-innate">✦'+escapeHtml(innate.name)+'</span> '):'')+((sp.skLv||1)>1?('<span class="srpg-tm-sklv">技Lv'+sp.skLv+'</span> '):'')+'とくぎ×'+(nSk+(innate?1:0))+(gear>0?' <span class="srpg-tm-gear">🎽そうび+'+gear+'</span>':'')+'</div>'
       + (on ? '<button class="srpg-tm-lead" onclick="srpgTeamSetLeader(\''+sp.id+'\')">'+(isLeader?'★リーダー':'リーダーにする')+'</button>' : '')
       + (selectable ? '<button class="srpg-tm-toggle'+(on?' rm':'')+'" onclick="srpgTeamToggle(\''+sp.id+'\')">'+(on?'はずす':'えらぶ')+'</button>' : '<div class="srpg-tm-fixed">必ず出撃</div>')
@@ -1754,7 +1754,7 @@ function srpgScoutScreen(){
     '<div class="srpg-scout-shop">'
     + '<div class="srpg-shop-hero"><div class="srpg-shop-circle"></div><div class="srpg-shop-faces">'+faces+'</div>'
     + '<div class="srpg-shop-t">🔮 なかまスカウト</div>'
-    + '<div class="srpg-shop-s">コインで つよい なかまを むかえよう！<br>SSSランクなら 魔王も なかまに…！？</div></div>'
+    + '<div class="srpg-shop-s">コインで つよい なかまを むかえよう！<br>UR（SSS階級）なら 魔王も なかまに…！？</div></div>'
     + '<div class="srpg-shop-pick"><small>こんしゅうの ピックアップ（出やすさ2倍）</small><div class="srpg-pick-row">'+pickFaces+'</div></div>'
     + '<div class="srpg-shop-pity"><div class="srpg-pity-bar"><i style="width:'+ppct+'%"></i></div><small>あと <b>'+pleft+'</b>回スカウトで SSランク以上 かくてい！（天井）</small></div>'
     + '<div class="srpg-shop-coin">🪙 <b>'+coin+'</b></div>'
@@ -1776,7 +1776,7 @@ function srpgScoutLog(){
   var lg = []; try{ lg = lsGetJSON('scout_log', []) || []; }catch(e){}
   var rows = lg.slice().reverse().map(function(e){
     var art = (typeof srpgMonArt==='function' && srpgMonArt(e.art)) || _monStill(e.art);
-    return '<div class="srpg-log-row"><span class="srpg-log-art">'+art+'</span><b class="rk-'+e.rank+'">'+e.rank+'</b><span>'+escapeHtml(e.nm||'')+'</span>'+(e.nw?'<i class="srpg-log-new">NEW</i>':'')+'</div>';
+    return '<div class="srpg-log-row"><span class="srpg-log-art">'+art+'</span><b class="rk-'+e.rank+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel(e.rank):e.rank)+'</b><span>'+escapeHtml(e.nm||'')+'</span>'+(e.nw?'<i class="srpg-log-new">NEW</i>':'')+'</div>';
   }).join('') || '<div class="srpg-odds-note">まだ スカウトしていないよ</div>';
   ov.innerHTML = '<div class="srpg-ui-card"><div class="srpg-ui-sec">📜 スカウトの きろく（さいきん20回）</div>'+rows
     + '<button class="rpg-btn ghost srpg-ui-close" onclick="srpgCloseUnitInfo()">とじる</button></div>';
@@ -1878,7 +1878,7 @@ function srpgScoutSequence(got, onDone){
       + '<div class="sc-seq-card rk-'+(g.rank||'')+'">'
       + (g.isNew ? '<span class="srpg-got-new">NEW</span>' : '')
       + '<div class="sc-seq-art">'+art+'</div>'
-      + '<div class="sc-seq-rk rk-'+(g.rank||'')+'">'+(g.rank||'')+'</div>'
+      + '<div class="sc-seq-rk rk-'+(g.rank||'')+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel((g.rank||'')):(g.rank||''))+'</div>'
       + '<div class="sc-seq-nm">'+escapeHtml(g.mon ? g.mon.name : 'なかまがいっぱい → エサ+5')+'</div></div>'
       + '<div class="sc-seq-skip">タップで つぎへ<button class="sc-seq-all">⏭ ぜんぶとばす</button></div>';
     ov.style.display = 'flex';
@@ -2064,7 +2064,7 @@ function srpgScoutResults(got, revealed){
     var art = (typeof srpgMonArt==='function' && srpgMonArt(g.mon.art)) || _monStill(g.mon.art);
     var inner = (g.isNew ? '<span class="srpg-got-new">NEW</span>' : '')
       + '<div class="srpg-got-art">'+art+'</div>'
-      + '<div class="srpg-got-rk rk-'+g.rank+'">'+g.rank+'</div>'
+      + '<div class="srpg-got-rk rk-'+g.rank+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel(g.rank):g.rank)+'</div>'
       + '<div class="srpg-got-nm">'+escapeHtml(g.mon.name)+'</div>';
     if(!many) return '<div class="srpg-got rk-'+g.rank+'">'+inner+'</div>';
     // 10連：裏向きカード → 順次フリップ（0.16秒間隔・高ランクは開く直前に金パルス）
@@ -2135,7 +2135,7 @@ function srpgSkillUpScreen(){
          : '<span class="srpg-fuse-none">素材なし</span>');
     rows += '<div class="srpg-fuse-row">'
       + '<div class="srpg-fuse-art">'+artHtml+'</div>'
-      + '<div class="srpg-fuse-info"><b>'+escapeHtml(base.name||'なかま')+'</b> <small class="srpg-fuse-rank r-'+(base.rank||'F')+'">'+(base.rank||'F')+'</small> <small>Lv'+(base.lv||1)+'</small>'
+      + '<div class="srpg-fuse-info"><b>'+escapeHtml(base.name||'なかま')+'</b> <small class="srpg-fuse-rank r-'+(base.rank||'F')+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel((base.rank||'F')):(base.rank||'F'))+'</small> <small>Lv'+(base.lv||1)+'</small>'
       + '<div class="srpg-fuse-lv">とくぎLv '+(base.skLv||1)+' / '+SRPG_SKLV_MAX+'　<small>いりょく+'+((Math.min(SRPG_SKLV_MAX,base.skLv||1)-1)*10)+'%</small></div>'
       + '<small class="srpg-fuse-n">ダブり '+dupes.length+'体</small></div>'
       + '<div class="srpg-fuse-acts">'+evoBtn+skBtn+'</div>'
@@ -2191,7 +2191,7 @@ function srpgEvolveFx(base, rank){
   try{
     var host = document.getElementById('srpg-body'); if(!host) return;
     var o = document.createElement('div'); o.className = 'srpg-evo-flash';
-    o.innerHTML = '<div class="srpg-evo-burst">✨</div><div class="srpg-evo-rank r-'+rank+'">'+rank+'</div><div class="srpg-evo-word">しんか！</div>';
+    o.innerHTML = '<div class="srpg-evo-burst">✨</div><div class="srpg-evo-rank r-'+rank+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel(rank):rank)+'</div><div class="srpg-evo-word">しんか！</div>';
     host.appendChild(o);
     setTimeout(function(){ try{ host.removeChild(o); }catch(e){} }, 1600);
   }catch(e){}
@@ -2444,9 +2444,9 @@ function srpgScoutReveal(mon, onDone){
     + '<div class="srpg-scout-ring"></div>'
     + '<div class="srpg-scout-shock"></div>'
     + '<div class="srpg-scout-art silhou drop">'+art+'</div>'
-    + (mon.rank?'<div class="srpg-scout-stamp rk-'+mon.rank+'">'+mon.rank+'</div>':'')
+    + (mon.rank?'<div class="srpg-scout-stamp rk-'+mon.rank+'">'+(typeof srpgRankLabel==='function'?srpgRankLabel(mon.rank):mon.rank)+'</div>':'')
     + '<div class="srpg-scout-cap">🎉 なかまが あらわれた！</div>'
-    + '<div class="srpg-scout-nm">'+escapeHtml(mon.name)+' <span>'+escapeHtml(mon.rank||'')+'</span></div>'
+    + '<div class="srpg-scout-nm">'+escapeHtml(mon.name)+' <span>'+escapeHtml((typeof srpgRankLabel==='function'?srpgRankLabel((mon.rank||'')):(mon.rank||'')))+'</span></div>'
     + '<div class="srpg-scout-tap">'+(isHigh?'タップして むかえいれる ▶':'タップして つづける ▶')+'</div>';
   var done = false, finalDone = false, timers = [];
   function T(fn, ms){ timers.push(setTimeout(fn, ms)); }

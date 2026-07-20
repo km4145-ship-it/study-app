@@ -78,10 +78,10 @@ c.eq('zeron 名前', M.srpgMonName('zeron'), '天秤の魔神ゼロン');
 c.eq('sci_lt 名前', M.srpgMonName('sci_lt'), 'まやかしの魔神ペテル');
 c.eq('kyomu 名前', M.srpgMonName('kyomu'), '虚無竜ムゲン');
 c.ok('魔神幹部/虚無竜は 属性変種を持たない（唯一無二）', !M.SRPG_MON_VARIANTS2['zeron_fire'] && !M.SRPG_MON_VARIANTS2['sci_lt_ice'] && !M.SRPG_MON_VARIANTS2['kyomu_dark']);
-c.eq('base種 52（46＋新規Batch1の6体）', Object.keys(M.SRPG_MON_BASE_NAMES).length, 52);
-c.eq('属性変種 130（26種×5・魔神/魔王は除外）', Object.keys(M.SRPG_MON_VARIANTS2).length, 130);
+c.eq('base種 62（46＋Batch1の6体＋Batch2の10体）', Object.keys(M.SRPG_MON_BASE_NAMES).length, 62);
+c.eq('属性変種 180（36種×5・魔神/魔王は除外）', Object.keys(M.SRPG_MON_VARIANTS2).length, 180);
 const dexAll = Object.keys(M.SRPG_MON_BASE_NAMES).concat(Object.keys(M.SRPG_MON_VARIANTS2));
-c.eq('dex総数=182（魔王16＋新規Batch1の6体とその変種）', dexAll.length, 182);
+c.eq('dex総数=242（魔王16＋Batch1の6体＋Batch2の10体とその変種）', dexAll.length, 242);
 // 新規Batch1（6体）＝スカウト/図鑑対象・帯0..2・属性変種あり
 ['kinoko', 'tori', 'kaeru', 'iwagon', 'onibi', 'kani'].forEach(function (k) {
   c.ok('Batch1 ' + k + ' は帯0..2＋名前＋属性変種あり', M.srpgTierOfArt(k) <= 2 && !!M.SRPG_MON_BASE_NAMES[k] && !!M.SRPG_MON_VARIANTS2[k + '_ice']);

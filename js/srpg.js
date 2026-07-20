@@ -179,6 +179,7 @@ var SRPG_MON_SKILL = {
   flaskun:'gekiyaku', microbe:'baikin', mapmoth:'rinpun', haniwa:'taunt', tokiou:'tokitome',
   villain:'burstball', daimaou:'burstball', enmaou:'hono', hyoumaou:'numbing', pet:'heal',
   kinoko:'purupuru', tori:'sumihane', kaeru:'lullaby', iwagon:'powerup', onibi:'hono', kani:'kamikizu',   // 新規Batch1
+  hitsuji:'purupuru', kumo:'sealing', tako:'sumihane', hebi:'numbing', pengin:'tokitome', hitode:'powerup', tokage:'kamikizu', ki:'lullaby', yuki:'numbing', ryunoko:'hono',   // 新規Batch2
   // 魔神幹部5体（UR）＋裏ボス虚無竜（神話）＝スカウト対象化に伴い 固有とくぎを付与
   zeron:'burstball', jp_lt:'sealing', en_lt:'burstball', sci_lt:'numbing', so_lt:'lullaby', kyomu:'burstball'
 };
